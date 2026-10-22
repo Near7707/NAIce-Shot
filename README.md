@@ -1,0 +1,2 @@
+# NAIce-Shot
+SillyTavern extensions
