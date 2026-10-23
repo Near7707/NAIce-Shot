@@ -148,3 +148,26 @@ test('scope=all lists every chat with per-chat counts and total size, and can fi
   assert.equal((await hist(s,{scope:'all'})).bytes,png.length*2,'missing files count as zero bytes but stay listed for cleanup');
   assert.equal((await hist(s,{scope:'all'})).total,3);
 });
+
+
+test('server requires explicit raw-retention consent and strips reasoning in persisted records',async t=>{
+  const s=await setup(t);
+  const raw='<think>PRIVATE_REASONING</think>{"location":"cafe"}<analysis>SECOND_SECRET</analysis>';
+  for(const flag of [undefined,false,'true',true]){
+    const body={...s.req.body,requestId:randomUUID(),retainRawExtraction:flag,snapshot:{scene:{location:'cafe'},rawExtraction:raw}};
+    const res=response();await s.handlers.generate({...s.req,body},res);assert.equal(res.statusCode,200);
+    const stored=JSON.parse(await fs.readFile(path.join(s.root,'naice-shot-records',body.requestId+'.json'),'utf8'));
+    if(flag===true){assert.equal(stored.snapshot.rawExtraction,'{"location":"cafe"}');assert.equal(res.body.snapshot.rawExtraction,stored.snapshot.rawExtraction);}
+    else assert.equal('rawExtraction' in stored.snapshot,false);
+    assert.equal(JSON.stringify(stored).includes('PRIVATE_REASONING'),false);
+  }
+});
+
+test('filesystem and unexpected provider errors never expose paths, keys or arbitrary status/messages',async t=>{
+  const s=await setup(t),file=path.join(s.root,'private-user-folder');await fs.writeFile(file,'not a directory');
+  const res=response();await s.handlers.history({user:{directories:{root:s.root,userImages:file}},query:{}},res);
+  assert.equal(res.statusCode,500);assert.doesNotMatch(JSON.stringify(res.body),/private-user-folder|ENOTDIR|\/tmp\//);
+  const handlers=createHandlers({readKey:()=>{throw Object.assign(new Error('C:\\Users\\PrivateName secret-token'),{status:403});}});
+  const unexpected=response();await handlers.status(s.req,unexpected);
+  assert.equal(unexpected.statusCode,500);assert.doesNotMatch(JSON.stringify(unexpected.body),/PrivateName|secret-token/);
+});

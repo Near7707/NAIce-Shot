@@ -53,3 +53,17 @@ test('cancelling a separate connection passes the signal to ST and reports a can
   await assert.rejects(pending,e=>e.name==='AbortError'&&!/연결 요청 실패/.test(e.message));
   assert.equal(seen,controller.signal);
 });
+
+
+test('separate extraction provider error details do not reveal credentials or local paths',async()=>{
+ const {requestExtraction}=await import('../ui/extractor.mjs');
+ const context={extensionSettings:{connectionManager:{profiles:[{id:'x',api:'custom'}]}},ConnectionManagerRequestService:{validateProfile:()=>({selected:'openai'}),sendRequest:async()=>{throw new Error('C:\\Users\\private-person token-PRIVATE');}}};
+ await assert.rejects(requestExtraction(context,'p',{profileId:'x'}),e=>!/private-person|PRIVATE/.test(e.message)&&/실패/.test(e.message));
+});
+
+
+test('main extraction provider errors are private and cancellation still uses AbortError',async()=>{
+ const {requestExtraction}=await import('../ui/extractor.mjs');
+ await assert.rejects(requestExtraction({mainApi:'openai',generateRaw:async()=>{throw new Error('/home/private/token-SECRET');}},'p'),e=>/실패/.test(e.message)&&!/private|SECRET/.test(e.message));
+ await assert.rejects(requestExtraction({mainApi:'openai',generateRaw:async()=>{throw new DOMException('secret details','AbortError');}},'p'),e=>e.name==='AbortError'&&!/secret/.test(e.message));
+});

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.7 — 2026-10-24
+
+**Update: UI + server. Replace both components, restart SillyTavern and refresh.**
+
+- Added `공유용 PNG` to result, history, viewer and chat attachments, plus `선택 공유용 저장` for a ZIP of selected shared copies. Browser-side opaque PNG re-encoding removes text metadata and alpha-channel stealth data. Originals remain byte-identical. Failed conversions never fall back to the original.
+- Raw extraction response retention is now explicit opt-in, off by default, and reset to off when importing settings. Known reasoning tags, including unterminated blocks, are removed before sending/storing an opted-in response. The server enforces the setting. Existing records are not automatically deleted or rewritten.
+- Filesystem and unexpected internal/provider errors no longer return arbitrary error text or local paths. Safe application errors remain useful.
+- UI requires server 0.1.7 and the `privacy-controls` feature. Added privacy/backup guidance and narrow-screen viewer wrapping.
+
 ## 0.1.6 — 2026-10-24
 
 **Update: UI only.** Replace the `ui/` folder and refresh. The 0.1.3 server plugin is unchanged.

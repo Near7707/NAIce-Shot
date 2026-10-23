@@ -1,8 +1,11 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { inflateRawSync } from 'node:zlib';
-import { buildPayload, costGuard, MODELS } from './core.mjs';
+import { buildPayload, costGuard, MODELS, stripReasoningBlocks } from './core.mjs';
 
+class PublicError extends Error {
+  constructor(message,status=400){super(message);this.status=status;}
+}
 const ORIGIN='https://image.novelai.net';
 const PNG=Buffer.from([137,80,78,71,13,10,26,10]);
 const ID=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -51,11 +54,11 @@ async function readLimited(response,limit) {
   for await(const chunk of response.body){total+=chunk.length;if(total>limit)throw new Error('NAI 응답 크기 한도를 넘었어요.');chunks.push(chunk);}
   return Buffer.concat(chunks);
 }
-const SERVER_VERSION='0.1.3';
+const SERVER_VERSION='0.1.7';
 // Oldest UI that works with this server. Raise it when a server change needs a newer UI.
 const MIN_CLIENT_VERSION='0.1.0';
 const RECORDS_DIR='naice-shot-records',INDEX_FILE='index.json';
-const fail400=message=>Object.assign(new Error(message),{status:400});
+const fail400=message=>new PublicError(message,400);
 const exists=async file=>{try{await fs.access(file);return true;}catch{return false;}};
 async function unlinkQuiet(file){try{await fs.unlink(file);return true;}catch(e){if(e.code==='ENOENT')return false;throw e;}}
 async function writeAtomic(file,text){const tmp=`${file}.${process.pid}.${Date.now()}.tmp`;await fs.writeFile(tmp,text);await fs.rename(tmp,file);}
@@ -105,21 +108,21 @@ export function createHandlers({readKey,fetcher=globalThis.fetch,timeoutMs=18000
   };
   const context=req=>{
     const dirs=req.user?.directories;
-    if(!dirs?.userImages || !dirs?.root)throw Object.assign(new Error('실리태번 사용자 경로를 찾지 못했어요.'),{status:401});
+    if(!dirs?.userImages || !dirs?.root)throw new PublicError('실리태번 사용자 경로를 찾지 못했어요.',401);
     return {dirs,user:dirs.root,store:createStore(dirs),key:()=>readKey(dirs)};
   };
   const subscription=async key=>{
-    if(!key)throw Object.assign(new Error('실리태번 API 연결 화면에 NAI 키를 먼저 저장해 주세요.'),{status:400});
+    if(!key)throw new PublicError('실리태번 API 연결 화면에 NAI 키를 먼저 저장해 주세요.',400);
     const response=await fetcher(`${ORIGIN}/user/subscription`,{headers:{Authorization:`Bearer ${key}`},signal:AbortSignal.timeout(20000)});
-    if(!response.ok)throw Object.assign(new Error(`NAI 계정 확인 실패 (${response.status}).`),{status:response.status===401?401:502});
+    if(!response.ok)throw new PublicError(`NAI 계정 확인 실패 (${response.status}).`,response.status===401?401:502);
     const data=JSON.parse((await readLimited(response,100000)).toString());
     // Forward only fields necessary for eligibility; never expose keys or full account data.
     return {tier:data.tier,perks:{unlimitedImageGeneration:data.perks?.unlimitedImageGeneration===true},
       anlas:{subscription:data.trainingStepsLeft?.fixedTrainingStepsLeft??null,purchased:data.trainingStepsLeft?.purchasedTrainingSteps??null}};
   };
-  const fail=(res,e)=>res.status(e.status??500).json({error:e.message??'요청 처리에 실패했어요.'});
+  const fail=(res,e)=>res.status(e instanceof PublicError?e.status:500).json({error:e instanceof PublicError?e.message:'요청 처리 중 내부 오류가 발생했어요. 설치 경로와 파일 접근 권한을 확인해 주세요.'});
   const chatKeyOf=value=>{if(typeof value!=='string'||!value||value.length>1000)throw fail400('채팅 정보가 잘못됐어요.');return value;};
-  const features=['paged-history','delete','private-records','all-history'];
+  const features=['paged-history','delete','private-records','all-history','privacy-controls'];
   return {
     // quick=1: version check only, without calling NovelAI (used by the UI on panel open).
     status:async(req,res)=>{try{const {key}=context(req),secret=key();
@@ -165,31 +168,33 @@ export function createHandlers({readKey,fetcher=globalThis.fetch,timeoutMs=18000
       let user,requestId,ownsLock=false;
       try {
         const ctx=context(req);user=ctx.user;const b=req.body;
-        if(!b || !ID.test(b.requestId) || typeof b.chatKey!=='string'||b.chatKey.length>1000)throw Object.assign(new Error('요청 ID 또는 채팅 정보가 잘못됐어요.'),{status:400});
+        if(!b || !ID.test(b.requestId) || typeof b.chatKey!=='string'||b.chatKey.length>1000)throw new PublicError('요청 ID 또는 채팅 정보가 잘못됐어요.',400);
         requestId=b.requestId;
-        if(JSON.stringify(b).length>250000)throw Object.assign(new Error('요청 크기가 너무 커요.'),{status:400});
+        if(JSON.stringify(b).length>250000)throw new PublicError('요청 크기가 너무 커요.',400);
         await serial(user,()=>ctx.store.ready());
         const old=await ctx.store.readRecord(requestId);if(old)return res.json(old);
-        if(active.has(user))throw Object.assign(new Error('이 계정에서 이미 생성 중이에요. 완료 후 다시 시도해 주세요.'),{status:409});
+        if(active.has(user))throw new PublicError('이 계정에서 이미 생성 중이에요. 완료 후 다시 시도해 주세요.',409);
         active.add(user);
         ownsLock=true;
-        const assembled=validateAssembled(b.assembled,b.options?.model),payload=buildPayload(assembled,b.options);
+        let assembled,payload;
+        try{assembled=validateAssembled(b.assembled,b.options?.model);payload=buildPayload(assembled,b.options);}catch(e){throw fail400(e.message);}
         const secret=ctx.key();
         let sub=null;
         try{sub=await subscription(secret);}catch(e){if(b.allowAnlas!==true)throw e;}
-        if(!secret)throw Object.assign(new Error('NAI 키가 없어요.'),{status:400});
+        if(!secret)throw new PublicError('NAI 키가 없어요.',400);
         const guard=costGuard(b.options,sub);
-        if(!guard.free && b.allowAnlas!==true)throw Object.assign(new Error(guard.message),{status:402});
+        if(!guard.free && b.allowAnlas!==true)throw new PublicError(guard.message,402);
         const upstream=await fetcher(`${ORIGIN}/ai/generate-image`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${secret}`},
           body:JSON.stringify(payload),signal:AbortSignal.timeout(timeoutMs)});
         if(!upstream.ok) {
           // Do not return or log upstream account details or submitted RP text.
-          throw Object.assign(new Error(`NAI 생성 실패 (${upstream.status}). 자동 재요청하지 않았어요.`),{status:upstream.status===429?429:502});
+          throw new PublicError(`NAI 생성 실패 (${upstream.status}). 자동 재요청하지 않았어요.`,upstream.status===429?429:502);
         }
         const png=extractPng(await readLimited(upstream,30*1024*1024));
         const item={id:requestId,created:new Date().toISOString(),chatKey:b.chatKey,
           image:`/user/images/naice-shot/${requestId}.png`,seed:b.options.seed,options:b.options,assembled,
-          snapshot:b.snapshot??null,payload,version:SERVER_VERSION};
+          snapshot:b.snapshot&&typeof b.snapshot==='object'?{scene:b.snapshot.scene??null,
+            ...(b.retainRawExtraction===true&&typeof b.snapshot.rawExtraction==='string'?{rawExtraction:stripReasoningBlocks(b.snapshot.rawExtraction)}:{})}:null,payload,version:SERVER_VERSION};
         await serial(user,async()=>{
           const entries=await ctx.store.ready();
           await fs.writeFile(ctx.store.png(requestId),png,{flag:'wx'});
@@ -198,7 +203,7 @@ export function createHandlers({readKey,fetcher=globalThis.fetch,timeoutMs=18000
         });
         res.json(item);
       }catch(e){
-        if(e.name==='TimeoutError'||e.name==='AbortError')e=Object.assign(new Error('NAI 응답 시간이 초과됐어요. 실제 생성·차감 여부는 NAI에서 확인해 주세요. 자동 재요청하지 않았어요.'),{status:504});
+        if(e.name==='TimeoutError'||e.name==='AbortError')e=new PublicError('NAI 응답 시간이 초과됐어요. 실제 생성·차감 여부는 NAI에서 확인해 주세요. 자동 재요청하지 않았어요.',504);
         fail(res,e);
       }finally{if(ownsLock)active.delete(user);}
     },

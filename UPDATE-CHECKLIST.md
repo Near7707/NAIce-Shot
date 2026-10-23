@@ -1,3 +1,7 @@
+## v0.1.7 privacy update
+
+Replace **both** the `ui/` files and the `server/` files, restart SillyTavern fully and refresh the browser. Confirm server v0.1.7 in Settings. Check that raw-response retention is off by default. For sharing, use `공유용 PNG` or `선택 공유용 저장`; ordinary PNG save preserves the original metadata. Existing records and PNGs are not rewritten.
+
 # Installation and update checklist
 
 For 0.1.5 → 0.1.6 (UI only), replace the UI folder contents and refresh. Keep the 0.1.3 server plugin.

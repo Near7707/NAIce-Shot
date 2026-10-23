@@ -1,4 +1,4 @@
-# NAIce Shot v0.1.6
+# NAIce Shot v0.1.7
 
 실리태번의 RP 장면을 추출해 NovelAI 그림을 생성하는 비공식 확장이에요. 캐릭터 외형 프로필, 장면·복장 편집, 생성 프리셋, 이미지 이력과 채팅 첨부를 지원해요.
 
@@ -23,10 +23,10 @@
 - **추출 AI로 보내는 내용:** 선택한 범위의 메시지 본문, 인물 이름·연결 정보, 관련 복장 정보예요. 설명을 프로필로 바꿀 때는 입력한 캐릭터 설명을 보내요. 실리태번의 연결·프리셋 설정에 따른 추가 동작도 고려해 주세요.
 - **NovelAI로 보내는 내용:** 최종 이미지 프롬프트, 캐릭터별 프롬프트와 생성 설정이에요. 생성 요청에 추출 응답 원문 전체를 추가로 보내지는 않아요.
 - **설정 백업 JSON:** 캐릭터 프로필, 이름·별칭·카드 연결, 공통 프롬프트, 프리셋, 생성 옵션, 추출 연결 프로필 ID와 환경설정 등이 포함돼요. NAIce Shot이 내보내는 설정 백업을 다른 사람에게 공유하기 전에 내용을 확인해 주세요.
-- **생성 이력:** 프롬프트, 실제 생성 요청 데이터, 장면 정보와 추출 AI의 원문 응답을 사용자의 실리태번 데이터 폴더에 저장해요. 원문 응답에 대화 인용이나 사고 태그가 있으면 함께 남을 수 있어요. 채팅 파일에는 복장·연결·이미지 첨부 정보가 저장돼요. 전체 사용자 데이터 폴더를 백업하거나 공유하면 이러한 정보도 포함될 수 있어요.
-- **PNG 공유:** NovelAI가 반환한 원본 PNG를 저장하므로, 파일 안에 프롬프트·생성 설정 등의 메타데이터가 있으면 그대로 남아요. 공개 공유 전에 확인해 주세요. 현재 확장에는 메타데이터 제거 기능이 없어요.
+- **생성 이력:** 프롬프트·생성 요청 데이터·장면 정보는 사용자 데이터 폴더에 저장해요. 추출 AI 원문은 기본으로 보관하지 않아요. 설정 → 개인정보 보관에서 직접 켜면 사고 태그를 제거한 응답을 앞으로 생성하는 그림의 이력에 저장해요. 이전 버전에서 이미 저장한 원문은 자동 삭제하지 않아요. 채팅 파일에는 복장·연결·이미지 첨부 정보가 저장돼요. 전체 사용자 데이터 폴더를 백업하거나 공유하면 이러한 정보도 포함될 수 있어요.
+- **PNG 공유:** `PNG 저장`은 메타데이터를 포함할 수 있는 원본이에요. `공유용 PNG`는 브라우저에서 그림을 다시 인코딩해 PNG 메타데이터와 알파 채널에 숨겨진 정보를 제거한 불투명 사본을 저장해요. 투명한 부분은 흰색 배경으로 합쳐져요. 결과·이력·크게 보기·채팅 첨부에서 사용할 수 있고, 여러 장은 `선택 공유용 저장`으로 ZIP에 모을 수 있어요. 원본과 생성 이력은 그대로 유지돼요. 그림 자체에 보이는 이름·글자는 제거하지 않아요.
 - **접근 보호:** PNG는 채팅 표시를 위해 실리태번의 이미지 경로로 제공돼요. 인증과 접근 제한은 실리태번 설정을 사용하며, 확장이 별도의 로그인 기능을 추가하지는 않아요.
-- **오류 화면 공유:** 현재 일부 파일 처리 오류에는 로컬 설치 경로가 표시될 수 있어요. 버그 제보 시 화면이나 오류 문구에 개인 경로·사용자명이 들어 있는지 확인해 주세요.
+- **오류 화면 공유:** 파일 처리나 예상치 못한 내부 오류는 정리한 메시지로 표시해 로컬 경로를 노출하지 않아요. 선택한 추출 연결에서 반환한 임의의 오류 원문도 그대로 표시하지 않아요.
 
 코드에 개발자용 별도 통계 수집·텔레메트리 전송 기능은 없어요. 자세한 저장 위치와 검토 범위는 아래 영문 안내 및 [SECURITY-REVIEW.md](SECURITY-REVIEW.md)를 참고해 주세요.
 
@@ -34,7 +34,7 @@
 
 Generate NovelAI illustrations from SillyTavern roleplay scenes, with saved character appearances, editable scene prompts, and per-character prompt slots.
 
-This repository contains the v0.1.6 preview source. The UI is in Korean. Installation requires both the browser extension and the companion server plugin; follow the manual installation steps below. No separate GitHub Release asset is provided by this source upload.
+This repository contains the v0.1.7 preview source. The UI is in Korean. Installation requires both the browser extension and the companion server plugin; follow the manual installation steps below. No separate GitHub Release asset is provided by this source upload.
 
 > **Unofficial project.** NAIce Shot is an independent, community-made add-on. It is not made, endorsed or supported by NovelAI (Anlatan) or the SillyTavern team. "NovelAI" and "SillyTavern" are used only to describe compatibility. Image generation uses your own NovelAI account and follows NovelAI's terms and pricing.
 >
@@ -118,6 +118,14 @@ bash install.sh /path/to/SillyTavern my-user
 
 The script supports SillyTavern's default `data/<user-handle>` layout. It backs up existing NAIce Shot extension/plugin files before replacing them. It does not edit `config.yaml`, application source, profiles or chat data. Use manual installation for custom data roots.
 
+## Updating from 0.1.6 / 0.1.6에서 업데이트
+
+**0.1.7은 UI와 서버 플러그인을 모두 바꿔야 해요.** `ui/`의 내용을 확장 폴더에, `server/`의 내용을 `plugins/naice-shot-server/`에 복사한 뒤 실리태번을 완전히 재시작하고 브라우저를 새로고침해 주세요. UI가 서버 0.1.7과 `privacy-controls` 기능을 확인해 이전 서버를 알려 줘요.
+
+원문 보관은 기본 꺼짐이고, 설정 백업을 가져와도 자동으로 켜지지 않아요. 기존 이력과 원본 PNG는 자동으로 고치거나 지우지 않아요. 이전 그림도 `공유용 PNG`로 별도 저장할 수 있어요.
+
+**Update both components:** replace the UI and the companion server plugin with 0.1.7, restart SillyTavern, and refresh the browser. Raw-response retention defaults to off and is reset to off on backup import. Existing records and original PNGs are not modified. The shared-copy export works on existing images too.
+
 ## Updating from 0.1.5
 
 0.1.6 is a **UI-only** update. Replace all files in `extensions/naice-shot/` with the ZIP's `ui/` folder and refresh. Keep the 0.1.3 server plugin. The display-name and Noise Schedule settings are gone; values saved by earlier versions are ignored.
@@ -188,9 +196,10 @@ Restoring history uses that record's prompt, seed and options without changing p
 - Inline image attachment metadata uses `extra.naice_shot_images`. Images are drawn above or below the message text (Settings → 채팅 속 그림 위치); the message text itself is never changed, so prompts, summaries and extraction do not see the images.
 - PNG files use the `naice-shot/` subfolder of SillyTavern's user-images directory.
 - Generation records use `<user data root>/naice-shot-records/`, outside the web-served image folder.
-- Records include the submitted prompts, exact payload, extracted scene and raw extraction response. They do not include the NovelAI request authorization header.
+- Records include submitted prompts, exact payload and extracted scene. Raw extraction responses are omitted by default; explicit opt-in retains a copy with known reasoning tags removed. Older records are not automatically scrubbed. They do not include the NovelAI request authorization header.
 - All-chat history is scoped to the authenticated SillyTavern user's data directory.
 - **선택 저장** downloads the selected history images: one as its PNG, several as a single ZIP file.
+- `공유용 PNG` exports an opaque, re-encoded copy without PNG text metadata or alpha-channel stealth data; `선택 공유용 저장` exports several such copies in one ZIP. The original-save controls preserve original bytes.
 - Image deletion removes PNGs and generation records. Attachments in the open chat are cleaned up; other chats can show a missing-image notice.
 
 Generated PNGs are served through SillyTavern so they can appear in chat. Protect access to your SillyTavern instance. This extension does not add its own authentication layer.

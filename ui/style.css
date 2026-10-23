@@ -246,7 +246,7 @@
 #ncs-viewer * {box-sizing:border-box;}
 #ncs-viewer .ncsv-bar {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;
  padding-top:max(10px,env(safe-area-inset-top));background:#15181fee;border-bottom:1px solid #ffffff1f;z-index:1;}
-#ncs-viewer .ncsv-group {display:flex;align-items:center;gap:6px;}
+#ncs-viewer .ncsv-group {display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
 #ncs-viewer .ncsv-save-group {margin-left:auto;}
 #ncs-viewer button,#ncs-viewer .ncsv-save {display:inline-flex;align-items:center;justify-content:center;min-width:42px;min-height:42px;margin:0;padding:8px 12px;
  font:inherit;line-height:1.2;color:#f1f3f6;background:#ffffff12;border:1px solid #ffffff55;border-radius:8px;cursor:pointer;text-decoration:none;white-space:nowrap;}
@@ -263,8 +263,8 @@
 #ncs-viewer .ncsv-stage img {position:absolute;left:0;top:0;max-width:none;max-height:none;transform-origin:0 0;-webkit-user-drag:none;user-select:none;}
 #ncs-viewer .ncsv-meta {padding:6px 12px;padding-bottom:max(6px,env(safe-area-inset-bottom));font-size:12px;color:#c9ced6;background:#15181fee;border-top:1px solid #ffffff1f;}
 @media(max-width:520px) {
- /* Two tidy rows: view modes + close on top, zoom + save below. */
- #ncs-viewer .ncsv-bar {display:grid;grid-template-columns:1fr auto;grid-template-areas:'modes close' 'zooms save';gap:6px;padding:8px;padding-top:max(8px,env(safe-area-inset-top));}
+ /* Stack zoom and download tools so the shared-copy button fits on narrow screens. */
+ #ncs-viewer .ncsv-bar {display:grid;grid-template-columns:1fr auto;grid-template-areas:'modes close' 'zooms zooms' 'save save';gap:6px;padding:8px;padding-top:max(8px,env(safe-area-inset-top));}
  #ncs-viewer .ncsv-modes {grid-area:modes;} #ncs-viewer .ncsv-zooms {grid-area:zooms;}
  #ncs-viewer .ncsv-save-group {grid-area:save;margin-left:0;justify-content:flex-end;} #ncs-viewer .ncsv-close-group {grid-area:close;justify-content:flex-end;}
  #ncs-viewer button,#ncs-viewer .ncsv-save {min-height:40px;padding:6px 9px;font-size:13px;}

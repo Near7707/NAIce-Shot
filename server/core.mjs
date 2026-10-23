@@ -1,4 +1,4 @@
-export const VERSION = '0.1.3';
+export const VERSION = '0.1.7';
 export const BRAND = 'NAIce Shot';
 export const SIZE_PRESETS = {
   portrait:{label:'세로 · 832 × 1216',width:832,height:1216},
@@ -16,7 +16,7 @@ export const MODELS = {
 };
 export const DEFAULTS = {
   version: VERSION, displayName:BRAND, profiles: [], positive: '', negative: '', format: 'tags',
-  recent: 3, includeUser: true, structuredOutput: true, profileInputMode: 'describe',
+  recent: 3, includeUser: true, structuredOutput: true, retainRawExtraction: false, profileInputMode: 'describe',
   imagePresets:[], imagePresetId:'', extractionProfileId:'', extractionMaxTokens:4096,
   options: { model: 'nai-diffusion-5-full', width: 832, height: 1216, steps: 28,
     scale: 5, seed: -1, sampler: 'k_euler_ancestral', scheduler: 'karras', cfgRescale: 0 },
@@ -74,6 +74,9 @@ export function validateScene(value, profiles) {
   if (!Array.isArray(value.unregistered) || value.unregistered.some(x=>typeof x !== 'string' || x.length>200)) throw new Error('미등록 인물 목록이 잘못됐어요.');
   return { scene:{ characters, unregistered:value.unregistered, interaction:str(value,'interaction'),
     location:str(value,'location'), lighting:str(value,'lighting'), camera:str(value,'camera'), source:null }, warnings };
+}
+export function stripReasoningBlocks(text) {
+  return String(text??'').replace(/<(think(?:ing)?|analysis|reasoning)\b[^>]*>[\s\S]*?(?:<\/\1\s*>|$)/gi,'').trim();
 }
 // Text spans that may hold the JSON answer: the whole reply, code fences, then every balanced {...}.
 // Each '{' is tried as a start, so an unmatched brace in reasoning prose cannot swallow the real JSON.

@@ -53,7 +53,7 @@ try{
  assert.match(download.suggestedFilename(),/^naice-shot-\d{8}-\d{4}-3\.zip$/);
  const file=path.join(tmp,'sel.zip');await download.saveAs(file);
  assert.deepEqual(zipNames(file),ids.slice(0,3).map(id=>[`naice-shot-${id}.png`,id]),'each PNG intact, in creation order');
- await page.waitForFunction(()=>/3장을 ZIP 파일 하나로 저장했어요.*찾지 못한 1장은 빠졌어요/.test(document.querySelector('#ncs-notice').textContent));
+ await page.waitForFunction(()=>/3장을 ZIP 파일 하나로 저장했어요.*변환에 실패한 1장은 빠졌어요/.test(document.querySelector('#ncs-notice').textContent));
  assert.equal(await page.locator('#ncs-history [data-history-pick]:checked').count(),4,'selection stays after saving');
  assert.equal(await save.isDisabled(),false);
 

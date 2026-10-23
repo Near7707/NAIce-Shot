@@ -123,3 +123,18 @@ test('scene and settings preset pickers share application, modified state, delet
   assert.doesNotMatch(h.node('#ncs-scene-preset').innerHTML,/New preset/);
   assert.deepEqual(clone(h.settings.options),before,'deleting a saved preset leaves active values intact');
 });
+
+
+test('raw extraction stays out of requests by default; opt-in removes reasoning before sending',async()=>{
+  const h=await setup();
+  const original=h.context.generateRaw;
+  h.context.generateRaw=async()=>'<think>PRIVATE REASONING</think>'+await original();
+  await h.ui.extract();await h.ui.generate();
+  assert.equal(h.sent.at(-1).retainRawExtraction,false);
+  assert.equal('rawExtraction' in h.sent.at(-1).snapshot,false);
+  h.settings.retainRawExtraction=true;
+  await h.ui.generate();
+  assert.equal(h.sent.at(-1).retainRawExtraction,true);
+  assert.match(h.sent.at(-1).snapshot.rawExtraction,/cafe/);
+  assert.doesNotMatch(h.sent.at(-1).snapshot.rawExtraction,/PRIVATE REASONING|<think>/);
+});

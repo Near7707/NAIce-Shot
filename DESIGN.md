@@ -12,7 +12,7 @@ The UI validates generation options and sends the assembled prompt and a snapsho
 
 The plugin ID is `naice-shot`. It registers status, history, generate and delete routes below `/api/plugins/naice-shot`.
 
-The server resolves the current user's directories and reads the NovelAI secret through SillyTavern. The secret is used only in authorization headers for the fixed NovelAI origin. The server stores PNGs in the user-images subfolder `naice-shot` and request records in the private `naice-shot-records` folder.
+The server resolves the current user's directories and reads the NovelAI secret through SillyTavern. The secret is used only in authorization headers for the fixed NovelAI origin. The server stores PNGs in the user-images subfolder `naice-shot` and request records in the private `naice-shot-records` folder. Raw extraction text requires explicit opt-in (default off); known reasoning tags are removed. Shared PNG download copies are re-encoded in the browser on an opaque canvas, leaving stored originals unchanged.
 
 Per-user generation locking avoids overlapping requests. Storage updates are serialized per user. Completed request IDs can return their stored result without sending another generation request.
 

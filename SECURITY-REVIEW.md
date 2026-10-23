@@ -1,3 +1,17 @@
+# Current privacy changes — v0.1.7
+
+Reviewed 2026-10-24 (Asia/Seoul). Both UI and server must be updated to 0.1.7. Validation: 95 Node tests and four targeted browser scripts passed; no live provider calls were made.
+
+- Shared PNG exports are re-encoded on an opaque browser canvas. This removes copied PNG text/EXIF metadata and the alpha channel used for NovelAI stealth metadata. Transparent pixels are composited on white; originals and stored generation records are untouched. Visible text in an image is not redacted. A failed conversion never downloads the original as a shared copy.
+- The NovelAI metadata format reference is the official repository: https://github.com/NovelAI/novelai-image-metadata . This feature addresses PNG metadata and its alpha-channel format, not arbitrary hidden information in visible RGB pixels.
+- New generation requests omit raw extraction responses by default. Explicit boolean opt-in is required on the server; known think/thinking/analysis/reasoning tags, including an unterminated trailing block, are removed before persistence. Backup import resets opt-in to false. Existing records are not silently scrubbed or deleted.
+- Only intentional application errors are returned verbatim. Filesystem errors, secret-reader failures and other unexpected errors use a generic response; separate text-provider error details are not displayed verbatim.
+- No new external endpoint or npm runtime dependency was added. PNG cleanup runs in the user's browser and fetches only validated same-origin generated-image paths.
+
+The earlier review below describes the older v0.1.6 package. Its noted missing privacy controls are superseded by the changes above; its installation and external-provider scope limits still apply.
+
+---
+
 # Package and data-flow review
 
 Build: NAIce Shot v0.1.6 (UI) with server plugin v0.1.3. Reviewed 2026-10-23 (Asia/Seoul).

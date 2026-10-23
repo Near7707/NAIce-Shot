@@ -19,8 +19,8 @@ test('compat levels',()=>{
   assert.equal(checkCompat({uiVersion:'0.1.3',status:200,data:{version:'0.1.3',features:['delete']}}).level,'warn','missing feature');
   const oldUi=checkCompat({uiVersion:'0.1.3',status:200,data:{version:'0.2.0',features:all,minClient:'0.2.0'}});
   assert.equal(oldUi.level,'warn');assert.match(oldUi.message,/확장\(UI\) 파일이/);
-  assert.equal(checkCompat({uiVersion:'0.1.3',status:200,data:{version:'0.1.2',features:all}}).level,'info');
-  assert.equal(checkCompat({uiVersion:'0.1.3',status:200,data:{version:'0.1.3',features:all,minClient:'0.1.0'}}).level,'ok');
+  assert.equal(checkCompat({uiVersion:'0.1.3',status:200,data:{version:'0.1.2',features:all},minServer:'0.1.0'}).level,'info');
+  assert.equal(checkCompat({uiVersion:'0.1.3',status:200,data:{version:'0.1.3',features:all,minClient:'0.1.0'},minServer:'0.1.0'}).level,'ok');
 });
 test('this release\'s server satisfies this release\'s UI',async()=>{
   // UI-only releases may be ahead of the server; the shared core must still match apart from the version line.

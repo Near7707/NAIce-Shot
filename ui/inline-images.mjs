@@ -74,11 +74,12 @@ export function renderInlineImages(context,root,chatKey,{placement='below'}={}) 
    const tile=document.createElement('figure');tile.className='ncs-inline-image';
    const img=document.createElement('img');img.src=item.image;img.alt='생성된 장면';img.loading='lazy';
    const open=document.createElement('button');open.type='button';open.className='ncs-inline-open';open.dataset.ncsInlineView=item.id;open.setAttribute('aria-label','생성된 장면 크게 보기');open.append(img);
-   const actions=document.createElement('figcaption'),download=document.createElement('a'),remove=document.createElement('button');
+   const actions=document.createElement('figcaption'),download=document.createElement('a'),clean=document.createElement('button'),remove=document.createElement('button');
+   clean.type='button';clean.dataset.ncsInlineClean=item.id;clean.textContent='공유용 PNG';
    const file=imageDownload(item);download.href=file.url;download.download=file.filename;download.textContent='PNG 저장';
    // A deleted or missing file shows a note instead of a broken image; the remove button stays.
    img.addEventListener('error',()=>{tile.classList.add('ncs-missing');open.disabled=true;download.remove();const note=document.createElement('span');note.className='ncs-missing-note';note.textContent='삭제됐거나 찾을 수 없는 그림이에요.';open.replaceChildren(note);},{once:true});
-   remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이미지 빼기';actions.append(download,remove);tile.append(open,actions);holder.append(tile);
+   remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이미지 빼기';actions.append(download,clean,remove);tile.append(open,actions);holder.append(tile);
   }
   const text=element.querySelector('.mes_text');
   if(text)where==='above'?text.before(holder):text.after(holder);else (element.querySelector('.mes_block')??element)[where==='above'?'prepend':'append'](holder);

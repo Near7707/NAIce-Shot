@@ -1,6 +1,6 @@
 import { DEFAULTS, MODELS, clone, PROFILE_SCHEMA, profileDraftPrompt, parseProfileDraft, blankScene, validateProfiles, chooseMessages, sourceValid,
   extractionPrompt, parseExtraction, assemble, resolveOutfit, buildPayload, costGuard, textSignature,
-  BRAND, SIZE_PRESETS, sizePresetOf, VERSION, extractionSchema } from './core.mjs';
+  BRAND, SIZE_PRESETS, sizePresetOf, VERSION, extractionSchema, stripReasoningBlocks } from './core.mjs';
 import { CAMERA_ICON, TAB_ICONS } from './icons.mjs';
 import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById } from './skins.mjs';
 import { attachInlineImage, detachInlineImage, detachInlineImages, countInlineImages, hasInlineImage, imageDownload, renderInlineImages } from './inline-images.mjs';
@@ -11,6 +11,7 @@ import { openImageViewer } from './viewer.mjs';
 import { genericizeScene } from './tags.mjs';
 import { checkCompat } from './compat.mjs';
 import { makeZip } from './zip.mjs';
+import { cleanImageFile, saveCleanImage } from './downloads.mjs';
 
 const KEY='naice_shot',API='/api/plugins/naice-shot';
 let dialog,scene=blankScene(),raw='',finalOverride=null,revision=0,busy=false,task=0,subscription=null,historyItems=[],chatKey='',result=null,attaching=false;
@@ -141,7 +142,7 @@ function renderSettings() {
   $('ncs-model').innerHTML=Object.entries(MODELS).map(([id,m])=>`<option value="${id}">${m.label}</option>`).join('');
   for(const [id,k] of [['positive','positive'],['negative','negative'],['recent','recent'],['format','format']])$(`ncs-${id}`).value=s[k];
   for(const [id,k] of [['model','model'],['width','width'],['height','height'],['steps','steps'],['scale','scale'],['seed','seed'],['cfg','cfgRescale'],['sampler','sampler']])$(`ncs-${id}`).value=s.options[k];
-  $('ncs-include-user').checked=s.includeUser;$('ncs-schema').checked=s.structuredOutput;$('ncs-allow-anlas').checked=s.allowAnlas;
+  $('ncs-include-user').checked=s.includeUser;$('ncs-schema').checked=s.structuredOutput;$('ncs-retain-raw').checked=s.retainRawExtraction===true;$('ncs-allow-anlas').checked=s.allowAnlas;
   $('ncs-image-placement').value=imagePlacement();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
   renderImagePresets();renderExtractionProfiles();$('ncs-extraction-max-tokens').value=s.extractionMaxTokens;
 }
@@ -410,11 +411,11 @@ async function generate(seedMode=null) {
   options.seed=seedMode==='same'&&result?result.seed:seedMode==='new'||options.seed===-1?crypto.getRandomValues(new Uint32Array(1))[0]:options.seed;
   buildPayload(a,options); // Local validation before network or billing.
   if(!a.base.trim()&&!a.characters.length)throw new Error('장면이나 프롬프트를 먼저 입력해 주세요.');
-  const snapshot={scene:clone(scene),rawExtraction:raw};snapshot.scene.source=scene.source?compactSource(scene.source):null;
+  const snapshot={scene:clone(scene),...(s.retainRawExtraction===true?{rawExtraction:stripReasoningBlocks(raw)}:{})};snapshot.scene.source=scene.source?compactSource(scene.source):null;
   if(keyOf()!==startKey)return;
   setBusy(true,ticket);startProgress('generate',ticket);notice('NAI에 생성 요청을 보내고 있어요. 창을 닫거나 채팅을 바꿔도 서버는 결과를 저장해요.');
   try {
-    const item=await api('/generate',{method:'POST',body:{requestId:uuid(),chatKey:startKey,assembled:a,options,allowAnlas:s.allowAnlas,snapshot}});
+    const item=await api('/generate',{method:'POST',body:{requestId:uuid(),chatKey:startKey,assembled:a,options,allowAnlas:s.allowAnlas,retainRawExtraction:s.retainRawExtraction===true,snapshot}});
     if(ticket!==task||keyOf()!==startKey){notice('생성이 끝났어요. 시작한 채팅의 이력에서 확인할 수 있어요.');return;}
     result=item;renderResult();notice(`생성했어요 · seed ${item.seed} · 그림을 누르면 크게 볼 수 있어요.`);loadHistory().catch(()=>{});
   }finally{stopProgress(ticket);if(busyOwner===ticket)setBusy(false);}
@@ -429,7 +430,7 @@ function preferredTarget(item) {
 }
 function imageControls(item) {
   const file=imageDownload(item),attached=hasInlineImage(ctx().chat,item),preferred=preferredTarget(item);
-  return `<label>그림을 넣을 메시지<select data-image-target="${esc(item.id)}">${chatRows().map(row=>rowOption(row,row.i===preferred)).join('')}</select></label><div class="ncs-row"><button data-action="attach" class="ncs-primary">본문 아래에 넣기</button>${attached?'<button data-action="detach">이미지 빼기</button>':''}<a href="${esc(file.url)}" download="${file.filename}">PNG 저장</a><button type="button" data-action="delete-result" class="ncs-danger-outline">삭제</button></div>`;
+  return `<label>그림을 넣을 메시지<select data-image-target="${esc(item.id)}">${chatRows().map(row=>rowOption(row,row.i===preferred)).join('')}</select></label><div class="ncs-row"><button data-action="attach" class="ncs-primary">본문 아래에 넣기</button>${attached?'<button data-action="detach">이미지 빼기</button>':''}<a href="${esc(file.url)}" download="${file.filename}">PNG 저장</a><button type="button" data-clean-save="${esc(item.id)}" title="프롬프트 메타데이터와 알파 채널 정보를 뺀 불투명 PNG 사본">공유용 PNG</button><button type="button" data-action="delete-result" class="ncs-danger-outline">삭제</button></div>`;
 }
 function renderResult() {
   $('ncs-result').innerHTML=result?`<button type="button" class="ncs-image-open" data-view-result aria-label="생성된 장면 크게 보기"><img src="${esc(result.image)}" alt="생성된 장면"></button>${imageControls(result)}<div class="ncs-row"><button data-action="same-seed">같은 seed로 생성</button><button data-action="new-seed">새 seed로 생성</button><button type="button" data-view-result>크게 보기</button></div><small>seed ${result.seed} · ${esc(MODELS[result.options.model]?.label)} · 메시지 본문은 유지되고, 첨부 그림은 본편 AI 입력에 포함되지 않아요.</small>`:'';
@@ -444,29 +445,33 @@ function updateAttachButtons() {
 let savingSelection=false;
 function downloadFile(url,filename) {const a=document.createElement('a');a.href=url;a.download=filename;a.rel='noopener';a.style.display='none';document.body.append(a);a.click();a.remove();}
 // Saves the selected history images: one PNG as-is, several as a single ZIP (one download prompt, works on mobile).
-async function saveSelected() {
+async function saveSelected(clean=false) {
   const items=historyItems.filter(x=>selectedIds.has(x.id)).sort((a,b)=>String(a.created).localeCompare(String(b.created)));
   if(!items.length||savingSelection)return;
+  if(items.length===1&&clean){savingSelection=true;updateHistoryTools();try{await saveCleanImage(items[0]);notice('메타데이터를 뺀 공유용 PNG를 저장했어요.');}finally{savingSelection=false;updateHistoryTools();}return;}
   if(items.length===1){const file=imageDownload(items[0]);downloadFile(file.url,file.filename);notice('선택한 그림 1장을 PNG로 저장했어요.');return;}
   savingSelection=true;updateHistoryTools();
   try{
     const files=[];let missing=0;
     for(const [i,item] of items.entries()){
       notice(`선택한 그림을 모으고 있어요… ${i+1}/${items.length}`);
-      try{const file=imageDownload(item),response=await fetch(file.url,{cache:'no-store'});if(!response.ok)throw new Error(String(response.status));
-        files.push({name:file.filename,data:new Uint8Array(await response.arrayBuffer()),date:new Date(item.created)});}catch{missing++;}
+      try{
+        if(clean){const file=await cleanImageFile(item);files.push({name:file.filename,data:new Uint8Array(await file.blob.arrayBuffer()),date:new Date(item.created)});}
+        else{const file=imageDownload(item),response=await fetch(file.url,{cache:'no-store'});if(!response.ok)throw new Error(String(response.status));
+        files.push({name:file.filename,data:new Uint8Array(await response.arrayBuffer()),date:new Date(item.created)});}}catch{missing++;}
     }
     if(!files.length)throw new Error('저장할 그림 파일을 찾지 못했어요. 서버 폴더에서 지워졌을 수 있어요.');
     const d=new Date(),pad=n=>String(n).padStart(2,'0'),stamp=`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
     const url=URL.createObjectURL(new Blob([makeZip(files)],{type:'application/zip'}));
-    downloadFile(url,`naice-shot-${stamp}-${files.length}.zip`);setTimeout(()=>URL.revokeObjectURL(url),60000);
-    notice(`선택한 그림 ${files.length}장을 ZIP 파일 하나로 저장했어요.${missing?` 파일을 찾지 못한 ${missing}장은 빠졌어요.`:''}`);
+    downloadFile(url,`naice-shot-${clean?"shared-":""}${stamp}-${files.length}.zip`);setTimeout(()=>URL.revokeObjectURL(url),60000);
+    notice(`${clean?"메타데이터를 뺀 공유용 그림":"선택한 그림"} ${files.length}장을 ZIP 파일 하나로 저장했어요.${missing?` 불러오기·변환에 실패한 ${missing}장은 빠졌어요.`:''}`);
   }finally{savingSelection=false;updateHistoryTools();}
 }
 function updateHistoryTools() {
   if(!dialog)return;const locked=busy||attaching;
   for(const id of [...selectedIds])if(!historyItems.some(x=>x.id===id))selectedIds.delete(id);
   const save=dialog.querySelector('[data-action="save-selected"]');save.textContent=savingSelection?'저장 준비 중…':selectedIds.size?`선택 저장 (${selectedIds.size})`:'선택 저장';save.disabled=savingSelection||!selectedIds.size;
+  const clean=dialog.querySelector('[data-action="save-selected-clean"]');clean.disabled=savingSelection||!selectedIds.size;
   const del=dialog.querySelector('[data-action="delete-selected"]');del.textContent=selectedIds.size?`선택 삭제 (${selectedIds.size})`:'선택 삭제';del.disabled=locked||!selectedIds.size;
   const all=dialog.querySelector('[data-action="select-all-history"]'),every=historyItems.length>0&&historyItems.every(x=>selectedIds.has(x.id));
   all.textContent=every?'선택 해제':'표시된 항목 모두 선택';all.disabled=locked||!historyItems.length;
@@ -569,13 +574,13 @@ function renderHistory() {
     renderHistoryFilter();
     $('ncs-history').innerHTML=historyItems.length?historyItems.map(item=>{
       const id=esc(item.id),file=imageDownload(item),here=item.chatKey===current;
-      return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button><small class="ncs-chat-name${here?' ncs-here':''}">${esc(chatLabel(item.chatKey))}${here?' · 지금 채팅':''}</small><small>${esc(new Date(item.created).toLocaleString())} · seed ${esc(item.seed)}</small><a href="${esc(file.url)}" download="${file.filename}">PNG 저장</a><button data-history-delete="${id}" class="ncs-danger-outline">삭제</button></article>`;
+      return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button><small class="ncs-chat-name${here?' ncs-here':''}">${esc(chatLabel(item.chatKey))}${here?' · 지금 채팅':''}</small><small>${esc(new Date(item.created).toLocaleString())} · seed ${esc(item.seed)}</small><a href="${esc(file.url)}" download="${file.filename}">PNG 저장</a><button type="button" data-clean-save="${esc(item.id)}" title="프롬프트 메타데이터와 알파 채널 정보를 뺀 불투명 PNG 사본">공유용 PNG</button><button data-history-delete="${id}" class="ncs-danger-outline">삭제</button></article>`;
     }).join(''):'<p>저장된 그림이 없어요.</p>';
     updateAttachButtons();return;
   }
   $('ncs-history').innerHTML=historyItems.length?historyItems.map(item=>{
     const id=esc(item.id),file=imageDownload(item),attached=hasInlineImage(chat,item);
-    return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button><small>${esc(new Date(item.created).toLocaleString())} · seed ${esc(item.seed)}</small><button data-history-id="${id}">편집으로 불러오기</button><button data-history-attach="${id}" class="ncs-primary">본문 아래에 넣기</button>${attached?`<button data-history-detach="${id}">이미지 빼기</button>`:''}<a href="${esc(file.url)}" download="${file.filename}">PNG 저장</a><button data-history-delete="${id}" class="ncs-danger-outline">삭제</button></article>`;
+    return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button><small>${esc(new Date(item.created).toLocaleString())} · seed ${esc(item.seed)}</small><button data-history-id="${id}">편집으로 불러오기</button><button data-history-attach="${id}" class="ncs-primary">본문 아래에 넣기</button>${attached?`<button data-history-detach="${id}">이미지 빼기</button>`:''}<a href="${esc(file.url)}" download="${file.filename}">PNG 저장</a><button type="button" data-clean-save="${esc(item.id)}" title="프롬프트 메타데이터와 알파 채널 정보를 뺀 불투명 PNG 사본">공유용 PNG</button><button data-history-delete="${id}" class="ncs-danger-outline">삭제</button></article>`;
   }).join(''):'<p>아직 생성 이력이 없어요.</p>';
   updateAttachButtons();
 }
@@ -624,11 +629,12 @@ async function importSettings(file) {
   // Import only the declared settings fields, never arbitrary payload keys.
   const clean={};for(const k of Object.keys(DEFAULTS))clean[k]=next[k];
   clean.imagePlacement=next.imagePlacement==='above'?'above':'below';
+  clean.retainRawExtraction=false; // importing a backup must not enable raw response retention
   clean.allowAnlas=false; // a shared backup must never switch on paid generation by itself
   if(typeof clean.skin!=='string'||!skinById(clean.skin))clean.skin=DEFAULT_SKIN;
   if(!['describe','direct'].includes(clean.profileInputMode))clean.profileInputMode=DEFAULTS.profileInputMode;
   if(!confirm('현재 프로필과 공통 설정을 이 백업으로 바꿀까요? 현재 설정을 내보낸 뒤 진행할 수 있어요.'))return;
-  ctx().extensionSettings[KEY]=clean;ctx().saveSettingsDebounced();renderChatImages();scene=blankScene();finalOverride=null;optionsOverride=null;revision++;renderSettings();renderProfiles();editProfile();renderScene();useSkin(clean.skin).catch(()=>{});notice('백업을 가져왔어요. Anlas 사용 가능성 허용은 꺼진 상태로 가져왔어요.');
+  ctx().extensionSettings[KEY]=clean;ctx().saveSettingsDebounced();renderChatImages();scene=blankScene();finalOverride=null;optionsOverride=null;revision++;renderSettings();renderProfiles();editProfile();renderScene();useSkin(clean.skin).catch(()=>{});notice('백업을 가져왔어요. Anlas 사용 가능성 허용과 추출 원문 보관은 꺼진 상태로 가져왔어요.');
 }
 async function onAction(action,el) {
   switch(action) {
@@ -678,6 +684,7 @@ async function onAction(action,el) {
       renderHistory();break;
     }
     case 'save-selected':await saveSelected();break;
+    case 'save-selected-clean':await saveSelected(true);break;
     case 'delete-selected':await deleteImages({ids:[...selectedIds]});break;
     case 'delete-chat-history':await deleteImages({all:true});break;
     case 'delete-filter-chat':if(historyFilter)await deleteImages({all:true,chatKey:historyFilter});break;
@@ -689,7 +696,8 @@ function bindEvents() {
   dialog.addEventListener('click',event=>{
     const el=event.target.closest('button,a');if(!el)return;
     Promise.resolve().then(async()=>{
-      if(el.dataset.tab)showTab(el.dataset.tab);
+      if(el.dataset.cleanSave){const id=el.dataset.cleanSave;await saveCleanImage({id,image:`/user/images/naice-shot/${id}.png`});notice('메타데이터를 뺀 공유용 PNG를 저장했어요.');}
+      else if(el.dataset.tab)showTab(el.dataset.tab);
       else if(el.dataset.action)await onAction(el.dataset.action,el);
       else if(el.dataset.historyScope)setHistoryScope(el.dataset.historyScope);
       else if(el.dataset.profileMode)setProfileMode(el.dataset.profileMode);
@@ -746,7 +754,7 @@ function bindEvents() {
       if(el.hasAttribute('data-lock')){const id=el.closest('[data-character]').dataset.character;saveOutfit(id,el.checked).catch(e=>notice(e.message,true));return;}
       for(const field of ['location','lighting','camera','interaction'])if(el.id===`ncs-${field}`){scene[field]=el.value;changed();return;}
       if(el.id==='ncs-image-placement'){settings().imagePlacement=el.value==='above'?'above':'below';ctx().saveSettingsDebounced();renderChatImages();notice(el.value==='above'?'채팅 속 그림을 메시지 글 위에 보여줘요.':'채팅 속 그림을 메시지 글 아래에 보여줘요.');return;}
-      const settingMap={'ncs-positive':'positive','ncs-negative':'negative','ncs-format':'format','ncs-recent':'recent','ncs-include-user':'includeUser','ncs-schema':'structuredOutput','ncs-allow-anlas':'allowAnlas'};
+      const settingMap={'ncs-positive':'positive','ncs-negative':'negative','ncs-format':'format','ncs-recent':'recent','ncs-include-user':'includeUser','ncs-schema':'structuredOutput','ncs-retain-raw':'retainRawExtraction','ncs-allow-anlas':'allowAnlas'};
       const optionMap={'ncs-model':'model','ncs-width':'width','ncs-height':'height','ncs-steps':'steps','ncs-scale':'scale','ncs-seed':'seed','ncs-cfg':'cfgRescale','ncs-sampler':'sampler'};
       if(settingMap[el.id])settings()[settingMap[el.id]]=el.type==='checkbox'?el.checked:el.type==='number'?Number(el.value):el.value;
       if(optionMap[el.id]){optionsOverride=null;settings().options[optionMap[el.id]]=el.type==='number'?Number(el.value):el.value;}
@@ -790,6 +798,8 @@ async function initialize() {
   const refreshChatImages=()=>renderChatImages();
   for(const type of ['MESSAGE_RECEIVED','MESSAGE_SENT','MESSAGE_SWIPED','MESSAGE_DELETED','MESSAGE_EDITED'])if(events[type])c.eventSource.on(events[type],()=>{refreshChatImages();if(dialog.open){renderTargets();renderMatching();renderResult();renderHistory();updateFinal();}});
   document.getElementById('chat')?.addEventListener('click',event=>{
+    const clean=event.target.closest('[data-ncs-inline-clean]');
+    if(clean){event.preventDefault();const id=clean.dataset.ncsInlineClean;clean.disabled=true;saveCleanImage({id,image:`/user/images/naice-shot/${id}.png`}).then(()=>say('메타데이터를 뺀 공유용 PNG를 저장했어요.'),()=>say('공유용 PNG를 저장하지 못했어요. 원본으로 대체 저장하지 않았어요.',true)).finally(()=>{clean.disabled=false;});return;}
     const open=event.target.closest('[data-ncs-inline-view]');
     if(open){event.preventDefault();event.stopPropagation();try{viewImage({id:open.dataset.ncsInlineView,image:`/user/images/naice-shot/${open.dataset.ncsInlineView}.png`});}catch(e){console.error('[NAIce Shot]',e.message);}return;}
     const button=event.target.closest('[data-ncs-inline-remove]');if(!button)return;

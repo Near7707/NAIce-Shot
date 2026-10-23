@@ -1,8 +1,8 @@
 // UI ↔ server plugin compatibility. When a release changes the server plugin, raise MIN_SERVER_VERSION
 // (and add any new feature flag to REQUIRED_SERVER_FEATURES) so people who forget to replace the
 // server folder see a clear notice as soon as they open the panel.
-export const MIN_SERVER_VERSION = '0.1.0';
-export const REQUIRED_SERVER_FEATURES = ['paged-history', 'delete', 'private-records', 'all-history'];
+export const MIN_SERVER_VERSION = '0.1.7';
+export const REQUIRED_SERVER_FEATURES = ['paged-history', 'delete', 'private-records', 'all-history', 'privacy-controls'];
 
 export function compareVersions(a, b) {
   const parts = v => String(v ?? '').split('.').map(x => Number.parseInt(x, 10) || 0);

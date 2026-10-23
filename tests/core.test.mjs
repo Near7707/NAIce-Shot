@@ -89,3 +89,11 @@ test('a stray opening brace in reasoning prose does not hide the JSON that follo
   assert.equal(parseExtraction(`I think {maybe she stands\n${JSON.stringify(value)}`,profiles).scene.location,'park');
   assert.equal(parseExtraction(`Plan: { a, { b }\n\n${JSON.stringify(value)} trailing }`,profiles).scene.location,'park');
 });
+
+
+test('reasoning removal handles known tags, case differences and unterminated blocks',async()=>{
+ const {stripReasoningBlocks}=await import('../ui/core.mjs');
+ assert.equal(stripReasoningBlocks('<THINK data-x="1">private</THINK> {"ok":true} <analysis>secret</analysis>'),'{"ok":true}');
+ assert.equal(stripReasoningBlocks('{"ok":true}<reasoning>unfinished secret'),'{"ok":true}');
+ assert.equal(stripReasoningBlocks('<thinking>unfinished secret'),'');
+});

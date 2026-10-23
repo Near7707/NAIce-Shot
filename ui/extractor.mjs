@@ -31,6 +31,9 @@ export async function requestExtraction(context,prompt,{profileId='',structured=
   try{
    return await abortable(context.generateRaw({prompt,systemPrompt,trimNames:false,
     ...(structured&&context.mainApi==='openai'?{jsonSchema:schema}:{})}),signal);
+  }catch(e){
+   if(signal?.aborted||e?.name==='AbortError')throw abortError();
+   throw new Error('본편 연결로 추출 요청에 실패했어요. 실리태번의 API 연결 설정을 확인해 주세요.');
   }finally{signal?.removeEventListener('abort',stop);}
  }
  const service=context.ConnectionManagerRequestService;
@@ -50,7 +53,6 @@ export async function requestExtraction(context,prompt,{profileId='',structured=
   throw new Error('추출 연결에서 텍스트 응답을 받지 못했어요.');
  }catch(e){
   if(signal?.aborted||e?.name==='AbortError')throw abortError();
-  const detail=e.cause?.message??e.message;
-  throw new Error(`추출 연결 요청 실패: ${String(detail).slice(0,300)}. 연결 프로필과 JSON 구조화 출력 설정을 확인해 주세요.`);
+  throw new Error('추출 연결 요청에 실패했어요. 연결 프로필과 JSON 구조화 출력 설정을 확인해 주세요.');
  }
 }

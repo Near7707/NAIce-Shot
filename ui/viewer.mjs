@@ -1,6 +1,7 @@
 // Full-screen image viewer: fit / original size / zoom / pan / pinch / PNG save.
 // Pure view math is exported separately so it can be unit tested without a DOM.
 import { imageDownload } from './inline-images.mjs';
+import { saveCleanImage } from './downloads.mjs';
 import { currentSkin } from './skins.mjs';
 
 export const ZOOM_MIN = 0.05, ZOOM_MAX = 8, ZOOM_STEP = 1.25;
@@ -40,7 +41,7 @@ function build() {
   dialog.innerHTML = `<div class="ncsv-bar">
     <div class="ncsv-group ncsv-modes"><button type="button" data-v="fit" aria-pressed="true">화면 맞춤</button><button type="button" data-v="original" aria-pressed="false">원본 크기</button></div>
     <div class="ncsv-group ncsv-zooms"><button type="button" data-v="out" aria-label="축소" title="축소 (-)">−</button><output class="ncsv-zoom" aria-live="polite">100%</output><button type="button" data-v="in" aria-label="확대" title="확대 (+)">+</button></div>
-    <div class="ncsv-group ncsv-save-group"><a class="ncsv-save" download>PNG 저장</a><button type="button" data-v="delete" class="ncsv-delete" hidden>삭제</button></div>
+    <div class="ncsv-group ncsv-save-group"><a class="ncsv-save" download>PNG 저장</a><button type="button" data-v="clean">공유용 PNG</button><button type="button" data-v="delete" class="ncsv-delete" hidden>삭제</button></div>
     <div class="ncsv-group ncsv-close-group"><button type="button" data-v="close" aria-label="닫기" title="닫기 (Esc)">✕</button></div>
   </div>
   <div class="ncsv-stage"><img alt="생성된 장면 크게 보기" draggable="false"></div>
@@ -49,8 +50,9 @@ function build() {
 
   const stage = dialog.querySelector('.ncsv-stage'), img = stage.querySelector('img');
   const zoomLabel = dialog.querySelector('.ncsv-zoom'), meta = dialog.querySelector('.ncsv-meta'), save = dialog.querySelector('.ncsv-save');
-  const state = { nat: { w: 0, h: 0 }, view: { scale: 1, x: 0, y: 0 }, mode: 'fit', caption: '', onDelete: null };
+  const state = { nat: { w: 0, h: 0 }, view: { scale: 1, x: 0, y: 0 }, mode: 'fit', caption: '', onDelete: null, item: null };
   const deleteButton = dialog.querySelector('[data-v="delete"]');
+  async function cleanSave(){const button=dialog.querySelector('[data-v="clean"]');button.disabled=true;try{await saveCleanImage(state.item);meta.textContent='메타데이터를 뺀 공유용 PNG를 저장했어요.';}catch{meta.textContent='공유용 PNG를 저장하지 못했어요. 원본으로 대체 저장하지 않았어요.';}finally{button.disabled=false;}}
   async function remove() {
     if (!state.onDelete) return;
     deleteButton.disabled = true;
@@ -84,7 +86,7 @@ function build() {
 
   dialog.addEventListener('click', event => {
     const button = event.target.closest('[data-v]'); if (!button) return;
-    ({ fit, original: () => original(), in: () => zoomBy(ZOOM_STEP), out: () => zoomBy(1 / ZOOM_STEP), close: () => dialog.close(), delete: remove })[button.dataset.v]?.();
+    ({ fit, original: () => original(), in: () => zoomBy(ZOOM_STEP), out: () => zoomBy(1 / ZOOM_STEP), close: () => dialog.close(), delete: remove, clean: cleanSave })[button.dataset.v]?.();
   });
   dialog.addEventListener('keydown', event => {
     if (event.target.closest?.('a,button') && (event.key === 'Enter' || event.key === ' ')) return;
@@ -144,7 +146,7 @@ function build() {
     dialog,
     open(item, { caption = '', onDelete = null } = {}) {
       const file = imageDownload(item); // validates the same-origin generated PNG path
-      state.caption = caption; state.nat = { w: 0, h: 0 }; state.mode = 'fit';
+      state.item = item;state.caption = caption; state.nat = { w: 0, h: 0 }; state.mode = 'fit';
       state.onDelete = typeof onDelete === 'function' ? onDelete : null; deleteButton.hidden = !state.onDelete; deleteButton.disabled = false;
       save.href = file.url; save.download = file.filename;
       meta.textContent = '불러오는 중…'; img.style.transform = ''; img.removeAttribute('style');
