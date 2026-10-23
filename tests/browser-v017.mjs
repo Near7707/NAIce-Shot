@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {deflateSync} from 'node:zlib';
 import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
-import {crc32} from '../ui/zip.mjs';
+import {crc32} from '../zip.mjs';
 const modules=process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES;
 const {chromium}=await import(modules?`${modules}/playwright/index.mjs`:'playwright');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -76,8 +76,8 @@ try{
  await page.waitForFunction(()=>mock.extensionSettings.naice_shot.retainRawExtraction===false);
  assert.equal(await page.locator('#ncs-retain-raw').isChecked(),false);
  assert.ok(await page.locator('.ncs-content').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
- const unsafe=await page.evaluate(async()=>{const {cleanImageFile}=await import('/ui/downloads.mjs');try{await cleanImageFile({id:'00000000-0000-4000-8000-000000000001',image:'https://outside.invalid/private.png'});return false;}catch{return true;}});assert.equal(unsafe,true);
- const invalid=await page.evaluate(async()=>{const {cleanPng}=await import('/ui/downloads.mjs');try{await cleanPng(new Blob(['invalid PNG']));return false;}catch{return true;}});assert.equal(invalid,true);
+ const unsafe=await page.evaluate(async()=>{const {cleanImageFile}=await import('/downloads.mjs');try{await cleanImageFile({id:'00000000-0000-4000-8000-000000000001',image:'https://outside.invalid/private.png'});return false;}catch{return true;}});assert.equal(unsafe,true);
+ const invalid=await page.evaluate(async()=>{const {cleanPng}=await import('/downloads.mjs');try{await cleanPng(new Blob(['invalid PNG']));return false;}catch{return true;}});assert.equal(invalid,true);
  assert.deepEqual(errors,[]);
  console.log('PASS: original bytes preserved; shared PNG text metadata removed and alpha opaque; result/viewer/inline/selected-ZIP downloads; mobile fit; raw opt-in and backup reset; unsafe/broken inputs rejected');
 }finally{await browser.close();server.close();}

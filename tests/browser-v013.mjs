@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
-import {VERSION} from '../ui/core.mjs';
+import {VERSION} from '../core.mjs';
 const modules=process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES;
 const {chromium}=await import(modules?`${modules}/playwright/index.mjs`:'playwright');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -15,7 +15,7 @@ const server=http.createServer(async(req,res)=>{try{
 }catch{res.writeHead(404).end();}});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const browser=await chromium.launch({headless:true,executablePath:process.env.NAICE_SHOT_CHROMIUM||undefined,args:['--no-sandbox','--disable-gpu','--disable-dev-shm-usage']});
-const features=['paged-history','delete','private-records','all-history'];
+const {REQUIRED_SERVER_FEATURES:features}=await import('../compat.mjs');
 async function run(statusReply,viewport={width:1280,height:900}){
  const page=await browser.newPage({viewport});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  let quick=0;
@@ -31,7 +31,7 @@ try{
  // 1) Old server: warning banner with the fix, dismiss hides it, reopening the panel does not nag again.
  let r=await run(route=>route.fulfill({json:{keyConfigured:true,version:'0.0.9',features:['delete']}}));
  assert.equal(await r.page.locator('#ncs-compat').isVisible(),true);
- assert.match(await r.page.locator('#ncs-compat-text').textContent(),/서버 플러그인이 이전 버전\(v0\.0\.9\)이에요.*server 폴더/);
+ assert.match(await r.page.locator('#ncs-compat-text').textContent(),/서버 플러그인이 이전 버전\(v0\.0\.9\)이에요.*재시작/);
  await r.page.locator('[data-action="dismiss-compat"]').click();assert.equal(await r.page.locator('#ncs-compat').isHidden(),true);
  await r.page.locator('[data-action="close"]').first().click();await r.page.locator('.ncs-launch-button').click();
  assert.equal(await r.page.locator('#ncs-compat').isHidden(),true);assert.equal(r.quick(),1,'checked once per page load');

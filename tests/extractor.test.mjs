@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {listExtractionProfiles,requestExtraction} from '../ui/extractor.mjs';
+import {listExtractionProfiles,requestExtraction} from '../extractor.mjs';
 function context(type='openai') {
  const calls=[];
  const ctx={mainApi:'openai',extensionSettings:{connectionManager:{selectedProfile:'main',profiles:[{id:'cheap',api:'custom',name:'Cheap'}]}},
@@ -29,7 +29,7 @@ test('missing, unsupported or disabled profiles never silently use the main conn
 });
 
 test('cancelling a main-connection extraction rejects at once and asks ST to stop the raw request',async()=>{
-  const {requestExtraction}=await import('../ui/extractor.mjs');
+  const {requestExtraction}=await import('../extractor.mjs');
   const emitted=[];let release;
   const context={mainApi:'openai',extensionSettings:{},eventTypes:{GENERATION_STOPPED:'generation_stopped'},
     eventSource:{emit:async type=>{emitted.push(type);}},generateRaw:()=>new Promise(r=>{release=r;})};
@@ -42,7 +42,7 @@ test('cancelling a main-connection extraction rejects at once and asks ST to sto
   await assert.rejects(requestExtraction(context,'p',{signal:controller.signal}),{name:'AbortError'},'already-aborted signal never sends');
 });
 test('cancelling a separate connection passes the signal to ST and reports a cancel, not a provider failure',async()=>{
-  const {requestExtraction}=await import('../ui/extractor.mjs');
+  const {requestExtraction}=await import('../extractor.mjs');
   let seen;
   const context={mainApi:'openai',extensionSettings:{connectionManager:{profiles:[{id:'x',name:'x',api:'custom'}]}},
     ConnectionManagerRequestService:{validateProfile:()=>({selected:'openai'}),
@@ -56,14 +56,14 @@ test('cancelling a separate connection passes the signal to ST and reports a can
 
 
 test('separate extraction provider error details do not reveal credentials or local paths',async()=>{
- const {requestExtraction}=await import('../ui/extractor.mjs');
+ const {requestExtraction}=await import('../extractor.mjs');
  const context={extensionSettings:{connectionManager:{profiles:[{id:'x',api:'custom'}]}},ConnectionManagerRequestService:{validateProfile:()=>({selected:'openai'}),sendRequest:async()=>{throw new Error('C:\\Users\\private-person token-PRIVATE');}}};
  await assert.rejects(requestExtraction(context,'p',{profileId:'x'}),e=>!/private-person|PRIVATE/.test(e.message)&&/실패/.test(e.message));
 });
 
 
 test('main extraction provider errors are private and cancellation still uses AbortError',async()=>{
- const {requestExtraction}=await import('../ui/extractor.mjs');
+ const {requestExtraction}=await import('../extractor.mjs');
  await assert.rejects(requestExtraction({mainApi:'openai',generateRaw:async()=>{throw new Error('/home/private/token-SECRET');}},'p'),e=>/실패/.test(e.message)&&!/private|SECRET/.test(e.message));
  await assert.rejects(requestExtraction({mainApi:'openai',generateRaw:async()=>{throw new DOMException('secret details','AbortError');}},'p'),e=>e.name==='AbortError'&&!/secret/.test(e.message));
 });

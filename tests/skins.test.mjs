@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import {SKINS,detectSkins} from '../ui/skins.mjs';
+import {SKINS,detectSkins} from '../skins.mjs';
 
-const dir=new URL('../ui/skins/',import.meta.url);
+const dir=new URL('../skins/',import.meta.url);
 const parse=c=>{
   c=c.trim();if(c==='transparent')return [0,0,0,0];
   if(c.startsWith('#')){const h=c.slice(1);const f=h.length===3?[...h].map(x=>x+x).join(''):h;return [0,2,4].map(i=>parseInt(f.slice(i,i+2),16)).concat(f.length===8?parseInt(f.slice(6,8),16)/255:1);}
@@ -56,6 +56,6 @@ test('detection hides a deleted skin file and keeps the built-in one',async()=>{
   assert.deepEqual(offline,['classic']);
 });
 test('skins never tint the page behind the panel',async()=>{
-  for(const skin of SKINS.filter(s=>s.file)){const css=await fs.readFile(new URL(`../ui/skins/${skin.file}`,import.meta.url),'utf8');
+  for(const skin of SKINS.filter(s=>s.file)){const css=await fs.readFile(new URL(`../skins/${skin.file}`,import.meta.url),'utf8');
     assert.doesNotMatch(css,/backdrop\s*\{|--ncs-backdrop/,`${skin.id} must not restyle the backdrop`);}
 });

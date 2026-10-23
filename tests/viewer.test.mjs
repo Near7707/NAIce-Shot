@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fitScale,fitView,clampPan,zoomAt,originalView,clampScale,ZOOM_MIN,ZOOM_MAX} from '../ui/viewer.mjs';
+import {fitScale,fitView,clampPan,zoomAt,originalView,clampScale,ZOOM_MIN,ZOOM_MAX} from '../viewer.mjs';
 
 const nat={w:832,h:1216};
 test('fit centres a portrait image inside a phone stage and a wide desktop stage',()=>{

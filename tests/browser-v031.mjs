@@ -111,7 +111,7 @@ try{
  assert.equal(await page.locator('#ncs-viewer .ncsv-save').getAttribute('download'),`naice-shot-${id}.png`);
  // A tap on empty stage area closes.
  await page.mouse.click(5,450);await page.locator('#ncs-viewer').waitFor({state:'hidden'});
- assert.equal(await page.locator('#chat .ncs-inline-image figcaption button').count(),1,'remove button still present');
+ assert.equal(await page.locator('#chat .ncs-inline-image [data-ncs-inline-remove]').count(),1,'remove button still present');
 
  // 5) Mobile: toolbar fits, pinch zoom changes scale.
  await page.setViewportSize({width:375,height:740});

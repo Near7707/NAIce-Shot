@@ -8,8 +8,10 @@ import {randomUUID} from 'node:crypto';
 import {deflateRawSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
-import {createHandlers} from '../server/handlers.mjs';
-import {DEFAULTS} from '../ui/core.mjs';
+import {hasServer,serverModule,SKIP_NOTE} from './server-dir.mjs';
+if(!hasServer){console.log(SKIP_NOTE);process.exit(0);}
+const {createHandlers}=await serverModule('handlers.mjs');
+import {DEFAULTS} from '../core.mjs';
 const modules=process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES;
 const {chromium}=await import(modules?`${modules}/playwright/index.mjs`:'playwright');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {attachInlineImage,detachInlineImage,visibleInlineImages,hasInlineImage,imageDownload,IMAGE_KEY} from '../ui/inline-images.mjs';
-import {chooseMessages} from '../ui/core.mjs';
+import {attachInlineImage,detachInlineImage,visibleInlineImages,hasInlineImage,imageDownload,IMAGE_KEY} from '../inline-images.mjs';
+import {chooseMessages} from '../core.mjs';
 const id='78c72e1e-e533-4188-9c93-a776da821ce3',item={id,image:`/user/images/naice-shot/${id}.png`};
 function context(){return {chat:[{name:'Mira',is_user:true,mes:'hello'},{name:'Leo',mes:'RP text',extra:{reasoning:'private',media:[{type:'image',url:'/existing.png'}]}}],saves:0,async saveChat(){this.saves++;}};}
 test('inline attachment keeps message count, text, reasoning, existing native media and extracted RP unchanged',async()=>{

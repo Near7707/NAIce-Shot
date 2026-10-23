@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {makeZip,crc32} from '../ui/zip.mjs';
+import {makeZip,crc32} from '../zip.mjs';
 test('crc32 matches the standard check value',()=>{assert.equal(crc32(new TextEncoder().encode('123456789')),0xcbf43926);});
 test('makeZip writes a ZIP that standard tools read back byte for byte',async t=>{
   const dir=await fs.mkdtemp(path.join(os.tmpdir(),'naice-zip-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));

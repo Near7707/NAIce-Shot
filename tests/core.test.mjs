@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DEFAULTS,clone,blankScene,assemble,buildPayload,parseExtraction,chooseMessages,sourceValid,extractionPrompt,resolveOutfit,textSignature,costGuard,validateProfiles,SIZE_PRESETS,sizePresetOf} from '../ui/core.mjs';
+import {DEFAULTS,clone,blankScene,assemble,buildPayload,parseExtraction,chooseMessages,sourceValid,extractionPrompt,resolveOutfit,textSignature,costGuard,validateProfiles,SIZE_PRESETS,sizePresetOf} from '../core.mjs';
 
 const profiles=[{id:'leo',name:'Leo',aliases:['레오'],subject:'boy',appearance:'brown hair',defaultOutfit:'white shirt, jeans',positive:'ring',negative:'black hair'},
   {id:'mira',name:'Mira',aliases:['미라'],subject:'girl',appearance:'pink hair',defaultOutfit:'hoodie',positive:'',negative:'brown hair'}];
@@ -92,7 +92,7 @@ test('a stray opening brace in reasoning prose does not hide the JSON that follo
 
 
 test('reasoning removal handles known tags, case differences and unterminated blocks',async()=>{
- const {stripReasoningBlocks}=await import('../ui/core.mjs');
+ const {stripReasoningBlocks}=await import('../core.mjs');
  assert.equal(stripReasoningBlocks('<THINK data-x="1">private</THINK> {"ok":true} <analysis>secret</analysis>'),'{"ok":true}');
  assert.equal(stripReasoningBlocks('{"ok":true}<reasoning>unfinished secret'),'{"ok":true}');
  assert.equal(stripReasoningBlocks('<thinking>unfinished secret'),'');

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {profileDraftPrompt,parseProfileDraft,PROFILE_SCHEMA} from '../ui/core.mjs';
-import {requestExtraction} from '../ui/extractor.mjs';
+import {profileDraftPrompt,parseProfileDraft,PROFILE_SCHEMA} from '../core.mjs';
+import {requestExtraction} from '../extractor.mjs';
 
 test('the description prompt keeps traits, clothing and style apart and treats the text as data',()=>{
   const p=profileDraftPrompt('갈색 곱슬머리, 초록 눈. 베이지 트렌치코트.',{name:'테오',format:'tags'});

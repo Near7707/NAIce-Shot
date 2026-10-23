@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {attachImage,buildImageMessage} from '../ui/chat.mjs';
-import {chooseMessages} from '../ui/core.mjs';
+import {attachImage,buildImageMessage} from '../chat.mjs';
+import {chooseMessages} from '../core.mjs';
 const id='78c72e1e-e533-4188-9c93-a776da821ce3';
 const item={id,image:`/user/images/naice-shot/${id}.png`};
 test('image attachment is native generated media, excluded from both RP and extraction',()=>{

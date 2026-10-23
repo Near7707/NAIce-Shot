@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DEFAULTS,clone} from '../ui/core.mjs';
-import {captureImagePreset,applyImagePreset,imagePresetModified,validateImagePresets} from '../ui/presets.mjs';
+import {DEFAULTS,clone} from '../core.mjs';
+import {captureImagePreset,applyImagePreset,imagePresetModified,validateImagePresets} from '../presets.mjs';
 test('a common preset captures prompts and every NAI generation option by value',()=>{
  const s={...clone(DEFAULTS),positive:'watercolor',negative:'bad anatomy'};
  const p=captureImagePreset(s,'first','水彩');

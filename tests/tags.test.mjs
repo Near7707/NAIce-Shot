@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {stripNames,normalizeTags,genericizeScene} from '../ui/tags.mjs';
-import {extractionPrompt,profileDraftPrompt} from '../ui/core.mjs';
+import {stripNames,normalizeTags,genericizeScene} from '../tags.mjs';
+import {extractionPrompt,profileDraftPrompt} from '../core.mjs';
 
 const names=['Mira','Leo','미라','Ash'];
 const clean=t=>normalizeTags(stripNames(t,names)[0]);

@@ -1,19 +1,39 @@
-# NAIce Shot v0.1.7
+# NAIce Shot v0.1.8
 
 실리태번의 RP 장면을 추출해 NovelAI 그림을 생성하는 비공식 확장이에요. 캐릭터 외형 프로필, 장면·복장 편집, 생성 프리셋, 이미지 이력과 채팅 첨부를 지원해요.
 
 ## 설치 안내
 
-**브라우저 확장과 서버 플러그인을 모두 설치해야 해요. 현재는 수동 설치 방식이며, 실리태번 확장 설치 창에 이 저장소 주소를 붙여 넣는 방식은 지원하지 않아요.**
+NAIce Shot은 **확장(이 저장소)**과 **서버 플러그인([NAIce-Shot-Server](https://github.com/Near7707/NAIce-Shot-Server))** 두 부분으로 되어 있어요. 둘 다 설치해야 그림을 만들 수 있어요.
 
-1. 이 페이지의 **Code → Download ZIP**으로 내려받아 압축을 풀어요.
-2. `ui` 폴더 **안의 파일·폴더 전체**를 `<실리태번>/data/default-user/extensions/naice-shot/`에 복사해요. `manifest.json`이 이 경로 바로 아래에 있어야 해요.
-3. `server` 폴더 **안의 파일 전체**를 `<실리태번>/plugins/naice-shot-server/`에 복사해요. `index.mjs`가 이 경로 바로 아래에 있어야 해요.
-4. 실리태번의 `config.yaml`에서 기존 `enableServerPlugins` 값을 `true`로 바꿔요.
-5. 실리태번 서버를 완전히 재시작한 뒤 브라우저를 새로고침해요.
-6. 실리태번의 API 연결 화면에 NAI 키를 저장하고, 확장 메뉴의 **NAIce Shot → 설정 → 서버·NAI 연결 확인**을 눌러요.
+### 1. 확장 설치 (주소로 설치)
 
-다른 사용자 계정이나 사용자 지정 데이터 경로를 사용하면 2번 경로를 실제 사용자 데이터 폴더로 바꿔 주세요. 서버 플러그인 설치를 허용하지 않는 호스팅에서는 사용할 수 없어요. Node.js 20 이상을 사용하며, 개발 대상은 SillyTavern 1.19.0 staging이에요. 다른 버전에서는 호환성 확인이 필요해요.
+1. 실리태번 상단의 확장 메뉴(블록 아이콘) → **Install extension**을 눌러요.
+2. 아래 주소를 붙여 넣고 설치해요.
+   ```
+   https://github.com/Near7707/NAIce-Shot
+   ```
+3. 업데이트는 확장 메뉴의 **Manage extensions**에서 NAIce Shot의 업데이트 버튼을 누르면 돼요.
+
+### 2. 서버 플러그인 설치 (처음 한 번)
+
+1. 실리태번의 `config.yaml`에서 `enableServerPlugins` 값을 `true`로 바꿔요.
+2. 실리태번 폴더 안의 `plugins` 폴더에서 터미널(명령 프롬프트)을 열고 아래 한 줄을 실행해요.
+   ```
+   git clone https://github.com/Near7707/NAIce-Shot-Server naice-shot-server
+   ```
+3. 실리태번을 완전히 재시작하고 브라우저를 새로고침해요.
+4. 실리태번 API 연결 화면에 NAI 키를 저장하고, **NAIce Shot → 설정 → 서버·NAI 연결 확인**을 눌러요.
+
+이렇게 git으로 설치한 서버 플러그인은 **실리태번을 켤 때마다 자동으로 최신 버전으로 업데이트**돼요(`config.yaml`의 `enableServerPluginsAutoUpdate: true`가 기본값이에요). git을 쓸 수 없다면 서버 저장소의 **Code → Download ZIP**으로 받아 `plugins/naice-shot-server/`에 파일을 복사해도 되지만, 그때는 업데이트도 직접 복사해야 해요.
+
+### 예전에 ZIP으로 직접 설치했다면 (0.1.7 이하)
+
+- 확장: 주소로 새로 설치하기 **전에** 예전 확장 폴더 `data/default-user/extensions/naice-shot/`를 지워 주세요. 그대로 두면 메뉴에 NAIce Shot이 두 번 보여요.
+- 서버: 예전 `plugins/naice-shot-server/` 폴더를 지운 뒤 위 2번처럼 git으로 다시 받아 주세요. 그래야 자동 업데이트가 돼요.
+- 프로필·설정·생성 이력·그림은 코드 폴더 밖에 저장돼 있어서 그대로 이어져요.
+
+서버 플러그인 설치를 허용하지 않는 호스팅에서는 사용할 수 없어요. Node.js 20 이상을 사용하며, 개발 대상은 SillyTavern 1.19.0 staging이에요.
 
 처음 사용할 때는 캐릭터와 유저의 이미지 프로필을 각각 만들고, **장면 추출 → 내용 확인·편집 → 이미지 생성** 순서로 진행해요. 별도 추출 AI 연결을 고를 수 있고, 추출 요청에도 해당 AI의 사용량·비용이 발생할 수 있어요. V5 생성은 무료 사용량을 확정할 수 없어 **Anlas 사용 가능성 허용**을 켜야 요청할 수 있어요.
 
@@ -34,7 +54,7 @@
 
 Generate NovelAI illustrations from SillyTavern roleplay scenes, with saved character appearances, editable scene prompts, and per-character prompt slots.
 
-This repository contains the v0.1.7 preview source. The UI is in Korean. Installation requires both the browser extension and the companion server plugin; follow the manual installation steps below. No separate GitHub Release asset is provided by this source upload.
+This repository contains the browser extension. The UI is in Korean. The companion server plugin is in [NAIce-Shot-Server](https://github.com/Near7707/NAIce-Shot-Server); both are required.
 
 > **Unofficial project.** NAIce Shot is an independent, community-made add-on. It is not made, endorsed or supported by NovelAI (Anlatan) or the SillyTavern team. "NovelAI" and "SillyTavern" are used only to describe compatibility. Image generation uses your own NovelAI account and follows NovelAI's terms and pricing.
 >
@@ -54,7 +74,7 @@ This repository contains the v0.1.7 preview source. The UI is in Korean. Install
 - Browse current-chat or all-chat history, filter by chat and delete individual or selected images.
 - Choose from five visual skins.
 
-The model menu currently includes V5 Full/Curated and V4.5 Full/Curated. External model availability and account eligibility are not validated by this ZIP review.
+The model menu currently includes V5 Full/Curated and V4.5 Full/Curated. External model availability and account eligibility are not validated by this review.
 
 ## Requirements
 
@@ -64,93 +84,38 @@ The model menu currently includes V5 Full/Curated and V4.5 Full/Curated. Externa
 - A working text-generation connection for AI extraction and description-to-profile conversion. Manual prompt generation does not require extraction.
 - The source implementation targets SillyTavern 1.19.0 staging. Automated checks use fixtures and mocked providers; other versions and actual provider calls require local verification.
 
-## ZIP contents
+## Repository layout
 
-The repository contains the full source, including tests and review notes. To download it, choose **Code → Download ZIP** and extract the archive. The `ui/` and `server/` directories contain the installable components; tests and development notes are not copied into SillyTavern.
+NAIce Shot is split into two repositories so each part can be installed and updated with git:
 
-| Path | Purpose |
-| --- | --- |
-| `ui/` | Browser extension, manifest and skins |
-| `server/` | Companion server plugin |
-| `install.sh` | Optional installation script for Bash environments |
-| `LICENSE` | GNU AGPL-3.0 license text |
-| `tests/` | Unit tests and browser regression scripts (source only) |
-| `SECURITY-REVIEW.md` | Package inspection, data flow and review limits |
-| `TEST-REPORT.md` | Checks performed on this build (source only) |
-| `UPDATE-CHECKLIST.md` | Installation and update checklist |
+| Repository | What it is | Where it goes |
+|---|---|---|
+| [NAIce-Shot](https://github.com/Near7707/NAIce-Shot) (this one) | Browser extension: `manifest.json`, scripts, styles, `skins/` | Installed by SillyTavern's extension installer |
+| [NAIce-Shot-Server](https://github.com/Near7707/NAIce-Shot-Server) | Companion server plugin (`index.mjs`) | `<SillyTavern>/plugins/naice-shot-server/` |
 
-## Install manually (Windows, Linux or custom data directories)
+`tests/` and the review notes are included for development; SillyTavern ignores them.
 
-1. Extract the ZIP.
-2. Copy the **contents** of `ui/`, including `skins/`, to:
-   `<SillyTavern user data>/extensions/naice-shot/`.
-   For a default installation, the user data folder is typically `<SillyTavern>/data/default-user/`.
-   The resulting extension folder must contain `manifest.json` directly, rather than another nested `ui/` folder.
-3. Copy the **contents** of `server/` to:
-   `<SillyTavern>/plugins/naice-shot-server/`.
-   That folder must directly contain `index.mjs`, `handlers.mjs`, `core.mjs` and `package.json`.
-4. In SillyTavern's root `config.yaml`, locate the existing setting and set:
-   ```yaml
-   enableServerPlugins: true
+## Install
+
+1. **Extension:** in SillyTavern open Extensions → **Install extension** and paste `https://github.com/Near7707/NAIce-Shot`. Update it later from **Manage extensions**.
+2. **Server plugin:** set `enableServerPlugins: true` in `config.yaml`, then in `<SillyTavern>/plugins/` run:
+   ```bash
+   git clone https://github.com/Near7707/NAIce-Shot-Server naice-shot-server
    ```
-5. Restart the SillyTavern server completely, then refresh the browser.
-6. Open NAIce Shot from the extension menu or extension settings. In Settings (`설정`), use `서버·NAI 연결 확인` to check the connection.
+   With `enableServerPluginsAutoUpdate: true` (SillyTavern's default) and git available, SillyTavern pulls plugin updates on every start. Without git, download the server repository as a ZIP and copy its files into `plugins/naice-shot-server/` (manual updates).
+3. Restart SillyTavern fully, refresh the browser, save your NovelAI key in SillyTavern and use **NAIce Shot → 설정 → 서버·NAI 연결 확인**.
 
-The server plugin imports SillyTavern's own secrets module by relative path. Keep the exact `plugins/naice-shot-server/` folder depth. No additional npm dependency installation is required for normal use.
+The server plugin imports SillyTavern's secrets module by relative path, so it must sit directly under `plugins/` (one folder deep).
 
-For Docker or custom data roots, use the mounted directories actually used by your running server. A hosting provider that does not permit server plugins cannot run this build's image-generation backend.
+## Moving from a manual ZIP install (0.1.7 and earlier)
 
-**This ZIP is not a GitHub-URL-installable repository layout.** Keep both manual installation steps; installing only the UI is insufficient.
+Earlier versions were copied by hand into `extensions/naice-shot/` and `plugins/naice-shot-server/`.
 
-## Optional Bash installer
+- Delete the old `extensions/naice-shot/` folder before installing by URL; otherwise SillyTavern loads two copies and the menu shows NAIce Shot twice.
+- Delete the old `plugins/naice-shot-server/` folder and clone the server repository as above so it can auto-update.
+- Settings, profiles, chat data, history and PNGs live outside the code folders and carry over unchanged.
 
-Run from the extracted `naice-shot/` folder:
-
-```bash
-bash install.sh /path/to/SillyTavern
-```
-
-For another user handle:
-
-```bash
-bash install.sh /path/to/SillyTavern my-user
-```
-
-The script supports SillyTavern's default `data/<user-handle>` layout. It backs up existing NAIce Shot extension/plugin files before replacing them. It does not edit `config.yaml`, application source, profiles or chat data. Use manual installation for custom data roots.
-
-## Updating from 0.1.6 / 0.1.6에서 업데이트
-
-**0.1.7은 UI와 서버 플러그인을 모두 바꿔야 해요.** `ui/`의 내용을 확장 폴더에, `server/`의 내용을 `plugins/naice-shot-server/`에 복사한 뒤 실리태번을 완전히 재시작하고 브라우저를 새로고침해 주세요. UI가 서버 0.1.7과 `privacy-controls` 기능을 확인해 이전 서버를 알려 줘요.
-
-원문 보관은 기본 꺼짐이고, 설정 백업을 가져와도 자동으로 켜지지 않아요. 기존 이력과 원본 PNG는 자동으로 고치거나 지우지 않아요. 이전 그림도 `공유용 PNG`로 별도 저장할 수 있어요.
-
-**Update both components:** replace the UI and the companion server plugin with 0.1.7, restart SillyTavern, and refresh the browser. Raw-response retention defaults to off and is reset to off on backup import. Existing records and original PNGs are not modified. The shared-copy export works on existing images too.
-
-## Updating from 0.1.5
-
-0.1.6 is a **UI-only** update. Replace all files in `extensions/naice-shot/` with the ZIP's `ui/` folder and refresh. Keep the 0.1.3 server plugin. The display-name and Noise Schedule settings are gone; values saved by earlier versions are ignored.
-
-## Updating from 0.1.4
-
-0.1.5 is a **UI-only** update. Replace all files in `extensions/naice-shot/` with the ZIP's `ui/` folder and refresh. Keep the 0.1.3 server plugin.
-
-## Updating from 0.1.3
-
-0.1.4 is a **UI-only** update. Replace all files in `extensions/naice-shot/` with the ZIP's `ui/` folder and refresh the browser. Keep the 0.1.3 server plugin; Settings shows "서버 플러그인 v0.1.3 · 확장 v0.1.4 · 함께 쓸 수 있어요" and no banner appears.
-
-## Updating from 0.1.2
-
-0.1.3 is a **UI + server** update. Replace `extensions/naice-shot/` with the ZIP's `ui/` folder and `plugins/naice-shot-server/` with its `server/` folder, then restart SillyTavern and refresh. If you replace only the UI, it still works with the 0.1.0–0.1.2 server plugin; Settings simply shows the older server version.
-
-From this version on, the panel tells you when the two halves do not match, so a forgotten server update is visible as soon as you open the panel.
-
-## Updating from 0.1.1
-
-0.1.2 adds the license and disclaimer and refreshes the validation records. There is no behavior change. Replacing the files is optional; if you do, replace both the UI folder and the server plugin folder, then restart.
-
-## Updating from 0.1.0
-
-0.1.1 is a UI-only behavior update. Replace all files in `extensions/naice-shot/` with the contents of this ZIP's `ui/` folder, including `skins/`, then refresh the browser. The 0.1.0 server plugin remains compatible; the ZIP also includes its version-aligned copy. Profiles, settings and image history stay in the same locations.
+Per-version notes (UI-only or UI + server) are in `CHANGELOG.md`.
 
 ## First use
 
@@ -218,16 +183,15 @@ This preview starts a new version sequence at **0.1.0**.
 - Minor versions (`0.2.0`): added functionality; any migration steps will be documented.
 - Major versions (`1.0.0` and later): stable milestones or explicitly documented incompatible changes.
 
-Keep a backup of your user data. For ZIP updates, replace UI files in `extensions/naice-shot/` and server files in `plugins/naice-shot-server/`, then restart SillyTavern and refresh the browser. Unless an update explicitly says UI-only, update both halves together. Settings and image data are stored outside these code folders.
+Keep a backup of your user data. Update the extension from SillyTavern's **Manage extensions**; a git-installed server plugin updates itself when SillyTavern restarts. Settings and image data are stored outside these code folders.
 
-For maintainers: when a release changes the server plugin in a way the UI depends on, raise `MIN_SERVER_VERSION` (and add any new feature flag to `REQUIRED_SERVER_FEATURES`) in `ui/compat.mjs`. When a server change needs a newer UI, raise `MIN_CLIENT_VERSION` in `server/handlers.mjs`.
+For maintainers: when a release changes the server plugin in a way the UI depends on, raise `MIN_SERVER_VERSION` (and add any new feature flag to `REQUIRED_SERVER_FEATURES`) in `compat.mjs`. When a server change needs a newer UI, raise `MIN_CLIENT_VERSION` in the server repository's `handlers.mjs`.
 
-This repository currently uses manual installation and updates. Pasting the repository URL into SillyTavern’s extension installer does not install the two components.
 
 ## Troubleshooting
 
-- **Yellow banner at the top of the panel:** the UI and server plugin folders do not match. Follow the banner: replace the named folder from the same ZIP, restart SillyTavern and refresh. The banner can be closed; Settings → "서버·NAI 연결 확인" checks again.
-- **Server plugin error / 404:** check folder depth, `enableServerPlugins` and full server restart. The log should include `[NAIce Shot] server ready`.
+- **Yellow banner at the top of the panel:** the extension and server plugin versions do not match. Restart SillyTavern (a git-installed server updates itself) or update the extension from Manage extensions, then refresh. The banner can be closed; Settings → "서버·NAI 연결 확인" checks again.
+- **Server plugin error / 404:** check that the server repository is cloned directly under `plugins/`, `enableServerPlugins` and a full server restart. The log should include `[NAIce Shot] server ready`.
 - **No key configured:** save your NovelAI key in SillyTavern.
 - **No matched profiles:** review profile names, aliases, card bindings and explicit per-chat bindings.
 - **New appearance or outfit looks wrong:** inspect the final prompt and verify that clothing is not mixed into fixed appearance.
@@ -236,10 +200,12 @@ This repository currently uses manual installation and updates. Pasting the repo
 ## Development checks
 
 ```bash
-npm test
+git clone https://github.com/Near7707/NAIce-Shot
+git clone https://github.com/Near7707/NAIce-Shot-Server
+cd NAIce-Shot && npm test
 ```
 
-This runs Node unit tests with mocked providers. Browser scripts are separate and require Playwright plus Chromium. See `TEST-REPORT.md` for what was actually run.
+This runs Node unit tests with mocked providers. Tests that drive the real server handlers look for `NAIce-Shot-Server` next to this folder (or `NAICE_SERVER_DIR`) and are skipped when it is missing. Browser scripts are separate and require Playwright plus Chromium. See `TEST-REPORT.md` for what was actually run.
 
 ## License
 
@@ -247,4 +213,4 @@ NAIce Shot is released under the **GNU Affero General Public License v3.0** (see
 
 ## Uninstall
 
-Remove `extensions/naice-shot/` and `plugins/naice-shot-server/`, then restart SillyTavern. Do not disable server plugins if other plugins need them. User settings, chats, generated PNGs and private records are not automatically deleted.
+Delete NAIce Shot in **Manage extensions** and remove `plugins/naice-shot-server/`, then restart SillyTavern. Do not disable server plugins if other plugins need them. User settings, chats, generated PNGs and private records are not automatically deleted.

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.8 — 2026-10-24
+
+**Install change: the extension is now installable by URL; the server plugin moved to [NAIce-Shot-Server](https://github.com/Near7707/NAIce-Shot-Server).** Coming from a manual install, delete the old `extensions/naice-shot/` and `plugins/naice-shot-server/` folders first (see README). Server code is unchanged (still 0.1.7).
+
+- Repository split: the extension files now sit at this repository's root (`manifest.json` at the top), so SillyTavern's **Install extension** accepts `https://github.com/Near7707/NAIce-Shot` and **Manage extensions** can update it. The server plugin and its tests live in NAIce-Shot-Server; cloned with git into `plugins/`, SillyTavern auto-updates it on start.
+- Removed `install.sh` (it copied the old `ui/` and `server/` folders).
+- Version-mismatch banner and the all-chats notice now describe the git-based update instead of ZIP folders.
+- Image viewer on phones: the toolbar is back to two rows at 375px (0.1.7's shared-copy button had pushed it to four); very narrow screens (≤360px) use three rows without overflow.
+- Tests: paths updated for the new layout; server-driven tests find NAIce-Shot-Server next to this repository and skip otherwise. Fixed three tests left stale by 0.1.7 (new feature flag, extra inline button, reworded import notice).
+
 ## 0.1.7 — 2026-10-24
 
 **Update: UI + server. Replace both components, restart SillyTavern and refresh.**

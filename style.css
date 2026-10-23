@@ -263,10 +263,15 @@
 #ncs-viewer .ncsv-stage img {position:absolute;left:0;top:0;max-width:none;max-height:none;transform-origin:0 0;-webkit-user-drag:none;user-select:none;}
 #ncs-viewer .ncsv-meta {padding:6px 12px;padding-bottom:max(6px,env(safe-area-inset-bottom));font-size:12px;color:#c9ced6;background:#15181fee;border-top:1px solid #ffffff1f;}
 @media(max-width:520px) {
- /* Stack zoom and download tools so the shared-copy button fits on narrow screens. */
- #ncs-viewer .ncsv-bar {display:grid;grid-template-columns:1fr auto;grid-template-areas:'modes close' 'zooms zooms' 'save save';gap:6px;padding:8px;padding-top:max(8px,env(safe-area-inset-top));}
+ /* Two rows on phones: view controls and close on top, download tools below, leaving room for the image. */
+ #ncs-viewer .ncsv-bar {display:grid;grid-template-columns:auto auto 1fr;grid-template-areas:'modes zooms close' 'save save save';gap:6px;padding:8px;padding-top:max(8px,env(safe-area-inset-top));}
+ #ncs-viewer .ncsv-group {flex-wrap:nowrap;}
  #ncs-viewer .ncsv-modes {grid-area:modes;} #ncs-viewer .ncsv-zooms {grid-area:zooms;}
  #ncs-viewer .ncsv-save-group {grid-area:save;margin-left:0;justify-content:flex-end;} #ncs-viewer .ncsv-close-group {grid-area:close;justify-content:flex-end;}
  #ncs-viewer button,#ncs-viewer .ncsv-save {min-height:40px;padding:6px 9px;font-size:13px;}
  #ncs-viewer .ncsv-zoom {min-width:46px;font-size:13px;}
+}
+@media(max-width:360px) {
+ /* Very narrow phones: zoom tools get their own row so nothing runs off the screen. */
+ #ncs-viewer .ncsv-bar {grid-template-columns:1fr auto;grid-template-areas:'modes close' 'zooms zooms' 'save save';}
 }

@@ -594,7 +594,7 @@ async function loadHistory({append=false}={}) {
     const query=allScope?`scope=all${historyFilter?`&chatKey=${encodeURIComponent(historyFilter)}`:''}`:`chatKey=${encodeURIComponent(startKey)}`;
     const data=await api(`/history?${query}&offset=${offset}&limit=${limit}`);
     if(request!==historyRequest||(!allScope&&keyOf()!==startKey)||historyScope!==(allScope?'all':'chat'))return;
-    if(allScope&&data.scope!=='all'){historyItems=[];historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>모든 채팅 보기는 서버 플러그인 v0.1.0이 필요해요. server 폴더 파일을 바꾸고 실리태번을 재시작해 주세요.</p>';return;}
+    if(allScope&&data.scope!=='all'){historyItems=[];historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>모든 채팅 보기는 서버 플러그인 v0.1.0이 필요해요. 서버 플러그인을 업데이트하고 실리태번을 재시작해 주세요.</p>';return;}
     if(allScope){historyChats=Array.isArray(data.chats)?data.chats:[];historyBytes=Number(data.bytes)||0;historyImageCount=Number(data.imageCount)||0;
       // The filtered chat has no images left (e.g. it was just cleared): go back to every chat.
       if(historyFilter&&!historyChats.some(c=>c.chatKey===historyFilter)){historyFilter='';historyItems=[];historyLoading=false;return loadHistory();}}

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {matchChatProfiles,reconcileCharacters} from '../ui/matching.mjs';
-import {chooseMessages,blankScene,extractionPrompt,extractionSchema,parseExtraction} from '../ui/core.mjs';
+import {matchChatProfiles,reconcileCharacters} from '../matching.mjs';
+import {chooseMessages,blankScene,extractionPrompt,extractionSchema,parseExtraction} from '../core.mjs';
 const profiles=[
  {id:'ash',name:'Ash',aliases:['애쉬'],cardKey:'',appearance:'brown skin',defaultOutfit:'hoodie'},
  {id:'leo',name:'Leo',aliases:['레오','Leonard'],cardKey:'',appearance:'brown hair',defaultOutfit:'jacket'},

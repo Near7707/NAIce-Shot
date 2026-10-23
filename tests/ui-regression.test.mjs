@@ -3,19 +3,19 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import vm from 'node:vm';
 import {randomUUID, webcrypto} from 'node:crypto';
-import {DEFAULTS, clone} from '../ui/core.mjs';
-import {captureImagePreset} from '../ui/presets.mjs';
+import {DEFAULTS, clone} from '../core.mjs';
+import {captureImagePreset} from '../presets.mjs';
 
 // Run the actual UI module and its input handlers with small DOM doubles.
 // This exercises state and rendered markup; it does not measure browser layout.
 async function setup() {
-  let source=await fs.readFile(new URL('../ui/index.js',import.meta.url),'utf8');
+  let source=await fs.readFile(new URL('../index.js',import.meta.url),'utf8');
   const imports={};
   for(const match of source.matchAll(/import\s+[\s\S]*?\s+from\s+'([^']+)';/g))
-    Object.assign(imports,await import(new URL(match[1],new URL('../ui/index.js',import.meta.url))));
+    Object.assign(imports,await import(new URL(match[1],new URL('../index.js',import.meta.url))));
   source=source.replace(/import\s+[\s\S]*?\s+from\s+'[^']+';/g,'');
-  source=source.replaceAll('import.meta.url',JSON.stringify(new URL('../ui/index.js',import.meta.url).href));
-  const html=await fs.readFile(new URL('../ui/panel.html',import.meta.url),'utf8');
+  source=source.replaceAll('import.meta.url',JSON.stringify(new URL('../index.js',import.meta.url).href));
+  const html=await fs.readFile(new URL('../panel.html',import.meta.url),'utf8');
   const ids=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]));
   const nodes=new Map(),listeners=new Map();
   const node=selector=>{

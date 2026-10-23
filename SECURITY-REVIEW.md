@@ -73,3 +73,7 @@ Additional checks with mocked upstream responses confirmed these existing behavi
 - Some filesystem errors are forwarded verbatim and can expose absolute installation paths to the requesting user. Error screenshots or bug reports should be checked before sharing.
 
 These behaviors are disclosed in the README. This publication pass does not claim that they have been changed or that the host authentication configuration has been audited.
+
+## v0.1.8 repository split
+
+The extension now installs from this repository by URL, and the server plugin lives in NAIce-Shot-Server. Code behavior is unchanged apart from the phone viewer layout and update wording. Note for users: SillyTavern auto-updates git-installed server plugins on start, so server code updates arrive without manual review; turn off `enableServerPluginsAutoUpdate` in `config.yaml` if you prefer to update by hand. `tests/` is now inside the installed extension folder and is served as static files by SillyTavern; it contains only synthetic fixtures and no credentials.
