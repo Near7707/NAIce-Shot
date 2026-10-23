@@ -1,0 +1,67 @@
+<div class="ncs-shell">
+  <header class="ncs-header"><div class="ncs-brand"><span id="ncs-brand-icon"></span><div><strong data-brand>NAIce Shot</strong><small>장면을 골라 그림으로</small></div></div><button type="button" data-action="close" aria-label="닫기">✕</button></header>
+  <nav class="ncs-tabs" aria-label="패널" role="tablist"><button data-tab="scene" class="ncs-active" role="tab" aria-selected="true">장면</button><button data-tab="profiles" role="tab" aria-selected="false">프로필</button><button data-tab="settings" role="tab" aria-selected="false">설정</button><button data-tab="history" role="tab" aria-selected="false">이력</button></nav>
+  <div class="ncs-compat" id="ncs-compat" role="alert" hidden><span id="ncs-compat-text"></span><button type="button" data-action="dismiss-compat">닫기</button></div>
+  <div class="ncs-notice" id="ncs-notice" role="status">프로필을 등록한 뒤 장면을 추출하거나 직접 입력해 주세요.</div>
+  <div class="ncs-progress" id="ncs-progress" hidden><span class="ncs-spinner" aria-hidden="true"></span><div class="ncs-progress-text"><strong id="ncs-progress-title" role="status">장면 추출 중</strong><small id="ncs-progress-detail"></small></div><button type="button" id="ncs-progress-cancel" data-action="cancel-extract">추출 중단</button></div>
+  <div class="ncs-content">
+    <section data-page="scene">
+      <div class="ncs-section"><h3>1 · 그릴 순간</h3><p>대상 메시지의 마지막 장면을 그려요. 앞선 메시지는 참고용이에요.</p>
+        <label>대상 메시지<select id="ncs-target"></select></label>
+        <details><summary>이 채팅의 프로필 연결 · 자동 인식 확인</summary><p>현재 카드·유저 이름과 프로필 이름·별칭으로 자동 연결해요. 이름이 다르면 이 채팅에서 사용할 프로필을 한 번 지정할 수 있어요.</p><div class="ncs-grid"><label>채팅 캐릭터<select id="ncs-character-binding"></select></label><label>유저 캐릭터<select id="ncs-user-binding"></select></label></div><small id="ncs-matching-state"></small></details>
+        <div class="ncs-grid"><label>참고 메시지 수<input id="ncs-recent" type="number" min="1" max="30" value="3"></label><label>추출 표현<select id="ncs-format"><option value="tags">영어 태그</option><option value="natural">영어 자연어</option></select></label></div>
+        <label class="ncs-check"><input id="ncs-include-user" type="checkbox" checked>유저 메시지 포함</label>
+        <div class="ncs-row"><button data-action="extract" class="ncs-primary">장면 추출</button><button data-action="blank">직접 입력</button></div>
+        <details><summary>추출 응답 확인</summary><textarea id="ncs-raw" readonly rows="6" aria-label="추출 원문"></textarea></details>
+      </div>
+      <div class="ncs-section"><h3>2 · 장면 편집</h3>
+        <label>장소<textarea id="ncs-location" rows="2"></textarea></label>
+        <div class="ncs-grid"><label>조명<textarea id="ncs-lighting" rows="2"></textarea></label><label>구도<textarea id="ncs-camera" rows="2"></textarea></label></div>
+        <label>인물 간 상호작용<textarea id="ncs-interaction" rows="2" placeholder="예: two people talking face to face"></textarea></label>
+        <div id="ncs-no-profiles" class="ncs-empty" hidden><strong>아직 등록된 캐릭터 프로필이 없어요.</strong><p>외형을 대충 적으면 AI가 이미지용 태그로 바꿔 줘요. 여기서 바로 만들고 장면에 넣을 수 있어요.</p><button type="button" data-action="quick-profile" class="ncs-primary">첫 프로필 만들기</button></div>
+        <div class="ncs-row" id="ncs-add-row"><select id="ncs-add-profile" aria-label="추가할 프로필"></select><button data-action="add-character">인물 추가</button><button type="button" data-action="quick-profile">새 프로필 만들기</button></div>
+        <div id="ncs-scene-profile-slot" class="ncs-quick-profile" hidden><div class="ncs-quick-head"><strong>새 프로필</strong><button type="button" data-action="close-quick-profile">닫기</button></div></div>
+        <div id="ncs-characters"></div>
+        <div id="ncs-unregistered"></div>
+        <div class="ncs-warning" id="ncs-warnings"></div>
+        <details id="ncs-final-box"><summary>최종 프롬프트 · 이번 생성용 직접 수정 <span id="ncs-final-badge" class="ncs-badge" hidden>직접 고침</span></summary><p>NAI로 보낼 내용을 이번 생성에 한해 칸별로 고칠 수 있어요. 장면·프로필·공통 설정을 바꾸면 고친 내용은 조립 결과로 돌아가요.</p>
+          <div id="ncs-final-form" class="ncs-final-form"></div>
+          <div class="ncs-row"><button data-action="reset-final">조립 결과로 되돌리기</button></div><small id="ncs-length"></small>
+          <details><summary>JSON으로 직접 수정 · 고급</summary><textarea id="ncs-final" rows="12" spellcheck="false" aria-label="최종 프롬프트 JSON"></textarea></details>
+        </details>
+      </div>
+      <div class="ncs-section"><h3>3 · 생성</h3><label>공통 이미지 프리셋<select id="ncs-scene-preset"><option value="">현재 설정 유지 · 프리셋 선택</option></select></label><small id="ncs-scene-preset-state"></small><p class="ncs-small">저장한 포지·네거와 생성 설정을 바로 불러와요. 프리셋 저장·수정은 설정 탭에서 할 수 있어요.</p><p id="ncs-cost"></p><label class="ncs-check"><input id="ncs-allow-anlas" type="checkbox">Anlas 사용 가능성 허용</label><p class="ncs-small">V5는 기본 무료 조건 안에서도 무료 잔량에 따라 비용이 들 수 있어요. 잔량은 NAI에서 확인해 주세요.</p><button data-action="generate" class="ncs-primary ncs-wide">이미지 생성</button><div id="ncs-result"></div></div>
+    </section>
+    <section data-page="profiles" hidden><div class="ncs-section"><h3>캐릭터 프로필</h3><p>고정 외형은 AI에 전달하지 않고, 이미지 요청에만 넣어요. 복장은 별도 칸에 입력해 주세요.</p><div id="ncs-profile-list"></div><button data-action="new-profile">+ 새 프로필 만들기</button><div id="ncs-profile-slot"><form id="ncs-profile-form">
+      <small id="ncs-profile-editing">새 프로필 작성 중</small><input type="hidden" id="ncs-profile-id"><label>표시 이름<input id="ncs-profile-name" maxlength="200" placeholder="캐릭터 이름 입력" required></label>
+      <div class="ncs-segment" role="group" aria-label="입력 방식"><button type="button" data-profile-mode="describe" aria-pressed="true">설명으로 만들기</button><button type="button" data-profile-mode="direct" aria-pressed="false">직접 입력</button></div>
+      <div id="ncs-describe-box" class="ncs-describe"><label>외형·복장 설명 · 한국어로 대충 적어도 돼요<textarea id="ncs-profile-describe" rows="4" maxlength="4000" placeholder="예: 갈색 곱슬머리에 초록 눈, 키 큰 30대 남자. 동그란 안경. 평소엔 베이지 트렌치코트에 회색 니트, 청바지."></textarea></label><div class="ncs-row"><button type="button" data-action="convert-profile" class="ncs-primary">태그로 변환</button></div><small>추출 AI 연결로 아래 외형·기본 복장·Negative 칸을 채워요. 결과를 확인하고 고친 뒤 저장해 주세요.</small></div>
+      <div class="ncs-grid"><label>별칭 · 쉼표로 구분<input id="ncs-profile-aliases" placeholder="예: Hana, 하나, 하나쨩"></label><label>인원 태그<select id="ncs-profile-subject"><option value="boy">boy</option><option value="girl">girl</option><option value="other">other</option></select></label></div>
+      <label>고정 외형<textarea id="ncs-profile-appearance" rows="4" placeholder="brown hair, green eyes"></textarea></label>
+      <label>기본 복장<textarea id="ncs-profile-outfit" rows="3"></textarea></label>
+      <label>전용 Positive<textarea id="ncs-profile-positive" rows="2"></textarea></label>
+      <label>전용 Negative<textarea id="ncs-profile-negative" rows="2"></textarea></label>
+      <div class="ncs-row"><button type="submit" class="ncs-primary" id="ncs-profile-submit">프로필 저장</button><button type="button" data-action="bind-card">현재 캐릭터 카드 연결</button><button type="button" data-action="clear-profile-form">모든 칸 비우기</button><button type="button" data-action="delete-profile">삭제</button></div><small id="ncs-binding"></small>
+    </form></div></div></section>
+    <section data-page="settings" hidden><div class="ncs-section"><h3>스킨</h3><p>패널의 색과 모양을 바꿔요. 기본을 뺀 스킨은 실리태번 테마와 상관없이 같은 색으로 보여요.</p><div id="ncs-skins" class="ncs-skin-grid" role="radiogroup" aria-label="스킨"></div><small id="ncs-skin-state"></small></div>
+      <div class="ncs-section"><h3>채팅 속 그림 위치</h3><label>본문에 넣은 그림을 보여줄 자리<select id="ncs-image-placement"><option value="below">메시지 글 아래</option><option value="above">메시지 글 위</option></select></label><small>이미 넣은 그림도 바로 자리가 바뀌어요. 보이는 자리만 달라지고 메시지 글·AI 입력·기억 요약에는 영향이 없어요.</small></div>
+      <div class="ncs-section"><h3>공통 이미지 프리셋</h3><p>긍정·부정 프롬프트와 아래 NAI 생성 설정 전체를 한 묶음으로 저장해요. 모델·크기·스텝·가이던스·시드·CFG 재조정·샘플러가 포함돼요.</p><label>불러오기<select id="ncs-common-preset"><option value="">저장된 프리셋 선택</option></select></label><small id="ncs-preset-state"></small><label>저장할 이름<input id="ncs-common-preset-name" maxlength="80" placeholder="예: V5 일러스트, V4.5 수채화"></label><div class="ncs-row"><button data-action="save-preset" class="ncs-primary">현재 값 새로 저장</button><button data-action="update-preset">선택 프리셋 덮어쓰기</button><button data-action="delete-preset">선택 프리셋 삭제</button></div></div>
+      <div class="ncs-section"><h3>공통 프롬프트</h3><label>Positive<textarea id="ncs-positive" rows="4" placeholder="화풍·품질 태그"></textarea></label><label>Negative<textarea id="ncs-negative" rows="4"></textarea></label></div>
+      <div class="ncs-section"><h3>NAI 생성 설정</h3><label>모델<select id="ncs-model"></select></label><label>이미지 크기<select id="ncs-size-preset"><option value="portrait">세로 · 832 × 1216</option><option value="square">정사각형 · 1024 × 1024</option><option value="landscape">가로 · 1216 × 832</option><option value="custom">직접 입력</option></select></label><div class="ncs-grid"><label>가로<input id="ncs-width" type="number" step="64" min="64" max="2048"></label><label>세로<input id="ncs-height" type="number" step="64" min="64" max="2048"></label><label>스텝<input id="ncs-steps" type="number" min="1" max="50"></label><label>Guidance<input id="ncs-scale" type="number" step="0.1" min="0" max="10"></label><label>Seed · -1은 새 seed<input id="ncs-seed" type="number" min="-1" max="4294967295"></label><label>CFG Rescale<input id="ncs-cfg" type="number" step="0.05" min="0" max="1"></label><label>Sampler<select id="ncs-sampler"><option>k_euler_ancestral</option><option>k_euler</option><option>k_dpmpp_2m</option><option>k_dpmpp_sde</option></select></label></div>
+        <button data-action="status">서버·NAI 연결 확인</button><small id="ncs-server-version"></small><p id="ncs-status">서버 플러그인 설치와 실리태번 NAI 키 저장이 필요해요.</p>
+      </div><div class="ncs-section"><h3>추출 AI</h3><label>추출 연결<select id="ncs-extraction-profile"><option value="">본편에서 현재 사용하는 연결</option></select></label><small id="ncs-extraction-state"></small><div class="ncs-row"><button data-action="refresh-extraction-profiles">연결 프로필 목록 새로고침</button></div><p>별도 연결 프로필을 선택하면 본편 연결을 바꾸지 않고 그 연결로 추출해요. 추출 요청에도 해당 AI의 사용량·API 비용이 들어가요.</p><label>독립 추출 응답 한도<input id="ncs-extraction-max-tokens" type="number" min="256" max="16384" step="256"></label><small>별도 연결 프로필을 사용할 때만 적용돼요. reasoning이 긴 모델은 한도를 늘릴 수 있어요.</small><label class="ncs-check"><input id="ncs-schema" type="checkbox">연결이 지원하면 JSON 구조화 출력 사용</label><small>지원하지 않는 연결에서는 끄고 일반 JSON 추출을 사용할 수 있어요. 프로필은 실리태번의 API 연결 → 연결 프로필에서 먼저 저장해 주세요.</small></div>
+      <div class="ncs-section"><h3>설정 백업</h3><div class="ncs-row"><button data-action="export">프로필·설정 내보내기</button><label class="ncs-file">백업 가져오기<input id="ncs-import" type="file" accept="application/json,.json"></label></div><p class="ncs-small">현재 채팅 복장과 이미지 이력은 서버에 별도로 저장돼요. 백업에는 API 키가 들어가지 않아요.</p></div>
+    </section>
+    <section data-page="history" hidden><div class="ncs-section"><h3>생성 이력</h3>
+      <div class="ncs-segment" role="group" aria-label="보기 범위"><button type="button" data-history-scope="chat" aria-pressed="true">이 채팅</button><button type="button" data-history-scope="all" aria-pressed="false">모든 채팅</button></div>
+      <p id="ncs-history-help">편집으로 불러오면 당시 최종 프롬프트와 생성 설정을 이번 생성에 써요. 현재 복장과 설정 탭 값은 바뀌지 않아요.</p>
+      <div id="ncs-history-all-tools" hidden><label>채팅으로 좁히기<select id="ncs-history-filter"></select></label><small id="ncs-history-storage"></small></div>
+      <div class="ncs-row"><button data-action="history">새로고침</button><small id="ncs-history-count"></small></div>
+      <label id="ncs-history-target-row">그림을 넣을 메시지 · 모든 카드 공통<select id="ncs-history-target"></select></label>
+      <div class="ncs-row ncs-history-tools"><button data-action="select-all-history">표시된 항목 모두 선택</button><button data-action="save-selected" disabled>선택 저장</button><button data-action="delete-selected" class="ncs-danger" disabled>선택 삭제</button><button data-action="delete-chat-history" class="ncs-danger-outline">이 채팅 이력 전체 삭제</button><button data-action="delete-filter-chat" class="ncs-danger-outline" hidden>이 채팅의 그림 모두 삭제</button></div>
+      <div id="ncs-history"></div>
+      <button data-action="history-more" class="ncs-wide ncs-more" hidden>더 보기</button>
+      <p class="ncs-small">삭제하면 서버의 원본 PNG와 생성 기록이 지워져요. 지금 채팅에 붙인 그림은 함께 빠지고, 다른 채팅에 붙여 둔 그림은 그 채팅에서 "찾을 수 없는 그림" 안내로 바뀌어요. 되돌릴 수 없어요.</p></div></section>
+  </div>
+  <footer><span id="ncs-chat-label"></span><span id="ncs-version">v0.1.6</span></footer>
+</div>

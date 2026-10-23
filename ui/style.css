@@ -1,0 +1,272 @@
+/* NAIce Shot panel. Every color, radius and font goes through a --ncs-* token so a skin
+   (ui/skins/*.css) can restyle the panel by overriding tokens on [data-skin]. The classic
+   look below follows the SillyTavern theme; skins use fixed palettes. */
+#naice-shot-dialog {
+ --ncs-bg:var(--SmartThemeBlurTintColor,#181d27);
+ --ncs-fg:var(--SmartThemeBodyColor,#edf0f5);
+ --ncs-muted:color-mix(in srgb,var(--ncs-fg) 78%,var(--ncs-bg));
+ --ncs-border:color-mix(in srgb,var(--ncs-fg) 58%,var(--ncs-bg));
+ --ncs-rule:color-mix(in srgb,var(--ncs-fg) 17%,var(--ncs-bg));
+ --ncs-control:color-mix(in srgb,var(--ncs-fg) 7%,var(--ncs-bg));
+ --ncs-hover:color-mix(in srgb,var(--ncs-fg) 14%,var(--ncs-bg));
+ --ncs-surface:var(--ncs-control);
+ --ncs-accent:#75c6cc;--ncs-edge:#35969b;
+ --ncs-accent-text:color-mix(in srgb,#248a91 55%,var(--ncs-fg));
+ --ncs-warning:color-mix(in srgb,#c06d21 80%,var(--ncs-fg));
+ --ncs-primary-bg:var(--ncs-accent);--ncs-primary-fg:#163334;--ncs-primary-border:var(--ncs-edge);--ncs-primary-hover:#9bdce0;
+ --ncs-tab-active-bg:color-mix(in srgb,var(--ncs-accent) 24%,var(--ncs-bg));--ncs-tab-active-fg:var(--ncs-fg);--ncs-tab-active-border:var(--ncs-edge);
+ --ncs-check-border:var(--ncs-border);--ncs-check-bg:var(--ncs-control);--ncs-check-on:#23767a;--ncs-check-mark:#ffffff;
+ --ncs-arrow:var(--ncs-muted);--ncs-focus:var(--ncs-edge);
+ --ncs-radius:16px;--ncs-radius-card:12px;--ncs-radius-control:8px;--ncs-radius-pill:999px;
+ --ncs-border-width:1px;--ncs-icon-size:var(--ncs-icon-size-base,38px);--ncs-tab-icon:17px;
+ --ncs-font:inherit;--ncs-heading-font:inherit;--ncs-heading-weight:650;
+ --ncs-shadow:0 20px 80px #0007;--ncs-card-shadow:none;
+ width:min(860px,calc(100vw - 24px));max-width:860px;max-height:90dvh;padding:0;
+ border:var(--ncs-border-width) solid var(--ncs-border);border-radius:var(--ncs-radius);background:var(--ncs-bg);color:var(--ncs-fg);
+ box-shadow:var(--ncs-shadow);overflow:hidden;font-size:14px;font-family:var(--ncs-font);
+}
+/* The dim layer over the SillyTavern page is the same for every skin: skins restyle the panel, never the page behind it. */
+#naice-shot-dialog::backdrop {background:#0009!important;}
+#naice-shot-dialog * {box-sizing:border-box;}
+#naice-shot-dialog [hidden],#naice-shot-dialog input[type=hidden] {display:none!important;}
+#naice-shot-dialog .ncs-shell {display:flex;flex-direction:column;max-height:90dvh;}
+#naice-shot-dialog .ncs-header {display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--ncs-rule);}
+#naice-shot-dialog .ncs-brand {display:flex;align-items:center;gap:12px;}
+#naice-shot-dialog .ncs-brand .ncs-icon {width:var(--ncs-icon-size);height:var(--ncs-icon-size);}
+#naice-shot-dialog .ncs-header strong {font-size:21px;display:block;font-family:var(--ncs-heading-font);font-weight:var(--ncs-heading-weight);letter-spacing:-.01em;}
+#naice-shot-dialog .ncs-header small {color:var(--ncs-muted);display:block;margin-top:4px;}
+#naice-shot-dialog button,#naice-shot-dialog select,#naice-shot-dialog input:not([type=checkbox]):not([type=radio]):not([type=hidden]),#naice-shot-dialog textarea {
+ font:inherit;color:var(--ncs-fg);border:var(--ncs-border-width) solid var(--ncs-border);border-radius:var(--ncs-radius-control);
+ background-color:var(--ncs-control);max-width:100%;box-shadow:none;text-shadow:none;
+}
+#naice-shot-dialog button {cursor:pointer;padding:10px 14px;min-height:42px;min-width:0;white-space:normal;line-height:1.4;}
+#naice-shot-dialog button:hover {background-color:var(--ncs-hover);border-color:var(--ncs-edge);}
+#naice-shot-dialog button:disabled {cursor:default;opacity:.5;}
+#naice-shot-dialog button:focus-visible,#naice-shot-dialog input:focus-visible,#naice-shot-dialog textarea:focus-visible,#naice-shot-dialog select:focus-visible,#naice-shot-dialog a:focus-visible {
+ outline:2px solid var(--ncs-focus);outline-offset:2px;
+}
+#naice-shot-dialog input:focus,#naice-shot-dialog textarea:focus,#naice-shot-dialog select:focus {border-color:var(--ncs-edge);}
+#naice-shot-dialog textarea::placeholder,#naice-shot-dialog input::placeholder {color:var(--ncs-muted);opacity:.8;}
+/* Our own select arrow: ST draws a fixed grey arrow that can vanish on some themes. */
+#naice-shot-dialog select {-webkit-appearance:none;appearance:none;padding-right:34px;
+ background-image:linear-gradient(45deg,transparent 50%,var(--ncs-arrow) 50%),linear-gradient(135deg,var(--ncs-arrow) 50%,transparent 50%);
+ background-position:calc(100% - 19px) 52%,calc(100% - 13px) 52%;background-size:6px 6px,6px 6px;background-repeat:no-repeat;}
+#naice-shot-dialog select option {background:var(--ncs-bg);color:var(--ncs-fg);}
+#naice-shot-dialog .ncs-primary {background-color:var(--ncs-primary-bg);color:var(--ncs-primary-fg);font-weight:650;border-color:var(--ncs-primary-border);}
+#naice-shot-dialog .ncs-primary:hover {background-color:var(--ncs-primary-hover);color:var(--ncs-primary-fg);border-color:var(--ncs-primary-border);}
+#naice-shot-dialog .ncs-wide {width:100%;}
+#naice-shot-dialog .ncs-tabs {display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px 18px;}
+#naice-shot-dialog .ncs-tabs button {border-color:var(--ncs-border);display:flex;align-items:center;justify-content:center;gap:7px;}
+#naice-shot-dialog .ncs-tab-icon {display:inline-flex;width:var(--ncs-tab-icon);height:var(--ncs-tab-icon);flex:0 0 auto;}
+#naice-shot-dialog .ncs-tab-icon svg {width:100%;height:100%;}
+#naice-shot-dialog .ncs-tabs .ncs-active,#naice-shot-dialog .ncs-profile-chip.ncs-selected {
+ background-color:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);
+ border:2px solid var(--ncs-tab-active-border);font-weight:650;
+}
+#naice-shot-dialog .ncs-profile-chip {border-radius:var(--ncs-radius-pill);padding:8px 16px;}
+#naice-shot-dialog #ncs-profile-editing {padding:8px 0;font-weight:600;color:var(--ncs-accent-text);}
+#naice-shot-dialog .ncs-notice {padding:10px 22px;color:var(--ncs-muted);line-height:1.5;border-bottom:1px solid var(--ncs-rule);overflow-wrap:anywhere;}
+#naice-shot-dialog .ncs-notice.ncs-error,#naice-shot-dialog .ncs-warning {color:var(--ncs-warning);}
+#naice-shot-dialog .ncs-compat {display:flex;align-items:flex-start;gap:10px;padding:10px 22px;line-height:1.5;color:var(--ncs-warning);background:color-mix(in srgb,var(--ncs-warning) 12%,transparent);border-bottom:1px solid var(--ncs-warning);overflow-wrap:anywhere;}
+#naice-shot-dialog .ncs-compat[hidden] {display:none;}
+#naice-shot-dialog .ncs-compat > span {flex:1;min-width:0;font-weight:600;}
+#naice-shot-dialog .ncs-compat > button {flex:none;}
+#naice-shot-dialog #ncs-server-version {display:block;margin-top:6px;color:var(--ncs-muted);}
+#naice-shot-dialog .ncs-shell > :not(.ncs-content) {flex-shrink:0;}
+/* Vertical scrolling only: a wide child (long option text, a native file input) must never let the panel pan sideways. */
+#naice-shot-dialog .ncs-content {overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y pinch-zoom;padding:0 22px 18px;min-height:0;}
+#naice-shot-dialog .ncs-content section,#naice-shot-dialog .ncs-section,#naice-shot-dialog .ncs-grid > *,#naice-shot-dialog .ncs-row > * {min-width:0;max-width:100%;}
+#naice-shot-dialog p,#naice-shot-dialog label,#naice-shot-dialog h3 {overflow-wrap:anywhere;}
+#naice-shot-dialog .ncs-section {padding:18px 0;border-bottom:1px solid var(--ncs-rule);}
+#naice-shot-dialog h3 {font-size:16px;margin:0 0 10px;color:var(--ncs-fg);font-family:var(--ncs-heading-font);font-weight:var(--ncs-heading-weight);}
+#naice-shot-dialog p {margin:8px 0 14px;color:var(--ncs-muted);line-height:1.65;}
+#naice-shot-dialog label {display:block;margin:10px 0;color:var(--ncs-fg);line-height:1.5;}
+#naice-shot-dialog input:not([type=checkbox]):not([type=radio]):not([type=hidden]),#naice-shot-dialog select,#naice-shot-dialog textarea {
+ display:block;width:100%;padding:10px;margin-top:6px;min-width:0;
+}
+#naice-shot-dialog select {padding-right:34px;}
+#naice-shot-dialog textarea {resize:vertical;line-height:1.5;}
+/* Checkbox drawn from tokens. ST paints its checkbox with the theme's text color, which can
+   turn into a dark blob or an invisible box on some themes; every ST property is reset here.
+   Theme "custom CSS" often restyles every checkbox with !important, so the essentials are !important here too. */
+#naice-shot-dialog input[type=checkbox] {-webkit-appearance:none!important;appearance:none!important;display:inline-grid!important;place-content:center;
+ width:20px!important;height:20px!important;min-width:20px;margin:0;padding:0;flex-shrink:0;position:relative;overflow:visible!important;cursor:pointer;
+ border:2px solid var(--ncs-check-border)!important;border-radius:max(4px,calc(var(--ncs-radius-control) / 2));
+ background:var(--ncs-check-bg)!important;outline:none;box-shadow:none;filter:none!important;opacity:1;visibility:visible;transform:none;transition:background-color .12s,border-color .12s;}
+#naice-shot-dialog input[type=checkbox]::before {content:''!important;display:block!important;width:12px;height:12px;transform:scale(0);transition:transform .12s ease-out;
+ background:var(--ncs-check-mark)!important;box-shadow:none!important;clip-path:polygon(14% 44%,0 65%,50% 100%,100% 16%,80% 0%,43% 62%)!important;transform-origin:center;opacity:1!important;}
+#naice-shot-dialog input[type=checkbox]::after {content:none!important;display:none!important;}
+#naice-shot-dialog input[type=checkbox]:checked {background:var(--ncs-check-on)!important;border-color:var(--ncs-check-on)!important;}
+#naice-shot-dialog input[type=checkbox]:checked::before {transform:scale(1)!important;}
+#naice-shot-dialog input[type=checkbox]:focus-visible {outline:2px solid var(--ncs-focus);outline-offset:2px;}
+#naice-shot-dialog input[type=checkbox]:disabled {opacity:.5;cursor:default;}
+#naice-shot-dialog .ncs-check {display:flex;gap:10px;align-items:center;}
+#naice-shot-dialog .ncs-grid {display:grid;grid-template-columns:1fr 1fr;gap:0 14px;}
+#naice-shot-dialog .ncs-row {display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0;}
+#naice-shot-dialog .ncs-row select {flex:1;min-width:120px;margin:0;}
+#naice-shot-dialog .ncs-character {padding:14px;margin:14px 0;background:var(--ncs-surface);border:var(--ncs-border-width) solid var(--ncs-border);border-radius:var(--ncs-radius-card);box-shadow:var(--ncs-card-shadow);}
+#naice-shot-dialog .ncs-character-head {display:flex;align-items:center;justify-content:space-between;gap:8px;}
+#naice-shot-dialog small,#naice-shot-dialog .ncs-small {font-size:12px;color:var(--ncs-muted);line-height:1.6;display:block;overflow-wrap:anywhere;}
+#naice-shot-dialog summary {cursor:pointer;min-height:36px;padding:9px 0;color:var(--ncs-accent-text);}
+#naice-shot-dialog details {margin-top:10px;}
+#naice-shot-dialog .ncs-warning {line-height:1.6;margin-top:10px;white-space:pre-line;overflow-wrap:anywhere;}
+#naice-shot-dialog #ncs-final {font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;}
+#naice-shot-dialog #ncs-profile-list {display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;}
+#naice-shot-dialog #ncs-result img {width:100%;max-height:65dvh;object-fit:contain;border-radius:var(--ncs-radius-card);margin-top:16px;}
+#naice-shot-dialog #ncs-result a {color:var(--ncs-accent-text);text-decoration:underline;padding:8px;}
+#naice-shot-dialog #ncs-history {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+#naice-shot-dialog .ncs-history-card {overflow:hidden;padding:8px;background:var(--ncs-surface);border:var(--ncs-border-width) solid var(--ncs-border);border-radius:var(--ncs-radius-card);box-shadow:var(--ncs-card-shadow);}
+#naice-shot-dialog .ncs-history-card img {width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:calc(var(--ncs-radius-card) - 4px);}
+#naice-shot-dialog .ncs-history-card button {width:100%;margin:6px 0;}
+#naice-shot-dialog .ncs-file {position:relative;border:var(--ncs-border-width) solid var(--ncs-border);background:var(--ncs-control);border-radius:var(--ncs-radius-control);padding:10px;cursor:pointer;}
+#naice-shot-dialog .ncs-file input {position:absolute;width:1px;height:1px;opacity:0;padding:0;margin:0;}
+#naice-shot-dialog footer {display:flex;justify-content:space-between;gap:8px;padding:12px 22px;font-size:11px;color:var(--ncs-muted);border-top:1px solid var(--ncs-rule);}
+#naice-shot-dialog #ncs-chat-label {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* Fixed-palette skins ignore ST's text shadow, which can blur text on a palette it was not chosen for. */
+#naice-shot-dialog[data-skin]:not([data-skin="classic"]),#naice-shot-dialog[data-skin]:not([data-skin="classic"]) * {text-shadow:none;}
+/* Profile input mode: two-button segmented switch. */
+#naice-shot-dialog .ncs-segment {display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin:12px 0;border:1px solid var(--ncs-border);border-radius:calc(var(--ncs-radius-control) + 4px);background:var(--ncs-control);}
+#naice-shot-dialog .ncs-segment button {min-height:38px;border-color:transparent;background-color:transparent;color:var(--ncs-muted);}
+#naice-shot-dialog .ncs-segment button:hover {border-color:transparent;background-color:var(--ncs-hover);color:var(--ncs-fg);}
+#naice-shot-dialog .ncs-segment button[aria-pressed="true"] {background-color:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);border:1px solid var(--ncs-tab-active-border);font-weight:650;}
+#naice-shot-dialog .ncs-describe {padding:12px;margin:0 0 12px;border:1px dashed var(--ncs-border);border-radius:var(--ncs-radius-card);background:var(--ncs-surface);}
+#naice-shot-dialog .ncs-describe label {margin-top:0;}
+/* Scene tab: empty state, quick profile card, unregistered people. */
+#naice-shot-dialog .ncs-empty {padding:16px;margin:12px 0;text-align:left;border:1px dashed var(--ncs-border);border-radius:var(--ncs-radius-card);background:var(--ncs-surface);}
+#naice-shot-dialog .ncs-empty strong {display:block;font-size:15px;}
+#naice-shot-dialog .ncs-empty p {margin:6px 0 12px;}
+#naice-shot-dialog .ncs-quick-profile {padding:14px;margin:12px 0;border:2px solid var(--ncs-tab-active-border);border-radius:var(--ncs-radius-card);background:var(--ncs-surface);box-shadow:var(--ncs-card-shadow);}
+#naice-shot-dialog .ncs-quick-head {display:flex;align-items:center;justify-content:space-between;gap:8px;}
+#naice-shot-dialog .ncs-quick-head strong {font-size:15px;}
+#naice-shot-dialog .ncs-quick-head button {min-height:36px;padding:6px 12px;}
+#naice-shot-dialog .ncs-chip-add {border-style:dashed;border-radius:var(--ncs-radius-pill);color:var(--ncs-accent-text);}
+/* All-chats history. */
+#naice-shot-dialog .ncs-chat-name {font-weight:600;color:var(--ncs-fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#naice-shot-dialog .ncs-chat-name.ncs-here {color:var(--ncs-accent-text);}
+#naice-shot-dialog #ncs-history-storage {margin-top:-4px;}
+/* Final prompt editor. */
+#naice-shot-dialog .ncs-final-form {margin:6px 0;}
+#naice-shot-dialog .ncs-final-slot {margin:12px 0;padding:6px 12px 10px;border:1px solid var(--ncs-border);border-radius:var(--ncs-radius-card);background:var(--ncs-surface);min-width:0;}
+#naice-shot-dialog .ncs-final-slot legend {padding:0 6px;font-weight:650;color:var(--ncs-fg);}
+#naice-shot-dialog .ncs-badge {display:inline-block;margin-left:6px;padding:1px 8px;font-size:11px;border-radius:var(--ncs-radius-pill);background:var(--ncs-warning);color:var(--ncs-danger-fg,var(--ncs-bg));vertical-align:middle;}
+/* Skin picker. */
+#naice-shot-dialog .ncs-skin-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:12px 0 6px;}
+#naice-shot-dialog .ncs-skin {position:relative;display:flex;flex-direction:column;gap:8px;margin:0;padding:10px;cursor:pointer;
+ border:var(--ncs-border-width) solid var(--ncs-border);border-radius:var(--ncs-radius-card);background:var(--ncs-surface);}
+#naice-shot-dialog .ncs-skin:hover {border-color:var(--ncs-edge);}
+#naice-shot-dialog .ncs-skin.ncs-selected {border:2px solid var(--ncs-tab-active-border);padding:9px;}
+#naice-shot-dialog .ncs-skin input {position:absolute;opacity:0;width:1px;height:1px;margin:0;}
+#naice-shot-dialog .ncs-skin:has(input:focus-visible) {outline:2px solid var(--ncs-focus);outline-offset:2px;}
+#naice-shot-dialog .ncs-skin-swatch {display:flex;height:34px;border-radius:calc(var(--ncs-radius-card) - 4px);overflow:hidden;border:1px solid #8884;}
+#naice-shot-dialog .ncs-skin-swatch span {flex:1;}
+#naice-shot-dialog .ncs-skin-swatch span:first-child {flex:2.2;}
+#naice-shot-dialog .ncs-skin strong {font-size:14px;}
+#naice-shot-dialog .ncs-skin small {margin-top:-4px;}
+.ncs-icon {display:inline-block;width:22px;height:22px;flex:0 0 auto;vertical-align:middle;}
+#extensionsMenu .ncs-menu-item {display:flex;align-items:center;gap:8px;cursor:pointer;}
+#extensionsMenu .ncs-menu-item .ncs-icon {width:22px;height:22px;}
+#ncs-extension-settings {border:1px solid color-mix(in srgb,var(--SmartThemeBodyColor,#999) 28%,transparent);border-radius:8px;margin:5px 0;overflow:hidden;}
+#ncs-extension-settings > summary {display:flex;align-items:center;gap:8px;list-style:none;cursor:pointer;padding:6px 10px;min-height:34px;font-size:14px;}
+#ncs-extension-settings > summary::-webkit-details-marker {display:none;}
+#ncs-extension-settings > summary::after {content:'⌄';margin-left:auto;opacity:.7;}
+#ncs-extension-settings[open] > summary::after {transform:rotate(180deg);}
+#ncs-extension-settings .ncs-extension-body {padding:8px 12px 12px;}
+#ncs-extension-settings .ncs-extension-body p {font-size:12px;margin:0 0 10px;}
+#ncs-extension-settings .ncs-launch-button {display:inline-flex;align-items:center;justify-content:center;gap:8px;width:auto;min-width:140px;max-width:100%;min-height:38px;padding:8px 12px;font-size:14px;white-space:nowrap;cursor:pointer;border-radius:8px;border:1px solid #35969b;background:#75c6cc;color:#163334;}
+#ncs-extension-settings .ncs-launch-button span {white-space:nowrap;}
+/* In-progress banner: sits under the tabs so it stays visible while the content scrolls. */
+#naice-shot-dialog .ncs-progress {position:relative;display:flex;align-items:center;gap:12px;padding:12px 22px 14px;
+ background:var(--ncs-progress-bg,color-mix(in srgb,var(--ncs-accent) 26%,var(--ncs-bg)));border-bottom:2px solid var(--ncs-edge);overflow:hidden;}
+#naice-shot-dialog .ncs-progress::after {content:'';position:absolute;left:0;bottom:0;width:35%;height:3px;background:var(--ncs-edge);animation:ncs-progress-slide 1.6s ease-in-out infinite;}
+#naice-shot-dialog .ncs-progress-text {flex:1;min-width:0;}
+#naice-shot-dialog .ncs-progress-text strong {display:block;font-size:15px;color:var(--ncs-fg);}
+#naice-shot-dialog .ncs-progress-text small {margin-top:2px;color:var(--ncs-fg);opacity:.85;}
+#naice-shot-dialog .ncs-spinner {flex:0 0 auto;width:24px;height:24px;border-radius:50%;
+ border:3px solid color-mix(in srgb,var(--ncs-edge) 30%,transparent);border-top-color:var(--ncs-edge);animation:ncs-spin .8s linear infinite;}
+#naice-shot-dialog #ncs-progress-cancel {flex:0 0 auto;font-weight:650;color:var(--ncs-warning);border:2px solid var(--ncs-warning);background:var(--ncs-bg);}
+#naice-shot-dialog #ncs-progress-cancel:hover {background:color-mix(in srgb,var(--ncs-warning) 14%,var(--ncs-bg));}
+@keyframes ncs-spin {to {transform:rotate(360deg);}}
+@keyframes ncs-progress-slide {from {transform:translateX(-100%);} to {transform:translateX(300%);}}
+@media (prefers-reduced-motion:reduce) {
+ #naice-shot-dialog .ncs-spinner,#naice-shot-dialog .ncs-progress::after {animation:none;}
+ #naice-shot-dialog .ncs-progress::after {width:100%;opacity:.6;}
+}
+/* Clickable thumbnails that open the viewer. */
+#naice-shot-dialog .ncs-image-open {display:block;width:100%;padding:0;margin:0;min-height:0;border:0;border-radius:var(--ncs-radius-card);background:none;cursor:zoom-in;line-height:0;}
+#naice-shot-dialog .ncs-image-open:hover {background:none;border:0;}
+#naice-shot-dialog .ncs-image-open:hover img {filter:brightness(1.06);}
+#naice-shot-dialog .ncs-history-card .ncs-image-open {margin:0;}
+#chat .ncs-inline-open {display:block;padding:0;margin:0;border:0;background:none;cursor:zoom-in;max-width:100%;line-height:0;color:inherit;}
+/* Delete and selection. */
+#naice-shot-dialog .ncs-danger {background:var(--ncs-warning);color:var(--ncs-danger-fg,var(--ncs-bg));border-color:var(--ncs-warning);font-weight:650;}
+#naice-shot-dialog .ncs-danger:hover {background:color-mix(in srgb,var(--ncs-warning) 85%,var(--ncs-fg));}
+#naice-shot-dialog .ncs-danger-outline {color:var(--ncs-warning);border-color:color-mix(in srgb,var(--ncs-warning) 70%,var(--ncs-bg));}
+#naice-shot-dialog .ncs-danger-outline:hover {background:color-mix(in srgb,var(--ncs-warning) 12%,var(--ncs-bg));border-color:var(--ncs-warning);}
+#naice-shot-dialog .ncs-history-card {display:flex;flex-direction:column;gap:6px;}
+#naice-shot-dialog .ncs-history-card .ncs-pick {margin:0;font-size:13px;}
+#naice-shot-dialog .ncs-history-card.ncs-picked {outline:3px solid var(--ncs-warning);outline-offset:-1px;}
+#naice-shot-dialog .ncs-history-card button,#naice-shot-dialog .ncs-history-card a[download] {margin:0;}
+#naice-shot-dialog #ncs-history-count {color:var(--ncs-muted);}
+#naice-shot-dialog .ncs-more {margin-top:12px;}
+#naice-shot-dialog .ncs-image-open.ncs-missing {min-height:80px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--ncs-border);line-height:1.4;}
+#naice-shot-dialog .ncs-image-open.ncs-missing img {display:none;}
+#naice-shot-dialog .ncs-image-open.ncs-missing::after {content:'그림 파일을 찾을 수 없어요';font-size:12px;color:var(--ncs-muted);padding:12px;}
+#chat .ncs-inline-image.ncs-missing .ncs-inline-open {cursor:default;line-height:1.4;padding:12px;border:1px dashed currentColor;border-radius:8px;opacity:.75;}
+#ncs-viewer .ncsv-delete {color:#ffb38a;border-color:#ffb38a99;}
+#ncs-viewer .ncsv-delete:hover {background:#ffb38a22;}
+@media(max-width:520px) {
+ #naice-shot-dialog .ncs-progress {padding:10px 14px 12px;gap:10px;}
+ #naice-shot-dialog #ncs-progress-cancel {padding:8px 10px;}
+ #naice-shot-dialog {width:calc(100vw - 12px);max-height:94dvh;border-radius:min(var(--ncs-radius),14px);--ncs-icon-size:calc(var(--ncs-icon-size-base,38px) * .86);}
+ #naice-shot-dialog .ncs-shell {max-height:94dvh;}
+ #naice-shot-dialog .ncs-header {padding:14px;}
+ #naice-shot-dialog .ncs-content {padding:0 14px 14px;}
+ #naice-shot-dialog .ncs-notice,#naice-shot-dialog .ncs-compat {padding:10px 14px;}
+ #naice-shot-dialog .ncs-tabs {padding:8px;gap:4px;}
+ #naice-shot-dialog .ncs-tabs button {padding:9px 4px;gap:5px;font-size:13px;}
+ #naice-shot-dialog .ncs-skin-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
+ #naice-shot-dialog .ncs-grid {grid-template-columns:1fr;}
+ #naice-shot-dialog #ncs-history {grid-template-columns:repeat(2,minmax(0,1fr));}
+ #naice-shot-dialog .ncs-row button {flex-grow:1;}
+ #naice-shot-dialog .ncs-character {padding:10px;}
+}
+/* Display-only attachments: placed after RP text, outside native media fields. */
+#chat .ncs-inline-images {display:flex;flex-direction:column;gap:12px;max-width:100%;margin:14px 0;}
+#chat .ncs-inline-image {margin:0;max-width:100%;}
+#chat .ncs-inline-image img {display:block;max-width:100%;max-height:70vh;object-fit:contain;border-radius:10px;}
+#chat .ncs-inline-image figcaption {display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 0;}
+#chat .ncs-inline-image figcaption a,#chat .ncs-inline-image figcaption button {font-size:12px;color:inherit;border:1px solid currentColor;border-radius:6px;background:transparent;padding:6px 10px;cursor:pointer;text-decoration:none;}
+#naice-shot-dialog .ncs-history-card a[download] {display:block;text-align:center;width:100%;color:var(--ncs-accent-text);border:var(--ncs-border-width) solid var(--ncs-border);border-radius:var(--ncs-radius-control);padding:9px;text-decoration:none;}
+
+/* Full-screen viewer. Always dark so images read the same in light and dark ST themes. */
+#ncs-viewer {--ncsv-accent:#75c6cc;--ncsv-accent-fg:#163334;--ncsv-accent-hover:#9bdce0;--ncsv-pressed:#2c5d61;position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;
+ background:#0b0d12;color:#f1f3f6;overflow:hidden;font-size:14px;}
+#ncs-viewer[open] {display:flex;flex-direction:column;}
+#ncs-viewer::backdrop {background:#000d;}
+#ncs-viewer * {box-sizing:border-box;}
+#ncs-viewer .ncsv-bar {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;
+ padding-top:max(10px,env(safe-area-inset-top));background:#15181fee;border-bottom:1px solid #ffffff1f;z-index:1;}
+#ncs-viewer .ncsv-group {display:flex;align-items:center;gap:6px;}
+#ncs-viewer .ncsv-save-group {margin-left:auto;}
+#ncs-viewer button,#ncs-viewer .ncsv-save {display:inline-flex;align-items:center;justify-content:center;min-width:42px;min-height:42px;margin:0;padding:8px 12px;
+ font:inherit;line-height:1.2;color:#f1f3f6;background:#ffffff12;border:1px solid #ffffff55;border-radius:8px;cursor:pointer;text-decoration:none;white-space:nowrap;}
+#ncs-viewer button:hover,#ncs-viewer .ncsv-save:hover {background:#ffffff24;}
+#ncs-viewer button:disabled {opacity:.4;cursor:default;}
+#ncs-viewer button:focus-visible,#ncs-viewer .ncsv-save:focus-visible {outline:2px solid var(--ncsv-accent);outline-offset:2px;}
+#ncs-viewer button[aria-pressed=true] {background:var(--ncsv-pressed);border-color:var(--ncsv-accent);font-weight:650;}
+#ncs-viewer .ncsv-save {background:var(--ncsv-accent);color:var(--ncsv-accent-fg);border-color:var(--ncsv-accent);font-weight:650;}
+#ncs-viewer .ncsv-save:hover {background:var(--ncsv-accent-hover);}
+#ncs-viewer button[data-v=in],#ncs-viewer button[data-v=out],#ncs-viewer button[data-v=close] {font-size:18px;padding:6px 10px;}
+#ncs-viewer .ncsv-zoom {min-width:54px;text-align:center;font-variant-numeric:tabular-nums;}
+#ncs-viewer .ncsv-stage {position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;}
+#ncs-viewer .ncsv-stage.ncsv-dragging {cursor:grabbing;}
+#ncs-viewer .ncsv-stage img {position:absolute;left:0;top:0;max-width:none;max-height:none;transform-origin:0 0;-webkit-user-drag:none;user-select:none;}
+#ncs-viewer .ncsv-meta {padding:6px 12px;padding-bottom:max(6px,env(safe-area-inset-bottom));font-size:12px;color:#c9ced6;background:#15181fee;border-top:1px solid #ffffff1f;}
+@media(max-width:520px) {
+ /* Two tidy rows: view modes + close on top, zoom + save below. */
+ #ncs-viewer .ncsv-bar {display:grid;grid-template-columns:1fr auto;grid-template-areas:'modes close' 'zooms save';gap:6px;padding:8px;padding-top:max(8px,env(safe-area-inset-top));}
+ #ncs-viewer .ncsv-modes {grid-area:modes;} #ncs-viewer .ncsv-zooms {grid-area:zooms;}
+ #ncs-viewer .ncsv-save-group {grid-area:save;margin-left:0;justify-content:flex-end;} #ncs-viewer .ncsv-close-group {grid-area:close;justify-content:flex-end;}
+ #ncs-viewer button,#ncs-viewer .ncsv-save {min-height:40px;padding:6px 9px;font-size:13px;}
+ #ncs-viewer .ncsv-zoom {min-width:46px;font-size:13px;}
+}

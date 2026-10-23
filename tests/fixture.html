@@ -1,0 +1,27 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/ui/style.css"><style>body{background:#141b24;color:white;font-family:Arial,sancs-serif;padding:20px}button{padding:12px}#extensionsMenu{display:none}</style></head><body><div id="extensions_settings2"></div><div id="extensionsMenu"></div><div id="chat"></div><script>
+const listeners={};
+window.mock={
+ extensionSettings:{},chatMetadata:{},characters:[{name:'Leo',avatar:'Leo.png',chat:'A'}],characterId:0,groupId:null,chatId:'A',mainApi:'openai',name1:'Mira',name2:'Leo',
+ chat:[{name:'Mira',is_user:true,mes:'Mira walks into the cafe.'},{name:'Leo',mes:'Leo sits by the window. Scene Info: sunny afternoon.'}],
+ getCurrentChatId(){return this.chatId;},getRequestHeaders(){return {'Content-Type':'application/json','X-CSRF-Token':'mock-csrf'};},
+ saveSettingsDebounced(){},saveMetadata:async function(){this.saves=(this.saves??0)+1;},
+ addOneMessage(message){const el=document.createElement('article');el.className='mes';el.dataset.system=String(message.is_system);const image=document.createElement('img');image.src=message.extra.media[0].url;el.append(image);document.getElementById('chat').append(el);},
+ saveChat:async function(){this.chatSaves=(this.chatSaves??0)+1;this.savedChat=JSON.stringify(this.chat);},
+ renderChat(){const root=document.getElementById('chat');root.replaceChildren();this.chat.forEach((message,index)=>{const row=document.createElement('article');row.className='mes';row.setAttribute('mesid',String(index));const block=document.createElement('div');block.className='mes_block';const text=document.createElement('div');text.className='mes_text';text.textContent=message.mes;block.append(text);row.append(block);root.append(row);});},
+ scrollOnMediaLoad(){},
+ eventTypes:{CHAT_CHANGED:'chat',MESSAGE_RECEIVED:'received',MESSAGE_SENT:'sent',MESSAGE_SWIPED:'swiped',MESSAGE_DELETED:'deleted',MESSAGE_EDITED:'edited'},
+ eventSource:{on(type,fn){(listeners[type]??=[]).push(fn);}},
+ generateRaw:async function(options){this.extractCalls=(this.extractCalls??0)+1;this.lastExtract=options;if(this.extractionDeferred)return await this.extractionDeferred;return JSON.stringify(this.extraction);},
+ extraction:{characters:[{id:'leo',name:'Leo',expression:'smile',action:'sitting on a chair',position:'auto',outfitMode:'replace',outfit:'white shirt, jeans'}],unregistered:[],location:'cafe',lighting:'sunlight',camera:'medium shot',interaction:''},
+ emit(type){for(const fn of listeners[type]??[])fn();},
+ switchChat(id){this.chatId=id;this.characters[0].chat=id;this.chatMetadata={};this.chat=[{name:'Leo',mes:'Walking along the river.'}];this.renderChat();this.emit('chat');},
+};
+mock.extensionSettings.naice_shot={profiles:[{id:'leo',name:'Leo',aliases:['레오'],subject:'boy',appearance:'brown hair, green eyes',defaultOutfit:'navy coat, white shirt, jeans',positive:'round glasses',negative:'black hair',cardKey:''}]};
+mock.extensionSettings.connectionManager={selectedProfile:'main',profiles:[{id:'extract-cheap',name:'별도 추출용',api:'custom',model:'extractor-model'}]};
+mock.ConnectionManagerRequestService={
+ validateProfile(profile){if(profile.api!=='custom')throw new Error('unsupported');return {selected:'openai'};},
+ async sendRequest(id,messages,maxTokens,options,override){mock.profileCalls=(mock.profileCalls??0)+1;mock.profileRequest={id,messages,maxTokens,options,override};return {content:mock.extraction,reasoning:'Do not store me.'};}
+};
+mock.renderChat();
+window.SillyTavern={getContext:()=>mock};
+</script><script type="module" src="/ui/index.js"></script></body></html>

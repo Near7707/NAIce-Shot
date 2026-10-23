@@ -1,0 +1,9 @@
+node_modules/
+test-output/
+data/
+output/
+*.log
+.env
+.env.*
+secrets.json
+*-settings.json

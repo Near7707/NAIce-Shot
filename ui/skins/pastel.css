@@ -1,0 +1,26 @@
+/* NAIce Shot skin · 파스텔: lavender milk, mint actions, a peach halo behind the camera, round corners.
+   Skins change color, corner radius and shadow only — never icon size, position, fonts or spacing,
+   so every skin keeps the same layout. Fixed palette: it does not read SillyTavern theme colors.
+   Delete this file to remove the skin; the panel falls back to the classic look. */
+#naice-shot-dialog[data-skin="pastel"] {
+ color-scheme:light;
+ --ncs-bg:#fbf8ff;--ncs-fg:#3a3352;--ncs-muted:#6a6286;
+ --ncs-border:#d0c4ec;--ncs-rule:#ebe4f8;
+ --ncs-control:#ffffff;--ncs-hover:#f3eefd;--ncs-surface:#ffffff;
+ --ncs-accent:#a8e6d3;--ncs-edge:#338f73;--ncs-accent-text:#257a61;--ncs-warning:#c23f63;--ncs-danger-fg:#ffffff;
+ --ncs-primary-bg:#a8e6d3;--ncs-primary-fg:#1c463a;--ncs-primary-border:#7fd3ba;--ncs-primary-hover:#bdeedf;
+ --ncs-tab-active-bg:#ffffff;--ncs-tab-active-fg:#3a3352;--ncs-tab-active-border:#b9a8e6;
+ --ncs-check-border:#7563b8;--ncs-check-bg:#ffffff;--ncs-check-on:#1f6e57;--ncs-check-mark:#ffffff;
+ --ncs-arrow:#7d72a3;--ncs-focus:#8f7bd6;
+ --ncs-radius:26px;--ncs-radius-card:18px;--ncs-radius-control:14px;
+ --ncs-shadow:0 24px 70px rgba(90,70,150,.3);--ncs-card-shadow:0 6px 18px rgba(120,100,190,.1);
+ --ncs-progress-bg:#e2f6ef;
+}
+#naice-shot-dialog[data-skin="pastel"] .ncs-brand .ncs-icon {border-radius:50%;background:#ffe3d3;box-shadow:0 4px 12px rgba(255,170,130,.35);}
+#naice-shot-dialog[data-skin="pastel"] .ncs-header {border-bottom-color:transparent;}
+#naice-shot-dialog[data-skin="pastel"] .ncs-tabs button {border-radius:999px;background-color:#f1ebfc;border-color:transparent;color:var(--ncs-muted);}
+#naice-shot-dialog[data-skin="pastel"] .ncs-tabs button:hover {background-color:#e9e1fa;border-color:transparent;}
+#naice-shot-dialog[data-skin="pastel"] .ncs-tabs .ncs-active {box-shadow:0 4px 12px rgba(120,100,190,.2);color:var(--ncs-fg);}
+#naice-shot-dialog[data-skin="pastel"] .ncs-profile-chip.ncs-selected {background-color:#a8e6d3;color:#1c463a;border-color:#7fd3ba;}
+#naice-shot-dialog[data-skin="pastel"] .ncs-section {border-bottom-style:dashed;}
+#ncs-viewer[data-skin="pastel"] {--ncsv-accent:#a8e6d3;--ncsv-accent-fg:#1c463a;--ncsv-accent-hover:#bdeedf;--ncsv-pressed:#4a3f78;}

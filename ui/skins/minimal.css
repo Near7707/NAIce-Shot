@@ -1,0 +1,29 @@
+/* NAIce Shot skin · 미니멀: white page, thin rules, ink-black actions and one cobalt accent.
+   Skins change color, corner radius and shadow only — never icon size, position, fonts or spacing,
+   so every skin keeps the same layout. Fixed palette: it does not read SillyTavern theme colors.
+   Delete this file to remove the skin; the panel falls back to the classic look. */
+#naice-shot-dialog[data-skin="minimal"] {
+ color-scheme:light;
+ --ncs-bg:#ffffff;--ncs-fg:#1d1f24;--ncs-muted:#5c606a;
+ --ncs-border:#d3d6dc;--ncs-rule:#eceef1;
+ --ncs-control:#ffffff;--ncs-hover:#f3f4f6;--ncs-surface:#fafafb;
+ --ncs-accent:#2747d6;--ncs-edge:#2747d6;--ncs-accent-text:#2747d6;--ncs-warning:#b23c17;--ncs-danger-fg:#ffffff;
+ --ncs-primary-bg:#1d1f24;--ncs-primary-fg:#ffffff;--ncs-primary-border:#1d1f24;--ncs-primary-hover:#2747d6;
+ --ncs-tab-active-bg:#ffffff;--ncs-tab-active-fg:#1d1f24;--ncs-tab-active-border:#1d1f24;
+ --ncs-check-border:#8a8f99;--ncs-check-bg:#ffffff;--ncs-check-on:#1d1f24;--ncs-check-mark:#ffffff;
+ --ncs-arrow:#5c606a;--ncs-focus:#2747d6;
+ --ncs-radius:12px;--ncs-radius-card:8px;--ncs-radius-control:6px;
+ --ncs-shadow:0 1px 2px rgba(16,24,40,.06),0 24px 60px rgba(16,24,40,.2);
+ --ncs-progress-bg:#eef1fd;
+}
+/* The pastel camera reads as a sticker on white, so it goes monochrome. */
+#naice-shot-dialog[data-skin="minimal"] .ncs-brand .ncs-icon {filter:grayscale(1) contrast(1.2);}
+/* Same tab boxes as every skin; only the selected one gets a cobalt underline. */
+#naice-shot-dialog[data-skin="minimal"] .ncs-tabs button {background-color:transparent;border-color:transparent;color:var(--ncs-muted);}
+#naice-shot-dialog[data-skin="minimal"] .ncs-tabs button:hover {background-color:var(--ncs-hover);border-color:transparent;color:var(--ncs-fg);}
+#naice-shot-dialog[data-skin="minimal"] .ncs-tabs .ncs-active {border-color:transparent;border-bottom-color:var(--ncs-accent);border-radius:var(--ncs-radius-control) var(--ncs-radius-control) 0 0;color:var(--ncs-fg);}
+#naice-shot-dialog[data-skin="minimal"] .ncs-profile-chip.ncs-selected {background-color:#1d1f24;color:#ffffff;border-color:#1d1f24;}
+#naice-shot-dialog[data-skin="minimal"] .ncs-header {border-bottom-color:transparent;}
+#naice-shot-dialog[data-skin="minimal"] .ncs-section {border-bottom-color:transparent;}
+#naice-shot-dialog[data-skin="minimal"] .ncs-character,#naice-shot-dialog[data-skin="minimal"] .ncs-history-card {border-color:var(--ncs-rule);}
+#ncs-viewer[data-skin="minimal"] {--ncsv-accent:#ffffff;--ncsv-accent-fg:#1d1f24;--ncsv-accent-hover:#e6e8ec;--ncsv-pressed:#2747d6;}

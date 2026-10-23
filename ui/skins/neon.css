@@ -1,0 +1,35 @@
+/* NAIce Shot skin · 네온: deep indigo night, cyan actions, magenta for what is selected, a faint grid.
+   Skins change color, corner radius and shadow only — never icon size, position, fonts or spacing,
+   so every skin keeps the same layout. Fixed palette: it does not read SillyTavern theme colors.
+   Delete this file to remove the skin; the panel falls back to the classic look. */
+#naice-shot-dialog[data-skin="neon"] {
+ color-scheme:dark;
+ --ncs-bg:#100d24;--ncs-fg:#ece9ff;--ncs-muted:#aaa4d4;
+ --ncs-border:#443c7a;--ncs-rule:#262049;
+ --ncs-control:#16122f;--ncs-hover:#221c46;--ncs-surface:#14102b;
+ --ncs-accent:#2ef2ee;--ncs-edge:#2ef2ee;--ncs-accent-text:#72f7f4;--ncs-warning:#ffb020;--ncs-danger-fg:#1d1300;
+ --ncs-primary-bg:#2ef2ee;--ncs-primary-fg:#061a1d;--ncs-primary-border:#2ef2ee;--ncs-primary-hover:#7df8f5;
+ --ncs-tab-active-bg:rgba(255,79,216,.12);--ncs-tab-active-fg:#ffffff;--ncs-tab-active-border:#ff4fd8;
+ --ncs-check-border:#8178cc;--ncs-check-bg:#0c0a1d;--ncs-check-on:#ff4fd8;--ncs-check-mark:#1a0716;
+ --ncs-arrow:#2ef2ee;--ncs-focus:#ff4fd8;
+ --ncs-radius:6px;--ncs-radius-card:4px;--ncs-radius-control:3px;
+ --ncs-shadow:0 0 0 1px rgba(46,242,238,.25),0 0 42px rgba(46,242,238,.16),0 30px 80px rgba(0,0,0,.6);
+ --ncs-progress-bg:rgba(46,242,238,.09);
+ background-image:linear-gradient(rgba(46,242,238,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(46,242,238,.04) 1px,transparent 1px);
+ background-size:24px 24px;
+}
+#naice-shot-dialog[data-skin="neon"] select option {background:#16122f;color:#ece9ff;}
+#naice-shot-dialog[data-skin="neon"] .ncs-header {border-bottom-color:rgba(46,242,238,.35);}
+#naice-shot-dialog[data-skin="neon"] .ncs-brand .ncs-icon {filter:drop-shadow(0 0 6px rgba(46,242,238,.65));}
+#naice-shot-dialog[data-skin="neon"] h3 {color:var(--ncs-accent-text);}
+#naice-shot-dialog[data-skin="neon"] .ncs-tabs button {background-color:transparent;}
+#naice-shot-dialog[data-skin="neon"] .ncs-tabs .ncs-active,#naice-shot-dialog[data-skin="neon"] .ncs-profile-chip.ncs-selected {box-shadow:0 0 12px rgba(255,79,216,.45),inset 0 0 10px rgba(255,79,216,.16);}
+#naice-shot-dialog[data-skin="neon"] .ncs-primary {box-shadow:0 0 16px rgba(46,242,238,.45);}
+#naice-shot-dialog[data-skin="neon"] .ncs-primary:hover {box-shadow:0 0 24px rgba(46,242,238,.7);}
+#naice-shot-dialog[data-skin="neon"] input:not([type=checkbox]):not([type=radio]):focus,#naice-shot-dialog[data-skin="neon"] textarea:focus,#naice-shot-dialog[data-skin="neon"] select:focus {box-shadow:0 0 0 1px #2ef2ee,0 0 12px rgba(46,242,238,.35);}
+#naice-shot-dialog[data-skin="neon"] input[type=checkbox]:checked {box-shadow:0 0 8px rgba(255,79,216,.6);}
+#naice-shot-dialog[data-skin="neon"] .ncs-skin.ncs-selected {box-shadow:0 0 12px rgba(255,79,216,.35);}
+@media (prefers-reduced-motion:reduce) {
+ #naice-shot-dialog[data-skin="neon"] .ncs-primary:hover {box-shadow:0 0 16px rgba(46,242,238,.45);}
+}
+#ncs-viewer[data-skin="neon"] {--ncsv-accent:#2ef2ee;--ncsv-accent-fg:#061a1d;--ncsv-accent-hover:#7df8f5;--ncsv-pressed:#4a1446;}
