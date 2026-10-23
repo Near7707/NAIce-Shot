@@ -28,41 +28,41 @@ async function open(preset){
   route.fulfill({json:u.pathname.endsWith('/history')?{items:[{id,created:new Date().toISOString(),chatKey:u.searchParams.get('chatKey'),image:`/user/images/naice-shot/${id}.png`,seed:5,options:{model:'nai-diffusion-5-full'},assembled:{base:'',negative:'',characters:[]},snapshot:null}],total:1,hasMore:false}:{}});});
  if(preset)await page.addInitScript(skin=>{document.addEventListener('DOMContentLoaded',()=>{window.mock.extensionSettings.naice_shot.skin=skin;});},preset);
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
- await page.locator('#ncs-extension-settings > summary').click();await page.locator('.ncs-launch-button').click();
+ await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
  return page;
 }
 const skinOf=page=>page.locator('#naice-shot-dialog').getAttribute('data-skin');
 try{
  let page=await open();
  await page.locator('[data-tab="settings"]').click();
- await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===5);
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===4);
  assert.equal(await skinOf(page),'classic');assert.equal(await page.locator('#ncs-skin-css').count(),0,'classic loads no extra file');
  assert.equal(await page.locator('.ncs-tabs [data-tab] .ncs-tab-icon svg').count(),4,'tab icons');
 
  // Switch and save; only the chosen file is loaded.
- for(const id of ['glass','minimal','pastel','neon']){
+ for(const id of ['glass','minimal','pastel']){
   await page.locator(`#ncs-skins input[value="${id}"]`).check({force:true});
   await page.waitForFunction(id=>document.querySelector('#naice-shot-dialog').dataset.skin===id,id);
   assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.skin),id);
   assert.equal(await page.locator('link#ncs-skin-css').count(),1);assert.match(await page.locator('link#ncs-skin-css').getAttribute('href'),new RegExp(`skins/${id}\\.css$`));
   assert.equal(await page.locator('.ncs-skin.ncs-selected input').getAttribute('value'),id);
  }
- // Fixed palette: the same neon colors under a light and a dark ST theme, checkbox included.
+ // Fixed palette: the same pastel colors under a light and a dark ST theme, checkbox included.
  const sample=async()=>{await page.evaluate(()=>{document.querySelector('#ncs-schema').checked=true;});await page.waitForTimeout(300); // let the color transition finish
   return page.evaluate(()=>{const d=document.querySelector('#naice-shot-dialog'),cb=document.querySelector('#ncs-schema');return [getComputedStyle(d).backgroundColor,getComputedStyle(cb).backgroundColor,getComputedStyle(cb).borderTopColor];});};
  await page.evaluate(()=>{document.documentElement.style.setProperty('--SmartThemeBlurTintColor','#fcf7ef');document.documentElement.style.setProperty('--SmartThemeBodyColor','#403d3a');});
  const light=await sample();
  await page.evaluate(()=>{document.documentElement.style.setProperty('--SmartThemeBlurTintColor','#111');document.documentElement.style.setProperty('--SmartThemeBodyColor','#eee');});
  const dark=await sample();
- assert.deepEqual(light,dark,'skin colors do not follow the ST theme');assert.equal(light[1],'rgb(255, 79, 216)','checked box uses the skin color');
+ assert.deepEqual(light,dark,'skin colors do not follow the ST theme');assert.equal(light[1],'rgb(31, 110, 87)','checked box uses the skin color');
  // Viewer takes the skin accent.
  await page.locator('[data-tab="history"]').click();await page.locator('#ncs-history .ncs-image-open').first().click();
- await page.locator('#ncs-viewer[open]').waitFor();assert.equal(await page.locator('#ncs-viewer').getAttribute('data-skin'),'neon');
- assert.equal(await page.locator('#ncs-viewer .ncsv-save').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(46, 242, 238)');
+ await page.locator('#ncs-viewer[open]').waitFor();assert.equal(await page.locator('#ncs-viewer').getAttribute('data-skin'),'pastel');
+ assert.equal(await page.locator('#ncs-viewer .ncsv-save').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(168, 230, 211)');
  await page.keyboard.press('Escape');
  // Mobile: every skin keeps the settings tab inside 375px.
  await page.setViewportSize({width:375,height:760});await page.locator('[data-tab="settings"]').click();
- for(const id of ['classic','glass','minimal','pastel','neon']){
+ for(const id of ['classic','glass','minimal','pastel']){
   await page.locator(`#ncs-skins input[value="${id}"]`).check({force:true});
   await page.waitForFunction(id=>document.querySelector('#naice-shot-dialog').dataset.skin===id,id);
   for(const tab of ['scene','profiles','settings','history']){
@@ -78,10 +78,19 @@ try{
  deleted=new Set(['pastel.css']);
  page=await open('pastel');
  await page.locator('[data-tab="settings"]').click();
- await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===4);
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===3);
  assert.equal(await page.locator('#ncs-skins input[value="pastel"]').count(),0);
  await page.waitForFunction(()=>/찾지 못해 기본으로/.test(document.querySelector('#ncs-skin-state').textContent));
  assert.equal(await skinOf(page),'classic');assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.skin),'classic');
+ await page.close();
+ // The removed neon skin: someone who had it saved gets the built-in look.
+ deleted=new Set();
+ page=await open('neon');
+ await page.locator('[data-tab="settings"]').click();
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===4);
+ assert.equal(await page.locator('#ncs-skins input[value="neon"]').count(),0);
+ await page.waitForFunction(()=>mock.extensionSettings.naice_shot.skin==='classic');
+ assert.equal(await skinOf(page),'classic');
  await page.close();
  assert.deepEqual(errors,[]);
  console.log('PASS: skin picker, saved choice, single CSS file, theme-independent colors and checkbox, viewer tint, 375px for all skins, deleted-skin fallback');

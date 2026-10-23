@@ -1,3 +1,11 @@
+# v0.1.9 validation — 2026-10-24
+
+- Node suite (with NAIce-Shot-Server cloned alongside): **76 passed, 0 failed, 0 skipped** (one fewer per-skin contrast test after removing 네온).
+- **13 of 13 browser scripts passed** in headless Chromium, including the new `browser-v019`: the settings drawer uses SillyTavern's `inline-drawer` markup, is attached while `panel.html` is still loading and stays ahead of an extension that mounts afterwards, and 열기 pressed during loading opens the panel when ready; on all four skins, under injected themes that force every input white (or dark) with `!important`, select/textarea/number fields keep at least 4.5:1 text contrast.
+- `browser-skins` now also checks that a saved 네온 choice falls back to 기본.
+- Visual check (screenshots, not shipped): 글래스 over a colorful page shows the blurred page through the panel; 기본 under a light theme with forced-white inputs is readable.
+- Not exercised: a real SillyTavern instance (drawer styling there comes from SillyTavern's own CSS), Termux on a phone, a live NovelAI account.
+
 # v0.1.8 validation — 2026-10-24
 
 - Layout change only for the extension (files moved to the repository root) plus the phone viewer toolbar fix; server code unchanged and moved to NAIce-Shot-Server.

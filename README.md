@@ -1,4 +1,4 @@
-# NAIce Shot v0.1.8
+# NAIce Shot v0.1.9
 
 실리태번의 RP 장면을 추출해 NovelAI 그림을 생성하는 비공식 확장이에요. 캐릭터 외형 프로필, 장면·복장 편집, 생성 프리셋, 이미지 이력과 채팅 첨부를 지원해요.
 
@@ -26,6 +26,26 @@ NAIce Shot은 **확장(이 저장소)**과 **서버 플러그인([NAIce-Shot-Ser
 4. 실리태번 API 연결 화면에 NAI 키를 저장하고, **NAIce Shot → 설정 → 서버·NAI 연결 확인**을 눌러요.
 
 이렇게 git으로 설치한 서버 플러그인은 **실리태번을 켤 때마다 자동으로 최신 버전으로 업데이트**돼요(`config.yaml`의 `enableServerPluginsAutoUpdate: true`가 기본값이에요). git을 쓸 수 없다면 서버 저장소의 **Code → Download ZIP**으로 받아 `plugins/naice-shot-server/`에 파일을 복사해도 되지만, 그때는 업데이트도 직접 복사해야 해요.
+
+### 휴대폰(Termux)에서 설치하기
+
+Termux로 실리태번을 쓰는 경우에도 순서는 같아요. 명령은 Termux 화면에 입력해요.
+
+1. **확장:** 휴대폰 브라우저로 실리태번에 들어가서 위 1번처럼 **Install extension**에 주소를 붙여 넣어요.
+2. **서버 플러그인:** Termux에서 실리태번이 켜져 있으면 `Ctrl+C`로 먼저 꺼요(Termux 키보드 위 줄의 CTRL을 누른 채 C). 그리고 아래를 한 줄씩 입력해요. 실리태번 폴더가 `~/SillyTavern`이 아니라면 첫 줄의 경로를 바꿔 주세요.
+   ```
+   cd ~/SillyTavern/plugins
+   git clone https://github.com/Near7707/NAIce-Shot-Server naice-shot-server
+   ```
+   `git: command not found`가 나오면 `pkg install git`을 먼저 실행해요.
+3. **설정 켜기:** 아래로 설정 파일을 열어요.
+   ```
+   nano ~/SillyTavern/config.yaml
+   ```
+   `enableServerPlugins: false`를 찾아 `true`로 바꾸고, `Ctrl+O` → Enter로 저장, `Ctrl+X`로 나와요. 이미 `true`면 그대로 두면 돼요.
+4. **다시 켜기:** 평소처럼 실리태번을 켜요(예: `cd ~/SillyTavern && ./start.sh`). 로그에 `[NAIce Shot] server ready`가 보이면 성공이에요.
+
+서버 플러그인은 PC와 똑같이 실리태번을 켤 때마다 자동으로 업데이트돼요.
 
 ### 예전에 ZIP으로 직접 설치했다면 (0.1.7 이하)
 
@@ -72,7 +92,7 @@ This repository contains the browser extension. The UI is in Korean. The compani
 - Generate one image at a time, inspect it in a zoomable viewer and download the original PNG.
 - Attach images below existing messages without adding them to the RP message text or native media fields.
 - Browse current-chat or all-chat history, filter by chat and delete individual or selected images.
-- Choose from five visual skins.
+- Choose from four visual skins: 기본 (follows the SillyTavern theme), 글래스, 미니멀, 파스텔.
 
 The model menu currently includes V5 Full/Curated and V4.5 Full/Curated. External model availability and account eligibility are not validated by this review.
 
@@ -103,6 +123,7 @@ NAIce Shot is split into two repositories so each part can be installed and upda
    git clone https://github.com/Near7707/NAIce-Shot-Server naice-shot-server
    ```
    With `enableServerPluginsAutoUpdate: true` (SillyTavern's default) and git available, SillyTavern pulls plugin updates on every start. Without git, download the server repository as a ZIP and copy its files into `plugins/naice-shot-server/` (manual updates).
+   On Android/Termux the same commands work in Termux (`pkg install git` if git is missing; edit `config.yaml` with `nano`). See the Korean section above for a step-by-step version.
 3. Restart SillyTavern fully, refresh the browser, save your NovelAI key in SillyTavern and use **NAIce Shot → 설정 → 서버·NAI 연결 확인**.
 
 The server plugin imports SillyTavern's secrets module by relative path, so it must sit directly under `plugins/` (one folder deep).

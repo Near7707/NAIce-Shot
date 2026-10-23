@@ -31,7 +31,7 @@ try{
   m.stopEvents=[];m.eventSource.emit=async type=>{m.stopEvents.push(type);};m.eventTypes.GENERATION_STOPPED='generation_stopped';
  });});
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
- await page.locator('#ncs-extension-settings > summary').click();await page.locator('.ncs-launch-button').click();
+ await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
 
  // 1) Empty state in the scene tab, and 장면 추출 opens the quick profile instead of failing.
  assert.equal(await page.locator('#ncs-no-profiles').isVisible(),true);assert.equal(await page.locator('#ncs-add-row').isHidden(),true);
@@ -105,9 +105,9 @@ try{
    firstHeading:r(d.querySelector('[data-page="settings"] h3'))};});
  for(const width of [1280,375]){
   await page.setViewportSize({width,height:860});await page.locator('[data-tab="settings"]').click();
-  await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===5);
+  await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===4);
   let base=null;
-  for(const skin of ['classic','glass','minimal','pastel','neon']){
+  for(const skin of ['classic','glass','minimal','pastel']){
    await page.locator(`#ncs-skins input[value="${skin}"]`).check({force:true});
    await page.waitForFunction(s=>document.querySelector('#naice-shot-dialog').dataset.skin===s,skin);await page.locator('.ncs-content').evaluate(el=>el.scrollTop=0);
    const g=await geometry();

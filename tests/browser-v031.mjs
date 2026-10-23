@@ -40,7 +40,7 @@ const zoom=()=>page.locator('#ncs-viewer .ncsv-zoom').textContent();
 try{
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
  await page.evaluate(()=>{mock.stopEvents=[];mock.eventSource.emit=async type=>{mock.stopEvents.push(type);};mock.eventTypes.GENERATION_STOPPED='generation_stopped';});
- await page.locator('#ncs-extension-settings > summary').click();await page.locator('.ncs-launch-button').click();
+ await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
  assert.equal(await page.locator('#ncs-progress').isHidden(),true,'banner hidden while idle');
  assert.match(await page.locator('footer').textContent(),/v\d+\.\d+\.\d+/);
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.9 — 2026-10-24
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- Settings panel entry: now uses SillyTavern's own drawer (same bordered header and chevron as other extensions) and is attached immediately instead of after the panel file loads, so it no longer always lands at the bottom of the extension list. Clicking 열기 while the panel is still loading opens it once ready.
+- Text fields and dropdowns keep the panel's colors even when a SillyTavern theme forces every input to white (or dark) with `!important`; before, a light theme could leave light text on a white box.
+- Removed the 네온 skin. Anyone who had it selected gets the built-in 기본 look.
+- 글래스 rebuilt as frosted glass: a lighter translucent pane with a strong blur so the page shows through, a diagonal sheen, bright hairline edges and see-through cards and fields, with solid dropdown lists.
+- README: step-by-step install for phones running SillyTavern in Termux.
+- Added `tests/browser-v019.mjs`.
+
 ## 0.1.8 — 2026-10-24
 
 **Install change: the extension is now installable by URL; the server plugin moved to [NAIce-Shot-Server](https://github.com/Near7707/NAIce-Shot-Server).** Coming from a manual install, delete the old `extensions/naice-shot/` and `plugins/naice-shot-server/` folders first (see README). Server code is unchanged (still 0.1.7).

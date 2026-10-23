@@ -35,7 +35,7 @@ try{
  await page.addStyleTag({content:`input[type=checkbox]{appearance:none;background-color:#fff!important;border:1px solid #fff!important;filter:brightness(1.2)!important;overflow:hidden!important}
   input[type=checkbox]::before{content:""!important;box-shadow:inset 1em 1em #fff!important;background:#fff!important;transform:scale(0)}
   input[type=checkbox]:checked::before{transform:scale(1)}input[type=checkbox]::after{content:"x"!important}`});
- await page.locator('#ncs-extension-settings > summary').click();await page.locator('.ncs-launch-button').click();
+ await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
  await page.locator('[data-tab="history"]').click();
  await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===4);
  const save=page.locator('[data-action="save-selected"]');

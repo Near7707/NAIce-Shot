@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.9
+
+Update the extension from Manage extensions and refresh. Check that the NAIce Shot entry in the extension settings has the same bordered header as other extensions, that fields are readable in every skin, and that 글래스 shows the page blurred behind it.
+
 ## v0.1.8: moving to the git install
 
 1. Back up SillyTavern user data.
@@ -7,7 +11,7 @@
 3. Install the extension from Extensions → Install extension with `https://github.com/Near7707/NAIce-Shot`.
 4. In `plugins/`, run `git clone https://github.com/Near7707/NAIce-Shot-Server naice-shot-server`.
 5. Make sure `enableServerPlugins: true` is set, restart SillyTavern fully and refresh the browser.
-6. Confirm the panel shows v0.1.8, no yellow banner, and Settings shows server v0.1.7.
+6. Confirm the panel shows v0.1.8 or later, no yellow banner, and Settings shows server v0.1.7.
 7. Confirm the extension menu lists NAIce Shot only once.
 
 ## Regular checks after an update

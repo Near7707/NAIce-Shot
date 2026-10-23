@@ -51,7 +51,7 @@ for(const skin of SKINS.filter(s=>s.file)){
 test('detection hides a deleted skin file and keeps the built-in one',async()=>{
   const fetcher=async url=>({ok:!String(url).endsWith('pastel.css'),status:String(url).endsWith('pastel.css')?404:200});
   const ids=(await detectSkins('http://x/ext/',fetcher)).map(s=>s.id);
-  assert.ok(ids.includes('classic'));assert.ok(!ids.includes('pastel'));assert.ok(ids.includes('neon'));
+  assert.ok(ids.includes('classic'));assert.ok(!ids.includes('pastel'));assert.ok(ids.includes('minimal'));assert.ok(!ids.includes('neon'),'neon skin removed');
   const offline=(await detectSkins('http://x/ext/',async()=>{throw new Error('offline');})).map(s=>s.id);
   assert.deepEqual(offline,['classic']);
 });

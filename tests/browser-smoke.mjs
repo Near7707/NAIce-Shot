@@ -40,8 +40,9 @@ const click=action=>page.locator(`[data-action="${action}"]`).click();
 try {
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
  await page.locator('#ncs-extension-settings').waitFor();
- assert.equal(await page.locator('#ncs-extension-settings').evaluate(el=>el.open),false);
- await page.locator('#ncs-extension-settings > summary').click();
+ assert.equal(await page.locator('#ncs-extension-settings .inline-drawer-content').isVisible(),false,'drawer starts closed');
+ assert.equal(await page.locator('#ncs-extension-settings .inline-drawer-header').count(),1,'uses SillyTavern drawer markup');
+ await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();
  await page.getByRole('button',{name:'NAIce Shot 열기',exact:true}).click();
  await click('extract');await page.locator('[data-character="leo"]').waitFor();
  assert.equal(await page.locator('#ncs-location').inputValue(),'cafe');

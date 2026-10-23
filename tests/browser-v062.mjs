@@ -26,7 +26,7 @@ await page.route('**/api/plugins/naice-shot/**',async route=>{const u=new URL(ro
 const click=action=>page.locator(`[data-action="${action}"]`).first().click();
 try{
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
- await page.locator('#ncs-extension-settings > summary').click();await page.locator('.ncs-launch-button').click();
+ await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
  await click('extract');await page.locator('[data-character="leo"]').waitFor();
  await page.locator('#ncs-final-box > summary').click();
  const slot=page.locator('#ncs-final-form [data-final="prompt"][data-slot="0"]');

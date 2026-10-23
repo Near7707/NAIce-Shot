@@ -45,7 +45,7 @@ function checkClean(bytes){
 try{
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
  await page.evaluate(()=>{const original=mock.generateRaw;mock.generateRaw=async function(options){return '<think>PRIVATE_REASONING</think>'+await original.call(this,options);};});
- await page.locator('#ncs-extension-settings > summary').click();await page.locator('.ncs-launch-button').click();
+ await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
  await click('extract');await page.locator('[data-character="leo"]').waitFor();await page.locator('#ncs-allow-anlas').check();
  await click('generate');await page.locator('#ncs-result img').waitFor();
  assert.equal('rawExtraction' in sent[0].snapshot,false);assert.equal(sent[0].retainRawExtraction,false);

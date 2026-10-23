@@ -29,7 +29,7 @@ try{
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
  // Settings saved by an older version: a custom display name and a non-default Noise Schedule.
  await page.evaluate(()=>{const s=mock.extensionSettings.naice_shot;s.displayName='옛 이름';s.options={...(s.options??{}),scheduler:'exponential'};});
- await page.locator('#ncs-extension-settings > summary').click();await page.locator('.ncs-launch-button').click();
+ await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
  const backdrop=()=>page.locator('#naice-shot-dialog').evaluate(el=>getComputedStyle(el,'::backdrop').backgroundColor);
  const classic=await backdrop();assert.equal(classic,'rgba(0, 0, 0, 0.6)');
 

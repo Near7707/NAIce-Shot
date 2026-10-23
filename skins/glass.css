@@ -1,29 +1,37 @@
-/* NAIce Shot skin · 글래스: smoked dark glass with a soft highlight edge.
+/* NAIce Shot skin · 글래스: frosted glass. The page behind shows through a strong blur, with a light
+   sheen, bright hairline edges and see-through cards and fields.
    Skins change color, corner radius and shadow only — never icon size, position, fonts or spacing,
    so every skin keeps the same layout. Fixed palette: it does not read SillyTavern theme colors.
    Delete this file to remove the skin; the panel falls back to the classic look. */
 #naice-shot-dialog[data-skin="glass"] {
  color-scheme:dark;
- --ncs-bg:rgba(17,27,40,.82);--ncs-fg:#eaf1f6;--ncs-muted:#adbdca;
- --ncs-border:rgba(255,255,255,.22);--ncs-rule:rgba(255,255,255,.09);
- --ncs-control:rgba(255,255,255,.06);--ncs-hover:rgba(255,255,255,.12);--ncs-surface:rgba(255,255,255,.05);
- --ncs-accent:#8be4df;--ncs-edge:#8be4df;--ncs-accent-text:#9debe6;--ncs-warning:#ffb38a;--ncs-danger-fg:#2a1608;
- --ncs-primary-bg:#8be4df;--ncs-primary-fg:#0d2a2c;--ncs-primary-border:#b5f1ee;--ncs-primary-hover:#aaeeea;
- --ncs-tab-active-bg:rgba(255,255,255,.16);--ncs-tab-active-fg:#ffffff;--ncs-tab-active-border:rgba(255,255,255,.4);
- --ncs-check-border:rgba(234,241,246,.6);--ncs-check-bg:rgba(255,255,255,.04);--ncs-check-on:#8be4df;--ncs-check-mark:#0d2a2c;
- --ncs-arrow:#cfe0ea;--ncs-focus:#8be4df;
- --ncs-radius:22px;--ncs-radius-card:16px;--ncs-radius-control:12px;
- --ncs-shadow:0 30px 90px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.18);
- --ncs-progress-bg:rgba(139,228,223,.14);
- -webkit-backdrop-filter:blur(14px) saturate(150%);backdrop-filter:blur(14px) saturate(150%);
+ --ncs-bg:rgba(28,40,58,.5);--ncs-fg:#ffffff;--ncs-muted:#dce7f0;
+ --ncs-border:rgba(255,255,255,.42);--ncs-rule:rgba(255,255,255,.16);
+ --ncs-control:rgba(255,255,255,.14);--ncs-hover:rgba(255,255,255,.22);--ncs-surface:rgba(255,255,255,.09);
+ --ncs-accent:#a6f0ea;--ncs-edge:#a6f0ea;--ncs-accent-text:#b9f5f0;--ncs-warning:#ffc29e;--ncs-danger-fg:#2a1608;
+ --ncs-primary-bg:rgba(166,240,234,.92);--ncs-primary-fg:#0b2a2b;--ncs-primary-border:#d6fbf8;--ncs-primary-hover:#c4f7f3;
+ --ncs-tab-active-bg:rgba(255,255,255,.26);--ncs-tab-active-fg:#ffffff;--ncs-tab-active-border:rgba(255,255,255,.7);
+ --ncs-check-border:rgba(255,255,255,.75);--ncs-check-bg:rgba(255,255,255,.1);--ncs-check-on:#a6f0ea;--ncs-check-mark:#0b2a2b;
+ --ncs-arrow:#ffffff;--ncs-focus:#d6fbf8;
+ --ncs-radius:24px;--ncs-radius-card:18px;--ncs-radius-control:12px;
+ --ncs-shadow:0 30px 80px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.55),inset 0 0 0 1px rgba(255,255,255,.12);
+ --ncs-card-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 8px 24px rgba(0,0,0,.18);
+ --ncs-progress-bg:rgba(166,240,234,.18);
+ /* Sheen: a soft diagonal light across the pane, over the translucent tint. */
+ background:linear-gradient(135deg,rgba(255,255,255,.26) 0%,rgba(255,255,255,.07) 38%,rgba(255,255,255,.03) 62%,rgba(255,255,255,.14) 100%),var(--ncs-bg);
+ -webkit-backdrop-filter:blur(26px) saturate(180%);backdrop-filter:blur(26px) saturate(180%);
 }
 /* Devices without blur get a nearly opaque panel instead of a see-through one. */
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
- #naice-shot-dialog[data-skin="glass"] {--ncs-bg:rgba(17,27,40,.97);}
+ #naice-shot-dialog[data-skin="glass"] {--ncs-bg:rgba(28,40,58,.96);}
 }
-#naice-shot-dialog[data-skin="glass"] select option {background:#18242f;color:#eaf1f6;}
-#naice-shot-dialog[data-skin="glass"] .ncs-brand .ncs-icon {border-radius:12px;background:rgba(255,255,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.22);}
-#naice-shot-dialog[data-skin="glass"] .ncs-tabs button {background-color:rgba(255,255,255,.04);border-color:rgba(255,255,255,.12);color:#c9d6e0;}
-#naice-shot-dialog[data-skin="glass"] .ncs-tabs .ncs-active {color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 6px 18px rgba(0,0,0,.28);}
-#naice-shot-dialog[data-skin="glass"] .ncs-character,#naice-shot-dialog[data-skin="glass"] .ncs-history-card {box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}
-#ncs-viewer[data-skin="glass"] {--ncsv-accent:#8be4df;--ncsv-accent-fg:#0d2a2c;--ncsv-accent-hover:#aaeeea;--ncsv-pressed:#24484c;}
+/* Native dropdown lists cannot be translucent: give them a solid dark glass color. */
+#naice-shot-dialog[data-skin="glass"] select option,#naice-shot-dialog[data-skin="glass"] select optgroup {background:#253447!important;color:#ffffff!important;}
+#naice-shot-dialog[data-skin="glass"] .ncs-header,#naice-shot-dialog[data-skin="glass"] .ncs-notice {border-bottom-color:rgba(255,255,255,.18);}
+#naice-shot-dialog[data-skin="glass"] .ncs-brand .ncs-icon {border-radius:14px;background:rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 4px 14px rgba(0,0,0,.2);}
+#naice-shot-dialog[data-skin="glass"] .ncs-tabs button {background-color:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22);color:#eef5fa;box-shadow:inset 0 1px 0 rgba(255,255,255,.2);}
+#naice-shot-dialog[data-skin="glass"] .ncs-tabs .ncs-active {color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 6px 18px rgba(0,0,0,.22);}
+#naice-shot-dialog[data-skin="glass"] select,#naice-shot-dialog[data-skin="glass"] input:not([type=checkbox]):not([type=radio]):not([type=hidden]),#naice-shot-dialog[data-skin="glass"] textarea {box-shadow:inset 0 1px 0 rgba(255,255,255,.25);}
+#naice-shot-dialog[data-skin="glass"] .ncs-character,#naice-shot-dialog[data-skin="glass"] .ncs-history-card,#naice-shot-dialog[data-skin="glass"] .ncs-skin {box-shadow:var(--ncs-card-shadow);}
+#naice-shot-dialog[data-skin="glass"] .ncs-primary {box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 6px 16px rgba(0,0,0,.2);}
+#ncs-viewer[data-skin="glass"] {--ncsv-accent:#a6f0ea;--ncsv-accent-fg:#0b2a2b;--ncsv-accent-hover:#c4f7f3;--ncsv-pressed:#2c5457;}

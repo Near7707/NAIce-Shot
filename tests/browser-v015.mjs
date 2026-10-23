@@ -28,7 +28,7 @@ const order=()=>page.evaluate(()=>{const holder=document.querySelector('#chat .n
  if(!holder||!text)return 'missing';return text.compareDocumentPosition(holder)&Node.DOCUMENT_POSITION_FOLLOWING?'text-first':'image-first';});
 try{
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
- await page.locator('#ncs-extension-settings > summary').click();await page.locator('.ncs-launch-button').click();
+ await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
  await click('extract');await page.locator('[data-character="leo"]').waitFor();
  await page.locator('#ncs-allow-anlas').check();await click('generate');await page.locator('#ncs-result img').waitFor();
  const before=await page.evaluate(()=>JSON.stringify(mock.chat.map(m=>m.mes)));

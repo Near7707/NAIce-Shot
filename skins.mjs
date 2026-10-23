@@ -3,10 +3,9 @@
 // selected skin whose file is missing falls back to the built-in classic look.
 export const SKINS = [
   { id: 'classic', name: '기본', note: '실리태번 테마 색을 따라가요', swatch: ['var(--SmartThemeBlurTintColor,#1b2029)', 'var(--SmartThemeBodyColor,#e8ebf0)', '#75c6cc', '#35969b'] },
-  { id: 'glass', name: '글래스', note: '어두운 반투명 유리', file: 'glass.css', swatch: ['#16222f', '#eaf1f6', '#8be4df', '#ffb38a'] },
+  { id: 'glass', name: '글래스', note: '뒤가 흐릿하게 비치는 유리', file: 'glass.css', swatch: ['linear-gradient(135deg,#6d86a6,#2b3a52)', '#ffffff', '#a6f0ea', '#ffc29e'] },
   { id: 'minimal', name: '미니멀', note: '밝은 바탕과 얇은 선', file: 'minimal.css', swatch: ['#ffffff', '#1d1f24', '#2747d6', '#d3d6dc'] },
   { id: 'pastel', name: '파스텔', note: '둥글고 부드러운 색', file: 'pastel.css', swatch: ['#fbf8ff', '#a8e6d3', '#ffd9c7', '#c9bceb'] },
-  { id: 'neon', name: '네온', note: '어두운 바탕에 빛나는 선', file: 'neon.css', swatch: ['#100d24', '#2ef2ee', '#ff4fd8', '#ece9ff'] },
 ];
 export const DEFAULT_SKIN = 'classic';
 let current = DEFAULT_SKIN;

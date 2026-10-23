@@ -51,7 +51,7 @@ const cards=()=>page.locator('#ncs-history .ncs-history-card').count();
 const files=async()=>(await fs.readdir(path.join(directories.userImages,'naice-shot'))).length;
 try{
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
- await page.locator('#ncs-extension-settings > summary').click();await page.locator('.ncs-launch-button').click();
+ await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
  await page.locator('[data-tab="history"]').click();
  await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===3);
 

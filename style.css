@@ -84,6 +84,11 @@
 #naice-shot-dialog input:not([type=checkbox]):not([type=radio]):not([type=hidden]),#naice-shot-dialog select,#naice-shot-dialog textarea {
  display:block;width:100%;padding:10px;margin-top:6px;min-width:0;
 }
+/* Text fields and dropdowns keep the panel's own colors even when a SillyTavern theme forces
+   every input to white (or dark) with !important; otherwise light text can land on a white box. */
+#naice-shot-dialog select,#naice-shot-dialog input:not([type=checkbox]):not([type=radio]):not([type=hidden]),#naice-shot-dialog textarea {
+ color:var(--ncs-fg)!important;-webkit-text-fill-color:var(--ncs-fg)!important;background-color:var(--ncs-control)!important;opacity:1!important;}
+#naice-shot-dialog ::placeholder {color:var(--ncs-muted)!important;-webkit-text-fill-color:var(--ncs-muted)!important;opacity:.85!important;}
 #naice-shot-dialog select {padding-right:34px;}
 #naice-shot-dialog textarea {resize:vertical;line-height:1.5;}
 /* Checkbox drawn from tokens. ST paints its checkbox with the theme's text color, which can
@@ -165,11 +170,9 @@
 .ncs-icon {display:inline-block;width:22px;height:22px;flex:0 0 auto;vertical-align:middle;}
 #extensionsMenu .ncs-menu-item {display:flex;align-items:center;gap:8px;cursor:pointer;}
 #extensionsMenu .ncs-menu-item .ncs-icon {width:22px;height:22px;}
-#ncs-extension-settings {border:1px solid color-mix(in srgb,var(--SmartThemeBodyColor,#999) 28%,transparent);border-radius:8px;margin:5px 0;overflow:hidden;}
-#ncs-extension-settings > summary {display:flex;align-items:center;gap:8px;list-style:none;cursor:pointer;padding:6px 10px;min-height:34px;font-size:14px;}
-#ncs-extension-settings > summary::-webkit-details-marker {display:none;}
-#ncs-extension-settings > summary::after {content:'⌄';margin-left:auto;opacity:.7;}
-#ncs-extension-settings[open] > summary::after {transform:rotate(180deg);}
+/* Drawer frame, border and toggle come from SillyTavern's .inline-drawer styles, like other extensions. */
+#ncs-extension-settings .ncs-drawer-title {display:inline-flex;align-items:center;gap:8px;}
+#ncs-extension-settings .ncs-drawer-title .ncs-icon {width:20px;height:20px;}
 #ncs-extension-settings .ncs-extension-body {padding:8px 12px 12px;}
 #ncs-extension-settings .ncs-extension-body p {font-size:12px;margin:0 0 10px;}
 #ncs-extension-settings .ncs-launch-button {display:inline-flex;align-items:center;justify-content:center;gap:8px;width:auto;min-width:140px;max-width:100%;min-height:38px;padding:8px 12px;font-size:14px;white-space:nowrap;cursor:pointer;border-radius:8px;border:1px solid #35969b;background:#75c6cc;color:#163334;}

@@ -780,15 +780,25 @@ async function open() {
   if(!dialog.open)dialog.showModal();
   checkServer().catch(()=>{});
 }
+// The settings-panel entry uses SillyTavern's own drawer markup (same border and toggle as other
+// extensions) and is attached immediately, before the panel file loads, so it keeps its place in the list.
+let panelReady=null;
+function mountSettingsDrawer() {
+  if(document.getElementById('ncs-extension-settings'))return;
+  const holder=document.getElementById('extensions_settings2')??document.getElementById('extensions_settings');if(!holder)return;
+  const box=document.createElement('div');box.id='ncs-extension-settings';box.className='ncs-extension-settings';
+  box.innerHTML=`<div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><b class="ncs-drawer-title">${CAMERA_ICON}<span data-brand>${esc(brand())}</span></b><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content"><div class="ncs-extension-body"><p>프로필 · 장면 편집 · 이미지 생성</p><button type="button" class="menu_button ncs-launch-button">${CAMERA_ICON}<span>${esc(brand())} 열기</span></button></div></div></div>`;
+  box.querySelector('.ncs-launch-button').addEventListener('click',()=>(panelReady??Promise.resolve()).then(open).catch(e=>notice(e.message,true)));
+  holder.append(box);
+}
 async function initialize() {
   if(document.getElementById('naice-shot-dialog'))return;
+  mountSettingsDrawer();
   settings();dialog=document.createElement('dialog');dialog.id='naice-shot-dialog';
   const template=await fetch(new URL('panel.html',import.meta.url));if(!template.ok)throw new Error('NAIce Shot 패널 파일을 읽지 못했어요.');
   dialog.innerHTML=await template.text();document.body.append(dialog);
   for(const tab of dialog.querySelectorAll('[data-tab]')){const icon=document.createElement('span');icon.className='ncs-tab-icon';icon.innerHTML=TAB_ICONS[tab.dataset.tab]??'';tab.prepend(icon);}
   $('ncs-version').textContent=`v${VERSION}`;setProfileMode(settings().profileInputMode,{save:false});renderSettings();renderProfiles();editProfile();renderTargets();bindEvents();chatKey=keyOf();renderProgress();renderScene();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';
-  const holder=document.getElementById('extensions_settings2')??document.getElementById('extensions_settings');
-  if(holder){const box=document.createElement('details');box.id='ncs-extension-settings';box.className='extension_container';box.innerHTML=`<summary>${CAMERA_ICON}<strong data-brand>${esc(brand())}</strong></summary><div class="ncs-extension-body"><p>프로필 · 장면 편집 · 이미지 생성</p><button type="button" class="menu_button ncs-launch-button">${CAMERA_ICON}<span>${esc(brand())} 열기</span></button></div>`;box.querySelector('button').addEventListener('click',()=>open().catch(e=>notice(e.message,true)));holder.append(box);}
   const menu=document.getElementById('extensionsMenu');if(menu){const button=document.createElement('div');button.className='list-group-item flex-container flexGap5 ncs-menu-item';button.innerHTML=`${CAMERA_ICON}<span data-brand>${esc(brand())}</span>`;button.tabIndex=0;button.setAttribute('role','button');button.addEventListener('click',()=>open().catch(e=>notice(e.message,true)));button.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open().catch(e=>notice(e.message,true));}});menu.append(button);}
   renderBrand();
   // Apply the saved skin right away when it is the built-in one; file skins wait for detection.
@@ -810,5 +820,6 @@ async function initialize() {
   if(chatRoot){let queued=false;new MutationObserver(()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;refreshChatImages();});}).observe(chatRoot,{childList:true,subtree:true,attributes:true,attributeFilter:['mesid']});refreshChatImages();}
   for(const type of ['CONNECTION_PROFILE_CREATED','CONNECTION_PROFILE_UPDATED','CONNECTION_PROFILE_DELETED'])if(events[type])c.eventSource.on(events[type],()=>renderExtractionProfiles());
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>initialize().catch(e=>console.error('[NAIce Shot]',e.message)),{once:true});
-else initialize().catch(e=>console.error('[NAIce Shot]',e.message));
+const start=()=>{panelReady=initialize();panelReady.catch(e=>console.error('[NAIce Shot]',e.message));};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
+else start();

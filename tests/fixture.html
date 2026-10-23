@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"><style>body{background:#141b24;color:white;font-family:Arial,sancs-serif;padding:20px}button{padding:12px}#extensionsMenu{display:none}</style></head><body><div id="extensions_settings2"></div><div id="extensionsMenu"></div><div id="chat"></div><script>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"><style>body{background:#141b24;color:white;font-family:Arial,sancs-serif;padding:20px}button{padding:12px}#extensionsMenu{display:none}.inline-drawer-content{display:none}.inline-drawer-header{display:flex;justify-content:space-between;align-items:center;border:1px solid #888;border-radius:10px;padding:5px;cursor:pointer}</style></head><body><div id="extensions_settings2"></div><div id="extensionsMenu"></div><div id="chat"></div><script>
 const listeners={};
 window.mock={
  extensionSettings:{},chatMetadata:{},characters:[{name:'Leo',avatar:'Leo.png',chat:'A'}],characterId:0,groupId:null,chatId:'A',mainApi:'openai',name1:'Mira',name2:'Leo',
@@ -24,4 +24,6 @@ mock.ConnectionManagerRequestService={
 };
 mock.renderChat();
 window.SillyTavern={getContext:()=>mock};
+// Same as SillyTavern's global drawer handler: a header click toggles the next content block.
+document.addEventListener('click',e=>{const t=e.target.closest('.inline-drawer-toggle');if(!t)return;const c=t.closest('.inline-drawer').querySelector('.inline-drawer-content');c.style.display=c.style.display==='block'?'none':'block';});
 </script><script type="module" src="/index.js"></script></body></html>

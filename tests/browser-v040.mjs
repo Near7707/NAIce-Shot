@@ -66,7 +66,7 @@ const records=async()=>(await fs.readdir(path.join(userRoot,'naice-shot-records'
 try{
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
  await page.evaluate(()=>{mock.extensionSettings.naice_shot.profiles.push({id:'mira',name:'Mira',aliases:[],subject:'girl',appearance:'short hair',defaultOutfit:'hoodie',positive:'',negative:'',cardKey:''});});
- await page.locator('#ncs-extension-settings > summary').click();await page.locator('.ncs-launch-button').click();
+ await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
 
  // 1) Paged history: 20 first, then 더 보기.
  await page.locator('[data-tab="history"]').click();
