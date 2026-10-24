@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.11 — 2026-10-24
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- Image preset buttons reorganized:
+  - **+ 새 프리셋 만들기** clears the common positive/negative prompts, resets NAI generation settings to the defaults, deselects the preset and empties the name field (asks first when there is anything to lose; saved presets are untouched).
+  - **프리셋 저장** overwrites the selected preset with the current values, or creates a new preset when none is selected.
+  - **새 프리셋으로 저장** (was "현재 값 새로 저장") always saves the current values as an additional preset.
+  - "선택 프리셋 덮어쓰기" is gone (프리셋 저장 does that). A hint under the buttons says what 프리셋 저장 will do right now. An empty name is refused with a clear message.
+- Added `tests/browser-v0111.mjs`.
+
 ## 0.1.10 — 2026-10-24
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

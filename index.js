@@ -155,16 +155,17 @@ function updatePresetState() {
   const s=settings(),p=s.imagePresets.find(p=>p.id===s.imagePresetId);
   $('ncs-preset-state').textContent=p?`${p.name} · ${MODELS[p.model].label}${p.options?' · 생성 설정 포함':' · 이전 저장본: 생성 설정은 덮어쓰기 후 저장돼요.'}${imagePresetModified(s)?' · 현재 값이 수정됐어요. 저장본은 유지돼요.':''}`:'현재 포지·네거와 NAI 생성 설정을 이름 붙여 저장할 수 있어요.';
   $('ncs-scene-preset-state').textContent=optionsOverride?'이력에서 불러온 프롬프트·생성 설정을 사용 중이에요. 프리셋을 고르면 선택한 값으로 다시 조립해요.':$('ncs-preset-state').textContent;
-  dialog.querySelector('[data-action="update-preset"]').disabled=!p;
+  $('ncs-preset-save-hint').textContent=p?`프리셋 저장: 선택한 "${p.name}"에 지금 값을 덮어써요. 새 프리셋으로 저장: 지금 값을 이름을 붙여 따로 저장해요.`:'프리셋 저장: 지금 값을 입력한 이름으로 새로 저장해요.';
   dialog.querySelector('[data-action="delete-preset"]').disabled=!p;
 }
 function saveImagePreset(overwrite=false) {
   const s=settings(),name=$('ncs-common-preset-name').value.trim(),old=overwrite?s.imagePresets.find(p=>p.id===s.imagePresetId):null;
+  if(!name)throw new Error('저장할 이름을 입력해 주세요.');
   if(overwrite&&!old)throw new Error('덮어쓸 프리셋을 먼저 선택해 주세요.');
   if(s.imagePresets.some(p=>p.id!==old?.id&&p.name.toLowerCase()===name.toLowerCase()))throw new Error('같은 이름의 프리셋이 있어요. 다른 이름으로 저장하거나 해당 프리셋을 선택해 덮어써 주세요.');
   const id=old?.id??uuid(),p=captureImagePreset(s,id,name);
   s.imagePresets=validateImagePresets([...s.imagePresets.filter(p=>p.id!==id),p]);s.imagePresetId=id;
-  ctx().saveSettingsDebounced();renderImagePresets();notice(overwrite?'선택한 이미지 프리셋을 생성 설정까지 갱신했어요.':'공통 포지·네거와 NAI 생성 설정을 새 프리셋으로 저장했어요.');
+  ctx().saveSettingsDebounced();renderImagePresets();notice(overwrite?`"${name}" 프리셋에 지금 값을 저장했어요.`:`지금 값을 새 프리셋 "${name}"(으)로 저장했어요.`);
 }
 function renderExtractionProfiles() {
   const s=settings(),profiles=listExtractionProfiles(ctx());
@@ -668,8 +669,17 @@ async function onAction(action,el) {
     }
     case 'reset-final':finalOverride=null;revision++;updateFinal();break;
     case 'status':await refreshStatus();break;
-    case 'save-preset':saveImagePreset();break;
-    case 'update-preset':saveImagePreset(true);break;
+    // 프리셋 저장: overwrite the selected preset, or create one when none is selected.
+    case 'save-preset':saveImagePreset(!!settings().imagePresets.find(p=>p.id===settings().imagePresetId));break;
+    case 'save-preset-as':saveImagePreset(false);break;
+    case 'new-preset':{
+      const s=settings(),blank=!s.positive&&!s.negative&&JSON.stringify(s.options)===JSON.stringify({...DEFAULTS.options,scheduler:s.options.scheduler});
+      if(!blank&&!confirm('공통 포지·네거를 비우고 NAI 생성 설정을 기본값으로 바꿔서 새 프리셋을 시작할까요? 저장해 둔 프리셋은 그대로예요.'))break;
+      s.imagePresetId='';s.positive='';s.negative='';s.options=clone(DEFAULTS.options);optionsOverride=null;
+      ctx().saveSettingsDebounced();changed();renderSettings();
+      $('ncs-common-preset-name').value='';$('ncs-common-preset-name').focus({preventScroll:true});$('ncs-common-preset-name').scrollIntoView({block:'center',behavior:'smooth'});
+      notice('새 프리셋을 시작했어요. 포지·네거와 생성 설정을 정한 뒤 이름을 넣고 프리셋 저장을 눌러 주세요.');break;
+    }
     case 'delete-preset':{
       const s=settings(),id=s.imagePresetId;if(!id)return;
       if(!confirm('선택한 이미지 프리셋을 삭제할까요? 현재 입력된 프롬프트와 생성 설정은 유지돼요.'))return;

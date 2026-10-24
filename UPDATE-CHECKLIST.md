@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.11
+
+Update the extension and refresh. In Settings → 공통 이미지 프리셋, try + 새 프리셋 만들기, 프리셋 저장 (overwrites the selected one) and 새 프리셋으로 저장.
+
 ## v0.1.10
 
 Update the extension and refresh. Check the extensions menu (camera and name aligned with other entries), the backup buttons on a phone, and the six skins at the bottom of the settings tab.

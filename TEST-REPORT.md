@@ -1,3 +1,9 @@
+# v0.1.11 validation — 2026-10-24
+
+- Node suite (with NAIce-Shot-Server alongside): **78 passed, 0 failed, 0 skipped**.
+- **15 of 15 browser scripts passed** in headless Chromium, including the new `browser-v0111`: with nothing selected 프리셋 저장 creates and selects a preset; with one selected it overwrites it; 새 프리셋으로 저장 adds a second preset and leaves the first unchanged, and refuses a duplicate name; + 새 프리셋 만들기 asks first, then empties both prompts, resets generation settings to defaults, deselects, empties and focuses the name field, and keeps saved presets; it does not ask when everything is already blank; an empty name is refused; 375px fit. `browser-smoke` now uses 프리셋 저장 for the overwrite step.
+- Not exercised: a real SillyTavern instance, iPhone Safari, a live NovelAI account.
+
 # v0.1.10 validation — 2026-10-24
 
 - Node suite (with NAIce-Shot-Server alongside): **78 passed, 0 failed, 0 skipped** — contrast/visibility checks now cover six skins (new 파스텔, 크림 노트, 말차 라떼 all pass 4.5:1 text and checkmark thresholds).
