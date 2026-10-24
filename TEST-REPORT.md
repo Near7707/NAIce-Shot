@@ -1,3 +1,16 @@
+# v0.1.12 validation — 2026-10-24
+
+Bug-fix release for three issues found in a separate usage review of 0.1.11.
+
+- Extension Node suite **78 passed**, server Node suite **18 passed** (96 total), 0 failed, 0 skipped.
+- **16 of 16 browser scripts passed** in headless Chromium, including the new `browser-v0112`:
+  - A deferred profile conversion followed by 모든 칸 비우기, and again by + 새 프로필 만들기, leaves name/appearance/outfit/description empty after the late result arrives, and releases the busy state. An uninterrupted conversion still fills the form.
+  - With the 이력 tab open, closing the panel, switching to another chat and reopening loads that chat's history without clicking the tab.
+  - With `glass.css` delayed by 900ms, picking 글래스 then 파스텔 ends on 파스텔 (attribute, saved setting, selected card, a single skin stylesheet). Picking 글래스 then 기본 ends on 기본 with no skin stylesheet.
+  - The same script run against the 0.1.11 `index.js` fails (timeout in the conversion step); with only the skin fix reverted it fails the skin assertion.
+- `browser-v040` missing-PNG step: now disables the browser cache (CDP `Network.setCacheDisabled`) before re-rendering, because Chromium could reuse the already-decoded image despite `no-store`. 29 of 30 repeated runs passed after the change; the one failure did not reproduce in 22 further captured runs and left no trace of where it stopped, so it is recorded here rather than claimed fixed.
+- Not exercised: a real SillyTavern instance, iPhone Safari, a live NovelAI account.
+
 # v0.1.11 validation — 2026-10-24
 
 - Node suite (with NAIce-Shot-Server alongside): **78 passed, 0 failed, 0 skipped**.

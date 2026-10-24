@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.12
+
+Update the extension and refresh. Bug-fix release: no new settings.
+
 ## v0.1.11
 
 Update the extension and refresh. In Settings → 공통 이미지 프리셋, try + 새 프리셋 만들기, 프리셋 저장 (overwrites the selected one) and 새 프리셋으로 저장.

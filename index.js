@@ -2,7 +2,7 @@ import { DEFAULTS, MODELS, clone, PROFILE_SCHEMA, profileDraftPrompt, parseProfi
   extractionPrompt, parseExtraction, assemble, resolveOutfit, buildPayload, costGuard, textSignature,
   BRAND, SIZE_PRESETS, sizePresetOf, VERSION, extractionSchema, stripReasoningBlocks } from './core.mjs';
 import { CAMERA_ICON, TAB_ICONS } from './icons.mjs';
-import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById } from './skins.mjs';
+import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } from './skins.mjs';
 import { attachInlineImage, detachInlineImage, detachInlineImages, countInlineImages, hasInlineImage, imageDownload, renderInlineImages } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters } from './matching.mjs';
 import { captureImagePreset, applyImagePreset, imagePresetModified, validateImagePresets } from './presets.mjs';
@@ -129,6 +129,7 @@ function renderSkins() {
 async function useSkin(id,{save=false}={}) {
   const base=new URL('./',import.meta.url).href,wanted=availableSkins.some(s=>s.id===id)?id:DEFAULT_SKIN;
   const applied=await applySkin(wanted,base,{targets:skinTargets});
+  if(applied.stale)return currentSkin(); // a newer choice replaced this one while it loaded
   const s=settings();
   if(save||(skinsDetected&&applied.id!==s.skin)){s.skin=applied.id;ctx().saveSettingsDebounced();}
   renderSkins();
@@ -184,7 +185,9 @@ function renderProfiles() {
   $('ncs-add-profile').innerHTML=s.profiles.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
   renderMatching();
 }
+let profileFormSession=0;
 function editProfile(id='') {
+  profileFormSession++;
   const p=settings().profiles.find(p=>p.id===id)??{id:'',name:'',aliases:[],subject:'boy',appearance:'',defaultOutfit:'',positive:'',negative:'',cardKey:''};
   for(const [key,field] of [['id','id'],['name','name'],['subject','subject'],['appearance','appearance'],['outfit','defaultOutfit'],['positive','positive'],['negative','negative']])$(`ncs-profile-${key}`).value=p[field];
   $('ncs-profile-aliases').value=p.aliases.join(', ');$('ncs-binding').textContent=p.cardKey?`연결된 카드: ${p.cardKey}`:'연결된 카드 없음';$('ncs-binding').dataset.cardKey=p.cardKey;
@@ -235,7 +238,7 @@ function renderSceneExtras() {
 async function convertProfile() {
   if(busy)return;
   const s=settings(),prompt=profileDraftPrompt($('ncs-profile-describe').value.trim(),{name:$('ncs-profile-name').value.trim(),format:s.format});
-  const editing=$('ncs-profile-id').value,ticket=++task,controller=new AbortController();extraction={ticket,controller,kind:'profile'};
+  const editing=$('ncs-profile-id').value,session=profileFormSession,ticket=++task,controller=new AbortController();extraction={ticket,controller,kind:'profile'};
   setBusy(true,ticket);startProgress('profile',ticket);notice('설명을 이미지용 태그로 바꾸고 있어요.');
   try {
     let draft=null,failure;
@@ -252,7 +255,7 @@ async function convertProfile() {
     }
     if(ticket!==task)return;
     if(!draft)throw new Error(`태그 변환 실패: ${failure?.message}. 입력한 내용은 그대로예요.`);
-    if($('ncs-profile-id').value!==editing){notice('편집 중인 프로필이 바뀌어서 변환 결과를 적용하지 않았어요.');return;}
+    if($('ncs-profile-id').value!==editing||session!==profileFormSession){notice('프로필 칸이 바뀌어서 변환 결과를 적용하지 않았어요.');return;}
     const filled=['appearance','outfit','positive','negative'].some(k=>$(`ncs-profile-${k}`).value.trim());
     if(filled&&!confirm('지금 입력된 외형·기본 복장·Positive·Negative를 변환 결과로 바꿀까요?')){notice('변환 결과를 적용하지 않았어요. 입력한 내용은 그대로예요.');return;}
     if(!$('ncs-profile-name').value.trim()&&draft.name)$('ncs-profile-name').value=draft.name;
@@ -651,6 +654,7 @@ async function onAction(action,el) {
     case 'attach':await putImageInChat(result,Number($('ncs-result').querySelector('[data-image-target]')?.value));break;
     case 'detach':await removeImageFromChat(result);break;
     case 'new-profile':case 'clear-profile-form':{
+      if(extraction?.kind==='profile')cancelExtraction(''); // a late conversion result must not fill the emptied form
       const wasEditing=$('ncs-profile-id').value;editProfile();
       $('ncs-profile-name').focus({preventScroll:true});$('ncs-profile-name').scrollIntoView({block:'center',behavior:'smooth'});
       notice(wasEditing?'모든 칸을 비우고 새 프로필 작성으로 바꿨어요. 저장해 둔 프로필은 그대로예요.':'모든 칸을 비웠어요. 새 프로필을 작성해 주세요.');break;
@@ -785,9 +789,12 @@ function chatChanged() {
   if(dialog){renderTargets();renderMatching();renderScene();renderResult();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.');}
   renderChatImages();
 }
+const activeTab=()=>dialog?.querySelector('[data-tab][aria-selected="true"]')?.dataset.tab??'scene';
 async function open() {
   chatChanged();renderTargets();renderProfiles();renderScene();renderExtractionProfiles();
   if(!dialog.open)dialog.showModal();
+  // The chat may have changed while the panel was closed: reload the visible history instead of showing it empty.
+  if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true));
   checkServer().catch(()=>{});
 }
 // The settings-panel entry uses SillyTavern's own drawer markup (same border and toggle as other

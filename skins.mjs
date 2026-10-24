@@ -29,7 +29,13 @@ export async function detectSkins(base, fetcher = globalThis.fetch) {
 }
 
 // Loads the skin CSS, then tags the targets so tokens never apply before their file is ready.
+// Only the most recent request may apply. Picking skins quickly cancels the earlier, still-loading
+// file, so a slow file can never land after (and override) the last choice. A superseded request
+// resolves with { stale: true } and changes nothing.
+let request = 0, pending = null;
 export function applySkin(id, base, { targets = [], doc = globalThis.document } = {}) {
+  const mine = ++request;
+  if (pending) { pending.link.remove(); pending.resolve({ id: pending.id, ok: false, stale: true }); pending = null; }
   const skin = skinById(id);
   const tag = value => { current = value; for (const el of targets()) if (el) el.dataset.skin = value; };
   const old = doc.getElementById('ncs-skin-css');
@@ -37,9 +43,18 @@ export function applySkin(id, base, { targets = [], doc = globalThis.document } 
   if (old?.dataset.skin === id) { tag(id); return Promise.resolve({ id, ok: true }); }
   return new Promise(resolve => {
     const link = doc.createElement('link');
-    link.rel = 'stylesheet'; link.id = 'ncs-skin-css'; link.dataset.skin = id; link.href = fileUrl(skin, base);
-    link.addEventListener('load', () => { old?.remove(); tag(id); resolve({ id, ok: true }); }, { once: true });
-    link.addEventListener('error', () => { link.remove(); old?.remove(); tag(DEFAULT_SKIN); resolve({ id: DEFAULT_SKIN, ok: false }); }, { once: true });
+    link.rel = 'stylesheet'; link.dataset.skin = id; link.dataset.ncsSkinPending = ''; link.href = fileUrl(skin, base);
+    pending = { link, id, resolve };
+    const done = () => { if (pending?.link === link) pending = null; };
+    link.addEventListener('load', () => {
+      if (mine !== request) { link.remove(); return resolve({ id, ok: false, stale: true }); }
+      done(); old?.remove(); delete link.dataset.ncsSkinPending; link.id = 'ncs-skin-css'; tag(id); resolve({ id, ok: true });
+    }, { once: true });
+    link.addEventListener('error', () => {
+      link.remove();
+      if (mine !== request) return resolve({ id, ok: false, stale: true });
+      done(); old?.remove(); tag(DEFAULT_SKIN); resolve({ id: DEFAULT_SKIN, ok: false });
+    }, { once: true });
     doc.head.append(link);
   });
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.12 — 2026-10-24
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- Fixed: starting a profile tag conversion and then pressing 모든 칸 비우기 or + 새 프로필 만들기 let the late result fill the emptied form. Clearing the form now cancels the conversion, and any result that still arrives is ignored if the form was reset in the meantime.
+- Fixed: leaving the panel on the 이력 tab, switching chats and reopening showed "아직 생성 이력이 없어요" until the tab was clicked again. Reopening now loads the current chat's history.
+- Fixed: picking skins quickly could end on an earlier skin whose file loaded later, and saved that earlier choice. Only the latest pick can apply now; slower, superseded skin files are dropped.
+- Tests: `browser-v040`'s missing-PNG step now bypasses the browser's in-memory image cache, which could keep showing a deleted image and made the step fail intermittently. Added `tests/browser-v0112.mjs`.
+
 ## 0.1.11 — 2026-10-24
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

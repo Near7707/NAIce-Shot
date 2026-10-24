@@ -107,6 +107,8 @@ try{
  await page.locator('#ncs-history-target').selectOption('1');await page.locator(`[data-history-attach="${fifth.id}"]`).click();
  await page.locator('#chat .ncs-inline-images img').waitFor();
  await fs.unlink(path.join(directories.userImages,'naice-shot',`${fifth.id}.png`));
+ // Chromium may reuse the image already decoded on this page even with no-store; bypass caches like a fresh load would.
+ const cdp=await page.context().newCDPSession(page);await cdp.send('Network.enable');await cdp.send('Network.setCacheDisabled',{cacheDisabled:true});
  await page.evaluate(()=>{mock.renderChat();});
  await page.locator('#chat .ncs-inline-image.ncs-missing').waitFor();
  assert.match(await page.locator('#chat .ncs-missing-note').textContent(),/찾을 수 없는/);
