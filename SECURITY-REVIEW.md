@@ -16,15 +16,15 @@ The earlier review below describes the older v0.1.6 package. Its noted missing p
 
 Build: NAIce Shot v0.1.6 (UI) with server plugin v0.1.3. Reviewed 2026-10-23 (Asia/Seoul).
 
-This review covers the delivered ZIP's source files and selected runtime data paths. It is a scoped source/package review, not a penetration test or a certification.
+This review covers the repository's source files and selected runtime data paths. It is a scoped source/package review, not a penetration test or a certification.
 
 ## Packaged content
 
 No real NovelAI key, other provider credential, private connection configuration, personal character-profile export, RP chat export or generated image/history record was found.
 
-The package contains source code, generic test fixtures, documentation and the installer. Test credentials such as `test-secret-do-not-leak`, `k` and `mock-csrf` are deliberately fake.
+The package contains source code, generic test fixtures and documentation. Test credentials such as `test-secret-do-not-leak`, `k` and `mock-csrf` are deliberately fake.
 
-Old personal author metadata was replaced with the generic project attribution `NAIce Shot contributors`. The delivered ZIP excludes uploaded archives, tooling helpers, local logs, browser output, dependencies, runtime data and source-control metadata.
+Old personal author metadata was replaced with the generic project attribution `NAIce Shot contributors`. The repository excludes uploaded archives, tooling helpers, local logs, browser output, dependencies, runtime data and source-control metadata.
 
 ## Credential handling
 
@@ -51,7 +51,7 @@ NovelAI receives the final image prompt, negative prompt, per-character slots an
 - PNGs remain in SillyTavern's web-served user-image area so they can appear in chats. This is not private-record storage.
 - API routes rely on SillyTavern authentication/CSRF handling and authenticated user directories; the extension does not provide a separate login mechanism.
 - IDs and image paths are constrained; generation option checks and per-user storage separation have existing unit coverage.
-- User-data backups can be sensitive even though this clean source ZIP does not contain them.
+- User-data backups can be sensitive even though this repository does not contain them.
 
 ## Scope and limits
 

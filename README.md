@@ -25,7 +25,7 @@ NAIce Shot은 **확장(이 저장소)**과 **서버 플러그인([NAIce-Shot-Ser
 3. 실리태번을 완전히 재시작하고 브라우저를 새로고침해요.
 4. 실리태번 API 연결 화면에 NAI 키를 저장하고, **NAIce Shot → 설정 → 서버·NAI 연결 확인**을 눌러요.
 
-이렇게 git으로 설치한 서버 플러그인은 **실리태번을 켤 때마다 자동으로 최신 버전으로 업데이트**돼요(`config.yaml`의 `enableServerPluginsAutoUpdate: true`가 기본값이에요). git을 쓸 수 없다면 서버 저장소의 **Code → Download ZIP**으로 받아 `plugins/naice-shot-server/`에 파일을 복사해도 되지만, 그때는 업데이트도 직접 복사해야 해요.
+이렇게 git으로 설치한 서버 플러그인은 **실리태번을 켤 때마다 자동으로 최신 버전으로 업데이트**돼요(`config.yaml`의 `enableServerPluginsAutoUpdate: true`가 기본값이에요).
 
 ### 휴대폰(Termux)에서 설치하기
 
@@ -46,12 +46,6 @@ Termux로 실리태번을 쓰는 경우에도 순서는 같아요. 명령은 Ter
 4. **다시 켜기:** 평소처럼 실리태번을 켜요(예: `cd ~/SillyTavern && ./start.sh`). 로그에 `[NAIce Shot] server ready`가 보이면 성공이에요.
 
 서버 플러그인은 PC와 똑같이 실리태번을 켤 때마다 자동으로 업데이트돼요.
-
-### 예전에 ZIP으로 직접 설치했다면 (0.1.7 이하)
-
-- 확장: 주소로 새로 설치하기 **전에** 예전 확장 폴더 `data/default-user/extensions/naice-shot/`를 지워 주세요. 그대로 두면 메뉴에 NAIce Shot이 두 번 보여요.
-- 서버: 예전 `plugins/naice-shot-server/` 폴더를 지운 뒤 위 2번처럼 git으로 다시 받아 주세요. 그래야 자동 업데이트가 돼요.
-- 프로필·설정·생성 이력·그림은 코드 폴더 밖에 저장돼 있어서 그대로 이어져요.
 
 서버 플러그인 설치를 허용하지 않는 호스팅에서는 사용할 수 없어요. Node.js 20 이상을 사용하며, 개발 대상은 SillyTavern 1.19.0 staging이에요.
 
@@ -122,19 +116,11 @@ NAIce Shot is split into two repositories so each part can be installed and upda
    ```bash
    git clone https://github.com/Near7707/NAIce-Shot-Server naice-shot-server
    ```
-   With `enableServerPluginsAutoUpdate: true` (SillyTavern's default) and git available, SillyTavern pulls plugin updates on every start. Without git, download the server repository as a ZIP and copy its files into `plugins/naice-shot-server/` (manual updates).
+   With `enableServerPluginsAutoUpdate: true` (SillyTavern's default) and git available, SillyTavern pulls plugin updates on every start.
    On Android/Termux the same commands work in Termux (`pkg install git` if git is missing; edit `config.yaml` with `nano`). See the Korean section above for a step-by-step version.
 3. Restart SillyTavern fully, refresh the browser, save your NovelAI key in SillyTavern and use **NAIce Shot → 설정 → 서버·NAI 연결 확인**.
 
 The server plugin imports SillyTavern's secrets module by relative path, so it must sit directly under `plugins/` (one folder deep).
-
-## Moving from a manual ZIP install (0.1.7 and earlier)
-
-Earlier versions were copied by hand into `extensions/naice-shot/` and `plugins/naice-shot-server/`.
-
-- Delete the old `extensions/naice-shot/` folder before installing by URL; otherwise SillyTavern loads two copies and the menu shows NAIce Shot twice.
-- Delete the old `plugins/naice-shot-server/` folder and clone the server repository as above so it can auto-update.
-- Settings, profiles, chat data, history and PNGs live outside the code folders and carry over unchanged.
 
 Per-version notes (UI-only or UI + server) are in `CHANGELOG.md`.
 
