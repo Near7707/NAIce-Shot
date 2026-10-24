@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.10 — 2026-10-24
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- Skins: 파스텔 is now sky blue and butter yellow (yellow main buttons, sky tabs with a yellow underline, a sunny halo behind the camera). New skins **크림 노트** (warm paper and caramel) and **말차 라떼** (soft green tea). Six skins in total.
+- The skin picker moved to the bottom of the settings tab.
+- Fixed the settings backup row on iPhone Safari: since 0.1.9 the hidden file picker behind "백업 가져오기" was drawn as a second "파일 선택" button overlapping the text below. The picker now stays invisible and exactly covers its button.
+- Extensions menu: the color camera now sits in SillyTavern's standard 20px icon box, so the icon and the name line up with the other extensions.
+- Added `tests/browser-v0110.mjs`.
+
 ## 0.1.9 — 2026-10-24
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

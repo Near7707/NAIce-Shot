@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.10
+
+Update the extension and refresh. Check the extensions menu (camera and name aligned with other entries), the backup buttons on a phone, and the six skins at the bottom of the settings tab.
+
 ## v0.1.9
 
 Update the extension from Manage extensions and refresh. Check that the NAIce Shot entry in the extension settings has the same bordered header as other extensions, that fields are readable in every skin, and that 글래스 shows the page blurred behind it.

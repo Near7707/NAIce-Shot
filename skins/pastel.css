@@ -1,26 +1,26 @@
-/* NAIce Shot skin · 파스텔: lavender milk, mint actions, a peach halo behind the camera, round corners.
+/* NAIce Shot skin · 파스텔: clear sky blue and butter yellow, a sunny halo behind the camera, round corners.
    Skins change color, corner radius and shadow only — never icon size, position, fonts or spacing,
    so every skin keeps the same layout. Fixed palette: it does not read SillyTavern theme colors.
    Delete this file to remove the skin; the panel falls back to the classic look. */
 #naice-shot-dialog[data-skin="pastel"] {
  color-scheme:light;
- --ncs-bg:#fbf8ff;--ncs-fg:#3a3352;--ncs-muted:#6a6286;
- --ncs-border:#d0c4ec;--ncs-rule:#ebe4f8;
- --ncs-control:#ffffff;--ncs-hover:#f3eefd;--ncs-surface:#ffffff;
- --ncs-accent:#a8e6d3;--ncs-edge:#338f73;--ncs-accent-text:#257a61;--ncs-warning:#c23f63;--ncs-danger-fg:#ffffff;
- --ncs-primary-bg:#a8e6d3;--ncs-primary-fg:#1c463a;--ncs-primary-border:#7fd3ba;--ncs-primary-hover:#bdeedf;
- --ncs-tab-active-bg:#ffffff;--ncs-tab-active-fg:#3a3352;--ncs-tab-active-border:#b9a8e6;
- --ncs-check-border:#7563b8;--ncs-check-bg:#ffffff;--ncs-check-on:#1f6e57;--ncs-check-mark:#ffffff;
- --ncs-arrow:#7d72a3;--ncs-focus:#8f7bd6;
+ --ncs-bg:#f5faff;--ncs-fg:#2c3a4d;--ncs-muted:#56667c;
+ --ncs-border:#bcd8f0;--ncs-rule:#e1eefa;
+ --ncs-control:#ffffff;--ncs-hover:#eaf4fd;--ncs-surface:#ffffff;
+ --ncs-accent:#ffe08a;--ncs-edge:#1f6f9e;--ncs-accent-text:#1b6593;--ncs-warning:#b4365a;--ncs-danger-fg:#ffffff;
+ --ncs-primary-bg:#ffe08a;--ncs-primary-fg:#4a3a05;--ncs-primary-border:#f2c94c;--ncs-primary-hover:#ffeaa8;
+ --ncs-tab-active-bg:#ffffff;--ncs-tab-active-fg:#2c3a4d;--ncs-tab-active-border:#8cc4ea;
+ --ncs-check-border:#5f93bd;--ncs-check-bg:#ffffff;--ncs-check-on:#1f6f9e;--ncs-check-mark:#ffffff;
+ --ncs-arrow:#6a8bab;--ncs-focus:#5aa9dc;
  --ncs-radius:26px;--ncs-radius-card:18px;--ncs-radius-control:14px;
- --ncs-shadow:0 24px 70px rgba(90,70,150,.3);--ncs-card-shadow:0 6px 18px rgba(120,100,190,.1);
- --ncs-progress-bg:#e2f6ef;
+ --ncs-shadow:0 24px 70px rgba(60,110,160,.28);--ncs-card-shadow:0 6px 18px rgba(80,140,200,.1);
+ --ncs-progress-bg:#fff4cc;
 }
-#naice-shot-dialog[data-skin="pastel"] .ncs-brand .ncs-icon {border-radius:50%;background:#ffe3d3;box-shadow:0 4px 12px rgba(255,170,130,.35);}
+#naice-shot-dialog[data-skin="pastel"] .ncs-brand .ncs-icon {border-radius:50%;background:#fff1b8;box-shadow:0 4px 12px rgba(242,201,76,.45);}
 #naice-shot-dialog[data-skin="pastel"] .ncs-header {border-bottom-color:transparent;}
-#naice-shot-dialog[data-skin="pastel"] .ncs-tabs button {border-radius:999px;background-color:#f1ebfc;border-color:transparent;color:var(--ncs-muted);}
-#naice-shot-dialog[data-skin="pastel"] .ncs-tabs button:hover {background-color:#e9e1fa;border-color:transparent;}
-#naice-shot-dialog[data-skin="pastel"] .ncs-tabs .ncs-active {box-shadow:0 4px 12px rgba(120,100,190,.2);color:var(--ncs-fg);}
-#naice-shot-dialog[data-skin="pastel"] .ncs-profile-chip.ncs-selected {background-color:#a8e6d3;color:#1c463a;border-color:#7fd3ba;}
+#naice-shot-dialog[data-skin="pastel"] .ncs-tabs button {border-radius:999px;background-color:#e6f2fc;border-color:transparent;color:var(--ncs-muted);}
+#naice-shot-dialog[data-skin="pastel"] .ncs-tabs button:hover {background-color:#d9ebfa;border-color:transparent;}
+#naice-shot-dialog[data-skin="pastel"] .ncs-tabs .ncs-active {color:var(--ncs-fg);box-shadow:0 4px 12px rgba(80,140,200,.22),inset 0 -3px 0 #ffd75e;}
+#naice-shot-dialog[data-skin="pastel"] .ncs-profile-chip.ncs-selected {background-color:#cfe8fa;color:#1d3a55;border-color:#8cc4ea;}
 #naice-shot-dialog[data-skin="pastel"] .ncs-section {border-bottom-style:dashed;}
-#ncs-viewer[data-skin="pastel"] {--ncsv-accent:#a8e6d3;--ncsv-accent-fg:#1c463a;--ncsv-accent-hover:#bdeedf;--ncsv-pressed:#4a3f78;}
+#ncs-viewer[data-skin="pastel"] {--ncsv-accent:#ffe08a;--ncsv-accent-fg:#4a3a05;--ncsv-accent-hover:#ffeaa8;--ncsv-pressed:#1f6f9e;}

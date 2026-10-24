@@ -1,0 +1,22 @@
+/* NAIce Shot skin · 크림 노트: warm paper, cocoa ink, caramel actions.
+   Skins change color, corner radius and shadow only — never icon size, position, fonts or spacing,
+   so every skin keeps the same layout. Fixed palette: it does not read SillyTavern theme colors.
+   Delete this file to remove the skin; the panel falls back to the classic look. */
+#naice-shot-dialog[data-skin="cream"] {
+ color-scheme:light;
+ --ncs-bg:#fbf6ee;--ncs-fg:#3d3029;--ncs-muted:#6e5d52;
+ --ncs-border:#dcc9b2;--ncs-rule:#efe3d3;
+ --ncs-control:#fffdf9;--ncs-hover:#f5ebdd;--ncs-surface:#fffaf3;
+ --ncs-accent:#e8b77a;--ncs-edge:#9a5f22;--ncs-accent-text:#8a5218;--ncs-warning:#b0412e;--ncs-danger-fg:#ffffff;
+ --ncs-primary-bg:#e8b77a;--ncs-primary-fg:#3a2410;--ncs-primary-border:#c98f4c;--ncs-primary-hover:#f0c994;
+ --ncs-tab-active-bg:#fffdf9;--ncs-tab-active-fg:#3d3029;--ncs-tab-active-border:#c98f4c;
+ --ncs-check-border:#9c8571;--ncs-check-bg:#fffdf9;--ncs-check-on:#8a5218;--ncs-check-mark:#ffffff;
+ --ncs-arrow:#8a7461;--ncs-focus:#c98f4c;
+ --ncs-radius:20px;--ncs-radius-card:14px;--ncs-radius-control:10px;
+ --ncs-shadow:0 24px 70px rgba(90,60,30,.28);--ncs-card-shadow:0 2px 0 #efe3d3;
+ --ncs-progress-bg:#f7e8d3;
+}
+#naice-shot-dialog[data-skin="cream"] .ncs-tabs button {background-color:#f3e8da;border-color:transparent;color:var(--ncs-muted);}
+#naice-shot-dialog[data-skin="cream"] .ncs-tabs .ncs-active {color:var(--ncs-fg);box-shadow:0 3px 0 #e8b77a;}
+#naice-shot-dialog[data-skin="cream"] .ncs-section {border-bottom-style:dotted;}
+#ncs-viewer[data-skin="cream"] {--ncsv-accent:#e8b77a;--ncsv-accent-fg:#3a2410;--ncsv-accent-hover:#f0c994;--ncsv-pressed:#6b4423;}

@@ -35,7 +35,7 @@
 #naice-shot-dialog .ncs-brand .ncs-icon {width:var(--ncs-icon-size);height:var(--ncs-icon-size);}
 #naice-shot-dialog .ncs-header strong {font-size:21px;display:block;font-family:var(--ncs-heading-font);font-weight:var(--ncs-heading-weight);letter-spacing:-.01em;}
 #naice-shot-dialog .ncs-header small {color:var(--ncs-muted);display:block;margin-top:4px;}
-#naice-shot-dialog button,#naice-shot-dialog select,#naice-shot-dialog input:not([type=checkbox]):not([type=radio]):not([type=hidden]),#naice-shot-dialog textarea {
+#naice-shot-dialog button,#naice-shot-dialog select,#naice-shot-dialog input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]),#naice-shot-dialog textarea {
  font:inherit;color:var(--ncs-fg);border:var(--ncs-border-width) solid var(--ncs-border);border-radius:var(--ncs-radius-control);
  background-color:var(--ncs-control);max-width:100%;box-shadow:none;text-shadow:none;
 }
@@ -81,12 +81,12 @@
 #naice-shot-dialog h3 {font-size:16px;margin:0 0 10px;color:var(--ncs-fg);font-family:var(--ncs-heading-font);font-weight:var(--ncs-heading-weight);}
 #naice-shot-dialog p {margin:8px 0 14px;color:var(--ncs-muted);line-height:1.65;}
 #naice-shot-dialog label {display:block;margin:10px 0;color:var(--ncs-fg);line-height:1.5;}
-#naice-shot-dialog input:not([type=checkbox]):not([type=radio]):not([type=hidden]),#naice-shot-dialog select,#naice-shot-dialog textarea {
+#naice-shot-dialog input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]),#naice-shot-dialog select,#naice-shot-dialog textarea {
  display:block;width:100%;padding:10px;margin-top:6px;min-width:0;
 }
 /* Text fields and dropdowns keep the panel's own colors even when a SillyTavern theme forces
    every input to white (or dark) with !important; otherwise light text can land on a white box. */
-#naice-shot-dialog select,#naice-shot-dialog input:not([type=checkbox]):not([type=radio]):not([type=hidden]),#naice-shot-dialog textarea {
+#naice-shot-dialog select,#naice-shot-dialog input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]),#naice-shot-dialog textarea {
  color:var(--ncs-fg)!important;-webkit-text-fill-color:var(--ncs-fg)!important;background-color:var(--ncs-control)!important;opacity:1!important;}
 #naice-shot-dialog ::placeholder {color:var(--ncs-muted)!important;-webkit-text-fill-color:var(--ncs-muted)!important;opacity:.85!important;}
 #naice-shot-dialog select {padding-right:34px;}
@@ -124,7 +124,9 @@
 #naice-shot-dialog .ncs-history-card img {width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:calc(var(--ncs-radius-card) - 4px);}
 #naice-shot-dialog .ncs-history-card button {width:100%;margin:6px 0;}
 #naice-shot-dialog .ncs-file {position:relative;border:var(--ncs-border-width) solid var(--ncs-border);background:var(--ncs-control);border-radius:var(--ncs-radius-control);padding:10px;cursor:pointer;}
-#naice-shot-dialog .ncs-file input {position:absolute;width:1px;height:1px;opacity:0;padding:0;margin:0;}
+/* The real file picker stays invisible; the label is the button. Safari otherwise draws its own
+   "파일 선택" control under the label. */
+#naice-shot-dialog .ncs-file input[type=file] {position:absolute!important;inset:0!important;width:100%!important;height:100%!important;opacity:0!important;padding:0!important;margin:0!important;border:0!important;cursor:pointer;font-size:0!important;-webkit-appearance:none!important;appearance:none!important;overflow:hidden!important;}
 #naice-shot-dialog footer {display:flex;justify-content:space-between;gap:8px;padding:12px 22px;font-size:11px;color:var(--ncs-muted);border-top:1px solid var(--ncs-rule);}
 #naice-shot-dialog #ncs-chat-label {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 /* Fixed-palette skins ignore ST's text shadow, which can blur text on a palette it was not chosen for. */
@@ -168,8 +170,9 @@
 #naice-shot-dialog .ncs-skin strong {font-size:14px;}
 #naice-shot-dialog .ncs-skin small {margin-top:-4px;}
 .ncs-icon {display:inline-block;width:22px;height:22px;flex:0 0 auto;vertical-align:middle;}
-#extensionsMenu .ncs-menu-item {display:flex;align-items:center;gap:8px;cursor:pointer;}
-#extensionsMenu .ncs-menu-item .ncs-icon {width:22px;height:22px;}
+/* Menu entry: the color camera sits in SillyTavern's 20px icon box so icon and text line up with other extensions. */
+#extensionsMenu > div.ncs-menu-item {align-items:center!important;}
+#extensionsMenu .ncs-menu-icon .ncs-icon {width:20px;height:20px;display:block;}
 /* Drawer frame, border and toggle come from SillyTavern's .inline-drawer styles, like other extensions. */
 #ncs-extension-settings .ncs-drawer-title {display:inline-flex;align-items:center;gap:8px;}
 #ncs-extension-settings .ncs-drawer-title .ncs-icon {width:20px;height:20px;}

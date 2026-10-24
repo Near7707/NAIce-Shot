@@ -1,4 +1,4 @@
-# NAIce Shot v0.1.9
+# NAIce Shot v0.1.10
 
 실리태번의 RP 장면을 추출해 NovelAI 그림을 생성하는 비공식 확장이에요. 캐릭터 외형 프로필, 장면·복장 편집, 생성 프리셋, 이미지 이력과 채팅 첨부를 지원해요.
 
@@ -92,7 +92,7 @@ This repository contains the browser extension. The UI is in Korean. The compani
 - Generate one image at a time, inspect it in a zoomable viewer and download the original PNG.
 - Attach images below existing messages without adding them to the RP message text or native media fields.
 - Browse current-chat or all-chat history, filter by chat and delete individual or selected images.
-- Choose from four visual skins: 기본 (follows the SillyTavern theme), 글래스, 미니멀, 파스텔.
+- Choose from six visual skins: 기본 (follows the SillyTavern theme), 글래스, 미니멀, 파스텔 (sky blue and butter yellow), 크림 노트, 말차 라떼.
 
 The model menu currently includes V5 Full/Curated and V4.5 Full/Curated. External model availability and account eligibility are not validated by this review.
 

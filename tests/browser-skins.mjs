@@ -35,12 +35,12 @@ const skinOf=page=>page.locator('#naice-shot-dialog').getAttribute('data-skin');
 try{
  let page=await open();
  await page.locator('[data-tab="settings"]').click();
- await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===4);
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===6);
  assert.equal(await skinOf(page),'classic');assert.equal(await page.locator('#ncs-skin-css').count(),0,'classic loads no extra file');
  assert.equal(await page.locator('.ncs-tabs [data-tab] .ncs-tab-icon svg').count(),4,'tab icons');
 
  // Switch and save; only the chosen file is loaded.
- for(const id of ['glass','minimal','pastel']){
+ for(const id of ['glass','minimal','cream','matcha','pastel']){
   await page.locator(`#ncs-skins input[value="${id}"]`).check({force:true});
   await page.waitForFunction(id=>document.querySelector('#naice-shot-dialog').dataset.skin===id,id);
   assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.skin),id);
@@ -54,15 +54,15 @@ try{
  const light=await sample();
  await page.evaluate(()=>{document.documentElement.style.setProperty('--SmartThemeBlurTintColor','#111');document.documentElement.style.setProperty('--SmartThemeBodyColor','#eee');});
  const dark=await sample();
- assert.deepEqual(light,dark,'skin colors do not follow the ST theme');assert.equal(light[1],'rgb(31, 110, 87)','checked box uses the skin color');
+ assert.deepEqual(light,dark,'skin colors do not follow the ST theme');assert.equal(light[1],'rgb(31, 111, 158)','checked box uses the skin color');
  // Viewer takes the skin accent.
  await page.locator('[data-tab="history"]').click();await page.locator('#ncs-history .ncs-image-open').first().click();
  await page.locator('#ncs-viewer[open]').waitFor();assert.equal(await page.locator('#ncs-viewer').getAttribute('data-skin'),'pastel');
- assert.equal(await page.locator('#ncs-viewer .ncsv-save').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(168, 230, 211)');
+ assert.equal(await page.locator('#ncs-viewer .ncsv-save').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(255, 224, 138)');
  await page.keyboard.press('Escape');
  // Mobile: every skin keeps the settings tab inside 375px.
  await page.setViewportSize({width:375,height:760});await page.locator('[data-tab="settings"]').click();
- for(const id of ['classic','glass','minimal','pastel']){
+ for(const id of ['classic','glass','minimal','pastel','cream','matcha']){
   await page.locator(`#ncs-skins input[value="${id}"]`).check({force:true});
   await page.waitForFunction(id=>document.querySelector('#naice-shot-dialog').dataset.skin===id,id);
   for(const tab of ['scene','profiles','settings','history']){
@@ -78,7 +78,7 @@ try{
  deleted=new Set(['pastel.css']);
  page=await open('pastel');
  await page.locator('[data-tab="settings"]').click();
- await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===3);
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===5);
  assert.equal(await page.locator('#ncs-skins input[value="pastel"]').count(),0);
  await page.waitForFunction(()=>/찾지 못해 기본으로/.test(document.querySelector('#ncs-skin-state').textContent));
  assert.equal(await skinOf(page),'classic');assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.skin),'classic');
@@ -87,7 +87,7 @@ try{
  deleted=new Set();
  page=await open('neon');
  await page.locator('[data-tab="settings"]').click();
- await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===4);
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===6);
  assert.equal(await page.locator('#ncs-skins input[value="neon"]').count(),0);
  await page.waitForFunction(()=>mock.extensionSettings.naice_shot.skin==='classic');
  assert.equal(await skinOf(page),'classic');

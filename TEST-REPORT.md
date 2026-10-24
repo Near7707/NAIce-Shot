@@ -1,3 +1,10 @@
+# v0.1.10 validation — 2026-10-24
+
+- Node suite (with NAIce-Shot-Server alongside): **78 passed, 0 failed, 0 skipped** — contrast/visibility checks now cover six skins (new 파스텔, 크림 노트, 말차 라떼 all pass 4.5:1 text and checkmark thresholds).
+- **14 of 14 browser scripts passed** in headless Chromium, including the new `browser-v0110`: with SillyTavern's menu rules applied, the NAIce Shot entry's icon box is 20×20 at the same x as a normal entry, the name starts at the same x, and icon/text centers are within 1.5px; the skin picker is the last settings section; the file input is opacity 0 and exactly covers the "백업 가져오기" label even when a theme forces inputs visible, nothing overlaps the row below, and clicking the label still opens the file chooser (390px).
+- Also measured against SillyTavern's real `style.css` in a probe page: icon x 27 / text x 57 for both NAIce Shot and a Font Awesome entry; centers within 0.5px.
+- Not exercised: iPhone Safari itself (the overlap is reproduced and fixed in Chromium with forced input visibility), a real SillyTavern instance, a live NovelAI account.
+
 # v0.1.9 validation — 2026-10-24
 
 - Node suite (with NAIce-Shot-Server cloned alongside): **76 passed, 0 failed, 0 skipped** (one fewer per-skin contrast test after removing 네온).

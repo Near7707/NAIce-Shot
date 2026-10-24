@@ -5,7 +5,9 @@ export const SKINS = [
   { id: 'classic', name: '기본', note: '실리태번 테마 색을 따라가요', swatch: ['var(--SmartThemeBlurTintColor,#1b2029)', 'var(--SmartThemeBodyColor,#e8ebf0)', '#75c6cc', '#35969b'] },
   { id: 'glass', name: '글래스', note: '뒤가 흐릿하게 비치는 유리', file: 'glass.css', swatch: ['linear-gradient(135deg,#6d86a6,#2b3a52)', '#ffffff', '#a6f0ea', '#ffc29e'] },
   { id: 'minimal', name: '미니멀', note: '밝은 바탕과 얇은 선', file: 'minimal.css', swatch: ['#ffffff', '#1d1f24', '#2747d6', '#d3d6dc'] },
-  { id: 'pastel', name: '파스텔', note: '둥글고 부드러운 색', file: 'pastel.css', swatch: ['#fbf8ff', '#a8e6d3', '#ffd9c7', '#c9bceb'] },
+  { id: 'pastel', name: '파스텔', note: '하늘색과 버터 노랑', file: 'pastel.css', swatch: ['#f5faff', '#8cc4ea', '#ffe08a', '#cfe8fa'] },
+  { id: 'cream', name: '크림 노트', note: '따뜻한 종이와 캐러멜', file: 'cream.css', swatch: ['#fbf6ee', '#3d3029', '#e8b77a', '#dcc9b2'] },
+  { id: 'matcha', name: '말차 라떼', note: '부드러운 녹차색', file: 'matcha.css', swatch: ['#f4f7ee', '#4e7a2c', '#a9c98a', '#e3eed6'] },
 ];
 export const DEFAULT_SKIN = 'classic';
 let current = DEFAULT_SKIN;
