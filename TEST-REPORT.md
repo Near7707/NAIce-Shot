@@ -1,3 +1,11 @@
+# v0.1.16 validation — 2026-10-26
+
+- Extension Node suite **87 passed, 0 failed, 0 skipped**, including cocoa text/button/tab/checkbox contrast and companion-server compatibility.
+- Four targeted browser scripts passed: `browser-skins`, `browser-v019`, `browser-v060`, and `browser-v0112`. All fifteen skins were exercised for selection/persistence, phone-width layout and readable fields under forced white/dark input themes; existing loader race regressions also passed.
+- Inspected actual cocoa-panel captures at desktop and 375px widths. Korean glyph rendering was not visually verified because this headless browser lacks Korean fonts.
+- All pre-existing skin CSS files are byte-for-byte unchanged; cocoa is an additional registry entry and CSS file. No skin was removed or replaced.
+- The remaining browser scripts, a real SillyTavern installation, iPhone Safari and live NovelAI generation were not run for this skin-only release. The server plugin is unchanged.
+
 # v0.1.15 validation — 2026-10-25
 
 - Extension Node suite **86 passed, 0 failed, 0 skipped**, including the apple skin's text, active-tab, button, checkbox and arrow contrast checks and compatibility with the companion server.

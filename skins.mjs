@@ -16,6 +16,7 @@ export const SKINS = [
   { id: 'chocomilk', name: '초코우유', note: '코코아빛 우유와 진한 초콜릿', file: 'chocomilk.css', swatch: ['#f8efe9', '#c99a80', '#5b3222', '#e1c8ba'] },
   { id: 'coffeemilk', name: '커피우유', note: '라테 베이지와 커피색', file: 'coffeemilk.css', swatch: ['#f5eee5', '#c8a27c', '#8a5530', '#dccbb6'] },
   { id: 'apple', name: '애플 크림', note: '크림빛 바탕에 빨간 사과와 초록 잎', file: 'apple.css', swatch: ['#fffcf4', '#b7372b', '#526b35', '#e5dbb9'] },
+  { id: 'cocoa', name: '코코아', note: '포근한 코코아와 바닐라 크림', file: 'cocoa.css', swatch: ['#795648', '#f7e9d4', '#684638', '#dbc3aa'] },
 ];
 export const DEFAULT_SKIN = 'classic';
 let current = DEFAULT_SKIN;

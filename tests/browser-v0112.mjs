@@ -66,7 +66,7 @@ try{
 
  // 3) Quick skin picks: glass loads slowly, pastel picked right after; pastel must win and be saved.
  slow.set('/skins/glass.css',900);
- await page.locator('[data-tab="settings"]').click();await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===14);
+ await page.locator('[data-tab="settings"]').click();await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===15);
  await page.locator('.ncs-skin:has(input[value="glass"])').click();
  await page.waitForTimeout(80);
  await page.locator('.ncs-skin:has(input[value="pastel"])').click();

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.16 — 2026-10-26
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- Added **코코아** as a separate skin: warm milk-cocoa brown, ivory text, softly rounded cocoa fields and gently raised vanilla-cream buttons. The image viewer uses the matching cream accent. All fourteen existing skins remain available and unchanged, including 초코우유, 커피우유 and 크림 노트.
+
 ## 0.1.15 — 2026-10-25
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

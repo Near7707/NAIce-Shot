@@ -1,0 +1,27 @@
+/* NAIce Shot skin · 코코아: warm milk cocoa and softly raised vanilla-cream buttons.
+   Colors, corners and shadows only; all existing skins and the shared layout stay intact. */
+#naice-shot-dialog[data-skin="cocoa"] {
+ color-scheme:dark;
+ --ncs-bg:#795648;--ncs-fg:#fff5e7;--ncs-muted:#eed9c5;
+ --ncs-border:#a5826c;--ncs-rule:#967460;
+ --ncs-control:#684638;--ncs-hover:#825b49;--ncs-surface:#714d3e;
+ --ncs-accent:#f7e9d4;--ncs-edge:#dbc3aa;--ncs-accent-text:#f7e9d4;--ncs-warning:#ffcfb2;--ncs-danger-fg:#422c22;
+ --ncs-primary-bg:#f7e9d4;--ncs-primary-fg:#422c22;--ncs-primary-border:#e4cdb1;--ncs-primary-hover:#fff3e1;
+ --ncs-tab-active-bg:#f7e9d4;--ncs-tab-active-fg:#422c22;--ncs-tab-active-border:#e4cdb1;
+ --ncs-check-border:#dbc3aa;--ncs-check-bg:#684638;--ncs-check-on:#f7e9d4;--ncs-check-mark:#422c22;
+ --ncs-arrow:#dbc3aa;--ncs-focus:#f7e9d4;
+ --ncs-radius:26px;--ncs-radius-card:18px;--ncs-radius-control:13px;
+ --ncs-shadow:0 24px 64px rgba(54,30,20,.32),inset 0 1px 0 rgba(255,239,216,.14);
+ --ncs-card-shadow:0 5px 16px rgba(47,24,16,.12);
+ --ncs-progress-bg:#8b6652;
+ background:linear-gradient(150deg,#795648 0%,#735040 100%);
+}
+#naice-shot-dialog[data-skin="cocoa"] .ncs-brand .ncs-icon {border-radius:13px;background:#85604e;box-shadow:0 3px 10px rgba(47,24,16,.12),inset 0 1px 0 rgba(255,239,216,.12);}
+#naice-shot-dialog[data-skin="cocoa"] .ncs-header {border-bottom-color:transparent;}
+#naice-shot-dialog[data-skin="cocoa"] .ncs-tabs button {border-radius:13px;background-color:#714d3e;border-color:#a5826c;color:var(--ncs-muted);}
+#naice-shot-dialog[data-skin="cocoa"] .ncs-primary,#naice-shot-dialog[data-skin="cocoa"] .ncs-tabs .ncs-active {
+ background:linear-gradient(180deg,#fff3e1,#f2dfc4);color:#422c22;border-color:#e4cdb1;
+ box-shadow:0 3px 6px rgba(47,24,16,.2),inset 0 1px 0 rgba(255,255,255,.45);
+}
+#naice-shot-dialog[data-skin="cocoa"] .ncs-primary:hover {background:#fff3e1;color:#422c22;}
+#ncs-viewer[data-skin="cocoa"] {--ncsv-accent:#f7e9d4;--ncsv-accent-fg:#422c22;--ncsv-accent-hover:#fff3e1;--ncsv-pressed:#dbc3aa;}

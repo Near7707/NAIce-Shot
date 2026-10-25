@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.16
+
+Update the extension and refresh. Choose **코코아** at the bottom of the settings tab. No server update is needed; existing skin choices are preserved.
+
 ## v0.1.15
 
 Update the extension and refresh. Choose **애플 크림** at the bottom of the settings tab. No server update is needed.
