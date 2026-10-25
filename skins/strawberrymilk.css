@@ -1,0 +1,24 @@
+/* NAIce Shot skin · 딸기우유: strawberry milk pink with a red-berry accent.
+   Skins change color, corner radius and shadow only — never icon size, position, fonts or spacing,
+   so every skin keeps the same layout. Fixed palette: it does not read SillyTavern theme colors.
+   Delete this file to remove the skin; the panel falls back to the classic look. */
+#naice-shot-dialog[data-skin="strawberrymilk"] {
+ color-scheme:light;
+ --ncs-bg:#fff6f8;--ncs-fg:#4a2633;--ncs-muted:#7a5664;
+ --ncs-border:#f6cfda;--ncs-rule:#fbe6ec;
+ --ncs-control:#ffffff;--ncs-hover:#ffeef3;--ncs-surface:#ffffff;
+ --ncs-accent:#ffc3d3;--ncs-edge:#c2305a;--ncs-accent-text:#b02a52;--ncs-warning:#a8321f;--ncs-danger-fg:#ffffff;
+ --ncs-primary-bg:#ff9fba;--ncs-primary-fg:#4a1023;--ncs-primary-border:#f07a9c;--ncs-primary-hover:#ffb6c9;
+ --ncs-tab-active-bg:#ffffff;--ncs-tab-active-fg:#4a2633;--ncs-tab-active-border:#f59ab4;
+ --ncs-check-border:#a86a7d;--ncs-check-bg:#ffffff;--ncs-check-on:#c2305a;--ncs-check-mark:#ffffff;
+ --ncs-arrow:#b0798a;--ncs-focus:#f07a9c;
+ --ncs-radius:28px;--ncs-radius-card:20px;--ncs-radius-control:16px;
+ --ncs-shadow:0 26px 70px rgba(170,70,100,.25);--ncs-card-shadow:0 6px 18px rgba(200,90,120,.1);
+ --ncs-progress-bg:#ffe3ea;
+ background:linear-gradient(180deg,#fffafb 0%,#fff3f6 100%);
+}
+#naice-shot-dialog[data-skin="strawberrymilk"] .ncs-brand .ncs-icon {border-radius:50%;background:#ffdce6;box-shadow:0 4px 12px rgba(240,122,156,.35);}
+#naice-shot-dialog[data-skin="strawberrymilk"] .ncs-header {border-bottom-color:transparent;}
+#naice-shot-dialog[data-skin="strawberrymilk"] .ncs-tabs button {border-radius:999px;background-color:#ffeef3;border-color:transparent;color:var(--ncs-muted);}
+#naice-shot-dialog[data-skin="strawberrymilk"] .ncs-tabs .ncs-active {color:var(--ncs-fg);box-shadow:0 4px 12px rgba(200,90,120,.2);}
+#ncs-viewer[data-skin="strawberrymilk"] {--ncsv-accent:#ff9fba;--ncsv-accent-fg:#4a1023;--ncsv-accent-hover:#ffb6c9;--ncsv-pressed:#c2305a;}

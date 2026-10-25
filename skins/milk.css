@@ -1,0 +1,25 @@
+/* NAIce Shot skin · 우유: creamy milk white, a soft round glass-bottle feel, milk-carton blue.
+   Skins change color, corner radius and shadow only — never icon size, position, fonts or spacing,
+   so every skin keeps the same layout. Fixed palette: it does not read SillyTavern theme colors.
+   Delete this file to remove the skin; the panel falls back to the classic look. */
+#naice-shot-dialog[data-skin="milk"] {
+ color-scheme:light;
+ --ncs-bg:#fffefb;--ncs-fg:#2f3a4f;--ncs-muted:#5d6a80;
+ --ncs-border:#dfe5ee;--ncs-rule:#f0f2f6;
+ --ncs-control:#ffffff;--ncs-hover:#f4f7fb;--ncs-surface:#ffffff;
+ --ncs-accent:#cfe0fb;--ncs-edge:#3d6fbf;--ncs-accent-text:#2f5fae;--ncs-warning:#b4384c;--ncs-danger-fg:#ffffff;
+ --ncs-primary-bg:#3d6fbf;--ncs-primary-fg:#ffffff;--ncs-primary-border:#2f5fae;--ncs-primary-hover:#4c7fd0;
+ --ncs-tab-active-bg:#ffffff;--ncs-tab-active-fg:#2f3a4f;--ncs-tab-active-border:#9fbbe6;
+ --ncs-check-border:#7f8da6;--ncs-check-bg:#ffffff;--ncs-check-on:#3d6fbf;--ncs-check-mark:#ffffff;
+ --ncs-arrow:#7f8da6;--ncs-focus:#7fa3dd;
+ --ncs-radius:28px;--ncs-radius-card:20px;--ncs-radius-control:16px;
+ --ncs-shadow:0 26px 70px rgba(70,90,130,.22),inset 0 2px 0 #ffffff;--ncs-card-shadow:0 8px 20px rgba(90,110,150,.08),inset 0 1px 0 #ffffff;
+ --ncs-progress-bg:#eef4fd;
+ background:radial-gradient(120% 60% at 50% 0%,#ffffff 0%,#fffdf8 60%,#fbf8f1 100%);
+}
+#naice-shot-dialog[data-skin="milk"] .ncs-brand .ncs-icon {border-radius:50%;background:#ffffff;box-shadow:0 4px 14px rgba(90,110,150,.18),inset 0 -3px 0 #eef2f8;}
+#naice-shot-dialog[data-skin="milk"] .ncs-header {border-bottom-color:transparent;}
+#naice-shot-dialog[data-skin="milk"] .ncs-tabs button {border-radius:999px;background-color:#f4f6fa;border-color:transparent;color:var(--ncs-muted);box-shadow:inset 0 1px 0 #ffffff;}
+#naice-shot-dialog[data-skin="milk"] .ncs-tabs .ncs-active {border-color:#d5e2f6;color:var(--ncs-fg);box-shadow:0 6px 16px rgba(90,110,150,.16),inset 0 1px 0 #ffffff;}
+#naice-shot-dialog[data-skin="milk"] .ncs-character,#naice-shot-dialog[data-skin="milk"] .ncs-history-card {box-shadow:var(--ncs-card-shadow);}
+#ncs-viewer[data-skin="milk"] {--ncsv-accent:#ffffff;--ncsv-accent-fg:#2f3a4f;--ncsv-accent-hover:#eef2f8;--ncsv-pressed:#3d6fbf;}

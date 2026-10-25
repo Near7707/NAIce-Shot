@@ -105,9 +105,9 @@ try{
    firstHeading:r(d.querySelector('[data-page="settings"] h3'))};});
  for(const width of [1280,375]){
   await page.setViewportSize({width,height:860});await page.locator('[data-tab="settings"]').click();
-  await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===8);
+  await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===13);
   let base=null;
-  for(const skin of ['classic','glass','minimal','pastel','cream','matcha','deepblue','lavender']){
+  for(const skin of ['classic','glass','minimal','pastel','cream','matcha','deepblue','lavender','milk','strawberrymilk','bananamilk','chocomilk','coffeemilk']){
    await page.locator(`#ncs-skins input[value="${skin}"]`).check({force:true});
    await page.waitForFunction(s=>document.querySelector('#naice-shot-dialog').dataset.skin===s,skin);await page.locator('.ncs-content').evaluate(el=>el.scrollTop=0);
    const g=await geometry();

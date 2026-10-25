@@ -1,0 +1,24 @@
+/* NAIce Shot skin · 바나나우유: banana milk yellow, a rounded bottle feel, warm brown ink.
+   Skins change color, corner radius and shadow only — never icon size, position, fonts or spacing,
+   so every skin keeps the same layout. Fixed palette: it does not read SillyTavern theme colors.
+   Delete this file to remove the skin; the panel falls back to the classic look. */
+#naice-shot-dialog[data-skin="bananamilk"] {
+ color-scheme:light;
+ --ncs-bg:#fffbea;--ncs-fg:#3f3418;--ncs-muted:#6d6040;
+ --ncs-border:#f1df9c;--ncs-rule:#f8efc8;
+ --ncs-control:#fffef7;--ncs-hover:#fff6d6;--ncs-surface:#fffef7;
+ --ncs-accent:#ffe27a;--ncs-edge:#8a6a00;--ncs-accent-text:#7a5d00;--ncs-warning:#b0412e;--ncs-danger-fg:#ffffff;
+ --ncs-primary-bg:#ffd94a;--ncs-primary-fg:#3a2c00;--ncs-primary-border:#e9bf1f;--ncs-primary-hover:#ffe27a;
+ --ncs-tab-active-bg:#fffef7;--ncs-tab-active-fg:#3f3418;--ncs-tab-active-border:#e9bf1f;
+ --ncs-check-border:#8c7a3a;--ncs-check-bg:#fffef7;--ncs-check-on:#7a5d00;--ncs-check-mark:#ffffff;
+ --ncs-arrow:#9c8a4c;--ncs-focus:#e9bf1f;
+ --ncs-radius:30px;--ncs-radius-card:22px;--ncs-radius-control:16px;
+ --ncs-shadow:0 26px 70px rgba(150,120,20,.25);--ncs-card-shadow:0 6px 18px rgba(190,150,30,.1);
+ --ncs-progress-bg:#fff2b8;
+ background:linear-gradient(180deg,#fffdf2 0%,#fff8dc 100%);
+}
+#naice-shot-dialog[data-skin="bananamilk"] .ncs-brand .ncs-icon {border-radius:50%;background:#fff0a8;box-shadow:0 4px 12px rgba(233,191,31,.4);}
+#naice-shot-dialog[data-skin="bananamilk"] .ncs-header {border-bottom-color:transparent;}
+#naice-shot-dialog[data-skin="bananamilk"] .ncs-tabs button {border-radius:999px;background-color:#fff4c7;border-color:transparent;color:var(--ncs-muted);}
+#naice-shot-dialog[data-skin="bananamilk"] .ncs-tabs .ncs-active {color:var(--ncs-fg);box-shadow:0 4px 12px rgba(190,150,30,.22);}
+#ncs-viewer[data-skin="bananamilk"] {--ncsv-accent:#ffd94a;--ncsv-accent-fg:#3a2c00;--ncsv-accent-hover:#ffe27a;--ncsv-pressed:#7a5d00;}

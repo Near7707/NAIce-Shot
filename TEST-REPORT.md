@@ -1,3 +1,10 @@
+# v0.1.14 validation — 2026-10-25
+
+- Extension Node suite **85 passed, 0 failed** (five more per-skin contrast tests; 딸기우유 and 바나나우유 checkbox outlines were darkened to meet the 3:1 outline rule).
+- **16 of 16 browser scripts passed** in headless Chromium with all thirteen skins: switching, saving, 375px fit, deleted-skin fallback, quick-pick race, and ≥4.5:1 field text under forced white/dark input themes.
+- Visual check of all five milk skins in the scene tab (screenshots, not shipped).
+- Not exercised: a real SillyTavern instance, iPhone Safari, a live NovelAI account.
+
 # v0.1.13 validation — 2026-10-25
 
 - Extension Node suite **80 passed, 0 failed** (two more per-skin contrast tests); server suite unchanged.

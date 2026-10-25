@@ -46,8 +46,8 @@ try{
   await page.addStyleTag({content:`select,input,textarea{background:${theme.bg}!important;background-color:${theme.bg}!important;color:${theme.fg}!important;-webkit-text-fill-color:${theme.fg}!important}`});
   await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
   await page.locator('[data-tab="settings"]').click();
-  await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===8);
-  for(const skin of ['classic','glass','minimal','pastel','cream','matcha','deepblue','lavender']){
+  await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===13);
+  for(const skin of ['classic','glass','minimal','pastel','cream','matcha','deepblue','lavender','milk','strawberrymilk','bananamilk','chocomilk','coffeemilk']){
    await page.locator(`.ncs-skin:has(input[value="${skin}"])`).click();await page.waitForTimeout(250);
    for(const sel of ['#ncs-image-placement','#ncs-positive','#ncs-steps']){
     const look=await page.locator(sel).evaluate(el=>{const d=document.querySelector('#naice-shot-dialog'),s=getComputedStyle(el),ds=getComputedStyle(d);
@@ -60,5 +60,5 @@ try{
   }
   await page.close();
  }
- console.log('PASS: drawer uses SillyTavern markup, mounts before the panel file and ahead of later extensions, opens once ready; fields readable (>=4.5:1) on 8 skins under forced white and dark input themes');
+ console.log('PASS: drawer uses SillyTavern markup, mounts before the panel file and ahead of later extensions, opens once ready; fields readable (>=4.5:1) on 13 skins under forced white and dark input themes');
 }finally{await browser.close();server.close();}

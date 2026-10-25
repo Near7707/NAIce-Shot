@@ -1,0 +1,24 @@
+/* NAIce Shot skin · 커피우유: milky latte beige, coffee-brown actions and a foam-white top.
+   Skins change color, corner radius and shadow only — never icon size, position, fonts or spacing,
+   so every skin keeps the same layout. Fixed palette: it does not read SillyTavern theme colors.
+   Delete this file to remove the skin; the panel falls back to the classic look. */
+#naice-shot-dialog[data-skin="coffeemilk"] {
+ color-scheme:light;
+ --ncs-bg:#f5eee5;--ncs-fg:#33281f;--ncs-muted:#64564a;
+ --ncs-border:#dccbb6;--ncs-rule:#ece2d5;
+ --ncs-control:#fffcf8;--ncs-hover:#efe5d8;--ncs-surface:#fffcf8;
+ --ncs-accent:#c8a27c;--ncs-edge:#7a4d2c;--ncs-accent-text:#74482a;--ncs-warning:#a8321f;--ncs-danger-fg:#ffffff;
+ --ncs-primary-bg:#8a5530;--ncs-primary-fg:#ffffff;--ncs-primary-border:#74482a;--ncs-primary-hover:#9a6440;
+ --ncs-tab-active-bg:#fffcf8;--ncs-tab-active-fg:#33281f;--ncs-tab-active-border:#b08661;
+ --ncs-check-border:#8c7864;--ncs-check-bg:#fffcf8;--ncs-check-on:#7a4d2c;--ncs-check-mark:#ffffff;
+ --ncs-arrow:#8c7864;--ncs-focus:#b08661;
+ --ncs-radius:26px;--ncs-radius-card:18px;--ncs-radius-control:14px;
+ --ncs-shadow:0 26px 70px rgba(80,55,30,.26);--ncs-card-shadow:0 6px 18px rgba(100,70,40,.1);
+ --ncs-progress-bg:#ecdfcd;
+ background:linear-gradient(180deg,#fffaf3 0%,#f6efe6 22%,#f1e7da 100%);
+}
+#naice-shot-dialog[data-skin="coffeemilk"] .ncs-brand .ncs-icon {border-radius:50%;background:#fff8ee;box-shadow:0 4px 12px rgba(122,77,44,.25),inset 0 -3px 0 #e8d7c2;}
+#naice-shot-dialog[data-skin="coffeemilk"] .ncs-header {border-bottom-color:transparent;}
+#naice-shot-dialog[data-skin="coffeemilk"] .ncs-tabs button {border-radius:999px;background-color:#ece1d3;border-color:transparent;color:var(--ncs-muted);}
+#naice-shot-dialog[data-skin="coffeemilk"] .ncs-tabs .ncs-active {color:var(--ncs-fg);box-shadow:0 4px 12px rgba(100,70,40,.2);}
+#ncs-viewer[data-skin="coffeemilk"] {--ncsv-accent:#fff8ee;--ncsv-accent-fg:#33281f;--ncsv-accent-hover:#efe5d8;--ncsv-pressed:#7a4d2c;}

@@ -35,12 +35,12 @@ const skinOf=page=>page.locator('#naice-shot-dialog').getAttribute('data-skin');
 try{
  let page=await open();
  await page.locator('[data-tab="settings"]').click();
- await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===8);
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===13);
  assert.equal(await skinOf(page),'classic');assert.equal(await page.locator('#ncs-skin-css').count(),0,'classic loads no extra file');
  assert.equal(await page.locator('.ncs-tabs [data-tab] .ncs-tab-icon svg').count(),4,'tab icons');
 
  // Switch and save; only the chosen file is loaded.
- for(const id of ['glass','minimal','cream','matcha','deepblue','lavender','pastel']){
+ for(const id of ['glass','minimal','cream','matcha','deepblue','lavender','milk','strawberrymilk','bananamilk','chocomilk','coffeemilk','pastel']){
   await page.locator(`#ncs-skins input[value="${id}"]`).check({force:true});
   await page.waitForFunction(id=>document.querySelector('#naice-shot-dialog').dataset.skin===id,id);
   assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.skin),id);
@@ -62,7 +62,7 @@ try{
  await page.keyboard.press('Escape');
  // Mobile: every skin keeps the settings tab inside 375px.
  await page.setViewportSize({width:375,height:760});await page.locator('[data-tab="settings"]').click();
- for(const id of ['classic','glass','minimal','pastel','cream','matcha','deepblue','lavender']){
+ for(const id of ['classic','glass','minimal','pastel','cream','matcha','deepblue','lavender','milk','strawberrymilk','bananamilk','chocomilk','coffeemilk']){
   await page.locator(`#ncs-skins input[value="${id}"]`).check({force:true});
   await page.waitForFunction(id=>document.querySelector('#naice-shot-dialog').dataset.skin===id,id);
   for(const tab of ['scene','profiles','settings','history']){
@@ -78,7 +78,7 @@ try{
  deleted=new Set(['pastel.css']);
  page=await open('pastel');
  await page.locator('[data-tab="settings"]').click();
- await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===7);
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===12);
  assert.equal(await page.locator('#ncs-skins input[value="pastel"]').count(),0);
  await page.waitForFunction(()=>/찾지 못해 기본으로/.test(document.querySelector('#ncs-skin-state').textContent));
  assert.equal(await skinOf(page),'classic');assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.skin),'classic');
@@ -87,7 +87,7 @@ try{
  deleted=new Set();
  page=await open('neon');
  await page.locator('[data-tab="settings"]').click();
- await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===8);
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===13);
  assert.equal(await page.locator('#ncs-skins input[value="neon"]').count(),0);
  await page.waitForFunction(()=>mock.extensionSettings.naice_shot.skin==='classic');
  assert.equal(await skinOf(page),'classic');

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.14 — 2026-10-25
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- Five milk skins: **우유** (creamy white, milk-carton blue), **딸기우유** (strawberry pink), **바나나우유** (banana yellow, brown ink), **초코우유** (cocoa milk, dark chocolate buttons) and **커피우유** (latte beige, coffee-brown buttons). All rounded, with pill tabs. Thirteen skins in total; all pass the text, checkbox and field contrast checks.
+
 ## 0.1.13 — 2026-10-25
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

@@ -10,6 +10,11 @@ export const SKINS = [
   { id: 'matcha', name: '말차 라떼', note: '부드러운 녹차색', file: 'matcha.css', swatch: ['#f4f7ee', '#4e7a2c', '#a9c98a', '#e3eed6'] },
   { id: 'deepblue', name: '딥 블루', note: '남색 밤에 하늘빛 포인트', file: 'deepblue.css', swatch: ['linear-gradient(180deg,#14204a,#0e1530)', '#eaf0ff', '#7cc4ff', '#34457a'] },
   { id: 'lavender', name: '라벤더', note: '보라·분홍·살구빛 파스텔', file: 'lavender.css', swatch: ['#faf6ff', 'linear-gradient(90deg,#dcc4ff,#ffc9e2)', '#ffe0c4', '#7a4fc4'] },
+  { id: 'milk', name: '우유', note: '크림빛 흰색과 우유팩 파랑', file: 'milk.css', swatch: ['#fffefb', '#2f3a4f', '#3d6fbf', '#dfe5ee'] },
+  { id: 'strawberrymilk', name: '딸기우유', note: '분홍 우유와 딸기빛', file: 'strawberrymilk.css', swatch: ['#fff6f8', '#ff9fba', '#c2305a', '#f6cfda'] },
+  { id: 'bananamilk', name: '바나나우유', note: '노란 우유와 갈색 글씨', file: 'bananamilk.css', swatch: ['#fffbea', '#ffd94a', '#7a5d00', '#f1df9c'] },
+  { id: 'chocomilk', name: '초코우유', note: '코코아빛 우유와 진한 초콜릿', file: 'chocomilk.css', swatch: ['#f8efe9', '#c99a80', '#5b3222', '#e1c8ba'] },
+  { id: 'coffeemilk', name: '커피우유', note: '라테 베이지와 커피색', file: 'coffeemilk.css', swatch: ['#f5eee5', '#c8a27c', '#8a5530', '#dccbb6'] },
 ];
 export const DEFAULT_SKIN = 'classic';
 let current = DEFAULT_SKIN;

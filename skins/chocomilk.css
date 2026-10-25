@@ -1,0 +1,24 @@
+/* NAIce Shot skin · 초코우유: cocoa milk with a deep chocolate accent.
+   Skins change color, corner radius and shadow only — never icon size, position, fonts or spacing,
+   so every skin keeps the same layout. Fixed palette: it does not read SillyTavern theme colors.
+   Delete this file to remove the skin; the panel falls back to the classic look. */
+#naice-shot-dialog[data-skin="chocomilk"] {
+ color-scheme:light;
+ --ncs-bg:#f8efe9;--ncs-fg:#3a2219;--ncs-muted:#6b4e42;
+ --ncs-border:#e1c8ba;--ncs-rule:#f0e1d8;
+ --ncs-control:#fffaf7;--ncs-hover:#f3e4da;--ncs-surface:#fffaf7;
+ --ncs-accent:#c99a80;--ncs-edge:#6a3a26;--ncs-accent-text:#6a3a26;--ncs-warning:#a8321f;--ncs-danger-fg:#ffffff;
+ --ncs-primary-bg:#5b3222;--ncs-primary-fg:#fff3ea;--ncs-primary-border:#4a271a;--ncs-primary-hover:#6e4030;
+ --ncs-tab-active-bg:#fffaf7;--ncs-tab-active-fg:#3a2219;--ncs-tab-active-border:#a8735a;
+ --ncs-check-border:#93705f;--ncs-check-bg:#fffaf7;--ncs-check-on:#5b3222;--ncs-check-mark:#ffffff;
+ --ncs-arrow:#93705f;--ncs-focus:#a8735a;
+ --ncs-radius:28px;--ncs-radius-card:20px;--ncs-radius-control:16px;
+ --ncs-shadow:0 26px 70px rgba(90,50,30,.28);--ncs-card-shadow:0 6px 18px rgba(110,64,48,.1);
+ --ncs-progress-bg:#f1dfd4;
+ background:linear-gradient(180deg,#fbf4ef 0%,#f5e8e0 100%);
+}
+#naice-shot-dialog[data-skin="chocomilk"] .ncs-brand .ncs-icon {border-radius:50%;background:#ecd6c8;box-shadow:0 4px 12px rgba(110,64,48,.3);}
+#naice-shot-dialog[data-skin="chocomilk"] .ncs-header {border-bottom-color:transparent;}
+#naice-shot-dialog[data-skin="chocomilk"] .ncs-tabs button {border-radius:999px;background-color:#f1e2d8;border-color:transparent;color:var(--ncs-muted);}
+#naice-shot-dialog[data-skin="chocomilk"] .ncs-tabs .ncs-active {color:var(--ncs-fg);box-shadow:0 4px 12px rgba(110,64,48,.2);}
+#ncs-viewer[data-skin="chocomilk"] {--ncsv-accent:#ecd6c8;--ncsv-accent-fg:#3a2219;--ncsv-accent-hover:#f5e6dc;--ncsv-pressed:#5b3222;}
