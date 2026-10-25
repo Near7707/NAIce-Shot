@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.13 — 2026-10-25
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- New skins: **딥 블루** (deep indigo panel, sky-blue pill tabs with a soft glow, blue gradient main buttons) and **라벤더** (milky lavender panel, purple-pink-peach gradient main buttons and progress line, round pill tabs). Eight skins in total; both pass the same text, checkbox and field contrast checks as the others.
+
 ## 0.1.12 — 2026-10-24
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

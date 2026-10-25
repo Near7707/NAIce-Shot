@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.13
+
+Update the extension and refresh. Try the new 딥 블루 and 라벤더 skins at the bottom of the settings tab.
+
 ## v0.1.12
 
 Update the extension and refresh. Bug-fix release: no new settings.

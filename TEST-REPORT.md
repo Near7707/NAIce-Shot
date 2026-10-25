@@ -1,3 +1,10 @@
+# v0.1.13 validation — 2026-10-25
+
+- Extension Node suite **80 passed, 0 failed** (two more per-skin contrast tests); server suite unchanged.
+- **16 of 16 browser scripts passed** in headless Chromium with the skin lists updated to eight skins: switching, saving, 375px fit, deleted-skin fallback, quick-pick race, and ≥4.5:1 field text under forced white/dark input themes on every skin.
+- Visual check of both new skins in the scene tab (screenshots, not shipped).
+- Not exercised: a real SillyTavern instance, iPhone Safari, a live NovelAI account.
+
 # v0.1.12 validation — 2026-10-24
 
 Bug-fix release for three issues found in a separate usage review of 0.1.11.

@@ -8,6 +8,8 @@ export const SKINS = [
   { id: 'pastel', name: '파스텔', note: '하늘색과 버터 노랑', file: 'pastel.css', swatch: ['#f5faff', '#8cc4ea', '#ffe08a', '#cfe8fa'] },
   { id: 'cream', name: '크림 노트', note: '따뜻한 종이와 캐러멜', file: 'cream.css', swatch: ['#fbf6ee', '#3d3029', '#e8b77a', '#dcc9b2'] },
   { id: 'matcha', name: '말차 라떼', note: '부드러운 녹차색', file: 'matcha.css', swatch: ['#f4f7ee', '#4e7a2c', '#a9c98a', '#e3eed6'] },
+  { id: 'deepblue', name: '딥 블루', note: '남색 밤에 하늘빛 포인트', file: 'deepblue.css', swatch: ['linear-gradient(180deg,#14204a,#0e1530)', '#eaf0ff', '#7cc4ff', '#34457a'] },
+  { id: 'lavender', name: '라벤더', note: '보라·분홍·살구빛 파스텔', file: 'lavender.css', swatch: ['#faf6ff', 'linear-gradient(90deg,#dcc4ff,#ffc9e2)', '#ffe0c4', '#7a4fc4'] },
 ];
 export const DEFAULT_SKIN = 'classic';
 let current = DEFAULT_SKIN;

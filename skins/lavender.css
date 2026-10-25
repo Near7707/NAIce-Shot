@@ -1,0 +1,28 @@
+/* NAIce Shot skin · 라벤더: a milky lavender pane with a soft purple-pink-peach glow.
+   Skins change color, corner radius and shadow only — never icon size, position, fonts or spacing,
+   so every skin keeps the same layout. Fixed palette: it does not read SillyTavern theme colors.
+   Delete this file to remove the skin; the panel falls back to the classic look. */
+#naice-shot-dialog[data-skin="lavender"] {
+ color-scheme:light;
+ --ncs-bg:#faf6ff;--ncs-fg:#3b2c5c;--ncs-muted:#675a86;
+ --ncs-border:#ddcdf3;--ncs-rule:#efe6fb;
+ --ncs-control:#ffffff;--ncs-hover:#f3ebfd;--ncs-surface:#ffffff;
+ --ncs-accent:#c9a8ff;--ncs-edge:#7a4fc4;--ncs-accent-text:#6b3fb5;--ncs-warning:#b8336a;--ncs-danger-fg:#ffffff;
+ --ncs-primary-bg:#e6d4ff;--ncs-primary-fg:#3b1f66;--ncs-primary-border:#c9a8ff;--ncs-primary-hover:#efe2ff;
+ --ncs-tab-active-bg:#ffffff;--ncs-tab-active-fg:#3b2c5c;--ncs-tab-active-border:#b88cf2;
+ --ncs-check-border:#9b85c4;--ncs-check-bg:#ffffff;--ncs-check-on:#7a4fc4;--ncs-check-mark:#ffffff;
+ --ncs-arrow:#8a7aac;--ncs-focus:#b88cf2;
+ --ncs-radius:24px;--ncs-radius-card:18px;--ncs-radius-control:14px;
+ --ncs-shadow:0 24px 70px rgba(110,70,170,.28);--ncs-card-shadow:0 6px 18px rgba(140,100,200,.1);
+ --ncs-progress-bg:#f4e9ff;
+ background:linear-gradient(160deg,#fdf9ff 0%,#f7f0ff 50%,#fdf1f7 100%);
+}
+#naice-shot-dialog[data-skin="lavender"] .ncs-brand .ncs-icon {border-radius:50%;background:linear-gradient(135deg,#e9dbff,#ffd9ea);box-shadow:0 4px 12px rgba(184,140,242,.35);}
+#naice-shot-dialog[data-skin="lavender"] .ncs-header {border-bottom-color:transparent;}
+#naice-shot-dialog[data-skin="lavender"] .ncs-tabs button {border-radius:999px;background-color:#f3ebfd;border-color:transparent;color:var(--ncs-muted);}
+#naice-shot-dialog[data-skin="lavender"] .ncs-tabs button:hover {background-color:#ece0fb;border-color:transparent;}
+#naice-shot-dialog[data-skin="lavender"] .ncs-tabs .ncs-active {border-color:#d6bdf7;color:var(--ncs-fg);box-shadow:0 4px 12px rgba(140,100,200,.18);}
+#naice-shot-dialog[data-skin="lavender"] .ncs-primary {background-image:linear-gradient(90deg,#dcc4ff,#ffc9e2 60%,#ffe0c4);}
+#naice-shot-dialog[data-skin="lavender"] .ncs-profile-chip.ncs-selected {background-color:#e6d4ff;color:#3b1f66;border-color:#c9a8ff;}
+#naice-shot-dialog[data-skin="lavender"] .ncs-progress::after {background:linear-gradient(90deg,#b88cf2,#f59ac4,#ffc49a);}
+#ncs-viewer[data-skin="lavender"] {--ncsv-accent:#e6d4ff;--ncsv-accent-fg:#3b1f66;--ncsv-accent-hover:#efe2ff;--ncsv-pressed:#7a4fc4;}
