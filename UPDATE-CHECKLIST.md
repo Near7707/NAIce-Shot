@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.15
+
+Update the extension and refresh. Choose **애플 크림** at the bottom of the settings tab. No server update is needed.
+
 ## v0.1.14
 
 Update the extension and refresh. Five new milk skins at the bottom of the settings tab.

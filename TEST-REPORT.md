@@ -1,3 +1,10 @@
+# v0.1.15 validation — 2026-10-25
+
+- Extension Node suite **86 passed, 0 failed, 0 skipped**, including the apple skin's text, active-tab, button, checkbox and arrow contrast checks and compatibility with the companion server.
+- Four targeted browser scripts passed in headless Chromium: `browser-skins`, `browser-v019`, `browser-v060`, and `browser-v0112`. Coverage includes selecting and saving the apple skin, all four tabs at 375px, fourteen skins under forced white/dark input themes, and the existing quick-pick race regression.
+- Captured the actual panel at desktop and 375px widths to inspect the cream/red/green palette and layout. The browser image lacks Korean fonts in this environment; Korean glyph rendering was not visually verified.
+- This was a skin-only change. The other browser scripts, a real SillyTavern installation, iPhone Safari and live NovelAI generation were not run for this release.
+
 # v0.1.14 validation — 2026-10-25
 
 - Extension Node suite **85 passed, 0 failed** (five more per-skin contrast tests; 딸기우유 and 바나나우유 checkbox outlines were darkened to meet the 3:1 outline rule).

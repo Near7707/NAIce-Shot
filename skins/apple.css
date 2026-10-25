@@ -1,0 +1,24 @@
+/* NAIce Shot skin · 애플 크림: cream paper, red apples and green leaves.
+   Changes colors, corners and shadows only; the shared panel layout stays intact.
+   Fixed palette, independent of the host theme. */
+#naice-shot-dialog[data-skin="apple"] {
+ color-scheme:light;
+ --ncs-bg:#fffcf4;--ncs-fg:#392d24;--ncs-muted:#78634e;
+ --ncs-border:#d9ccb5;--ncs-rule:#e6d9c4;
+ --ncs-control:#fffef9;--ncs-hover:#f3ecd9;--ncs-surface:#fffef9;
+ --ncs-accent:#f7e2d6;--ncs-edge:#b7372b;--ncs-accent-text:#526b35;--ncs-warning:#a93025;--ncs-danger-fg:#fffaf1;
+ --ncs-primary-bg:#b7372b;--ncs-primary-fg:#fffaf1;--ncs-primary-border:#a93025;--ncs-primary-hover:#a72e24;
+ --ncs-tab-active-bg:#b7372b;--ncs-tab-active-fg:#fffaf1;--ncs-tab-active-border:#a93025;
+ --ncs-check-border:#7b895c;--ncs-check-bg:#fffef9;--ncs-check-on:#526b35;--ncs-check-mark:#ffffff;
+ --ncs-arrow:#78634e;--ncs-focus:#526b35;
+ --ncs-radius:24px;--ncs-radius-card:14px;--ncs-radius-control:11px;
+ --ncs-shadow:0 24px 64px rgba(100,65,35,.2);--ncs-card-shadow:0 5px 16px rgba(100,65,35,.06);
+ --ncs-progress-bg:#edf1df;
+ background:linear-gradient(150deg,#fffdf8,#fbf5e8);
+}
+#naice-shot-dialog[data-skin="apple"] .ncs-brand .ncs-icon {border-radius:14px;background:#f7e2d6;box-shadow:0 4px 12px rgba(183,55,43,.12);}
+#naice-shot-dialog[data-skin="apple"] .ncs-header {border-bottom-color:transparent;}
+#naice-shot-dialog[data-skin="apple"] .ncs-tabs button {border-radius:12px;background-color:#f1ecd9;border-color:transparent;color:#75644c;}
+#naice-shot-dialog[data-skin="apple"] .ncs-tabs .ncs-active {background-color:var(--ncs-tab-active-bg);border-color:var(--ncs-tab-active-border);color:var(--ncs-tab-active-fg);box-shadow:0 4px 10px rgba(183,55,43,.13);}
+#naice-shot-dialog[data-skin="apple"] .ncs-notice:not(.ncs-error) {background:#f0f3e5;color:#52613d;border-bottom-color:#dde3c9;}
+#ncs-viewer[data-skin="apple"] {--ncsv-accent:#b7372b;--ncsv-accent-fg:#fffaf1;--ncsv-accent-hover:#a72e24;--ncsv-pressed:#526b35;}

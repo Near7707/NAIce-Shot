@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.15 — 2026-10-25
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- Added **애플 크림**: a warm cream background, red apple buttons and active tabs, green leaf checkboxes and accents. Available in Settings → 스킨; fourteen skins in total. The image viewer uses the same red and green palette.
+
 ## 0.1.14 — 2026-10-25
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
