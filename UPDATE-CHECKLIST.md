@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.18
+
+Update the extension and refresh. Bug-fix release for the missing-profile warning; try 기존 프로필 연결하기 → 연결 되돌리기 and the warning dialog's Escape/Tab.
+
 ## v0.1.17
 
 Update the extension and refresh. Extract a scene where the open character (or you) has no profile: check the warning box, try 캐릭터 카드에서 만들기 and 기존 프로필 연결하기, and press 이미지 생성 to see the dialog.

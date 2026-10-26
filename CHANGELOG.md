@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.18 — 2026-10-27
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+Fixes from an outside review of 0.1.17's missing-profile warning:
+
+- **Chat switching:** the generate warning belongs to the chat and scene it was opened for. Switching chats or closing the panel closes it; 그래도 그리기 refuses to generate if the chat or scene changed. A profile started from the warning only links to the card/user of the chat it was started in.
+- **Failed saves:** if saving that profile fails (for example an over-long alias), fixing the error and saving again still links it to the card/user.
+- **Name matching:** an exact name always wins over a shorter one. A short name counts only when it is the first name ("Ana" for "Ana Reyes") or, in Korean, the given name without the family name ("민수" for "김민수"), and only when it fits exactly one person. Surnames alone, reordered names and descriptions that contain a name no longer match. Korean names ignore spacing (김 민수 = 김민수).
+- **기존 프로필 연결하기:** adds the exact name as an alias whenever it is missing (before, a partial match could skip it); refuses a name another profile already uses and says which one; group members also get their card linked. A **연결 되돌리기** button right after linking restores the alias, the chat link and the scene.
+- **Warning dialog:** now a real modal — Tab stays inside, Escape closes only the warning. "이 채팅에서 다시 묻지 않기" is saved only by 그래도 그리기 (no longer by 취소 or by the create button), and a **경고창 다시 켜기** button appears while it is off.
+- **Clearer notes:** both the warning box and the dialog say that the card/persona description text (first 4,000 characters) goes to the extraction AI, usually once and up to twice if the reply can't be read.
+- **Group members:** `{{char}}` and `{{user}}` in a member's card description are filled in before sending.
+- Added `tests/browser-v0118.mjs`; more cases in `tests/missing.test.mjs`.
+
 ## 0.1.17 — 2026-10-27
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

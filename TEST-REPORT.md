@@ -1,3 +1,13 @@
+# v0.1.18 validation — 2026-10-27
+
+Fixes for an outside review of 0.1.17 (all eight findings reproduced in code before fixing).
+
+- Extension Node suite **93 passed, 0 failed, 0 skipped** (+2: stricter name matching — exact beats short, first-name and Korean given-name only, ambiguity stays a side character, Korean spacing; `{{char}}`/`{{user}}` filling).
+- **18 of 18 browser scripts passed** in headless Chromium, including the new `browser-v0118`: Tab never reaches panel controls behind the warning and Escape closes only the warning; switching chats and closing the panel close it without generating or saving "don't ask again" in the other chat; 취소 with the box ticked saves nothing; 그래도 그리기 saves it and 경고창 다시 켜기 turns it back on; a profile started in chat A does not link to chat B's user; a failed save then a fixed save keeps the card link; linking adds the exact alias even when a partial name matches, refuses a name another profile owns, and 연결 되돌리기 restores alias, chat link and scene; in a group chat the member warning, card link and filled macros in the description sent. The same script fails (timeout) against 0.1.17.
+- The new test also caught a missing refresh: after 그래도 그리기 with the box ticked, the "다시 켜기" line did not appear until the next render. Fixed.
+- Pre-push privacy check: no keys, personal paths or emails; a screenshot-derived example name used in a comment and a unit test was replaced with an invented one before committing.
+- Not exercised: a real SillyTavern instance or group chat, iPhone Safari, a live extraction provider.
+
 # v0.1.17 validation — 2026-10-27
 
 - Extension Node suite **91 passed, 0 failed, 0 skipped** (+4 in `missing.test.mjs`: name matching, main people for single and group chats, classification, card/persona description reading with the 4,000-character cap).

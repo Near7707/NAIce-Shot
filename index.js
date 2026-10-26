@@ -11,7 +11,7 @@ import { openImageViewer } from './viewer.mjs';
 import { genericizeScene } from './tags.mjs';
 import { checkCompat } from './compat.mjs';
 import { makeZip } from './zip.mjs';
-import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, sameName } from './missing.mjs';
+import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, exactName } from './missing.mjs';
 import { cleanImageFile, saveCleanImage } from './downloads.mjs';
 
 const KEY='naice_shot',API='/api/plugins/naice-shot';
@@ -200,9 +200,10 @@ function saveProfile() {
   const p={id,name:$('ncs-profile-name').value,aliases:$('ncs-profile-aliases').value.split(',').map(x=>x.trim()).filter(Boolean),
     subject:$('ncs-profile-subject').value,appearance:$('ncs-profile-appearance').value,defaultOutfit:$('ncs-profile-outfit').value,
     positive:$('ncs-profile-positive').value,negative:$('ncs-profile-negative').value,cardKey:$('ncs-binding').dataset.cardKey??''};
-  const bind=pendingBind&&pendingBind.session===profileFormSession?pendingBind:null;pendingBind=null;
+  const bind=pendingBind&&pendingBind.session===profileFormSession&&pendingBind.chatKey===keyOf()?pendingBind:null;
   if(bind&&(bind.role==='character'||bind.role==='member')&&bind.avatar&&!p.cardKey&&!s.profiles.some(x=>x.id!==id&&x.cardKey===bind.avatar))p.cardKey=bind.avatar;
   const next=s.profiles.filter(p=>p.id!==id);next.push(p);s.profiles=validateProfiles(next);ctx().saveSettingsDebounced();
+  pendingBind=null; // only after the profile was accepted, so fixing a validation error keeps the planned link
   if(bind?.role==='user')setChatBinding('userProfileId',id);
   editProfile(id);renderProfiles();renderScene();changed();
   if(profileContext==='scene'){
@@ -234,67 +235,105 @@ function openQuickProfile(name='') {
   (settings().profileInputMode==='direct'||!name?$('ncs-profile-name'):$('ncs-profile-describe')).focus({preventScroll:true});
 }
 // --- People left out of the image (no profile) -------------------------------------------------
-let pendingBind=null,linkTarget=null,pendingGenerate=null;
+let pendingBind=null,linkTarget=null,missingPrompt=null,lastLink=null;
+const SOURCE_NOTE=source=>`${source}에서 만들기: ${source} 설명 원문 앞부분(최대 4,000자)을 추출 AI로 보내 외형·복장 태그로 바꿔요. 보통 1회, 응답을 읽지 못하면 한 번 더(최대 2회) 호출해요. 결과를 확인한 뒤 저장해 주세요.`;
 function missingState(){return classifyMissing(scene.unregistered??[],keyOf()?mainPeopleOf(ctx()):[]);}
+function chatBinding(field){return chatBindings()[field]??'';}
 function setChatBinding(field,id){
   const context=ctx();if(!keyOf())return;context.chatMetadata[KEY]??={};context.chatMetadata[KEY].bindings??={};
-  context.chatMetadata[KEY].bindings[field]=id;revision++;context.saveMetadata().catch(e=>notice(e.message,true));
+  if(id)context.chatMetadata[KEY].bindings[field]=id;else delete context.chatMetadata[KEY].bindings[field];
+  revision++;context.saveMetadata().catch(e=>notice(e.message,true));
 }
+const skipMissingWarning=()=>ctx().chatMetadata?.[KEY]?.skipMissingWarning===true;
+function setSkipMissingWarning(value){
+  const c=ctx();if(!keyOf())return;c.chatMetadata[KEY]??={};
+  if(value)c.chatMetadata[KEY].skipMissingWarning=true;else delete c.chatMetadata[KEY].skipMissingWarning;
+  c.saveMetadata().catch(e=>notice(e.message,true));
+}
+// Profiles other than `except` that already use this name or alias; linking would make matching ambiguous.
+const nameOwners=(name,except='')=>settings().profiles.filter(p=>p.id!==except&&[p.name,...p.aliases].some(x=>exactName(x,name)));
 function renderMissingMain(main){
-  const profiles=settings().profiles;
-  $('ncs-missing-main').innerHTML=main.map(({name,person})=>{
+  const profiles=settings().profiles,undo=lastLink&&lastLink.chatKey===keyOf()?lastLink:null;
+  $('ncs-missing-main').innerHTML=(undo?`<div class="ncs-link-done">"${esc(undo.name)}"을(를) ${esc(undo.profileName)} 프로필에 연결했어요. 잘못 연결했다면 <button type="button" data-missing-do="link-undo" data-missing-name="${esc(undo.name)}">연결 되돌리기</button></div>`:'')+main.map(({name,person})=>{
     const n=esc(name),source=sourceLabel(person.role),hasText=!!descriptionFor(ctx(),person).text,linking=linkTarget===name;
     return `<div class="ncs-missing-main"><strong>⚠ ${esc(roleLabel(person.role))} "${n}"의 프로필이 없어서 이번 그림에 안 그려져요.</strong>
 <p>프로필을 만들거나 이미 만든 프로필에 연결하면 바로 장면에 들어가요.</p>
 <div class="ncs-row"><button type="button" data-missing-do="direct" data-missing-name="${n}">직접 만들기</button><button type="button" class="ncs-primary" data-missing-do="source" data-missing-name="${n}" ${hasText?'':'disabled'}>${esc(source)}에서 만들기</button>${profiles.length?`<button type="button" data-missing-do="link" data-missing-name="${n}" aria-expanded="${linking}">기존 프로필 연결하기</button>`:''}</div>
-<small>${hasText?`${esc(source)}에서 만들기: ${esc(source)} 설명을 추출 AI로 보내 외형·복장 태그로 바꿔요. 추출 AI 사용량(API 비용)이 1회 들어요. 결과를 확인한 뒤 저장해 주세요.`:`${esc(source)} 설명이 비어 있어서 ${esc(source)}에서 만들 수 없어요. 직접 만들어 주세요.`}</small>
-${linking?`<div class="ncs-link-picker"><label>연결할 프로필<select id="ncs-link-profile">${profiles.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label><label class="ncs-check"><input id="ncs-link-alias" type="checkbox" checked>"${n}"을(를) 별칭에도 추가 · 다음부터 자동으로 알아봐요</label><div class="ncs-row"><button type="button" class="ncs-primary" data-missing-do="link-confirm" data-missing-name="${n}">연결</button><button type="button" data-missing-do="link-cancel" data-missing-name="${n}">취소</button></div></div>`:''}</div>`;
+<small>${hasText?esc(SOURCE_NOTE(source)):`${esc(source)} 설명이 비어 있어서 ${esc(source)}에서 만들 수 없어요. 직접 만들어 주세요.`}</small>
+${linking?`<div class="ncs-link-picker"><label>연결할 프로필<select id="ncs-link-profile">${profiles.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label><label class="ncs-check"><input id="ncs-link-alias" type="checkbox" checked>"${n}"을(를) 별칭에도 추가 · 다음부터 자동으로 알아봐요</label><small>${person.role==='member'?'그룹 멤버는 이 카드와 프로필도 함께 연결해요.':'이 채팅의 프로필 연결도 함께 바꿔요.'} 잘못 골랐다면 바로 "연결 되돌리기"로 원래대로 돌릴 수 있어요.</small><div class="ncs-row"><button type="button" class="ncs-primary" data-missing-do="link-confirm" data-missing-name="${n}">연결</button><button type="button" data-missing-do="link-cancel" data-missing-name="${n}">취소</button></div></div>`:''}</div>`;
   }).join('');
 }
 function renderLeftOut(main,others){
-  const list=[...main.map(m=>`${m.name}(${roleLabel(m.person.role)})`),...others];
-  $('ncs-left-out').hidden=!list.length;$('ncs-left-out').textContent=list.length?`이번 그림에서 빠지는 인물: ${list.join(', ')}`:'';
+  const list=[...main.map(m=>`${m.name}(${roleLabel(m.person.role)})`),...others],skip=skipMissingWarning();
+  const line=$('ncs-left-out');line.hidden=!list.length&&!skip;
+  line.innerHTML=(list.length?`이번 그림에서 빠지는 인물: ${esc(list.join(', '))}`:'')+(skip?`<span class="ncs-left-out-skip">${list.length?' · ':''}이 채팅에서는 생성 전 경고창을 띄우지 않아요. <button type="button" data-action="missing-reenable">경고창 다시 켜기</button></span>`:'');
+}
+function linkMissing(name,person){
+  const s=settings(),p=s.profiles.find(x=>x.id===$('ncs-link-profile').value);if(!p)throw new Error('연결할 프로필을 골라 주세요.');
+  const owners=nameOwners(name,p.id);
+  if(owners.length)throw new Error(`"${name}"은(는) 이미 ${owners.map(o=>o.name).join(', ')} 프로필의 이름·별칭이에요. 같은 이름이 두 프로필에 있으면 자동 연결이 안 돼요. 그 프로필을 고르거나, 그쪽 별칭을 먼저 정리해 주세요.`);
+  const addAlias=$('ncs-link-alias').checked&&![p.name,...p.aliases].some(x=>exactName(x,name));
+  const setCard=person.role==='member'&&person.avatar&&!p.cardKey&&!s.profiles.some(x=>x.cardKey===person.avatar);
+  const field=person.role==='character'?'characterProfileId':person.role==='user'?'userProfileId':'';
+  const undo={chatKey:keyOf(),name,profileId:p.id,profileName:p.name,aliasAdded:addAlias,cardKeySet:setCard?person.avatar:'',field,previousBinding:field?chatBinding(field):'',addedToScene:!scene.characters.some(c=>c.id===p.id),sceneRef:scene};
+  if(addAlias||setCard){
+    s.profiles=validateProfiles(s.profiles.map(x=>x.id===p.id?{...x,aliases:addAlias?[...x.aliases,name]:x.aliases,cardKey:setCard?person.avatar:x.cardKey}:x));ctx().saveSettingsDebounced();
+  }
+  if(field)setChatBinding(field,p.id);
+  scene.unregistered=(scene.unregistered??[]).filter(x=>x!==name);
+  if(undo.addedToScene)scene.characters.push({id:p.id,entityName:name,included:true,expression:'',action:'',position:'auto',outfitMode:'unchanged',outfit:'',manualOutfit:null});
+  lastLink=undo;linkTarget=null;changed();renderScene();renderProfiles();renderMatching();
+  notice(`"${name}"을(를) ${p.name} 프로필로 연결하고 장면에 넣었어요.${addAlias?' 별칭에도 추가해서 다음부터 자동으로 알아봐요.':' 별칭은 추가하지 않아서 다음 추출에서는 다시 확인이 필요할 수 있어요.'} 표정·행동을 채운 뒤 생성해 주세요.`);
+}
+function undoLink(){
+  const u=lastLink;if(!u||u.chatKey!==keyOf()){lastLink=null;renderSceneExtras();return;}
+  const s=settings();
+  if(u.aliasAdded||u.cardKeySet){
+    s.profiles=validateProfiles(s.profiles.map(x=>x.id!==u.profileId?x:{...x,aliases:u.aliasAdded?x.aliases.filter(a=>!exactName(a,u.name)):x.aliases,cardKey:u.cardKeySet&&x.cardKey===u.cardKeySet?'':x.cardKey}));ctx().saveSettingsDebounced();
+  }
+  if(u.field)setChatBinding(u.field,u.previousBinding);
+  if(scene===u.sceneRef){
+    if(u.addedToScene)scene.characters=scene.characters.filter(c=>c.id!==u.profileId);
+    if(!(scene.unregistered??[]).includes(u.name))scene.unregistered=[...(scene.unregistered??[]),u.name];
+  }
+  lastLink=null;changed();renderScene();renderProfiles();renderMatching();
+  notice(`"${u.name}" 연결을 되돌렸어요.${u.aliasAdded?' 추가했던 별칭도 지웠어요.':''}`);
 }
 async function missingAction(kind,name){
   if(kind==='dialog-source'){closeMissingDialog();kind='source';}
-  const entry=missingState().main.find(m=>m.name===name);
+  if(kind==='link-undo'){undoLink();return;}
   if(kind==='link-cancel'){linkTarget=null;renderSceneExtras();return;}
+  const entry=missingState().main.find(m=>m.name===name);
   if(!entry){renderSceneExtras();return;}
   const {person}=entry;
   if(kind==='link'){linkTarget=linkTarget===name?null:name;renderSceneExtras();return;}
-  if(kind==='link-confirm'){
-    const s=settings(),p=s.profiles.find(x=>x.id===$('ncs-link-profile').value);if(!p)throw new Error('연결할 프로필을 골라 주세요.');
-    const addAlias=$('ncs-link-alias').checked;
-    if(addAlias&&![p.name,...p.aliases].some(x=>sameName(x,name))){
-      const next=s.profiles.map(x=>x.id===p.id?{...x,aliases:[...x.aliases,name]}:x);s.profiles=validateProfiles(next);ctx().saveSettingsDebounced();
-    }
-    if(person.role==='character')setChatBinding('characterProfileId',p.id);
-    else if(person.role==='user')setChatBinding('userProfileId',p.id);
-    scene.unregistered=(scene.unregistered??[]).filter(x=>x!==name);
-    if(!scene.characters.some(c=>c.id===p.id))scene.characters.push({id:p.id,entityName:name,included:true,expression:'',action:'',position:'auto',outfitMode:'unchanged',outfit:'',manualOutfit:null});
-    linkTarget=null;changed();renderScene();renderProfiles();renderMatching();
-    notice(`"${name}"을(를) ${p.name} 프로필로 연결하고 장면에 넣었어요.${addAlias?' 별칭에도 추가해서 다음부터 자동으로 알아봐요.':''} 표정·행동을 채운 뒤 생성해 주세요.`);return;
-  }
+  if(kind==='link-confirm'){linkMissing(name,person);return;}
   openQuickProfile(name);
-  pendingBind={role:person.role,avatar:person.avatar,session:profileFormSession};
+  pendingBind={chatKey:keyOf(),role:person.role,avatar:person.avatar,session:profileFormSession};
   if(kind==='direct'){setProfileMode('direct',{save:false});$('ncs-profile-name').focus({preventScroll:true});notice(`"${name}" 프로필을 만들어 주세요. 저장하면 바로 장면에 들어가요.`);return;}
   const {text,truncated}=descriptionFor(ctx(),person);
   if(!text){setProfileMode('direct',{save:false});notice(`${sourceLabel(person.role)} 설명이 비어 있어요. 직접 입력해 주세요.`,true);return;}
   setProfileMode('describe',{save:false});$('ncs-profile-describe').value=text;
   await convertProfile({source:sourceLabel(person.role),truncated});
 }
+// A real nested modal: Tab stays inside, Escape closes only this box. It belongs to the chat and
+// scene it was opened for; switching chats or closing the panel closes it without generating.
 function openMissingDialog(main,seedMode){
-  pendingGenerate=seedMode;const box=$('ncs-missing-dialog');
+  const box=$('ncs-missing-dialog'),sources=main.filter(m=>descriptionFor(ctx(),m.person).text);
+  missingPrompt={chatKey:keyOf(),sceneRef:scene,seedMode};
   box.querySelector('.ncs-overlay-card').innerHTML=`<strong id="ncs-missing-title">⚠ 프로필이 없어서 이번 그림에 안 그려지는 인물이 있어요.</strong>
 <ul>${main.map(({name,person})=>`<li><b>${esc(name)}</b> · ${esc(roleLabel(person.role))}${descriptionFor(ctx(),person).text?` <button type="button" data-missing-do="dialog-source" data-missing-name="${esc(name)}">${esc(sourceLabel(person.role))}에서 프로필 만들기</button>`:''}</li>`).join('')}</ul>
-<label class="ncs-check"><input id="ncs-missing-skip" type="checkbox">이 채팅에서 다시 묻지 않기</label>
+${sources.length?`<small>${esc(SOURCE_NOTE(sourceLabel(sources[0].person.role)))}</small>`:''}
+<label class="ncs-check"><input id="ncs-missing-skip" type="checkbox">이 채팅에서 다시 묻지 않기 · "그래도 그리기"를 누를 때 적용돼요</label>
 <div class="ncs-row"><button type="button" data-action="missing-proceed">그래도 그리기</button><button type="button" data-action="missing-cancel">취소</button></div>`;
-  box.hidden=false;box.querySelector('[data-action="missing-cancel"]').focus({preventScroll:true});
+  if(!box.open)box.showModal();box.querySelector('[data-action="missing-cancel"]').focus({preventScroll:true});
 }
-function closeMissingDialog(){
-  const box=$('ncs-missing-dialog');if(box.hidden)return;
-  if($('ncs-missing-skip')?.checked&&keyOf()){const c=ctx();c.chatMetadata[KEY]??={};c.chatMetadata[KEY].skipMissingWarning=true;c.saveMetadata().catch(e=>notice(e.message,true));}
-  box.hidden=true;
+function closeMissingDialog(){const box=$('ncs-missing-dialog');missingPrompt=null;if(box?.open)box.close();}
+async function proceedMissingDialog(){
+  const prompt=missingPrompt,skip=$('ncs-missing-skip')?.checked;closeMissingDialog();
+  if(!prompt||prompt.chatKey!==keyOf()||prompt.sceneRef!==scene){notice('채팅이나 장면이 바뀌어서 생성하지 않았어요. 다시 눌러 주세요.',true);return;}
+  if(skip){setSkipMissingWarning(true);renderSceneExtras();}
+  await generate(prompt.seedMode,{skipMissingCheck:true});
 }
 function renderSceneExtras() {
   const none=!settings().profiles.length;
@@ -478,7 +517,7 @@ async function refreshStatus() {
 }
 async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   if(busy)return;assertChat();
-  if(!skipMissingCheck){const {main}=missingState();if(main.length&&!ctx().chatMetadata?.[KEY]?.skipMissingWarning){openMissingDialog(main,seedMode);return;}}
+  if(!skipMissingCheck){const {main}=missingState();if(main.length&&!skipMissingWarning()){openMissingDialog(main,seedMode);return;}}
   const s=settings(),startKey=keyOf(),ticket=++task;
   if(finalOverride?.invalid)throw new Error('최종 프롬프트 JSON이 올바르지 않아요. 고치거나 "조립 결과로 되돌리기"를 눌러 주세요.');
   const a=clone(finalData());
@@ -720,8 +759,9 @@ async function onAction(action,el) {
     case 'blank':scene=blankScene();raw='';changed();renderScene();notice('직접 장면을 입력해 주세요.');break;
     case 'add-character':addCharacter($('ncs-add-profile').value);break;
     case 'generate':await generate();break;
-    case 'missing-proceed':{closeMissingDialog();await generate(pendingGenerate,{skipMissingCheck:true});break;}
+    case 'missing-proceed':await proceedMissingDialog();break;
     case 'missing-cancel':closeMissingDialog();notice('생성하지 않았어요. 위 경고 상자에서 프로필을 만들거나 연결할 수 있어요.');break;
+    case 'missing-reenable':setSkipMissingWarning(false);renderSceneExtras();notice('이 채팅에서 생성 전 경고창을 다시 띄워요.');break;
     case 'same-seed':await generate('same');break;
     case 'new-seed':await generate('new');break;
     case 'attach':await putImageInChat(result,Number($('ncs-result').querySelector('[data-image-target]')?.value));break;
@@ -859,7 +899,7 @@ function bindEvents() {
 }
 function chatChanged() {
   const key=keyOf();if(key===chatKey)return;
-  cancelExtraction('');chatKey=key;task++;revision++;scene=blankScene();raw='';finalOverride=null;optionsOverride=null;result=null;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();
+  cancelExtraction('');closeMissingDialog();pendingBind=null;lastLink=null;linkTarget=null;chatKey=key;task++;revision++;scene=blankScene();raw='';finalOverride=null;optionsOverride=null;result=null;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();
   if(dialog){renderTargets();renderMatching();renderScene();renderResult();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.');}
   renderChatImages();
 }
@@ -888,6 +928,8 @@ async function initialize() {
   settings();dialog=document.createElement('dialog');dialog.id='naice-shot-dialog';
   const template=await fetch(new URL('panel.html',import.meta.url));if(!template.ok)throw new Error('NAIce Shot 패널 파일을 읽지 못했어요.');
   dialog.innerHTML=await template.text();document.body.append(dialog);
+  dialog.addEventListener('close',()=>closeMissingDialog());
+  $('ncs-missing-dialog').addEventListener('cancel',()=>{missingPrompt=null;}); // Escape closes only this box
   for(const tab of dialog.querySelectorAll('[data-tab]')){const icon=document.createElement('span');icon.className='ncs-tab-icon';icon.innerHTML=TAB_ICONS[tab.dataset.tab]??'';tab.prepend(icon);}
   $('ncs-version').textContent=`v${VERSION}`;setProfileMode(settings().profileInputMode,{save:false});renderSettings();renderProfiles();editProfile();renderTargets();bindEvents();chatKey=keyOf();renderProgress();renderScene();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';
   const menu=document.getElementById('extensionsMenu');if(menu){const button=document.createElement('div');button.className='list-group-item flex-container flexGap5 ncs-menu-item';button.innerHTML=`<div class="extensionsMenuExtensionButton ncs-menu-icon">${CAMERA_ICON}</div><span data-brand>${esc(brand())}</span>`;button.tabIndex=0;button.setAttribute('role','button');button.addEventListener('click',()=>open().catch(e=>notice(e.message,true)));button.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open().catch(e=>notice(e.message,true));}});menu.append(button);}

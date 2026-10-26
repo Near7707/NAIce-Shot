@@ -46,7 +46,7 @@ try{
  const box=page.locator('#ncs-missing-main .ncs-missing-main');
  assert.equal(await box.count(),1);
  assert.match(await box.innerText(),/대화 중인 캐릭터 "Leo"의 프로필이 없어서 이번 그림에 안 그려져요/);
- assert.match(await box.innerText(),/추출 AI 사용량\(API 비용\)이 1회/);
+ assert.match(await box.innerText(),/원문 앞부분\(최대 4,000자\)을 추출 AI로 보내.*최대 2회/);
  assert.equal(await box.locator('[data-missing-do="source"]').innerText(),'캐릭터 카드에서 만들기');
  assert.equal(await box.locator('[data-missing-do="direct"]').innerText(),'직접 만들기');
  assert.equal(await box.locator('[data-missing-do="link"]').innerText(),'기존 프로필 연결하기');
@@ -81,7 +81,7 @@ try{
  await page.waitForFunction(()=>mock.extensionSettings.naice_shot.profiles.some(p=>p.name==='Leo'));
  assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.profiles.find(p=>p.name==='Leo').cardKey),'Leo.png','linked to the open card');
  assert.equal(await box.count(),0,'warning gone');
- assert.equal(await page.locator('#ncs-left-out').innerText(),'이번 그림에서 빠지는 인물: street vendor');
+ assert.match(await page.locator('#ncs-left-out').innerText(),/^이번 그림에서 빠지는 인물: street vendor · 이 채팅에서는 생성 전 경고창을 띄우지 않아요\. 경고창 다시 켜기$/);
  assert.equal(await page.locator('[data-character]').count(),2);
  assert.deepEqual(t.errors,[]);await page.close();
 
