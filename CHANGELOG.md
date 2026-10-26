@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.17 — 2026-10-27
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- People without a profile are left out of the image; NAIce Shot now says so clearly.
+  - **The chat's own people** — the open character card, group members and the user (persona) — get a strong warning box in the scene editor: "⚠ … 프로필이 없어서 이번 그림에 안 그려져요." with three fixes:
+    - **직접 만들기**: opens the new-profile form with the name filled in.
+    - **캐릭터 카드에서 만들기** / **페르소나에서 만들기**: sends the card (or persona) description to the extraction AI and fills fixed appearance, default outfit, Negative and the person tag for review (one extraction call; a note under the buttons says so). Descriptions over 4,000 characters are cut, and an empty result says to fill the appearance by hand. Disabled when the description is empty.
+    - **기존 프로필 연결하기**: pick a saved profile; "이 이름을 별칭에도 추가" (on by default) makes it match automatically next time. For the open card or the user, this chat's profile link is set too.
+    - Saving a profile started from the warning links it to the open card (or to the user for this chat).
+  - **Side characters** keep the small "프로필 만들기" chips, with gentler wording.
+  - A line above 이미지 생성 lists everyone left out of this image.
+  - Pressing 이미지 생성 while one of the chat's own people would be left out opens a dialog: create from card/persona, **그래도 그리기**, or **취소**, with **이 채팅에서 다시 묻지 않기**. The warning box and the line stay visible either way.
+- Added `missing.mjs`, `tests/missing.test.mjs` and `tests/browser-v0117.mjs`.
+
 ## 0.1.16 — 2026-10-26
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

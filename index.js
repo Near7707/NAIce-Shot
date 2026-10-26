@@ -11,6 +11,7 @@ import { openImageViewer } from './viewer.mjs';
 import { genericizeScene } from './tags.mjs';
 import { checkCompat } from './compat.mjs';
 import { makeZip } from './zip.mjs';
+import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, sameName } from './missing.mjs';
 import { cleanImageFile, saveCleanImage } from './downloads.mjs';
 
 const KEY='naice_shot',API='/api/plugins/naice-shot';
@@ -199,7 +200,10 @@ function saveProfile() {
   const p={id,name:$('ncs-profile-name').value,aliases:$('ncs-profile-aliases').value.split(',').map(x=>x.trim()).filter(Boolean),
     subject:$('ncs-profile-subject').value,appearance:$('ncs-profile-appearance').value,defaultOutfit:$('ncs-profile-outfit').value,
     positive:$('ncs-profile-positive').value,negative:$('ncs-profile-negative').value,cardKey:$('ncs-binding').dataset.cardKey??''};
+  const bind=pendingBind&&pendingBind.session===profileFormSession?pendingBind:null;pendingBind=null;
+  if(bind&&(bind.role==='character'||bind.role==='member')&&bind.avatar&&!p.cardKey&&!s.profiles.some(x=>x.id!==id&&x.cardKey===bind.avatar))p.cardKey=bind.avatar;
   const next=s.profiles.filter(p=>p.id!==id);next.push(p);s.profiles=validateProfiles(next);ctx().saveSettingsDebounced();
+  if(bind?.role==='user')setChatBinding('userProfileId',id);
   editProfile(id);renderProfiles();renderScene();changed();
   if(profileContext==='scene'){
     const saved=s.profiles.find(x=>x.id===id),names=[saved.name,...saved.aliases].map(x=>x.toLowerCase());
@@ -229,13 +233,77 @@ function openQuickProfile(name='') {
   $('ncs-scene-profile-slot').scrollIntoView({block:'nearest'});
   (settings().profileInputMode==='direct'||!name?$('ncs-profile-name'):$('ncs-profile-describe')).focus({preventScroll:true});
 }
+// --- People left out of the image (no profile) -------------------------------------------------
+let pendingBind=null,linkTarget=null,pendingGenerate=null;
+function missingState(){return classifyMissing(scene.unregistered??[],keyOf()?mainPeopleOf(ctx()):[]);}
+function setChatBinding(field,id){
+  const context=ctx();if(!keyOf())return;context.chatMetadata[KEY]??={};context.chatMetadata[KEY].bindings??={};
+  context.chatMetadata[KEY].bindings[field]=id;revision++;context.saveMetadata().catch(e=>notice(e.message,true));
+}
+function renderMissingMain(main){
+  const profiles=settings().profiles;
+  $('ncs-missing-main').innerHTML=main.map(({name,person})=>{
+    const n=esc(name),source=sourceLabel(person.role),hasText=!!descriptionFor(ctx(),person).text,linking=linkTarget===name;
+    return `<div class="ncs-missing-main"><strong>⚠ ${esc(roleLabel(person.role))} "${n}"의 프로필이 없어서 이번 그림에 안 그려져요.</strong>
+<p>프로필을 만들거나 이미 만든 프로필에 연결하면 바로 장면에 들어가요.</p>
+<div class="ncs-row"><button type="button" data-missing-do="direct" data-missing-name="${n}">직접 만들기</button><button type="button" class="ncs-primary" data-missing-do="source" data-missing-name="${n}" ${hasText?'':'disabled'}>${esc(source)}에서 만들기</button>${profiles.length?`<button type="button" data-missing-do="link" data-missing-name="${n}" aria-expanded="${linking}">기존 프로필 연결하기</button>`:''}</div>
+<small>${hasText?`${esc(source)}에서 만들기: ${esc(source)} 설명을 추출 AI로 보내 외형·복장 태그로 바꿔요. 추출 AI 사용량(API 비용)이 1회 들어요. 결과를 확인한 뒤 저장해 주세요.`:`${esc(source)} 설명이 비어 있어서 ${esc(source)}에서 만들 수 없어요. 직접 만들어 주세요.`}</small>
+${linking?`<div class="ncs-link-picker"><label>연결할 프로필<select id="ncs-link-profile">${profiles.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label><label class="ncs-check"><input id="ncs-link-alias" type="checkbox" checked>"${n}"을(를) 별칭에도 추가 · 다음부터 자동으로 알아봐요</label><div class="ncs-row"><button type="button" class="ncs-primary" data-missing-do="link-confirm" data-missing-name="${n}">연결</button><button type="button" data-missing-do="link-cancel" data-missing-name="${n}">취소</button></div></div>`:''}</div>`;
+  }).join('');
+}
+function renderLeftOut(main,others){
+  const list=[...main.map(m=>`${m.name}(${roleLabel(m.person.role)})`),...others];
+  $('ncs-left-out').hidden=!list.length;$('ncs-left-out').textContent=list.length?`이번 그림에서 빠지는 인물: ${list.join(', ')}`:'';
+}
+async function missingAction(kind,name){
+  if(kind==='dialog-source'){closeMissingDialog();kind='source';}
+  const entry=missingState().main.find(m=>m.name===name);
+  if(kind==='link-cancel'){linkTarget=null;renderSceneExtras();return;}
+  if(!entry){renderSceneExtras();return;}
+  const {person}=entry;
+  if(kind==='link'){linkTarget=linkTarget===name?null:name;renderSceneExtras();return;}
+  if(kind==='link-confirm'){
+    const s=settings(),p=s.profiles.find(x=>x.id===$('ncs-link-profile').value);if(!p)throw new Error('연결할 프로필을 골라 주세요.');
+    const addAlias=$('ncs-link-alias').checked;
+    if(addAlias&&![p.name,...p.aliases].some(x=>sameName(x,name))){
+      const next=s.profiles.map(x=>x.id===p.id?{...x,aliases:[...x.aliases,name]}:x);s.profiles=validateProfiles(next);ctx().saveSettingsDebounced();
+    }
+    if(person.role==='character')setChatBinding('characterProfileId',p.id);
+    else if(person.role==='user')setChatBinding('userProfileId',p.id);
+    scene.unregistered=(scene.unregistered??[]).filter(x=>x!==name);
+    if(!scene.characters.some(c=>c.id===p.id))scene.characters.push({id:p.id,entityName:name,included:true,expression:'',action:'',position:'auto',outfitMode:'unchanged',outfit:'',manualOutfit:null});
+    linkTarget=null;changed();renderScene();renderProfiles();renderMatching();
+    notice(`"${name}"을(를) ${p.name} 프로필로 연결하고 장면에 넣었어요.${addAlias?' 별칭에도 추가해서 다음부터 자동으로 알아봐요.':''} 표정·행동을 채운 뒤 생성해 주세요.`);return;
+  }
+  openQuickProfile(name);
+  pendingBind={role:person.role,avatar:person.avatar,session:profileFormSession};
+  if(kind==='direct'){setProfileMode('direct',{save:false});$('ncs-profile-name').focus({preventScroll:true});notice(`"${name}" 프로필을 만들어 주세요. 저장하면 바로 장면에 들어가요.`);return;}
+  const {text,truncated}=descriptionFor(ctx(),person);
+  if(!text){setProfileMode('direct',{save:false});notice(`${sourceLabel(person.role)} 설명이 비어 있어요. 직접 입력해 주세요.`,true);return;}
+  setProfileMode('describe',{save:false});$('ncs-profile-describe').value=text;
+  await convertProfile({source:sourceLabel(person.role),truncated});
+}
+function openMissingDialog(main,seedMode){
+  pendingGenerate=seedMode;const box=$('ncs-missing-dialog');
+  box.querySelector('.ncs-overlay-card').innerHTML=`<strong id="ncs-missing-title">⚠ 프로필이 없어서 이번 그림에 안 그려지는 인물이 있어요.</strong>
+<ul>${main.map(({name,person})=>`<li><b>${esc(name)}</b> · ${esc(roleLabel(person.role))}${descriptionFor(ctx(),person).text?` <button type="button" data-missing-do="dialog-source" data-missing-name="${esc(name)}">${esc(sourceLabel(person.role))}에서 프로필 만들기</button>`:''}</li>`).join('')}</ul>
+<label class="ncs-check"><input id="ncs-missing-skip" type="checkbox">이 채팅에서 다시 묻지 않기</label>
+<div class="ncs-row"><button type="button" data-action="missing-proceed">그래도 그리기</button><button type="button" data-action="missing-cancel">취소</button></div>`;
+  box.hidden=false;box.querySelector('[data-action="missing-cancel"]').focus({preventScroll:true});
+}
+function closeMissingDialog(){
+  const box=$('ncs-missing-dialog');if(box.hidden)return;
+  if($('ncs-missing-skip')?.checked&&keyOf()){const c=ctx();c.chatMetadata[KEY]??={};c.chatMetadata[KEY].skipMissingWarning=true;c.saveMetadata().catch(e=>notice(e.message,true));}
+  box.hidden=true;
+}
 function renderSceneExtras() {
   const none=!settings().profiles.length;
   $('ncs-no-profiles').hidden=!none||profileContext==='scene';$('ncs-add-row').hidden=none;
-  const names=(scene.unregistered??[]).filter(Boolean);
-  $('ncs-unregistered').innerHTML=names.length?`<small>장면에 보이지만 프로필이 없는 인물이에요. 만들면 바로 장면에 들어가요.</small><div class="ncs-row">${names.map(n=>`<button type="button" class="ncs-chip-add" data-quick-profile-name="${esc(n)}">＋ ${esc(n)} 프로필 만들기</button>`).join('')}</div>`:'';
+  const {main,others}=missingState(),names=others;
+  renderMissingMain(main);renderLeftOut(main,others);
+  $('ncs-unregistered').innerHTML=names.length?`<small>장면에 보이지만 프로필이 없는 인물이에요. 조연이나 잠깐 나온 인물이면 그냥 두셔도 돼요. 자주 나오면 프로필을 만들어 두면 좋아요.</small><div class="ncs-row">${names.map(n=>`<button type="button" class="ncs-chip-add" data-quick-profile-name="${esc(n)}">＋ ${esc(n)} 프로필 만들기</button>`).join('')}</div>`:'';
 }
-async function convertProfile() {
+async function convertProfile({source='',truncated=false}={}) {
   if(busy)return;
   const s=settings(),prompt=profileDraftPrompt($('ncs-profile-describe').value.trim(),{name:$('ncs-profile-name').value.trim(),format:s.format});
   const editing=$('ncs-profile-id').value,session=profileFormSession,ticket=++task,controller=new AbortController();extraction={ticket,controller,kind:'profile'};
@@ -262,7 +330,8 @@ async function convertProfile() {
     if(!$('ncs-profile-aliases').value.trim()&&draft.aliases.length)$('ncs-profile-aliases').value=draft.aliases.join(', ');
     $('ncs-profile-subject').value=draft.subject;
     for(const [id,key] of [['appearance','appearance'],['outfit','defaultOutfit'],['positive','positive'],['negative','negative']])$(`ncs-profile-${id}`).value=draft[key];
-    notice('태그로 바꿨어요. 인원 태그·외형·복장을 확인하고 고친 뒤 저장해 주세요.');
+    if(source&&!draft.appearance.trim())notice(`${source}에서 외형을 찾지 못했어요. 외형 칸을 직접 입력해 주세요.`,true);
+    else notice(source?`${source}에서 외형·복장을 가져왔어요.${truncated?' 설명이 길어서 앞 4,000자만 보냈어요.':''} 확인하고 고친 뒤 저장해 주세요.`:'태그로 바꿨어요. 인원 태그·외형·복장을 확인하고 고친 뒤 저장해 주세요.');
   }finally{
     if(extraction?.ticket===ticket)extraction=null;
     stopProgress(ticket);if(busyOwner===ticket)setBusy(false);
@@ -298,7 +367,7 @@ function updateFinal() {
     renderFinalForm(a);$('ncs-final-badge').hidden=!finalOverride;
     const lengths=[`공통 ${a.base.length}자`,...a.characters.map(c=>`${c.name}: ${c.prompt.length}자`)];
     $('ncs-length').textContent=`${lengths.join(' · ')} · 글자 수예요. NAI 토큰 수와 달라요.`;
-    const warnings=[...(a.warnings??[])];
+    const warnings=[...(a.warnings??[])].filter(w=>!w.startsWith('미등록 인물은 자동 생성하지 않아요'));
     if(scene.source?.historical)warnings.push('과거 장면이에요. 현재 복장은 자동으로 바뀌지 않아요.');
     if(scene.source&&!sourceValid(scene.source,ctx().chat))warnings.push('대상 메시지가 수정·삭제·리롤됐어요. 다시 추출하거나 내용을 확인해 주세요.');
     if(a.base.length+a.characters.reduce((n,c)=>n+c.prompt.length,0)>2000)warnings.push('프롬프트가 길어요. 특히 V4.5는 전체 토큰 한도를 확인해 주세요.');
@@ -407,8 +476,10 @@ async function refreshStatus() {
   $('ncs-status').textContent=data.keyConfigured?`서버 연결됨 · ${subscription?.tier===3?'Opus':'구독 등급 '+subscription?.tier} · Anlas: ${subscription?.anlas?.subscription??'?'} + ${subscription?.anlas?.purchased??'?'}`:'NAI 키가 없어요. 실리태번 API 연결 화면에서 저장해 주세요.';
   updateFinal();return data;
 }
-async function generate(seedMode=null) {
-  if(busy)return;assertChat();const s=settings(),startKey=keyOf(),ticket=++task;
+async function generate(seedMode=null,{skipMissingCheck=false}={}) {
+  if(busy)return;assertChat();
+  if(!skipMissingCheck){const {main}=missingState();if(main.length&&!ctx().chatMetadata?.[KEY]?.skipMissingWarning){openMissingDialog(main,seedMode);return;}}
+  const s=settings(),startKey=keyOf(),ticket=++task;
   if(finalOverride?.invalid)throw new Error('최종 프롬프트 JSON이 올바르지 않아요. 고치거나 "조립 결과로 되돌리기"를 눌러 주세요.');
   const a=clone(finalData());
   const options=clone(effectiveOptions());
@@ -649,6 +720,8 @@ async function onAction(action,el) {
     case 'blank':scene=blankScene();raw='';changed();renderScene();notice('직접 장면을 입력해 주세요.');break;
     case 'add-character':addCharacter($('ncs-add-profile').value);break;
     case 'generate':await generate();break;
+    case 'missing-proceed':{closeMissingDialog();await generate(pendingGenerate,{skipMissingCheck:true});break;}
+    case 'missing-cancel':closeMissingDialog();notice('생성하지 않았어요. 위 경고 상자에서 프로필을 만들거나 연결할 수 있어요.');break;
     case 'same-seed':await generate('same');break;
     case 'new-seed':await generate('new');break;
     case 'attach':await putImageInChat(result,Number($('ncs-result').querySelector('[data-image-target]')?.value));break;
@@ -715,6 +788,7 @@ function bindEvents() {
       else if(el.dataset.action)await onAction(el.dataset.action,el);
       else if(el.dataset.historyScope)setHistoryScope(el.dataset.historyScope);
       else if(el.dataset.profileMode)setProfileMode(el.dataset.profileMode);
+      else if(el.dataset.missingDo)await missingAction(el.dataset.missingDo,el.dataset.missingName);
       else if(el.dataset.quickProfileName!==undefined)openQuickProfile(el.dataset.quickProfileName);
       else if(el.dataset.profile)editProfile(el.dataset.profile);
       else if(el.dataset.remove){scene.characters=scene.characters.filter(c=>c.id!==el.dataset.remove);changed();renderScene();}

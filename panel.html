@@ -14,7 +14,7 @@
         <div class="ncs-row"><button data-action="extract" class="ncs-primary">장면 추출</button><button data-action="blank">직접 입력</button></div>
         <details><summary>추출 응답 확인</summary><textarea id="ncs-raw" readonly rows="6" aria-label="추출 원문"></textarea></details>
       </div>
-      <div class="ncs-section"><h3>2 · 장면 편집</h3>
+      <div class="ncs-section"><h3>2 · 장면 편집</h3><div id="ncs-missing-main"></div>
         <label>장소<textarea id="ncs-location" rows="2"></textarea></label>
         <div class="ncs-grid"><label>조명<textarea id="ncs-lighting" rows="2"></textarea></label><label>구도<textarea id="ncs-camera" rows="2"></textarea></label></div>
         <label>인물 간 상호작용<textarea id="ncs-interaction" rows="2" placeholder="예: two people talking face to face"></textarea></label>
@@ -30,7 +30,7 @@
           <details><summary>JSON으로 직접 수정 · 고급</summary><textarea id="ncs-final" rows="12" spellcheck="false" aria-label="최종 프롬프트 JSON"></textarea></details>
         </details>
       </div>
-      <div class="ncs-section"><h3>3 · 생성</h3><label>공통 이미지 프리셋<select id="ncs-scene-preset"><option value="">현재 설정 유지 · 프리셋 선택</option></select></label><small id="ncs-scene-preset-state"></small><p class="ncs-small">저장한 포지·네거와 생성 설정을 바로 불러와요. 프리셋 저장·수정은 설정 탭에서 할 수 있어요.</p><p id="ncs-cost"></p><label class="ncs-check"><input id="ncs-allow-anlas" type="checkbox">Anlas 사용 가능성 허용</label><p class="ncs-small">V5는 기본 무료 조건 안에서도 무료 잔량에 따라 비용이 들 수 있어요. 잔량은 NAI에서 확인해 주세요.</p><button data-action="generate" class="ncs-primary ncs-wide">이미지 생성</button><div id="ncs-result"></div></div>
+      <div class="ncs-section"><h3>3 · 생성</h3><label>공통 이미지 프리셋<select id="ncs-scene-preset"><option value="">현재 설정 유지 · 프리셋 선택</option></select></label><small id="ncs-scene-preset-state"></small><p class="ncs-small">저장한 포지·네거와 생성 설정을 바로 불러와요. 프리셋 저장·수정은 설정 탭에서 할 수 있어요.</p><p id="ncs-cost"></p><label class="ncs-check"><input id="ncs-allow-anlas" type="checkbox">Anlas 사용 가능성 허용</label><p class="ncs-small">V5는 기본 무료 조건 안에서도 무료 잔량에 따라 비용이 들 수 있어요. 잔량은 NAI에서 확인해 주세요.</p><p id="ncs-left-out" class="ncs-left-out" hidden></p><button data-action="generate" class="ncs-primary ncs-wide">이미지 생성</button><div id="ncs-result"></div></div>
     </section>
     <section data-page="profiles" hidden><div class="ncs-section"><h3>캐릭터 프로필</h3><p>고정 외형은 AI에 전달하지 않고, 이미지 요청에만 넣어요. 복장은 별도 칸에 입력해 주세요.</p><div id="ncs-profile-list"></div><button data-action="new-profile">+ 새 프로필 만들기</button><div id="ncs-profile-slot"><form id="ncs-profile-form">
       <small id="ncs-profile-editing">새 프로필 작성 중</small><input type="hidden" id="ncs-profile-id"><label>표시 이름<input id="ncs-profile-name" maxlength="200" placeholder="캐릭터 이름 입력" required></label>
@@ -64,5 +64,6 @@
       <button data-action="history-more" class="ncs-wide ncs-more" hidden>더 보기</button>
       <p class="ncs-small">삭제하면 서버의 원본 PNG와 생성 기록이 지워져요. 지금 채팅에 붙인 그림은 함께 빠지고, 다른 채팅에 붙여 둔 그림은 그 채팅에서 "찾을 수 없는 그림" 안내로 바뀌어요. 되돌릴 수 없어요.</p></div></section>
   </div>
-  <footer><span id="ncs-chat-label"></span><span id="ncs-version">v0.1.16</span></footer>
+  <div id="ncs-missing-dialog" class="ncs-overlay" role="alertdialog" aria-modal="true" aria-labelledby="ncs-missing-title" hidden><div class="ncs-overlay-card"></div></div>
+  <footer><span id="ncs-chat-label"></span><span id="ncs-version">v0.1.17</span></footer>
 </div>

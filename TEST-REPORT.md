@@ -1,3 +1,10 @@
+# v0.1.17 validation — 2026-10-27
+
+- Extension Node suite **91 passed, 0 failed, 0 skipped** (+4 in `missing.test.mjs`: name matching, main people for single and group chats, classification, card/persona description reading with the 4,000-character cap).
+- **17 of 17 browser scripts passed** in headless Chromium, including the new `browser-v0117` (invented names only): warning box for the open card with three actions and the API-cost note; side character stays a chip; left-out line; generate dialog cancel / proceed / don't-ask-again (box and line remain); card description → tag conversion → save links the card and adds the person; link to an existing profile adds the alias and sets the chat link; empty card description disables the card button; user persona via 직접 만들기 sets the user link, and via 페르소나에서 만들기 sends the persona text; 375px fit.
+- Pre-push privacy check of the changes: no keys, personal paths, emails or story names; commit identity Near7707 with the GitHub noreply address.
+- Not exercised: a real SillyTavern instance (card/persona fields come from SillyTavern's `getCharacterCardFields` with fallbacks), group chats in a real instance, iPhone Safari, a live NovelAI account or extraction provider.
+
 # v0.1.16 validation — 2026-10-26
 
 - Extension Node suite **87 passed, 0 failed, 0 skipped**, including cocoa text/button/tab/checkbox contrast and companion-server compatibility.
