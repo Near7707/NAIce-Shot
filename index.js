@@ -100,7 +100,7 @@ function say(message,error=false) {
   if(dialog?.open||!globalThis.toastr)notice(message,error);
   else globalThis.toastr[error?'error':'success'](message,brand());
 }
-function changed(){revision++;finalOverride=null;optionsOverride=null;updateFinal();}
+function changed(){revision++;finalOverride=null;optionsOverride=null;updateFinal({force:true});}
 // History restore uses the stored options for the next generation only; the settings tab keeps the user's own values.
 function effectiveOptions(){return optionsOverride??settings().options;}
 function setBusy(value,owner=0) {busy=value;busyOwner=value?owner:0;for(const b of dialog.querySelectorAll('[data-action="extract"],[data-action="generate"],[data-action="blank"],[data-action="same-seed"],[data-action="new-seed"],[data-action="convert-profile"]'))b.disabled=value;updateAttachButtons();}
@@ -376,7 +376,7 @@ async function convertProfile({source='',truncated=false}={}) {
     stopProgress(ticket);if(busyOwner===ticket)setBusy(false);
   }
 }
-function renderScene() {
+function renderScene({forceFinal=false}={}) {
   for(const k of ['location','lighting','camera','interaction'])$(`ncs-${k}`).value=scene[k];
   renderSceneExtras();
   const profiles=settings().profiles,states=outfitState();
@@ -395,15 +395,15 @@ function renderScene() {
       <details><summary>고정 외형 · 전용 태그</summary><small>${esc(p.appearance)}</small><small>Positive: ${esc(p.positive)}</small><small>Negative: ${esc(p.negative)}</small></details>
     </article>`;
   }).join('');
-  $('ncs-raw').value=raw;updateFinal();
+  $('ncs-raw').value=raw;updateFinal({force:forceFinal});
 }
 function finalData(){return finalOverride??assemble(settings(),scene,outfitState());}
-function updateFinal() {
+function updateFinal({force=false}={}) {
   if(!dialog)return;
   try {
     if(finalOverride?.invalid){$('ncs-warnings').textContent=`최종 프롬프트 JSON을 확인해 주세요: ${finalOverride.message}`;return;} // keep the user's in-progress text
-    const a=finalData();if(!(finalOverride&&document.activeElement===$('ncs-final')))$('ncs-final').value=JSON.stringify(a,null,2);
-    renderFinalForm(a);$('ncs-final-badge').hidden=!finalOverride;
+    const a=finalData();if(force||!(finalOverride&&document.activeElement===$('ncs-final')))$('ncs-final').value=JSON.stringify(a,null,2);
+    renderFinalForm(a,{force});$('ncs-final-badge').hidden=!finalOverride;
     const lengths=[`공통 ${a.base.length}자`,...a.characters.map(c=>`${c.name}: ${c.prompt.length}자`)];
     $('ncs-length').textContent=`${lengths.join(' · ')} · 글자 수예요. NAI 토큰 수와 달라요.`;
     const warnings=[...(a.warnings??[])].filter(w=>!w.startsWith('미등록 인물은 자동 생성하지 않아요'));
@@ -411,15 +411,15 @@ function updateFinal() {
     if(scene.source&&!sourceValid(scene.source,ctx().chat))warnings.push('대상 메시지가 수정·삭제·리롤됐어요. 다시 추출하거나 내용을 확인해 주세요.');
     if(a.base.length+a.characters.reduce((n,c)=>n+c.prompt.length,0)>2000)warnings.push('프롬프트가 길어요. 특히 V4.5는 전체 토큰 한도를 확인해 주세요.');
     if(finalOverride)warnings.push('직접 고친 최종 프롬프트를 이번 생성에 써요. 되돌리려면 "조립 결과로 되돌리기"를 눌러 주세요.');
-    if(optionsOverride)warnings.push(`이력에서 불러온 생성 설정(seed ${optionsOverride.seed})을 써요. 새 장면 추출·장면 편집·프리셋 적용·생성 설정 변경 시 현재 설정으로 돌아가요.`);
+    if(optionsOverride)warnings.push(`이력에서 불러온 생성 설정(seed ${optionsOverride.seed})을 이번 생성에만 써요. 생성 성공·조립 결과로 되돌리기·채팅 변경 시 현재 설정으로 돌아가요.`);
     $('ncs-warnings').textContent=warnings.join('\n');
     const guard=costGuard(effectiveOptions(),subscription);$('ncs-cost').textContent=guard.message;
     updatePresetState();
   }catch(e){$('ncs-warnings').textContent=e.message;}
 }
 // Field-by-field editor for the final prompt; the JSON box stays as an advanced view of the same data.
-function renderFinalForm(a) {
-  const box=$('ncs-final-form');if(box.contains(document.activeElement))return; // never rewrite a field while typing
+function renderFinalForm(a,{force=false}={}) {
+  const box=$('ncs-final-form');if(!force&&box.contains(document.activeElement))return; // preserve typing except when the draft is reset or replaced
   const area=(label,attrs,value,rows)=>`<label>${label}<textarea ${attrs} rows="${rows}" spellcheck="false">${esc(value)}</textarea></label>`;
   box.innerHTML=area('공통 Positive','data-final="base"',a.base,3)+area('공통 Negative','data-final="negative"',a.negative,2)+
     (a.characters.length?a.characters.map((c,i)=>`<fieldset class="ncs-final-slot"><legend>${esc(c.name||`인물 ${i+1}`)}</legend>${area('Positive',`data-final="prompt" data-slot="${i}"`,c.prompt,3)}${area('Negative',`data-final="negative" data-slot="${i}"`,c.negative,2)}<label>위치<select data-final="position" data-slot="${i}">${['auto','left','center','right'].map((x,k)=>`<option value="${x}" ${c.position===x?'selected':''}>${['AI 자동','왼쪽','가운데','오른쪽'][k]}</option>`).join('')}</select></label></fieldset>`).join('')
@@ -520,7 +520,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   if(!skipMissingCheck){const {main}=missingState();if(main.length&&!skipMissingWarning()){openMissingDialog(main,seedMode);return;}}
   const s=settings(),startKey=keyOf(),ticket=++task;
   if(finalOverride?.invalid)throw new Error('최종 프롬프트 JSON이 올바르지 않아요. 고치거나 "조립 결과로 되돌리기"를 눌러 주세요.');
-  const a=clone(finalData());
+  const a=clone(finalData()),submittedFinal=finalOverride,submittedOptions=optionsOverride;
   const options=clone(effectiveOptions());
   options.seed=seedMode==='same'&&result?result.seed:seedMode==='new'||options.seed===-1?crypto.getRandomValues(new Uint32Array(1))[0]:options.seed;
   buildPayload(a,options); // Local validation before network or billing.
@@ -531,6 +531,11 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   try {
     const item=await api('/generate',{method:'POST',body:{requestId:uuid(),chatKey:startKey,assembled:a,options,allowAnlas:s.allowAnlas,retainRawExtraction:s.retainRawExtraction===true,snapshot}});
     if(ticket!==task||keyOf()!==startKey){notice('생성이 끝났어요. 시작한 채팅의 이력에서 확인할 수 있어요.');return;}
+    // Consume only the submitted overrides; keep a newer edit made while awaiting the response.
+    const resetFinal=finalOverride===submittedFinal;
+    if(resetFinal)finalOverride=null;
+    if(optionsOverride===submittedOptions)optionsOverride=null;
+    revision++;updateFinal({force:resetFinal});
     result=item;renderResult();notice(`생성했어요 · seed ${item.seed} · 그림을 누르면 크게 볼 수 있어요.`);loadHistory().catch(()=>{});
   }finally{stopProgress(ticket);if(busyOwner===ticket)setBusy(false);}
 }
@@ -725,7 +730,7 @@ function restoreHistory(id) {
   scene=clone(item.snapshot?.scene??blankScene());scene.source=null;
   scene.characters=scene.characters.filter(c=>settings().profiles.some(p=>p.id===c.id));
   raw=item.snapshot?.rawExtraction??'';finalOverride=clone(item.assembled);optionsOverride=clone(item.options);
-  result=item;revision++;renderScene();renderResult();showTab('scene');
+  result=item;revision++;renderScene({forceFinal:true});renderResult();showTab('scene');
   notice('당시 최종 프롬프트와 생성 설정(seed 포함)을 불러왔어요. 설정 탭 값과 현재 복장은 바뀌지 않아요.');
 }
 function exportSettings() {
@@ -784,7 +789,7 @@ async function onAction(action,el) {
       const card=ctx().characters?.[ctx().characterId];if(!card?.avatar)throw new Error('개별 캐릭터 채팅에서 카드를 연결해 주세요.');
       $('ncs-binding').dataset.cardKey=card.avatar;$('ncs-binding').textContent=`연결할 카드: ${card.avatar} · 프로필 저장을 눌러 주세요.`;break;
     }
-    case 'reset-final':finalOverride=null;revision++;updateFinal();break;
+    case 'reset-final':changed();break;
     case 'status':await refreshStatus();break;
     // 프리셋 저장: overwrite the selected preset, or create one when none is selected.
     case 'save-preset':saveImagePreset(!!settings().imagePresets.find(p=>p.id===settings().imagePresetId));break;
@@ -900,7 +905,7 @@ function bindEvents() {
 function chatChanged() {
   const key=keyOf();if(key===chatKey)return;
   cancelExtraction('');closeMissingDialog();pendingBind=null;lastLink=null;linkTarget=null;chatKey=key;task++;revision++;scene=blankScene();raw='';finalOverride=null;optionsOverride=null;result=null;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();
-  if(dialog){renderTargets();renderMatching();renderScene();renderResult();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.');}
+  if(dialog){renderTargets();renderMatching();renderScene({forceFinal:true});renderResult();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.');}
   renderChatImages();
 }
 const activeTab=()=>dialog?.querySelector('[data-tab][aria-selected="true"]')?.dataset.tab??'scene';

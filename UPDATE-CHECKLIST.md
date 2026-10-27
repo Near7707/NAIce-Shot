@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.19
+
+Update the extension and refresh. Restore an image from history, edit the final prompt and generate: the edit and historical seed/options apply once. Generate again to check that current Settings values are used. Restore again and try 조립 결과로 되돌리기. Switch chats while a final-prompt field has focus and confirm the previous prompt disappears. No server update is needed.
+
 ## v0.1.18
 
 Update the extension and refresh. Bug-fix release for the missing-profile warning; try 기존 프로필 연결하기 → 연결 되돌리기 and the warning dialog's Escape/Tab.

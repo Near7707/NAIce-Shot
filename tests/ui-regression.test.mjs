@@ -22,7 +22,7 @@ async function setup() {
     if(selector.startsWith('#'))assert.ok(ids.has(selector.slice(1)),`missing panel element ${selector}`);
     if(!nodes.has(selector)) {
       const classes=new Set();
-      nodes.set(selector,{id:selector.startsWith('#')?selector.slice(1):'',value:'',innerHTML:'',textContent:'',dataset:{},hidden:false,disabled:false,type:'',name:'',checked:false,
+      nodes.set(selector,{id:selector.startsWith('#')?selector.slice(1):'',value:'',options:[],innerHTML:'',textContent:'',dataset:{},hidden:false,disabled:false,type:'',name:'',checked:false,
         classList:{toggle(k,on){on?classes.add(k):classes.delete(k);},add(k){classes.add(k);},contains:k=>classes.has(k)},
         closest:()=>null,contains:()=>false,hasAttribute:()=>false,setAttribute(){},addEventListener(){},
       });
@@ -39,19 +39,21 @@ async function setup() {
   };
   const sent=[];
   const sandbox=vm.createContext({...imports,console,URL,crypto:webcrypto,AbortController,setInterval,clearInterval,confirm:()=>true,
-    SillyTavern:{getContext:()=>context},document:{readyState:'loading',activeElement:null,addEventListener(){},querySelectorAll:()=>[],querySelector:()=>null},
+    SillyTavern:{getContext:()=>context},document:{readyState:'loading',activeElement:null,addEventListener(){},querySelectorAll:()=>[],querySelector:()=>null,getElementById:()=>null},
     fetch:async(url,options)=>{
       if(String(url).endsWith('/generate')) {
         const body=JSON.parse(options.body);sent.push(body);
+        if(context.generationResponse)await context.generationResponse;
         return {ok:true,text:async()=>JSON.stringify({id:body.requestId,image:`/user/images/naice-shot/${body.requestId}.png`,created:new Date().toISOString(),chatKey:body.chatKey,seed:body.options.seed,assembled:body.assembled,options:body.options,snapshot:body.snapshot})};
       }
       return {ok:true,text:async()=>JSON.stringify({items:[],total:0,hasMore:false})};
     },
   });
-  vm.runInContext(source+`\n globalThis.ui={attach(d){dialog=d;},bindEvents,renderSettings,extract,cancelExtraction,generate,saveImagePreset,onAction,updateFinal,
+  vm.runInContext(source+`\n globalThis.ui={attach(d){dialog=d;},bindEvents,renderSettings,extract,cancelExtraction,generate,saveImagePreset,onAction,updateFinal,chatChanged,
+    focus(el){document.activeElement=el;},
     restore(item){historyItems=[item];restoreHistory(item.id);},
-    state(){return {options:clone(effectiveOptions()),override:clone(optionsOverride),final:clone(finalData()),scene:clone(scene),busy};}};`,sandbox);
-  sandbox.ui.attach(dialog);sandbox.ui.bindEvents();sandbox.ui.renderSettings();
+    state(){return {options:clone(effectiveOptions()),override:clone(optionsOverride),final:clone(finalData()),scene:clone(scene),result:clone(result),busy};}};`,sandbox);
+  sandbox.ui.attach(dialog);sandbox.ui.bindEvents();sandbox.ui.renderSettings();sandbox.ui.chatChanged();
   const input=(id,value)=>{const el=node('#'+id);el.value=String(value);listeners.get('input')({target:el});};
   node('#ncs-target').value='';
   const item={id:randomUUID(),created:'2026-10-23T00:00:00Z',chatKey:JSON.stringify({group:null,card:'Leo.png',chat:'A'}),image:'',
@@ -137,4 +139,102 @@ test('raw extraction stays out of requests by default; opt-in removes reasoning 
   assert.equal(h.sent.at(-1).retainRawExtraction,true);
   assert.match(h.sent.at(-1).snapshot.rawExtraction,/cafe/);
   assert.doesNotMatch(h.sent.at(-1).snapshot.rawExtraction,/PRIVATE REASONING|<think>/);
+});
+
+test('successful generation consumes the final prompt and history options once',async()=>{
+  const h=await setup(),normal=clone(h.settings.options);
+  h.settings.positive='current common prompt';
+  h.ui.restore(h.item);
+  h.input('ncs-final',JSON.stringify({...h.item.assembled,base:'edited for one image'}));
+  await h.ui.generate();
+  assert.equal(h.sent.at(-1).assembled.base,'edited for one image');
+  assert.equal(h.sent.at(-1).options.seed,777);
+  assert.equal(h.ui.state().override,null);
+  assert.match(h.ui.state().final.base,/current common prompt/);
+  assert.equal(h.node('#ncs-final-badge').hidden,true);
+  assert.doesNotMatch(h.node('#ncs-scene-preset-state').textContent,/이력에서/);
+  assert.deepEqual(clone(h.settings.options),normal);
+  await h.ui.generate();
+  assert.match(h.sent.at(-1).assembled.base,/current common prompt/);
+  assert.equal(h.sent.at(-1).options.steps,normal.steps);
+});
+
+test('chat switching replaces a focused final editor and clears history settings',async()=>{
+  const h=await setup();
+  h.ui.restore(h.item);
+  const form=h.node('#ncs-final-form'),field={};
+  form.contains=el=>el===field;h.ui.focus(field);
+  h.context.chatId='B';h.ui.chatChanged();
+  assert.equal(h.ui.state().override,null);
+  assert.equal(h.node('#ncs-final-badge').hidden,true);
+  assert.doesNotMatch(form.innerHTML,/old history scene/);
+  assert.doesNotMatch(h.node('#ncs-final').value,/old history scene/);
+  assert.doesNotMatch(h.node('#ncs-warnings').textContent,/seed 777/);
+  h.settings.positive='new chat scene';
+  await h.ui.generate();
+  assert.match(h.sent.at(-1).assembled.base,/new chat scene/);
+  assert.equal(JSON.parse(h.sent.at(-1).chatKey).chat,'B');
+  assert.equal(h.sent.at(-1).options.steps,h.settings.options.steps);
+});
+
+test('resetting the final prompt also resets temporary history generation options',async()=>{
+  const h=await setup();
+  h.ui.restore(h.item);
+  await h.ui.onAction('reset-final');
+  assert.equal(h.ui.state().override,null);
+  assert.deepEqual(clone(h.ui.state().options),clone(h.settings.options));
+  assert.equal(h.node('#ncs-final-badge').hidden,true);
+});
+
+test('failed generation keeps the draft for retry, while success preserves edits made in flight',async()=>{
+  const h=await setup();h.ui.restore(h.item);
+  h.context.generationResponse=Promise.reject(new Error('generation failed'));
+  await assert.rejects(h.ui.generate(),/generation failed/);
+  assert.equal(h.ui.state().final.base,'old history scene');
+  assert.equal(h.ui.state().options.seed,777);
+  let finish;h.context.generationResponse=new Promise(resolve=>{finish=resolve;});
+  const pending=h.ui.generate();
+  h.input('ncs-final',JSON.stringify({...h.item.assembled,base:'next draft typed during generation'}));
+  finish();await pending;
+  assert.equal(h.sent.at(-1).assembled.base,'old history scene');
+  assert.equal(h.ui.state().final.base,'next draft typed during generation');
+  assert.equal(h.ui.state().override,null,'the submitted history options were used once');
+});
+
+test('completion from the previous chat does not reset a new chat draft',async()=>{
+  const h=await setup();h.ui.restore(h.item);
+  let finish;h.context.generationResponse=new Promise(resolve=>{finish=resolve;});
+  const pending=h.ui.generate();
+  h.context.chatId='B';h.ui.chatChanged();
+  h.input('ncs-final',JSON.stringify({...h.item.assembled,base:'new chat draft'}));
+  finish();await pending;
+  assert.equal(h.ui.state().final.base,'new chat draft');
+  assert.equal(h.ui.state().override,null);
+  assert.equal(h.ui.state().result,null);
+  assert.equal(h.ui.state().busy,false);
+});
+
+test('draft resets replace focused fields but ordinary updates preserve typing',async()=>{
+  const h=await setup();h.ui.restore(h.item);
+  const form=h.node('#ncs-final-form'),field={};
+  form.contains=el=>el===field;h.ui.focus(field);
+  form.innerHTML='text currently being typed';
+  h.ui.updateFinal();
+  assert.equal(form.innerHTML,'text currently being typed');
+  await h.ui.onAction('blank');
+  assert.notEqual(form.innerHTML,'text currently being typed');
+  h.ui.restore(h.item);
+  assert.match(form.innerHTML,/old history scene/,'history restore also replaces focused fields');
+  await h.ui.generate();
+  assert.doesNotMatch(form.innerHTML,/old history scene/,'generation completion resets the focused editor');
+});
+
+test('chat changes discard invalid final JSON and return to assembled prompts',async()=>{
+  const h=await setup();h.ui.restore(h.item);
+  h.ui.focus(h.node('#ncs-final'));h.input('ncs-final','{invalid JSON');
+  assert.match(h.node('#ncs-warnings').textContent,/JSON/);
+  h.context.chatId='B';h.ui.chatChanged();
+  assert.doesNotThrow(()=>JSON.parse(h.node('#ncs-final').value));
+  assert.doesNotMatch(h.node('#ncs-warnings').textContent,/JSON|seed 777/);
+  assert.equal(h.ui.state().override,null);
 });
