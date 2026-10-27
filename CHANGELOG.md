@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.19 — 2026-10-27
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. No server update is needed.
+
+- The final prompt edit and history generation options now apply to one successful generation, then return to the assembled scene and current Settings values. Failed requests keep the draft for retry; a new edit made during a request is preserved.
+- Switching chats now refreshes the final prompt fields even when an editor still has keyboard focus, so the previous chat’s prompt cannot remain visible.
+- **조립 결과로 되돌리기** clears both the edited prompt and history generation options, including the old seed.
+- Added state/handler and browser regression tests for generation, reset and chat changes.
+
 ## 0.1.18 — 2026-10-27
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

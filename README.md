@@ -1,4 +1,4 @@
-# NAIce Shot v0.1.18
+# NAIce Shot v0.1.19
 
 실리태번의 RP 장면을 추출해 NovelAI 그림을 생성하는 비공식 확장이에요. 캐릭터 외형 프로필, 장면·복장 편집, 생성 프리셋, 이미지 이력과 채팅 첨부를 지원해요.
 
@@ -159,7 +159,7 @@ Generation errors are not automatically retried. A timeout does not establish wh
 
 The scene tab and Settings tab both offer the saved common image preset list. Applying a preset loads its shared positive/negative prompts and saved generation options, reassembles the current scene and clears any manually edited final prompt or history settings override. The saved preset itself is not overwritten. Clearing the picker keeps the current values.
 
-Restoring history uses that record's prompt, seed and options without changing persistent Settings values. A successful new scene extraction clears those temporary overrides and returns to your current settings. A failed or cancelled extraction leaves the previous edit intact. Editing the scene, applying a preset or changing generation settings also clears the history options override. The scene preset helper indicates when history settings take priority.
+Restoring history uses that record's prompt, seed and options without changing persistent Settings values. A successful image generation consumes those temporary overrides once and returns to your current settings. Resetting the final prompt or switching chats also clears both overrides and refreshes the editor even if it has focus. A successful new scene extraction clears those temporary overrides as well. A failed or cancelled extraction leaves the previous edit intact. Editing the scene, applying a preset or changing generation settings also clears the history options override. The scene preset helper indicates when history settings take priority.
 
 ## History, attachments and storage
 
