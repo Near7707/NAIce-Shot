@@ -94,11 +94,13 @@ try{
  assert.deepEqual(t.errors,[]);await page.close();
 
  // 3) Linking: exact alias even when names partly match; refusal on a name another profile owns; undo.
- t=await setup({profiles:[profile('mira','Mira'),profile('lp','Leo Park',{subject:'boy'}),profile('kai','Kai',{subject:'boy',aliases:['Leo']})],extraction:sceneOf([mira],['Leo'])});page=t.page;
- // Kai already owns "Leo": linking Leo Park is refused.
+ t=await setup({profiles:[profile('mira','Mira'),profile('lp','Leo Park',{subject:'boy'}),profile('kai','Kai',{subject:'boy',aliases:['Leo']}),profile('other','Other',{aliases:['Leo']})],extraction:sceneOf([mira],['Leo'])});page=t.page;
+ // A unique saved alias is now recovered automatically. Keep this one ambiguous so the warning
+ // remains, then verify that linking Leo Park cannot steal a name already owned by other profiles.
+ assert.match(await page.locator('#ncs-missing-main').innerText(),/프로필 연결을 확정하지 못해서/);
  await page.locator('#ncs-missing-main [data-missing-do="link"]').click();await page.locator('#ncs-link-profile').selectOption('lp');
  await page.locator('#ncs-missing-main [data-missing-do="link-confirm"]').click();
- await page.waitForFunction(()=>/이미 Kai 프로필의 이름·별칭이에요/.test(document.querySelector('#ncs-notice').textContent));
+ await page.waitForFunction(()=>/이미 Kai, Other 프로필의 이름·별칭이에요/.test(document.querySelector('#ncs-notice').textContent));
  assert.deepEqual(await page.evaluate(()=>mock.extensionSettings.naice_shot.profiles.find(p=>p.id==='lp').aliases),[]);
  await page.close();
  t=await setup({profiles:[profile('mira','Mira'),profile('lp','Leo Park',{subject:'boy'})],extraction:sceneOf([mira],['Leo'])});page=t.page;

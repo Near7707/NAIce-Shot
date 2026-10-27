@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.20
+
+Update the extension and refresh. In a scene with three people, confirm profiles saved for other cards also load. For an unregistered side character, use 기존 프로필 연결 and check that expression/action/clothing fill in; undo and reconnect to confirm the fields remain. A manual 인물 추가 followed by 장면 추출 includes that profile among candidates. For old name-only records, extract once again to obtain missing actions. No server update is needed.
+
 ## v0.1.19
 
 Update the extension and refresh. Restore an image from history, edit the final prompt and generate: the edit and historical seed/options apply once. Generate again to check that current Settings values are used. Restore again and try 조립 결과로 되돌리기. Switch chats while a final-prompt field has focus and confirm the previous prompt disappears. No server update is needed.

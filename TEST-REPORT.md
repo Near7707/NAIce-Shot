@@ -1,3 +1,11 @@
+# v0.1.20 validation — 2026-10-27
+
+- Before fixing, reproduced three regressions in `matching.test.mjs`: an existing saved alias left in `unregistered`, a manually added person absent from the next roster, and name separator/Korean-spacing mismatches.
+- Extension Node suite **109 passed, 0 failed, 0 skipped**, including six new scene-extraction tests for unresolved visual fields, later attachment, exact matching across the full local profile directory, ambiguity, linked card names and no invented pose/presence. The shared core still matches server 0.1.7 except its version line.
+- Seven targeted Chromium browser scripts passed: `browser-v0120`, `browser-v0117`, `browser-v0118`, `browser-v0119`, `browser-v060`, `browser-v031`, and `browser-smoke`. The new script covers three visible people, a different card/chat, legacy name-only responses, late manual addition/re-extraction, creating and linking profiles with cached actions/outfits, undo, no extra AI call for cached restoration, request privacy and 375px fit.
+- Updated the v0.1.18 collision fixture to use two alias owners: a unique saved alias now correctly auto-resolves before the warning. Kept the conflict rejection assertions. The smoke script also failed on the unchanged v0.1.19 parent because it expected historical prompts to survive a successful generation; it now asserts one-generation consumption and explicitly restores history again before testing dimension edits.
+- Remaining browser scripts, real SillyTavern sessions, real group chats, iPhone Safari and live extraction/image providers were not exercised. Extraction and generation were mocked; the new prompt cannot guarantee that an external model notices every visible person. Old records with only names require a new extraction to obtain missing visual fields.
+
 # v0.1.18 validation — 2026-10-27
 
 Fixes for an outside review of 0.1.17 (all eight findings reproduced in code before fixing).

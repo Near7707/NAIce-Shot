@@ -85,6 +85,10 @@ try {
  assert.equal(await page.evaluate(()=>JSON.stringify(mock.chatMetadata)),metadataBefore);
  await click('same-seed');await page.waitForFunction(seed=>document.querySelector('#ncs-notice').textContent.includes(`seed ${seed}`),first.seed);
  assert.equal(items.at(-1).seed,first.seed);assert.equal(items.at(-1).assembled.characters[0].prompt,first.assembled.characters[0].prompt);
+ await page.waitForFunction(()=>document.querySelector('#ncs-final-badge').hidden);
+ assert.match(await page.locator('#ncs-final').inputValue(),/green hair/,'a successful generation consumes the historical prompt once');
+ // Restore again to test editing dimensions while a history draft is still pending.
+ await page.locator('[data-tab="history"]').click();await page.locator('[data-history-id]').first().click();
  // Presets synchronize both fields; editing a dimension moves back to Custom.
  await page.locator('[data-tab="settings"]').click();await page.locator('#ncs-size-preset').selectOption('landscape');
  assert.equal(await page.locator('#ncs-width').inputValue(),'1216');assert.equal(await page.locator('#ncs-height').inputValue(),'832');

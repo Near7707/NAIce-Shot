@@ -73,3 +73,23 @@ test('end to end: wrong and repeated IDs from the AI are corrected by name',()=>
  const fixed=reconcileCharacters(parseExtraction(raw,profiles).scene,scope);
  assert.deepEqual(fixed.scene.characters.map(c=>c.id).sort(),['leo','mira']);
 });
+
+test('a saved profile named in unregistered is recovered by its alias in another card chat',()=>{
+ const ctx=context();ctx.chat[1].mes='Leo and 애쉬 sit together.';
+ const scope=matching(ctx),input={...scene('Leo','leo'),unregistered:['애쉬']};
+ const fixed=reconcileCharacters(input,scope).scene;
+ assert.ok(fixed.characters.some(c=>c.id==='ash'));
+ assert.deepEqual(fixed.unregistered,[]);
+});
+test('manually added profiles remain candidates when the prose only uses a pronoun',()=>{
+ const ctx=context();ctx.chat[1].mes='The third person sits down beside them.';
+ const scope=matchChatProfiles(ctx,profiles,chooseMessages(ctx.chat).messages,{},['ash']);
+ assert.ok(scope.profiles.some(p=>p.id==='ash'));
+ assert.deepEqual(reconcileCharacters(scene('Leo','leo'),scope).scene.characters.map(c=>c.id),['leo'],'a candidate is not forced into the picture');
+});
+test('profile identity matching tolerates name separators and Korean spacing without substring guesses',()=>{
+ const p=[...profiles,{id:'sun',name:'Sunny',aliases:['Jae-Sun','김 민수'],cardKey:'',defaultOutfit:'coat'}];
+ for(const text of ['Jae Sun sits down.','김민수가 들어온다.']){
+  const ctx=context();ctx.chat[1].mes=text;assert.ok(matching(ctx,p).profiles.some(p=>p.id==='sun'),text);
+ }
+});

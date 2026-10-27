@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.20 — 2026-10-27
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- Recover saved profiles by name, alias and linked card name across character chats, including people the extraction AI incorrectly lists as unregistered. Identity checks remain exact and ambiguous aliases are never guessed. Name separators and Korean spacing are normalized consistently.
+- Extract visible expressions, actions, positions and explicitly described clothing for every visible person, including unregistered side characters. Keep unresolved visual fields with the scene; later profile creation, manual addition or linking restores them without another AI call. Side characters can now link to an existing profile too; undo preserves their extracted fields.
+- Include manually added scene profiles in the next extraction roster. Candidate profiles are never forced into a scene when not actually visible.
+- Existing name-only extraction/history data remains readable, but missing actions from older records require a new scene extraction. The new extraction schema/prompt is browser-only; no server update is needed.
+
 ## 0.1.19 — 2026-10-27
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. No server update is needed.

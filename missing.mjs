@@ -5,7 +5,7 @@
 export const CARD_TEXT_LIMIT = 4000; // profileDraftPrompt accepts up to 4,000 characters
 
 const HANGUL = /[가-힣]/;
-const norm = value => String(value ?? '').toLowerCase().replace(/[\s_\-·.]+/g, ' ').trim();
+const norm = value => String(value ?? '').normalize('NFKC').toLowerCase().replace(/[\s_\-·.]+/g, ' ').trim();
 const compact = value => norm(value).replace(/ /g, '');
 
 // Exactly the same name: identical after normalizing; for Korean names spacing is ignored too (김 민수 = 김민수).

@@ -53,8 +53,10 @@ export function genericizeScene(scene, names, format = 'tags') {
   };
   const next = { ...scene };
   for (const key of ['location', 'lighting', 'camera', 'interaction']) next[key] = clean(scene[key] ?? '');
-  next.characters = (scene.characters ?? []).map(c => ({ ...c, expression: clean(c.expression ?? ''), action: clean(c.action ?? ''),
+  const cleanPeople=people=>(people??[]).map(c => ({ ...c, expression: clean(c.expression ?? ''), action: clean(c.action ?? ''),
     outfit: c.outfitMode === 'replace' ? clean(c.outfit ?? '') : c.outfit }))
     .map(c => c.outfitMode === 'replace' && !c.outfit ? { ...c, outfitMode: 'unchanged' } : c);
+  next.characters=cleanPeople(scene.characters);
+  if(scene.unregisteredDetails)next.unregisteredDetails=cleanPeople(scene.unregisteredDetails);
   return { scene: next, removed: [...removed] };
 }
