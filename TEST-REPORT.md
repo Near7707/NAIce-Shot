@@ -1,3 +1,10 @@
+# v0.1.21 validation — 2026-10-29
+
+- Extension Node suite: **109 passed, 0 failed, 0 skipped**, with server 0.1.7 available; shared core differs only in its version line.
+- Five Chromium scripts passed: `browser-v0121`, `browser-v0118`, `browser-v0119`, `browser-v0120`, and `browser-smoke`.
+- New browser coverage at 1280px and 375px checks newest-first targets, original message IDs/current selection, unchanged conversation order, four independent tab positions, delayed history refresh/images, explicit history reload, viewer return, close/Escape/reopen, rapid tab switches and horizontal fit. The order assertion failed on the unchanged parent before fixing.
+- Scroll memory lasts for the current page session; reloading the browser page resets it. Real SillyTavern, iPhone Safari and live AI providers were not exercised.
+
 # v0.1.20 validation — 2026-10-27
 
 - Before fixing, reproduced three regressions in `matching.test.mjs`: an existing saved alias left in `unregistered`, a manually added person absent from the next roster, and name separator/Korean-spacing mismatches.

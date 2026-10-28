@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.21 — 2026-10-29
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- List target messages newest first while preserving their original message IDs and the current selection.
+- Remember separate scroll positions for Scene, Profiles, Settings and History while navigating tabs and closing/reopening the panel. History refreshes preserve the visible position too. Positions live only in the current page session and reset on a browser refresh.
+
 ## 0.1.20 — 2026-10-27
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

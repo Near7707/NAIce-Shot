@@ -110,16 +110,27 @@ async function api(route,{method='GET',body}={}) {
   const text=await response.text();let data;try{data=JSON.parse(text);}catch{throw new Error(`서버 플러그인을 확인해 주세요 (${response.status}).`);}
   if(!response.ok||data.error)throw new Error(data.error??`요청 실패 (${response.status})`);return data;
 }
+// Each tab owns its last position for this page session. Never record the zero
+// geometry of a closed dialog; showModal's focus step may also move the viewport.
+const tabScroll=new Map();
+function rememberScroll() {
+  if(dialog?.open)tabScroll.set(activeTab(),dialog.querySelector('.ncs-content').scrollTop);
+}
+function restoreScroll() {
+  if(dialog?.open)dialog.querySelector('.ncs-content').scrollTop=tabScroll.get(activeTab())??0;
+}
 function showTab(tab) {
+  rememberScroll();
   if(tab==='profiles'&&profileContext==='scene')placeProfileForm('profiles'); // keep what was typed, show it in the profile tab
   for(const el of dialog.querySelectorAll('[data-page]'))el.hidden=el.dataset.page!==tab;
   for(const el of dialog.querySelectorAll('[data-tab]'))el.classList.toggle('ncs-active',el.dataset.tab===tab);
   for(const el of dialog.querySelectorAll('[data-tab]'))el.setAttribute('aria-selected',String(el.dataset.tab===tab));
+  restoreScroll();
   if(tab==='history')loadHistory().catch(e=>notice(e.message,true));
 }
 function renderTargets() {
   const current=$('ncs-target').value;
-  const rows=ctx().chat?.map((m,i)=>({m,i})).filter(({m})=>!m.is_system&&m.mes?.trim())??[];
+  const rows=ctx().chat?.map((m,i)=>({m,i})).filter(({m})=>!m.is_system&&m.mes?.trim()).reverse()??[];
   $('ncs-target').innerHTML='<option value="">가장 최근 메시지</option>'+rows.map(({m,i})=>`<option value="${i}">#${i} · ${esc(m.name)} · ${esc(m.mes.replace(/\s+/g,' ').slice(0,55))}</option>`).join('');
   if(rows.some(r=>String(r.i)===current))$('ncs-target').value=current;
 }
@@ -702,6 +713,8 @@ function renderHistoryFilter() {
   select.value=historyChats.some(c=>c.chatKey===historyFilter)?historyFilter:'';
 }
 function renderHistory() {
+  // A refresh replaces cards (including images); keep the visible tab's offset.
+  rememberScroll();
   renderHistoryTarget();
   const chat=ctx().chat??[],current=keyOf();
   if(historyScope==='all'){
@@ -710,13 +723,13 @@ function renderHistory() {
       const id=esc(item.id),file=imageDownload(item),here=item.chatKey===current;
       return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button><small class="ncs-chat-name${here?' ncs-here':''}">${esc(chatLabel(item.chatKey))}${here?' · 지금 채팅':''}</small><small>${esc(new Date(item.created).toLocaleString())} · seed ${esc(item.seed)}</small><a href="${esc(file.url)}" download="${file.filename}">PNG 저장</a><button type="button" data-clean-save="${esc(item.id)}" title="프롬프트 메타데이터와 알파 채널 정보를 뺀 불투명 PNG 사본">공유용 PNG</button><button data-history-delete="${id}" class="ncs-danger-outline">삭제</button></article>`;
     }).join(''):'<p>저장된 그림이 없어요.</p>';
-    updateAttachButtons();return;
+    updateAttachButtons();restoreScroll();return;
   }
   $('ncs-history').innerHTML=historyItems.length?historyItems.map(item=>{
     const id=esc(item.id),file=imageDownload(item),attached=hasInlineImage(chat,item);
     return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button><small>${esc(new Date(item.created).toLocaleString())} · seed ${esc(item.seed)}</small><button data-history-id="${id}">편집으로 불러오기</button><button data-history-attach="${id}" class="ncs-primary">본문 아래에 넣기</button>${attached?`<button data-history-detach="${id}">이미지 빼기</button>`:''}<a href="${esc(file.url)}" download="${file.filename}">PNG 저장</a><button type="button" data-clean-save="${esc(item.id)}" title="프롬프트 메타데이터와 알파 채널 정보를 뺀 불투명 PNG 사본">공유용 PNG</button><button data-history-delete="${id}" class="ncs-danger-outline">삭제</button></article>`;
   }).join(''):'<p>아직 생성 이력이 없어요.</p>';
-  updateAttachButtons();
+  updateAttachButtons();restoreScroll();
 }
 async function loadHistory({append=false}={}) {
   const startKey=keyOf(),allScope=historyScope==='all';
@@ -772,7 +785,7 @@ async function importSettings(file) {
 }
 async function onAction(action,el) {
   switch(action) {
-    case 'close':dialog.close();break;
+    case 'close':rememberScroll();dialog.close();break;
     case 'dismiss-compat':compatDismissed=true;renderCompat();break;
     case 'cancel-extract':if(!cancelExtraction())notice('진행 중인 추출이 없어요.');break;
     case 'extract':await extract();break;
@@ -925,8 +938,10 @@ function chatChanged() {
 }
 const activeTab=()=>dialog?.querySelector('[data-tab][aria-selected="true"]')?.dataset.tab??'scene';
 async function open() {
+  rememberScroll();
   chatChanged();renderTargets();renderProfiles();renderScene();renderExtractionProfiles();
   if(!dialog.open)dialog.showModal();
+  restoreScroll();
   // The chat may have changed while the panel was closed: reload the visible history instead of showing it empty.
   if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true));
   checkServer().catch(()=>{});
@@ -949,6 +964,8 @@ async function initialize() {
   const template=await fetch(new URL('panel.html',import.meta.url));if(!template.ok)throw new Error('NAIce Shot 패널 파일을 읽지 못했어요.');
   dialog.innerHTML=await template.text();document.body.append(dialog);
   dialog.addEventListener('close',()=>closeMissingDialog());
+  dialog.addEventListener('cancel',event=>{if(event.target===dialog)rememberScroll();});
+  dialog.querySelector('.ncs-content').addEventListener('scroll',rememberScroll,{passive:true});
   $('ncs-missing-dialog').addEventListener('cancel',()=>{missingPrompt=null;}); // Escape closes only this box
   for(const tab of dialog.querySelectorAll('[data-tab]')){const icon=document.createElement('span');icon.className='ncs-tab-icon';icon.innerHTML=TAB_ICONS[tab.dataset.tab]??'';tab.prepend(icon);}
   $('ncs-version').textContent=`v${VERSION}`;setProfileMode(settings().profileInputMode,{save:false});renderSettings();renderProfiles();editProfile();renderTargets();bindEvents();chatKey=keyOf();renderProgress();renderScene();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';

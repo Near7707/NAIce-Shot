@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.21
+
+Update the extension and refresh. Check that target messages run from newest to oldest and selecting an older message still targets that message. Scroll each of the four tabs, switch away and return, then close/reopen with both the close button and Escape. History refreshes and opening/closing the image viewer should keep the prior list position. No server update is needed.
+
 ## v0.1.20
 
 Update the extension and refresh. In a scene with three people, confirm profiles saved for other cards also load. For an unregistered side character, use 기존 프로필 연결 and check that expression/action/clothing fill in; undo and reconnect to confirm the fields remain. A manual 인물 추가 followed by 장면 추출 includes that profile among candidates. For old name-only records, extract once again to obtain missing actions. No server update is needed.
