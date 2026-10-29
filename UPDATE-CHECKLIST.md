@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.26
+
+Update the extension and refresh. Scroll inside the target-message list, load more rows, then collapse/reopen it. The list should return to the same position and retain loaded rows. Repeat across tab and panel close/reopen, then verify that a direct message icon reveals its target once and latest/chat-switch resets the list to the top. No server update is needed.
+
 ## v0.1.25
 
 Update the extension and refresh. Hide an RP message and confirm it appears as 숨김 in the target list. With message draw buttons enabled, its icon should remain. Select it and extract; the preceding reference range may include hidden RP, while typed system notices are excluded. Generate and attach to that message, then confirm it stays hidden after saving/reloading. Latest mode must still select a visible message and exclude hidden text. No server update is needed.

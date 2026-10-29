@@ -1,3 +1,12 @@
+# v0.1.26 validation — 2026-10-30
+
+- Reproduced on the unchanged v0.1.25 parent: after scrolling the target list to 250px, collapse/reopen returned it to about 1px. The new browser regression passes after fixing.
+- Extension Node suite: **114 passed, 0 failed, 0 skipped**, with server 0.1.7 available.
+- Five targeted Chromium scripts passed: `browser-v0126`, `browser-v0125`, `browser-v0123`, `browser-v0122`, and `browser-v0121`.
+- New 1280px/375px coverage checks collapse/reopen (including rapid toggling), retained loaded rows, tab round trips, close/Escape/reopen, message edits/new messages, browsing after selection, one-time direct-message target reveal, explicit latest/chat reset and horizontal fit.
+- Pre-edit privacy scan covered 85 tracked files and 23 reachable commits. Only the known synthetic error path and previously disclosed historical author email matched; new changes were checked separately. Remote issues, release attachments and external copies were outside this scan.
+- Scroll positions are page-session state. Real SillyTavern, iPhone Safari and live AI providers were not exercised. No server changes.
+
 # v0.1.25 validation — 2026-10-29
 
 - Extension Node suite: **114 passed, 0 failed, 0 skipped**, with server 0.1.7 available. Five new tests cover hidden/system classification, selected hidden context and original indices, immutable chat/main-chat input, default exclusion, user/reference filters, source validity, hidden attachment/removal and retained media/hide flags. The attachment case failed before fixing.

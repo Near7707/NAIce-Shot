@@ -84,7 +84,7 @@ async function drawFromMessage(index){
   await open();showTab('scene');
   const m=ctx().chat?.[index];
   if(!Number.isInteger(index)||!isSceneMessage(m)){notice('이 메시지는 그림 대상으로 고를 수 없어요.',true);return;}
-  chooseTarget(String(index));
+  chooseTarget(String(index),{reveal:true});
   notice(`#${index} 메시지를 대상으로 골랐어요. "장면 추출"을 눌러 진행해 주세요.`);
 }
 function brand(){return BRAND;}
@@ -162,10 +162,12 @@ async function api(route,{method='GET',body}={}) {
 // geometry of a closed dialog; showModal's focus step may also move the viewport.
 const tabScroll=new Map();
 function rememberScroll() {
+  rememberTargetScroll();
   if(dialog?.open)tabScroll.set(activeTab(),dialog.querySelector('.ncs-content').scrollTop);
 }
 function restoreScroll() {
   if(dialog?.open)dialog.querySelector('.ncs-content').scrollTop=tabScroll.get(activeTab())??0;
+  restoreTargetScroll();
 }
 function showTab(tab) {
   rememberScroll();
@@ -179,8 +181,20 @@ function showTab(tab) {
 // Target picker: looks like a dropdown, opens into a short scrolling list (newest first) that grows
 // ten messages at a time. Nothing is built while it is closed.
 const TARGET_STEP=10;
-let targetShown=TARGET_STEP;
+let targetShown=TARGET_STEP,targetScroll=0,targetReveal=false,targetListRendered=false;
+const targetVisible=()=>dialog?.open&&activeTab()==='scene'&&$('ncs-target-picker').open;
+function rememberTargetScroll() {
+  // Collapsing details or closing the panel exposes zero geometry, not a new position.
+  if(targetVisible()&&targetListRendered)targetScroll=$('ncs-target-scroll').scrollTop;
+}
+function restoreTargetScroll() {
+  if(!targetVisible()||!targetListRendered)return;
+  const box=$('ncs-target-scroll');
+  if(targetReveal){const on=box.querySelector('[aria-pressed="true"]');if(on)targetScroll=Math.max(0,on.offsetTop-box.offsetTop-8);targetReveal=false;}
+  box.scrollTop=targetScroll;targetScroll=box.scrollTop;
+}
 function renderTargets() {
+  rememberTargetScroll();
   const chat=ctx().chat??[],select=$('ncs-target'),rows=[];
   // Keep only indices here: format previews for the rows actually shown, never every message.
   for(let i=chat.length-1;i>=0;i--)if(isSceneMessage(chat[i]))rows.push(i);
@@ -193,11 +207,13 @@ function renderTargets() {
   const shown=rows.slice(0,targetShown),left=rows.length-shown.length;
   $('ncs-target-page').textContent=rows.length?`최신순 · ${rows.length}개 중 ${shown.length}개 표시`:'선택할 메시지가 없어요';
   const more=dialog.querySelector('[data-action="target-more"]');more.hidden=left<=0;more.textContent=`이전 메시지 ${Math.min(TARGET_STEP,left)}개 더 보기`;
-  if(!$('ncs-target-picker').open){$('ncs-target-list').innerHTML='';return;}
+  if(!$('ncs-target-picker').open){targetListRendered=false;$('ncs-target-list').innerHTML='';return;}
   const latest=`<button type="button" class="ncs-target-item" data-action="target-latest" aria-pressed="${select.value===''}"><span class="ncs-target-meta">가장 최근 메시지</span><span class="ncs-target-preview">숨기지 않은 최근 메시지를 따라가요</span></button>`;
   $('ncs-target-list').innerHTML=latest+shown.map(i=>`<button type="button" class="ncs-target-item" data-action="target-message" data-message-index="${i}" aria-pressed="${select.value===String(i)}"><span class="ncs-target-meta">#${i} · ${esc(chat[i].name??'')}${hidden(i)}</span><span class="ncs-target-preview">${esc(text(i).slice(0,90))}</span></button>`).join('');
+  targetListRendered=true;restoreTargetScroll();
 }
-function chooseTarget(value) {
+function chooseTarget(value,{reveal=false}={}) {
+  rememberTargetScroll();targetReveal=reveal;if(value==='')targetScroll=0;
   $('ncs-target').value=value;$('ncs-target-picker').open=false;renderTargets();$('ncs-target-label').focus({preventScroll:true});
 }
 const skinTargets=()=>[dialog,document.getElementById('ncs-viewer')];
@@ -923,7 +939,9 @@ async function onAction(action,el) {
   }
 }
 function bindEvents() {
-  $('ncs-target-picker').addEventListener('toggle',()=>{renderTargets();if($('ncs-target-picker').open){const box=$('ncs-target-scroll'),on=box.querySelector('[aria-pressed="true"]');if(on)box.scrollTop=Math.max(0,on.offsetTop-box.offsetTop-8);}});
+  $('ncs-target-label').addEventListener('click',()=>{rememberTargetScroll();targetListRendered=false;}); // before the native details toggle
+  $('ncs-target-scroll').addEventListener('scroll',rememberTargetScroll,{passive:true});
+  $('ncs-target-picker').addEventListener('toggle',()=>renderTargets());
   dialog.addEventListener('click',event=>{
     const el=event.target.closest('button,a');if(!el)return;
     Promise.resolve().then(async()=>{
@@ -1005,7 +1023,7 @@ function bindEvents() {
 function chatChanged() {
   const key=keyOf();if(key===chatKey)return;
   cancelExtraction('');closeMissingDialog();pendingBind=null;quickProfileName='';lastLink=null;linkTarget=null;chatKey=key;task++;revision++;scene=blankScene();raw='';finalOverride=null;optionsOverride=null;result=null;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();
-  if(dialog){targetShown=TARGET_STEP;$('ncs-target').value='';$('ncs-target-picker').open=false;renderTargets();renderMatching();renderScene({forceFinal:true});renderResult();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.');}
+  if(dialog){targetScroll=0;targetReveal=false;targetListRendered=false;targetShown=TARGET_STEP;$('ncs-target').value='';$('ncs-target-picker').open=false;renderTargets();renderMatching();renderScene({forceFinal:true});renderResult();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.');}
   renderChatImages();
 }
 const activeTab=()=>dialog?.querySelector('[data-tab][aria-selected="true"]')?.dataset.tab??'scene';

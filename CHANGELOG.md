@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.26 — 2026-10-30
+
+**Update: extension only.** Update NAIce Shot and refresh. The server plugin is unchanged (0.1.7).
+
+- Remember the target-message list's own scroll position and loaded rows when collapsing/reopening, switching tabs, closing/reopening the panel and refreshing messages. Reopening no longer forces the list back to the selected row.
+- A direct message draw icon reveals its newly chosen target once; subsequent browsing is remembered. Choosing latest or switching chats starts at the top. Position memory lasts for the current page session.
+
 ## 0.1.25 — 2026-10-29
 
 **Update: extension only.** Update NAIce Shot and refresh. The server plugin is unchanged (0.1.7).
