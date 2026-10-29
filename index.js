@@ -1,7 +1,7 @@
 import { DEFAULTS, MODELS, clone, PROFILE_SCHEMA, profileDraftPrompt, parseProfileDraft, blankScene, validateProfiles, chooseMessages, sourceValid,
   parseExtraction, assemble, resolveOutfit, buildPayload, costGuard, textSignature,
   BRAND, SIZE_PRESETS, sizePresetOf, VERSION, stripReasoningBlocks } from './core.mjs';
-import { CAMERA_ICON, TAB_ICONS } from './icons.mjs';
+import { CAMERA_ICON, BRAND_ICON, TAB_ICONS } from './icons.mjs';
 import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } from './skins.mjs';
 import { attachInlineImage, detachInlineImage, detachInlineImages, countInlineImages, hasInlineImage, imageDownload, renderInlineImages } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
@@ -38,7 +38,54 @@ function settings() {
   s.options={...DEFAULTS.options,...s.options,scheduler:DEFAULTS.options.scheduler};s.version=VERSION;return s;
 }
 const imagePlacement=()=>settings().imagePlacement==='above'?'above':'below';
-function renderChatImages(){renderInlineImages(ctx(),document.getElementById('chat'),keyOf(),{placement:imagePlacement()});}
+function renderChatImages(){renderInlineImages(ctx(),document.getElementById('chat'),keyOf(),{placement:imagePlacement()});if(messageButtonsOn())decorateMessages();}
+// --- Message draw button: "메시지에 그리기 버튼 표시" (off by default) -------------------------------
+// Off: no listener, no scan — the only cost is the boolean check above. On: one delegated listener on
+// the chat and a pass that skips messages already decorated.
+const messageButtonsOn=()=>settings().messageButton===true;
+let messageClickBound=false;
+function onMessageButton(event){
+  const button=event.target.closest?.('.ncs-mes-draw');if(!button)return;
+  if(event.type==='keydown'&&event.key!=='Enter'&&event.key!==' ')return;
+  event.preventDefault();event.stopPropagation();
+  drawFromMessage(Number(button.closest('.mes')?.getAttribute('mesid'))).catch(e=>notice(e.message,true));
+}
+// Built once and cloned for every message.
+let messageButtonNode=null;
+function messageButtonTemplate(){
+  if(messageButtonNode)return messageButtonNode;
+  const button=document.createElement('div');button.className='mes_button ncs-mes-draw';button.title='NAIce Shot으로 그리기';
+  button.setAttribute('role','button');button.setAttribute('aria-label','이 메시지로 NAIce Shot 그림 그리기');button.tabIndex=0;
+  // The icon is one shared image (CSS background), so a long chat holds empty boxes, not a thousand vector drawings.
+  document.documentElement.style.setProperty('--ncs-brand-icon-url',`url("data:image/svg+xml,${encodeURIComponent(BRAND_ICON)}")`);
+  return messageButtonNode=button;
+}
+function decorateMessages(){
+  const root=document.getElementById('chat');if(!root)return;const chat=ctx().chat??[];
+  for(const el of root.querySelectorAll('.mes[mesid]')){
+    const m=chat[Number(el.getAttribute('mesid'))],ok=!!m&&!m.is_system&&typeof m.mes==='string'&&!!m.mes.trim();
+    const existing=el.querySelector('.ncs-mes-draw');
+    if(!ok){existing?.remove();continue;}
+    if(existing)continue;
+    const holder=el.querySelector('.extraMesButtons');if(!holder)continue;
+    holder.prepend(messageButtonTemplate().cloneNode(true));
+  }
+}
+function setMessageButtons(on){
+  const root=document.getElementById('chat');
+  if(on){if(root&&!messageClickBound){root.addEventListener('click',onMessageButton,true);root.addEventListener('keydown',onMessageButton,true);messageClickBound=true;}decorateMessages();return;}
+  if(root&&messageClickBound){root.removeEventListener('click',onMessageButton,true);root.removeEventListener('keydown',onMessageButton,true);}
+  messageClickBound=false;for(const b of document.querySelectorAll('.ncs-mes-draw'))b.remove();
+}
+async function drawFromMessage(index){
+  await (panelReady??Promise.resolve());
+  if(busy||attaching){await open();notice('진행 중인 작업이 끝난 뒤 선택해 주세요.',true);return;}
+  await open();showTab('scene');
+  const m=ctx().chat?.[index];
+  if(!Number.isInteger(index)||!m||m.is_system||typeof m.mes!=='string'||!m.mes.trim()){notice('이 메시지는 그림 대상으로 고를 수 없어요.',true);return;}
+  chooseTarget(String(index));
+  notice(`#${index} 메시지를 대상으로 골랐어요. "장면 추출"을 눌러 진행해 주세요.`);
+}
 function brand(){return BRAND;}
 function renderBrand() {
   for(const el of document.querySelectorAll('#naice-shot-dialog [data-brand],#ncs-extension-settings [data-brand],#extensionsMenu .ncs-menu-item [data-brand]'))el.textContent=brand();
@@ -171,7 +218,7 @@ function renderSettings() {
   for(const [id,k] of [['positive','positive'],['negative','negative'],['recent','recent'],['format','format']])$(`ncs-${id}`).value=s[k];
   for(const [id,k] of [['model','model'],['width','width'],['height','height'],['steps','steps'],['scale','scale'],['seed','seed'],['cfg','cfgRescale'],['sampler','sampler']])$(`ncs-${id}`).value=s.options[k];
   $('ncs-include-user').checked=s.includeUser;$('ncs-schema').checked=s.structuredOutput;$('ncs-retain-raw').checked=s.retainRawExtraction===true;$('ncs-allow-anlas').checked=s.allowAnlas;
-  $('ncs-image-placement').value=imagePlacement();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
+  $('ncs-image-placement').value=imagePlacement();$('ncs-message-button').checked=messageButtonsOn();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
   renderImagePresets();renderExtractionProfiles();$('ncs-extraction-max-tokens').value=s.extractionMaxTokens;
 }
 function renderImagePresets() {
@@ -790,6 +837,7 @@ async function importSettings(file) {
   // Import only the declared settings fields, never arbitrary payload keys.
   const clean={};for(const k of Object.keys(DEFAULTS))clean[k]=next[k];
   clean.imagePlacement=next.imagePlacement==='above'?'above':'below';
+  clean.messageButton=next.messageButton===true;
   clean.retainRawExtraction=false; // importing a backup must not enable raw response retention
   clean.allowAnlas=false; // a shared backup must never switch on paid generation by itself
   if(typeof clean.skin!=='string'||!skinById(clean.skin))clean.skin=DEFAULT_SKIN;
@@ -933,6 +981,7 @@ function bindEvents() {
       if(el.dataset.field){const c=scene.characters.find(c=>c.id===el.closest('[data-character]').dataset.character);c[el.dataset.field]=el.type==='checkbox'?el.checked:el.value;changed();return;}
       if(el.hasAttribute('data-lock')){const id=el.closest('[data-character]').dataset.character;saveOutfit(id,el.checked).catch(e=>notice(e.message,true));return;}
       for(const field of ['location','lighting','camera','interaction'])if(el.id===`ncs-${field}`){scene[field]=el.value;changed();return;}
+      if(el.id==='ncs-message-button'){settings().messageButton=el.checked;ctx().saveSettingsDebounced();setMessageButtons(el.checked);notice(el.checked?'메시지의 추가 메뉴(…)에 그리기 버튼을 넣었어요.':'메시지의 그리기 버튼을 뺐어요.');return;}
       if(el.id==='ncs-image-placement'){settings().imagePlacement=el.value==='above'?'above':'below';ctx().saveSettingsDebounced();renderChatImages();notice(el.value==='above'?'채팅 속 그림을 메시지 글 위에 보여줘요.':'채팅 속 그림을 메시지 글 아래에 보여줘요.');return;}
       const settingMap={'ncs-positive':'positive','ncs-negative':'negative','ncs-format':'format','ncs-recent':'recent','ncs-include-user':'includeUser','ncs-schema':'structuredOutput','ncs-retain-raw':'retainRawExtraction','ncs-allow-anlas':'allowAnlas'};
       const optionMap={'ncs-model':'model','ncs-width':'width','ncs-height':'height','ncs-steps':'steps','ncs-scale':'scale','ncs-seed':'seed','ncs-cfg':'cfgRescale','ncs-sampler':'sampler'};
@@ -1006,6 +1055,7 @@ async function initialize() {
     removeImageFromChat({id,image:`/user/images/naice-shot/${id}.png`,chatKey:holder.dataset.chatKey}).catch(e=>notice(e.message,true));
   });
   const chatRoot=document.getElementById('chat');
+  if(messageButtonsOn())setMessageButtons(true);
   if(chatRoot){let queued=false;new MutationObserver(()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;refreshChatImages();});}).observe(chatRoot,{childList:true,subtree:true,attributes:true,attributeFilter:['mesid']});refreshChatImages();}
   for(const type of ['CONNECTION_PROFILE_CREATED','CONNECTION_PROFILE_UPDATED','CONNECTION_PROFILE_DELETED'])if(events[type])c.eventSource.on(events[type],()=>renderExtractionProfiles());
 }

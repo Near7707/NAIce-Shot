@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.23 — 2026-10-29
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- New brand icon everywhere (extensions menu, settings drawer, panel header and the new message button): a viewfinder frame around a prism star — yellow with pink, sky, mint and lavender tips. Drawn with plain shapes (no gradient ids), so it stays correct when it appears many times or inside a hidden panel. The 미니멀 skin now shows it in color too.
+- Settings → 채팅 속 그림 위치 → **메시지에 그리기 버튼 표시** (off by default). When on, every AI and user message (not system or empty ones) gets the icon in its extra message menu (…). Pressing it opens the scene tab with that message as the target; 장면 추출 and 생성 are still pressed by hand. While an extraction or generation is running it does not switch the target and says "진행 중인 작업이 끝난 뒤 선택해 주세요".
+- Off means fully idle: no chat listener and no message scan. Turning it off removes every button at once; turning it on adds them to the messages already on screen.
+- Light on long chats: one delegated listener for all buttons, already-decorated messages are skipped, and each button is an empty box showing one shared icon image. Measured on 1,000 messages: streaming frame times unchanged (≈16.7 ms) and a full chat rebuild costs the same with the setting on or off.
+- Added `tests/browser-v0123.mjs`; the test fixture's messages now carry SillyTavern-style message buttons.
+
 ## 0.1.22 — 2026-10-29
 
 **Update: extension only.** Update NAIce Shot and refresh. Server 0.1.7 is unchanged.

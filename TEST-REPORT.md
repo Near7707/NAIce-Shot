@@ -1,3 +1,11 @@
+# v0.1.23 validation — 2026-10-29
+
+- Extension Node suite **109 passed, 0 failed, 0 skipped**.
+- **23 of 23 browser scripts passed** in headless Chromium, including the new `browser-v0123`: brand icon without gradient ids in drawer, menu and panel header; message button off by default and absent after re-renders; when on, present on AI and user messages only (not system or whitespace-only), inside the extra message menu, added to new messages without duplicates; click and Enter open the scene tab with that target and no automatic extraction; during an extraction the target is kept with the "진행 중인 작업이 끝난 뒤" notice; turning it off removes all buttons and they stay gone; saved "on" adds them at startup; 미니멀 shows the icon without a filter.
+- Long-chat measurement (1,000 messages, 300 streamed text updates, two runs each): median frame 16.7 ms and p95 ≈ 17–18 ms both off and on. Full chat rebuild: about 63–96 ms off and 66–80 ms on, after switching the button to a shared background image (an inline vector icon per message had cost about 200 ms extra).
+- Pre-push privacy check of the changes: no keys, personal paths, emails or story names.
+- Not exercised: a real SillyTavern instance (its own message-menu behavior and mobile … menu), iPhone Safari.
+
 # v0.1.22 validation — 2026-10-29
 
 - Extension Node suite: **109 passed, 0 failed, 0 skipped**, with server 0.1.7 available.

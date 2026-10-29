@@ -309,3 +309,5 @@
 #naice-shot-dialog .ncs-target-list button {text-align:left;overflow-wrap:anywhere;}
 #naice-shot-dialog .ncs-target-list button[aria-pressed="true"] {border-color:var(--ncs-edge);background:var(--ncs-tab-active-bg);}
 #naice-shot-dialog .ncs-target-picker nav {justify-content:space-between;}
+/* Message draw button inside SillyTavern's extra message menu (same 20px box as its own buttons). */
+#chat .ncs-mes-draw {display:inline-block;width:20px;height:20px;min-width:20px;background:var(--ncs-brand-icon-url) center / 20px 20px no-repeat;vertical-align:middle;}

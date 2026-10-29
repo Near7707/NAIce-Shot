@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.23
+
+Update the extension and refresh. Check the new icon in the extensions menu and settings drawer. Turn on Settings → 메시지에 그리기 버튼 표시, open a message's … menu and press the icon; the scene tab should open with that message selected.
+
 ## v0.1.22
 
 Update the extension and refresh. Open 대상 메시지 in a chat longer than ten messages. Browse with 더 이전 / 더 최근, select the oldest message and extract to verify the correct target. Browsing alone must not change the current target; switching chats must reset it. Check keyboard selection and narrow mobile layout. No server update is needed.
