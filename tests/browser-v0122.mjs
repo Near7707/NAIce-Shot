@@ -19,7 +19,7 @@ try{
   await page.route('**/api/plugins/naice-shot/**',route=>route.fulfill({json:{items:[],total:0,hasMore:false}}));
   await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{
    mock.chat=Array.from({length:57},(_,i)=>({name:i===56?'<img src=x onerror=alert(1)>':'Character A',mes:`Message ${i} in a cafe.`}));
-   mock.chat[20].is_system=true;mock.chat[21].mes='   ';
+   mock.chat[20].is_system=true;mock.chat[20].extra={type:'generic'};mock.chat[21].mes='   ';
   }));
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();

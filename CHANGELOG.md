@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.25 — 2026-10-29
+
+**Update: extension only.** Update NAIce Shot and refresh. The server plugin is unchanged (0.1.7).
+
+- Hidden RP messages now appear in the target picker with a 숨김 label and keep the optional message draw icon. Existing dropdown styling and the scrolling list that grows ten at a time are retained. Live hide/unhide changes refresh the label without removing the icon.
+- Explicitly selecting a hidden target permits hidden RP within its preceding reference-message range for scene extraction. Latest mode and visible targets still exclude hidden history. The request is built from a temporary view; no message is unhidden or rewritten. Added an on-screen explanation of which hidden text is sent to the extraction AI.
+- Allow image attachment/display on a hidden RP message while preserving its hide flag, text, native media and swipe data. Explicitly typed system notices and system UI messages stay excluded.
+- SillyTavern stores hide and system status in the same flag. Records without system-type/UI metadata are treated as potentially hidden RP and appear for manual selection; latest mode still excludes them. No name-based guesses are used.
+
 ## 0.1.24 — 2026-10-29
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

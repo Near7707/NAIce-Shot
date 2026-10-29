@@ -1,4 +1,5 @@
 import {buildImageMessage} from './chat.mjs';
+import {isSceneMessage} from './scene-messages.mjs';
 import {textSignature,clone} from './core.mjs';
 export const IMAGE_KEY='naice_shot_images';
 export function imageDownload(item) {
@@ -11,7 +12,7 @@ export function hasInlineImage(chat,item) {
  return chat.some(m=>Array.isArray(m.extra?.[IMAGE_KEY])&&m.extra[IMAGE_KEY].some(x=>x.id===item.id));
 }
 export function visibleInlineImages(message) {
- if(!message||message.is_system||typeof message.mes!=='string')return [];
+ if(!isSceneMessage(message))return [];
  return (Array.isArray(message.extra?.[IMAGE_KEY])?message.extra[IMAGE_KEY]:[]).filter(item=>{
   try{imageDownload(item);return item.swipeId===(message.swipe_id??0)&&item.signature===textSignature(message.mes);}catch{return false;}
  });
@@ -25,7 +26,7 @@ export async function attachInlineImage(context,item,{targetIndex,isCurrent=()=>
  if(!isCurrent())throw new Error('채팅이 바뀌었어요. 현재 채팅에서 다시 선택해 주세요.');
  if(!Array.isArray(context.chat)||typeof context.saveChat!=='function')throw new Error('현재 채팅에 이미지를 저장할 수 없어요.');
  const message=context.chat[targetIndex];
- if(!Number.isInteger(targetIndex)||!message||message.is_system||typeof message.mes!=='string'||!message.mes.trim())throw new Error('그림을 넣을 RP 메시지를 선택해 주세요.');
+ if(!Number.isInteger(targetIndex)||!isSceneMessage(message))throw new Error('그림을 넣을 RP 메시지를 선택해 주세요.');
  const old=Array.isArray(message.extra?.[IMAGE_KEY])?message.extra[IMAGE_KEY]:[];
  const entry={id:item.id,image:item.image,swipeId:message.swipe_id??0,signature:textSignature(message.mes)};
  const duplicate=old.some(x=>x.id===item.id&&x.signature===entry.signature&&x.swipeId===entry.swipeId);

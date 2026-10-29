@@ -1,4 +1,4 @@
-import { DEFAULTS, MODELS, clone, PROFILE_SCHEMA, profileDraftPrompt, parseProfileDraft, blankScene, validateProfiles, chooseMessages, sourceValid,
+import { DEFAULTS, MODELS, clone, PROFILE_SCHEMA, profileDraftPrompt, parseProfileDraft, blankScene, validateProfiles, sourceValid,
   parseExtraction, assemble, resolveOutfit, buildPayload, costGuard, textSignature,
   BRAND, SIZE_PRESETS, sizePresetOf, VERSION, stripReasoningBlocks } from './core.mjs';
 import { CAMERA_ICON, BRAND_ICON, TAB_ICONS } from './icons.mjs';
@@ -6,6 +6,7 @@ import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } fr
 import { attachInlineImage, detachInlineImage, detachInlineImages, countInlineImages, hasInlineImage, imageDownload, renderInlineImages } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
 import { sceneExtractionPrompt, sceneExtractionSchema } from './scene-extraction.mjs';
+import { isSceneMessage, isHiddenSceneMessage, chooseSceneMessages } from './scene-messages.mjs';
 import { captureImagePreset, applyImagePreset, imagePresetModified, validateImagePresets } from './presets.mjs';
 import { listExtractionProfiles, requestExtraction } from './extractor.mjs';
 import { openImageViewer } from './viewer.mjs';
@@ -63,7 +64,7 @@ function messageButtonTemplate(){
 function decorateMessages(){
   const root=document.getElementById('chat');if(!root)return;const chat=ctx().chat??[];
   for(const el of root.querySelectorAll('.mes[mesid]')){
-    const m=chat[Number(el.getAttribute('mesid'))],ok=!!m&&!m.is_system&&typeof m.mes==='string'&&!!m.mes.trim();
+    const m=chat[Number(el.getAttribute('mesid'))],ok=isSceneMessage(m);
     const existing=el.querySelector('.ncs-mes-draw');
     if(!ok){existing?.remove();continue;}
     if(existing)continue;
@@ -82,7 +83,7 @@ async function drawFromMessage(index){
   if(busy||attaching){await open();notice('진행 중인 작업이 끝난 뒤 선택해 주세요.',true);return;}
   await open();showTab('scene');
   const m=ctx().chat?.[index];
-  if(!Number.isInteger(index)||!m||m.is_system||typeof m.mes!=='string'||!m.mes.trim()){notice('이 메시지는 그림 대상으로 고를 수 없어요.',true);return;}
+  if(!Number.isInteger(index)||!isSceneMessage(m)){notice('이 메시지는 그림 대상으로 고를 수 없어요.',true);return;}
   chooseTarget(String(index));
   notice(`#${index} 메시지를 대상으로 골랐어요. "장면 추출"을 눌러 진행해 주세요.`);
 }
@@ -182,10 +183,10 @@ let targetShown=TARGET_STEP;
 function renderTargets() {
   const chat=ctx().chat??[],select=$('ncs-target'),rows=[];
   // Keep only indices here: format previews for the rows actually shown, never every message.
-  for(let i=chat.length-1;i>=0;i--)if(!chat[i].is_system&&typeof chat[i].mes==='string'&&chat[i].mes.trim())rows.push(i);
+  for(let i=chat.length-1;i>=0;i--)if(isSceneMessage(chat[i]))rows.push(i);
   if(select.value!==''&&!rows.includes(Number(select.value)))select.value='';
-  const text=i=>chat[i].mes.replace(/\s+/g,' ').trim();
-  $('ncs-target-label').textContent=select.value===''?'가장 최근 메시지':`#${select.value} · ${chat[select.value].name??''} · ${text(Number(select.value)).slice(0,55)}`;
+  const text=i=>chat[i].mes.replace(/\s+/g,' ').trim(),hidden=i=>isHiddenSceneMessage(chat[i])?' · 숨김':'';
+  $('ncs-target-label').textContent=select.value===''?'가장 최근 메시지':`#${select.value} · ${chat[select.value].name??''}${hidden(Number(select.value))} · ${text(Number(select.value)).slice(0,55)}`;
   // Make sure the chosen message is among the shown rows, so its check mark is visible when the list opens.
   const at=select.value===''?-1:rows.indexOf(Number(select.value));
   targetShown=Math.max(TARGET_STEP,targetShown,at>=0?Math.ceil((at+1)/TARGET_STEP)*TARGET_STEP:0);
@@ -193,8 +194,8 @@ function renderTargets() {
   $('ncs-target-page').textContent=rows.length?`최신순 · ${rows.length}개 중 ${shown.length}개 표시`:'선택할 메시지가 없어요';
   const more=dialog.querySelector('[data-action="target-more"]');more.hidden=left<=0;more.textContent=`이전 메시지 ${Math.min(TARGET_STEP,left)}개 더 보기`;
   if(!$('ncs-target-picker').open){$('ncs-target-list').innerHTML='';return;}
-  const latest=`<button type="button" class="ncs-target-item" data-action="target-latest" aria-pressed="${select.value===''}"><span class="ncs-target-meta">가장 최근 메시지</span><span class="ncs-target-preview">새 메시지가 오면 그 메시지를 따라가요</span></button>`;
-  $('ncs-target-list').innerHTML=latest+shown.map(i=>`<button type="button" class="ncs-target-item" data-action="target-message" data-message-index="${i}" aria-pressed="${select.value===String(i)}"><span class="ncs-target-meta">#${i} · ${esc(chat[i].name??'')}</span><span class="ncs-target-preview">${esc(text(i).slice(0,90))}</span></button>`).join('');
+  const latest=`<button type="button" class="ncs-target-item" data-action="target-latest" aria-pressed="${select.value===''}"><span class="ncs-target-meta">가장 최근 메시지</span><span class="ncs-target-preview">숨기지 않은 최근 메시지를 따라가요</span></button>`;
+  $('ncs-target-list').innerHTML=latest+shown.map(i=>`<button type="button" class="ncs-target-item" data-action="target-message" data-message-index="${i}" aria-pressed="${select.value===String(i)}"><span class="ncs-target-meta">#${i} · ${esc(chat[i].name??'')}${hidden(i)}</span><span class="ncs-target-preview">${esc(text(i).slice(0,90))}</span></button>`).join('');
 }
 function chooseTarget(value) {
   $('ncs-target').value=value;$('ncs-target-picker').open=false;renderTargets();$('ncs-target-label').focus({preventScroll:true});
@@ -533,7 +534,7 @@ async function extract() {
   if(busy)return;assertChat();
   const s=settings();if(!s.profiles.length){openQuickProfile();notice('등록된 프로필이 없어요. 아래에서 첫 프로필을 만들면 바로 추출할 수 있어요.');return;}
   if(ctx().streamingProcessor && !ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 추출해 주세요.');
-  const selection=chooseMessages(ctx().chat,{target:$('ncs-target').value===''?null:Number($('ncs-target').value),recent:Number($('ncs-recent').value),includeUser:$('ncs-include-user').checked});
+  const selection=chooseSceneMessages(ctx().chat,{target:$('ncs-target').value===''?null:Number($('ncs-target').value),recent:Number($('ncs-recent').value),includeUser:$('ncs-include-user').checked});
   const startKey=keyOf(),rev=revision,ticket=++task,profiles=clone(s.profiles),outfits=clone(outfitState());
   const matching=matchChatProfiles(ctx(),profiles,selection.messages,chatBindings(),scene.characters.filter(c=>c.included!==false).map(c=>c.id));
   const prompt=sceneExtractionPrompt(selection.messages,matching.profiles,outfits,s.format,matching.mappings);
@@ -630,13 +631,13 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
     result=item;renderResult();notice(`생성했어요 · seed ${item.seed} · 그림을 누르면 크게 볼 수 있어요.`);loadHistory().catch(()=>{});
   }finally{stopProgress(ticket);if(busyOwner===ticket)setBusy(false);}
 }
-const chatRows=()=>ctx().chat.map((m,i)=>({m,i})).filter(({m})=>!m.is_system&&m.mes?.trim());
-const rowOption=({m,i},selected=false)=>`<option value="${i}" ${selected?'selected':''}>#${i} · ${esc(m.name)} · ${esc(m.mes.replace(/\s+/g,' ').slice(0,35))}</option>`;
+const chatRows=()=>ctx().chat.map((m,i)=>({m,i})).filter(({m})=>isSceneMessage(m));
+const rowOption=({m,i},selected=false)=>`<option value="${i}" ${selected?'selected':''}>#${i} · ${esc(m.name)}${isHiddenSceneMessage(m)?' · 숨김':''} · ${esc(m.mes.replace(/\s+/g,' ').slice(0,35))}</option>`;
 // Where an image goes by default: where it is already attached, else the message it was generated for, else the latest.
 function preferredTarget(item) {
   const chat=ctx().chat,existing=chat.findIndex(m=>m.extra?.naice_shot_images?.some(x=>x.id===item.id));
   const source=item.snapshot?.scene?.source;
-  return existing>=0?existing:source&&sourceValid(source,chat)?source.target:chatRows().at(-1)?.i;
+  return existing>=0?existing:source&&sourceValid(source,chat)?source.target:chatRows().filter(({m})=>!m.is_system).at(-1)?.i;
 }
 function imageControls(item) {
   const file=imageDownload(item),attached=hasInlineImage(ctx().chat,item),preferred=preferredTarget(item);
@@ -1059,7 +1060,10 @@ async function initialize() {
   });
   const chatRoot=document.getElementById('chat');
   if(messageButtonsOn())setMessageButtons(true);
-  if(chatRoot){let queued=false;new MutationObserver(()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;refreshChatImages();});}).observe(chatRoot,{childList:true,subtree:true,attributes:true,attributeFilter:['mesid']});refreshChatImages();}
+  if(chatRoot){let queued=false,hiddenChanged=false;new MutationObserver(records=>{
+    hiddenChanged ||= records.some(r=>r.type==='attributes'&&r.attributeName==='is_system');
+    if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;refreshChatImages();if(hiddenChanged&&dialog.open)renderTargets();hiddenChanged=false;});
+  }).observe(chatRoot,{childList:true,subtree:true,attributes:true,attributeFilter:['mesid','is_system']});refreshChatImages();}
   for(const type of ['CONNECTION_PROFILE_CREATED','CONNECTION_PROFILE_UPDATED','CONNECTION_PROFILE_DELETED'])if(events[type])c.eventSource.on(events[type],()=>renderExtractionProfiles());
 }
 const start=()=>{panelReady=initialize();panelReady.catch(e=>console.error('[NAIce Shot]',e.message));};

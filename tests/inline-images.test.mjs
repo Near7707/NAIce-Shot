@@ -31,7 +31,7 @@ test('attachments are hidden on a different swipe or edited text and current swi
 test('wrong chat, missing targets, system messages and unsafe download URLs are rejected before mutation',async()=>{
  const ctx=context(),before=JSON.stringify(ctx.chat);
  await assert.rejects(attachInlineImage(ctx,item,{targetIndex:1,isCurrent:()=>false}),/채팅이 바뀌/);
- await assert.rejects(attachInlineImage(ctx,item,{targetIndex:99}));ctx.chat.push({is_system:true,mes:'system'});
+ await assert.rejects(attachInlineImage(ctx,item,{targetIndex:99}));ctx.chat.push({is_system:true,mes:'system',extra:{type:'generic'}});
  await assert.rejects(attachInlineImage(ctx,item,{targetIndex:2}));ctx.chat.pop();assert.equal(JSON.stringify(ctx.chat),before);
  await assert.rejects(detachInlineImage(ctx,item,{isCurrent:()=>false}));
  assert.throws(()=>imageDownload({...item,image:'https://outside.test/image.png'}));assert.throws(()=>imageDownload({...item,image:'/user/images/naice-shot/../secret'}));

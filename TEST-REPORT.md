@@ -1,3 +1,12 @@
+# v0.1.25 validation — 2026-10-29
+
+- Extension Node suite: **114 passed, 0 failed, 0 skipped**, with server 0.1.7 available. Five new tests cover hidden/system classification, selected hidden context and original indices, immutable chat/main-chat input, default exclusion, user/reference filters, source validity, hidden attachment/removal and retained media/hide flags. The attachment case failed before fixing.
+- Seven targeted Chromium scripts passed: `browser-v0125`, `browser-v0123`, `browser-v0122`, `browser-v0121`, `browser-v0120`, `browser-v0118`, and `browser-smoke`.
+- New browser coverage at 1280px and 375px checks hidden character/user icons and labels, typed system notices excluded, manual extraction only, correct hidden reference range, no later text/reasoning sent, unchanged chat/hide fields, generation target guard, hidden-target generation/attachment, saved hide state, compact history fingerprints, default visible latest, live hide/unhide DOM updates, disabling icons and mobile fit.
+- Updated old system-notice fixtures to include `extra.type`, matching SillyTavern's system-message constructor; untyped `is_system` alone also describes hidden RP. Checked the upstream hide function, system-message metadata and CSS at SillyTavern release `06bde939fb1e9c4c8d8641d810f0a916b5bce127`.
+- Pre-edit privacy scan: 82 tracked files and 22 reachable commits; the path match was a synthetic error-test fixture, and the previously disclosed personal author email remains in old history. New changes were checked separately. Remote issues/release attachments/external copies were not inspected; history was not rewritten.
+- Real SillyTavern, real group sessions, iPhone Safari and live AI providers were not exercised. The known system-type/UI metadata distinguishes notices; legacy records lacking that metadata remain available as hidden text for explicit selection. Server core is unchanged except the extension's version line.
+
 # v0.1.24 validation — 2026-10-29
 
 - Extension Node suite **109 passed, 0 failed, 0 skipped**; **23 of 23 browser scripts passed** in headless Chromium.

@@ -19,7 +19,7 @@ const browser=await chromium.launch({headless:true,executablePath:process.env.NA
 async function load(page,init=''){
  await page.route('**/api/plugins/naice-shot/**',r=>r.fulfill({json:{items:[],total:0,hasMore:false}}));
  await page.addInitScript(code=>{document.addEventListener('DOMContentLoaded',()=>{const m=window.mock;
-  m.chat.push({name:'System',is_system:true,mes:'A system note.'},{name:'Leo',mes:'   '},{name:'Leo',mes:'He looks out at the rain.'});m.renderChat();
+  m.chat.push({name:'System',is_system:true,mes:'A system note.',extra:{type:'generic'}},{name:'Leo',mes:'   '},{name:'Leo',mes:'He looks out at the rain.'});m.renderChat();
   if(code)new Function('m',code)(m);});},init);
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
 }

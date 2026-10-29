@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.25
+
+Update the extension and refresh. Hide an RP message and confirm it appears as 숨김 in the target list. With message draw buttons enabled, its icon should remain. Select it and extract; the preceding reference range may include hidden RP, while typed system notices are excluded. Generate and attach to that message, then confirm it stays hidden after saving/reloading. Latest mode must still select a visible message and exclude hidden text. No server update is needed.
+
 ## v0.1.24
 
 Update the extension and refresh. Press 대상 메시지: a list opens with 가장 최근 메시지 on top and a ✓ on the current choice. Scroll, press 이전 메시지 더 보기, pick an old message, then reopen — the list should jump to that message. No server update is needed.

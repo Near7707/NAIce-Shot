@@ -32,7 +32,7 @@ try{
    await route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800"><rect width="600" height="800" fill="tan"/></svg>'});
   });
   await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{
-   mock.chat=[{name:'One',mes:'Oldest'},{name:'System',is_system:true,mes:'Skip system'},{name:'Two',mes:'  '},{name:'Three',mes:'Middle'},{name:'Four',mes:'Newest'}];mock.renderChat();
+   mock.chat=[{name:'One',mes:'Oldest'},{name:'System',is_system:true,mes:'Skip system',extra:{type:'generic'}},{name:'Two',mes:'  '},{name:'Three',mes:'Middle'},{name:'Four',mes:'Newest'}];mock.renderChat();
   }));
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
