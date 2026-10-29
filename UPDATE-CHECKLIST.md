@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.22
+
+Update the extension and refresh. Open 대상 메시지 in a chat longer than ten messages. Browse with 더 이전 / 더 최근, select the oldest message and extract to verify the correct target. Browsing alone must not change the current target; switching chats must reset it. Check keyboard selection and narrow mobile layout. No server update is needed.
+
 ## v0.1.21
 
 Update the extension and refresh. Check that target messages run from newest to oldest and selecting an older message still targets that message. Scroll each of the four tabs, switch away and return, then close/reopen with both the close button and Escape. History refreshes and opening/closing the image viewer should keep the prior list position. No server update is needed.

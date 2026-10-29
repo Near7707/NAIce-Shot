@@ -128,11 +128,25 @@ function showTab(tab) {
   restoreScroll();
   if(tab==='history')loadHistory().catch(e=>notice(e.message,true));
 }
+const TARGET_PAGE_SIZE=10;
+let targetPage=0;
 function renderTargets() {
-  const current=$('ncs-target').value;
-  const rows=ctx().chat?.map((m,i)=>({m,i})).filter(({m})=>!m.is_system&&m.mes?.trim()).reverse()??[];
-  $('ncs-target').innerHTML='<option value="">가장 최근 메시지</option>'+rows.map(({m,i})=>`<option value="${i}">#${i} · ${esc(m.name)} · ${esc(m.mes.replace(/\s+/g,' ').slice(0,55))}</option>`).join('');
-  if(rows.some(r=>String(r.i)===current))$('ncs-target').value=current;
+  const chat=ctx().chat??[],select=$('ncs-target'),rows=[];
+  // Keep only indices here: format previews for the visible page, never every message.
+  for(let i=chat.length-1;i>=0;i--)if(!chat[i].is_system&&typeof chat[i].mes==='string'&&chat[i].mes.trim())rows.push(i);
+  if(select.value!==''&&!rows.includes(Number(select.value)))select.value='';
+  const preview=i=>`#${i} · ${chat[i].name??''} · ${chat[i].mes.replace(/\s+/g,' ').slice(0,55)}`;
+  $('ncs-target-label').textContent=select.value===''?'가장 최근 메시지':preview(Number(select.value));
+  targetPage=Math.min(targetPage,Math.max(0,Math.ceil(rows.length/TARGET_PAGE_SIZE)-1));
+  const start=targetPage*TARGET_PAGE_SIZE,page=rows.slice(start,start+TARGET_PAGE_SIZE);
+  $('ncs-target-page').textContent=rows.length?`${start+1}–${start+page.length} / ${rows.length}개 · 최신순`:'선택할 메시지 없음';
+  dialog.querySelector('[data-action="target-newer"]').disabled=targetPage===0;
+  dialog.querySelector('[data-action="target-older"]').disabled=start+TARGET_PAGE_SIZE>=rows.length;
+  // A closed picker holds no message previews; opening it builds at most ten buttons.
+  $('ncs-target-list').innerHTML=$('ncs-target-picker').open?page.map(i=>`<button type="button" data-action="target-message" data-message-index="${i}" aria-pressed="${select.value===String(i)}">${esc(preview(i))}</button>`).join(''):'';
+}
+function chooseTarget(value) {
+  $('ncs-target').value=value;$('ncs-target-picker').open=false;renderTargets();$('ncs-target-label').focus({preventScroll:true});
 }
 const skinTargets=()=>[dialog,document.getElementById('ncs-viewer')];
 function renderSkins() {
@@ -788,6 +802,10 @@ async function onAction(action,el) {
     case 'close':rememberScroll();dialog.close();break;
     case 'dismiss-compat':compatDismissed=true;renderCompat();break;
     case 'cancel-extract':if(!cancelExtraction())notice('진행 중인 추출이 없어요.');break;
+    case 'target-older':targetPage++;renderTargets();break;
+    case 'target-newer':targetPage=Math.max(0,targetPage-1);renderTargets();break;
+    case 'target-latest':targetPage=0;chooseTarget('');break;
+    case 'target-message':chooseTarget(el.dataset.messageIndex);break;
     case 'extract':await extract();break;
     case 'blank':scene=blankScene();raw='';changed();renderScene();notice('직접 장면을 입력해 주세요.');break;
     case 'add-character':addCharacter($('ncs-add-profile').value);break;
@@ -853,6 +871,7 @@ async function onAction(action,el) {
   }
 }
 function bindEvents() {
+  $('ncs-target-picker').addEventListener('toggle',()=>renderTargets());
   dialog.addEventListener('click',event=>{
     const el=event.target.closest('button,a');if(!el)return;
     Promise.resolve().then(async()=>{
@@ -933,7 +952,7 @@ function bindEvents() {
 function chatChanged() {
   const key=keyOf();if(key===chatKey)return;
   cancelExtraction('');closeMissingDialog();pendingBind=null;quickProfileName='';lastLink=null;linkTarget=null;chatKey=key;task++;revision++;scene=blankScene();raw='';finalOverride=null;optionsOverride=null;result=null;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();
-  if(dialog){renderTargets();renderMatching();renderScene({forceFinal:true});renderResult();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.');}
+  if(dialog){targetPage=0;$('ncs-target').value='';$('ncs-target-picker').open=false;renderTargets();renderMatching();renderScene({forceFinal:true});renderResult();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.');}
   renderChatImages();
 }
 const activeTab=()=>dialog?.querySelector('[data-tab][aria-selected="true"]')?.dataset.tab??'scene';

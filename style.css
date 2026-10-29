@@ -300,3 +300,12 @@
 #naice-shot-dialog .ncs-overlay-card ul {margin:10px 0;padding-left:18px;}
 #naice-shot-dialog .ncs-overlay-card li {margin:6px 0;line-height:1.6;}
 #naice-shot-dialog .ncs-overlay-card li button {margin-left:6px;}
+
+/* Ordinary HTML pages avoid browser-native select popup scrolling differences. */
+#naice-shot-dialog .ncs-target-title {display:block;margin-top:10px;}
+#naice-shot-dialog .ncs-target-picker {margin:6px 0 14px;border:1px solid var(--ncs-border);border-radius:var(--ncs-radius-control);padding:0 10px;}
+#naice-shot-dialog .ncs-target-picker > summary {min-height:42px;overflow-wrap:anywhere;}
+#naice-shot-dialog .ncs-target-list {display:grid;gap:6px;padding-bottom:10px;}
+#naice-shot-dialog .ncs-target-list button {text-align:left;overflow-wrap:anywhere;}
+#naice-shot-dialog .ncs-target-list button[aria-pressed="true"] {border-color:var(--ncs-edge);background:var(--ncs-tab-active-bg);}
+#naice-shot-dialog .ncs-target-picker nav {justify-content:space-between;}

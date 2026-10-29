@@ -1,3 +1,11 @@
+# v0.1.22 validation — 2026-10-29
+
+- Extension Node suite: **109 passed, 0 failed, 0 skipped**, with server 0.1.7 available.
+- Four Chromium scripts passed: `browser-v0122`, `browser-v0121`, `browser-v0118`, and `browser-smoke`.
+- New browser coverage at 1280px and 375px opens the actual HTML picker by keyboard, scrolls its ordinary content, reaches every eligible message across six pages, extracts the oldest selected message, preserves selection during page browsing/new messages, returns to latest mode, resets across chats and handles empty chats. A synthetic 5,000-message chat still renders at most ten preview buttons. This is a DOM-size check, not a performance benchmark.
+- Checked desktop/mobile screenshots for layout; the test Chromium lacks Korean fonts, so Korean glyph appearance was not verified visually. Real SillyTavern, the user's native-menu failure, iPhone Safari and live AI providers were not exercised. The replacement removes reliance on the native menu rather than claiming its underlying browser issue was reproduced.
+- Pre-publication privacy scan covered 80 current tracked files and 19 reachable commits before edits, and the final diff afterward. No new private data was found. The previously disclosed personal author email remains in old history; history was not rewritten. Remote issues, release attachments and external copies were outside this scan.
+
 # v0.1.21 validation — 2026-10-29
 
 - Extension Node suite: **109 passed, 0 failed, 0 skipped**, with server 0.1.7 available; shared core differs only in its version line.

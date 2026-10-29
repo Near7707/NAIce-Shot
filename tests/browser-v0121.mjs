@@ -40,8 +40,10 @@ try{
   const top=()=>content.evaluate(el=>el.scrollTop);
   const scroll=async value=>{await content.evaluate((el,y)=>{el.scrollTop=y;},value);await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));return top();};
   const same=async(value,label)=>assert.ok(Math.abs(await top()-value)<3,`${width}px ${label}: expected ${value}, got ${await top()}`);
-  assert.deepEqual(await page.locator('#ncs-target option').evaluateAll(opts=>opts.map(o=>o.value)),['','4','3','0']);
-  await page.locator('#ncs-target').selectOption('3');await page.evaluate(()=>mock.emit('received'));assert.equal(await page.locator('#ncs-target').inputValue(),'3','refresh preserves original message index');
+  await page.locator('#ncs-target-label').click();
+  await page.locator('#ncs-target-list button').first().waitFor();
+  assert.deepEqual(await page.locator('#ncs-target-list button').evaluateAll(opts=>opts.map(o=>o.dataset.messageIndex)),['4','3','0']);
+  await page.locator('[data-message-index="3"]').click();await page.evaluate(()=>mock.emit('received'));assert.equal(await page.locator('#ncs-target').inputValue(),'3','refresh preserves original message index');
   assert.deepEqual(await page.evaluate(()=>mock.chat.map(m=>m.mes)),['Oldest','Skip system','  ','Middle','Newest'],'sorting never changes the conversation');
   const scene=await scroll(220);assert.ok(scene>100);
   await tab('settings');await same(0,'first settings visit');const settings=await scroll(800);assert.ok(settings>500);

@@ -1,4 +1,4 @@
-# NAIce Shot v0.1.21
+# NAIce Shot v0.1.22
 
 실리태번의 RP 장면을 추출해 NovelAI 그림을 생성하는 비공식 확장이에요. 캐릭터 외형 프로필, 장면·복장 편집, 생성 프리셋, 이미지 이력과 채팅 첨부를 지원해요.
 
@@ -139,7 +139,7 @@ Per-version notes (UI-only or UI + server) are in `CHANGELOG.md`.
 
 Profiles are shared across character chats. Scene extraction checks visible people against saved names, aliases and linked card names, including side characters. Unregistered people retain their extracted expression, action, position and clothing in the scene; creating or linking their profile restores those fields. Side characters also offer **기존 프로필 연결**. Manually adding a profile makes it a candidate in the next **장면 추출**, without forcing an absent person into the image. Old records that stored only a missing name need a fresh extraction to obtain the missing visual fields.
 
-The target-message picker lists newest messages first. Each panel tab remembers its own scroll position when switching tabs or closing and reopening the panel, until the browser page is refreshed.
+The expandable target-message picker lists newest messages first, ten per page. Use **더 이전 / 더 최근** to browse without a browser-native dropdown, and **가장 최근 메시지 사용** to follow the latest message. Each panel tab remembers its own scroll position when switching tabs or closing and reopening the panel, until the browser page is refreshed.
 
 Extraction can be cancelled. Image generation has no cancellation button once submitted. If you switch chats while generation runs, the server saves the result under the originating chat.
 

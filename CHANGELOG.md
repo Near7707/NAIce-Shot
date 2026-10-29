@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.22 — 2026-10-29
+
+**Update: extension only.** Update NAIce Shot and refresh. Server 0.1.7 is unchanged.
+
+- Replace the browser-native target-message dropdown with an expandable HTML picker. Show ten messages per page, newest first, with explicit newer/older buttons so reaching old messages does not depend on native popup scrolling.
+- Build at most ten preview buttons while open and none while closed. Keep the selected target while browsing pages or receiving a new message; reset it when switching chats. The latest-message shortcut continues to follow the newest message.
+
 ## 0.1.21 — 2026-10-29
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
