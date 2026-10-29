@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.24 — 2026-10-29
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- 대상 메시지 now looks like a dropdown: a bordered box with a chevron that turns when open, so it is clearly pressable.
+- Opening it shows one scrolling list instead of pages: "가장 최근 메시지" first, then messages newest first. "이전 메시지 N개 더 보기" at the bottom adds ten more each time. Rows look like buttons and the chosen one has a ✓.
+- Reopening scrolls straight to the chosen message. Still builds nothing while closed and only ten rows at first, even for very long chats.
+- Removed the 더 이전 / 더 최근 page buttons. `browser-v0122` rewritten for the new picker; `browser-v0121` counts message rows only.
+
 ## 0.1.23 — 2026-10-29
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

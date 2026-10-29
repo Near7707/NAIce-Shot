@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.24
+
+Update the extension and refresh. Press 대상 메시지: a list opens with 가장 최근 메시지 on top and a ✓ on the current choice. Scroll, press 이전 메시지 더 보기, pick an old message, then reopen — the list should jump to that message. No server update is needed.
+
 ## v0.1.23
 
 Update the extension and refresh. Check the new icon in the extensions menu and settings drawer. Turn on Settings → 메시지에 그리기 버튼 표시, open a message's … menu and press the icon; the scene tab should open with that message selected.

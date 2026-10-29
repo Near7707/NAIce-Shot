@@ -175,22 +175,26 @@ function showTab(tab) {
   restoreScroll();
   if(tab==='history')loadHistory().catch(e=>notice(e.message,true));
 }
-const TARGET_PAGE_SIZE=10;
-let targetPage=0;
+// Target picker: looks like a dropdown, opens into a short scrolling list (newest first) that grows
+// ten messages at a time. Nothing is built while it is closed.
+const TARGET_STEP=10;
+let targetShown=TARGET_STEP;
 function renderTargets() {
   const chat=ctx().chat??[],select=$('ncs-target'),rows=[];
-  // Keep only indices here: format previews for the visible page, never every message.
+  // Keep only indices here: format previews for the rows actually shown, never every message.
   for(let i=chat.length-1;i>=0;i--)if(!chat[i].is_system&&typeof chat[i].mes==='string'&&chat[i].mes.trim())rows.push(i);
   if(select.value!==''&&!rows.includes(Number(select.value)))select.value='';
-  const preview=i=>`#${i} · ${chat[i].name??''} · ${chat[i].mes.replace(/\s+/g,' ').slice(0,55)}`;
-  $('ncs-target-label').textContent=select.value===''?'가장 최근 메시지':preview(Number(select.value));
-  targetPage=Math.min(targetPage,Math.max(0,Math.ceil(rows.length/TARGET_PAGE_SIZE)-1));
-  const start=targetPage*TARGET_PAGE_SIZE,page=rows.slice(start,start+TARGET_PAGE_SIZE);
-  $('ncs-target-page').textContent=rows.length?`${start+1}–${start+page.length} / ${rows.length}개 · 최신순`:'선택할 메시지 없음';
-  dialog.querySelector('[data-action="target-newer"]').disabled=targetPage===0;
-  dialog.querySelector('[data-action="target-older"]').disabled=start+TARGET_PAGE_SIZE>=rows.length;
-  // A closed picker holds no message previews; opening it builds at most ten buttons.
-  $('ncs-target-list').innerHTML=$('ncs-target-picker').open?page.map(i=>`<button type="button" data-action="target-message" data-message-index="${i}" aria-pressed="${select.value===String(i)}">${esc(preview(i))}</button>`).join(''):'';
+  const text=i=>chat[i].mes.replace(/\s+/g,' ').trim();
+  $('ncs-target-label').textContent=select.value===''?'가장 최근 메시지':`#${select.value} · ${chat[select.value].name??''} · ${text(Number(select.value)).slice(0,55)}`;
+  // Make sure the chosen message is among the shown rows, so its check mark is visible when the list opens.
+  const at=select.value===''?-1:rows.indexOf(Number(select.value));
+  targetShown=Math.max(TARGET_STEP,targetShown,at>=0?Math.ceil((at+1)/TARGET_STEP)*TARGET_STEP:0);
+  const shown=rows.slice(0,targetShown),left=rows.length-shown.length;
+  $('ncs-target-page').textContent=rows.length?`최신순 · ${rows.length}개 중 ${shown.length}개 표시`:'선택할 메시지가 없어요';
+  const more=dialog.querySelector('[data-action="target-more"]');more.hidden=left<=0;more.textContent=`이전 메시지 ${Math.min(TARGET_STEP,left)}개 더 보기`;
+  if(!$('ncs-target-picker').open){$('ncs-target-list').innerHTML='';return;}
+  const latest=`<button type="button" class="ncs-target-item" data-action="target-latest" aria-pressed="${select.value===''}"><span class="ncs-target-meta">가장 최근 메시지</span><span class="ncs-target-preview">새 메시지가 오면 그 메시지를 따라가요</span></button>`;
+  $('ncs-target-list').innerHTML=latest+shown.map(i=>`<button type="button" class="ncs-target-item" data-action="target-message" data-message-index="${i}" aria-pressed="${select.value===String(i)}"><span class="ncs-target-meta">#${i} · ${esc(chat[i].name??'')}</span><span class="ncs-target-preview">${esc(text(i).slice(0,90))}</span></button>`).join('');
 }
 function chooseTarget(value) {
   $('ncs-target').value=value;$('ncs-target-picker').open=false;renderTargets();$('ncs-target-label').focus({preventScroll:true});
@@ -850,9 +854,8 @@ async function onAction(action,el) {
     case 'close':rememberScroll();dialog.close();break;
     case 'dismiss-compat':compatDismissed=true;renderCompat();break;
     case 'cancel-extract':if(!cancelExtraction())notice('진행 중인 추출이 없어요.');break;
-    case 'target-older':targetPage++;renderTargets();break;
-    case 'target-newer':targetPage=Math.max(0,targetPage-1);renderTargets();break;
-    case 'target-latest':targetPage=0;chooseTarget('');break;
+    case 'target-more':targetShown+=TARGET_STEP;renderTargets();break;
+    case 'target-latest':targetShown=TARGET_STEP;chooseTarget('');break;
     case 'target-message':chooseTarget(el.dataset.messageIndex);break;
     case 'extract':await extract();break;
     case 'blank':scene=blankScene();raw='';changed();renderScene();notice('직접 장면을 입력해 주세요.');break;
@@ -919,7 +922,7 @@ async function onAction(action,el) {
   }
 }
 function bindEvents() {
-  $('ncs-target-picker').addEventListener('toggle',()=>renderTargets());
+  $('ncs-target-picker').addEventListener('toggle',()=>{renderTargets();if($('ncs-target-picker').open){const box=$('ncs-target-scroll'),on=box.querySelector('[aria-pressed="true"]');if(on)box.scrollTop=Math.max(0,on.offsetTop-box.offsetTop-8);}});
   dialog.addEventListener('click',event=>{
     const el=event.target.closest('button,a');if(!el)return;
     Promise.resolve().then(async()=>{
@@ -1001,7 +1004,7 @@ function bindEvents() {
 function chatChanged() {
   const key=keyOf();if(key===chatKey)return;
   cancelExtraction('');closeMissingDialog();pendingBind=null;quickProfileName='';lastLink=null;linkTarget=null;chatKey=key;task++;revision++;scene=blankScene();raw='';finalOverride=null;optionsOverride=null;result=null;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();
-  if(dialog){targetPage=0;$('ncs-target').value='';$('ncs-target-picker').open=false;renderTargets();renderMatching();renderScene({forceFinal:true});renderResult();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.');}
+  if(dialog){targetShown=TARGET_STEP;$('ncs-target').value='';$('ncs-target-picker').open=false;renderTargets();renderMatching();renderScene({forceFinal:true});renderResult();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.');}
   renderChatImages();
 }
 const activeTab=()=>dialog?.querySelector('[data-tab][aria-selected="true"]')?.dataset.tab??'scene';

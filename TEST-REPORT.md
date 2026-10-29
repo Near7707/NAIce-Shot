@@ -1,3 +1,11 @@
+# v0.1.24 validation — 2026-10-29
+
+- Extension Node suite **109 passed, 0 failed, 0 skipped**; **23 of 23 browser scripts passed** in headless Chromium.
+- Pre-push privacy check of the changes: no keys, personal paths, emails or story names.
+- `browser-v0122` (1280px and 375px): chevron visible when closed; opens by keyboard; latest row first; list scrolls inside its own box; grows by ten until all 55 eligible messages are reachable and the more button hides; choosing the oldest message closes the picker and extraction uses it; on reopen the chosen row is checked and in view; new messages keep the choice; latest mode follows the newest; a 5,000-message chat builds only ten rows; chat switch resets; empty chat; names escaped; no horizontal overflow.
+- Checked by eye at 390px in classic and cream.
+- Not exercised: a real SillyTavern instance, iPhone Safari.
+
 # v0.1.23 validation — 2026-10-29
 
 - Extension Node suite **109 passed, 0 failed, 0 skipped**.

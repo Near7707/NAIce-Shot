@@ -9,10 +9,12 @@
       <div class="ncs-section"><h3>1 · 그릴 순간</h3><p>대상 메시지의 마지막 장면을 그려요. 앞선 메시지는 참고용이에요. 캐릭터·유저 외의 등장인물도 함께 찾아요. 인물을 수동으로 추가한 뒤 다시 추출하면 그 프로필도 후보에 넣어 확인해요.</p>
         <input id="ncs-target" type="hidden" value="">
         <span class="ncs-target-title">대상 메시지</span>
-        <details id="ncs-target-picker" class="ncs-target-picker"><summary id="ncs-target-label">가장 최근 메시지</summary>
-          <div class="ncs-row"><button type="button" data-action="target-latest">가장 최근 메시지 사용</button></div>
-          <nav class="ncs-row" aria-label="대상 메시지 목록 페이지"><button type="button" data-action="target-newer">더 최근</button><small id="ncs-target-page" role="status"></small><button type="button" data-action="target-older">더 이전</button></nav>
-          <div id="ncs-target-list" class="ncs-target-list" role="group" aria-label="메시지 선택"></div>
+        <details id="ncs-target-picker" class="ncs-target-picker"><summary id="ncs-target-label" class="ncs-target-summary">가장 최근 메시지</summary>
+          <div id="ncs-target-scroll" class="ncs-target-scroll">
+            <div id="ncs-target-list" class="ncs-target-list" role="group" aria-label="메시지 선택 · 최신순"></div>
+            <button type="button" class="ncs-target-more" data-action="target-more">이전 메시지 더 보기</button>
+          </div>
+          <small id="ncs-target-page" class="ncs-target-count" role="status"></small>
         </details>
         <details><summary>이 채팅의 프로필 연결 · 자동 인식 확인</summary><p>현재 카드·유저 이름과 프로필 이름·별칭으로 자동 연결해요. 이름이 다르면 이 채팅에서 사용할 프로필을 한 번 지정할 수 있어요.</p><div class="ncs-grid"><label>채팅 캐릭터<select id="ncs-character-binding"></select></label><label>유저 캐릭터<select id="ncs-user-binding"></select></label></div><small id="ncs-matching-state"></small></details>
         <div class="ncs-grid"><label>참고 메시지 수<input id="ncs-recent" type="number" min="1" max="30" value="3"></label><label>추출 표현<select id="ncs-format"><option value="tags">영어 태그</option><option value="natural">영어 자연어</option></select></label></div>
@@ -71,5 +73,5 @@
       <p class="ncs-small">삭제하면 서버의 원본 PNG와 생성 기록이 지워져요. 지금 채팅에 붙인 그림은 함께 빠지고, 다른 채팅에 붙여 둔 그림은 그 채팅에서 "찾을 수 없는 그림" 안내로 바뀌어요. 되돌릴 수 없어요.</p></div></section>
   </div>
   <dialog id="ncs-missing-dialog" class="ncs-missing-dialog" aria-labelledby="ncs-missing-title"><div class="ncs-overlay-card"></div></dialog>
-  <footer><span id="ncs-chat-label"></span><span id="ncs-version">v0.1.23</span></footer>
+  <footer><span id="ncs-chat-label"></span><span id="ncs-version">v0.1.24</span></footer>
 </div>

@@ -23,36 +23,46 @@ try{
   }));
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
-  const list=page.locator('#ncs-target-list button'),action=name=>page.locator(`[data-action="${name}"]`).click();
+  const list=page.locator('#ncs-target-list [data-message-index]'),action=name=>page.locator(`[data-action="${name}"]`).first().click();
   const open=async()=>{await page.locator('#ncs-target-label').focus();await page.keyboard.press('Enter');await list.first().waitFor();};
-  assert.equal(await list.count(),0,'closed picker does not build previews');await open();
-  const before=await page.locator('.ncs-content').evaluate(el=>el.scrollTop);await list.first().hover();await page.mouse.wheel(0,350);
-  await page.waitForFunction(y=>document.querySelector('.ncs-content').scrollTop>y+50,before);
+  assert.equal(await page.locator('#ncs-target-list button').count(),0,'closed picker does not build previews');
+  // Closed, it looks like a dropdown: bordered box with a chevron.
+  assert.notEqual(await page.locator('#ncs-target-label').evaluate(el=>getComputedStyle(el,'::after').borderRightStyle),'none');
+  await open();
+  assert.equal(await page.locator('#ncs-target-list [data-action="target-latest"]').count(),1,'"가장 최근 메시지" is the first row');
+  // The list scrolls inside its own box.
+  assert.ok(await page.locator('#ncs-target-scroll').evaluate(el=>getComputedStyle(el).overflowY==='auto'&&el.clientHeight>0));
 
-  const expected=Array.from({length:57},(_,i)=>56-i).filter(i=>i!==20&&i!==21),seen=[];
-  for(let p=0;p<6;p++){
-   const values=await list.evaluateAll(nodes=>nodes.map(n=>Number(n.dataset.messageIndex)));assert.deepEqual(values,expected.slice(p*10,p*10+10));seen.push(...values);
-   assert.ok(values.length<=10);assert.equal(await page.locator('#ncs-target-list img').count(),0,'names are text, not HTML');
-   if(p<5)await action('target-older');
+  const expected=Array.from({length:57},(_,i)=>56-i).filter(i=>i!==20&&i!==21);
+  for(let step=1;step<=6;step++){
+   const values=await list.evaluateAll(nodes=>nodes.map(n=>Number(n.dataset.messageIndex)));
+   assert.deepEqual(values,expected.slice(0,Math.min(step*10,expected.length)),`after ${step} step(s) the list grows by ten`);
+   assert.equal(await page.locator('#ncs-target-list img').count(),0,'names are text, not HTML');
+   if(step<6)await action('target-more');
   }
-  assert.deepEqual(seen,expected,'every older message is reachable without scrolling a native menu');
-  assert.equal(await page.locator('[data-action="target-older"]').isDisabled(),true);
+  assert.equal(await page.locator('[data-action="target-more"]').isHidden(),true,'nothing more to load');
+  assert.match(await page.locator('#ncs-target-page').innerText(),/55개 중 55개 표시/);
   await page.locator('[data-message-index="0"]').click();assert.equal(await page.locator('#ncs-target').inputValue(),'0');
-  assert.match(await page.locator('#ncs-target-label').textContent(),/#0/);assert.equal(await list.count(),0);
+  assert.match(await page.locator('#ncs-target-label').textContent(),/#0/);assert.equal(await list.count(),0,'closes after choosing');
   await page.locator('#ncs-recent').fill('1');await action('extract');await page.waitForFunction(()=>mock.extractCalls===1&&document.querySelector('#ncs-progress').hidden);
   assert.match(await page.evaluate(()=>mock.lastExtract.prompt),/Message 0 in a cafe/);assert.doesNotMatch(await page.evaluate(()=>mock.lastExtract.prompt),/Message 56 in a cafe/);
-  await open();await action('target-newer');await action('target-newer');assert.equal(await page.locator('#ncs-target').inputValue(),'0','browsing pages never changes the selected target');
+  // Reopening shows the chosen (oldest) row with its check mark, scrolled into view.
+  await open();
+  const chosen=page.locator('#ncs-target-list [data-message-index="0"]');
+  assert.equal(await chosen.getAttribute('aria-pressed'),'true');
+  assert.ok(await chosen.evaluate(el=>{const box=document.querySelector('#ncs-target-scroll').getBoundingClientRect(),r=el.getBoundingClientRect();return r.top>=box.top-1&&r.bottom<=box.bottom+1;}),'chosen row visible');
   await page.evaluate(()=>{mock.chat.push({name:'Character A',mes:'New message'});mock.emit('received');});assert.equal(await page.locator('#ncs-target').inputValue(),'0');
-  await action('target-latest');assert.equal(await page.locator('#ncs-target').inputValue(),'');
-  await open();assert.equal(await list.first().getAttribute('data-message-index'),'57');assert.equal(await page.locator('[data-action="target-newer"]').isDisabled(),true);
-  // At most ten rows, even for a long chat; no DOM for thousands of hidden options.
+  await page.locator('#ncs-target-list [data-action="target-latest"]').click();assert.equal(await page.locator('#ncs-target').inputValue(),'');
+  await open();assert.equal(await list.first().getAttribute('data-message-index'),'57');
+  assert.equal(await page.locator('#ncs-target-list [data-action="target-latest"]').getAttribute('aria-pressed'),'true');
+  // At most ten rows at first, even for a long chat; no DOM for thousands of hidden options.
   await page.evaluate(()=>{mock.chat=Array.from({length:5000},(_,i)=>({name:'Character A',mes:`Example message ${i}`}));mock.emit('received');});assert.equal(await list.count(),10);
   assert.equal(await list.first().getAttribute('data-message-index'),'4999');
   assert.ok(await page.locator('.ncs-content').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
   await page.evaluate(()=>mock.switchChat('B'));assert.equal(await page.locator('#ncs-target').inputValue(),'');assert.equal(await page.locator('#ncs-target-picker').evaluate(el=>el.open),false);
   await open();assert.equal(await list.count(),1);assert.equal(await list.first().getAttribute('data-message-index'),'0');
-  await page.evaluate(()=>{mock.chat=[];mock.emit('received');});assert.equal(await list.count(),0);assert.equal(await page.locator('[data-action="target-older"]').isDisabled(),true);
+  await page.evaluate(()=>{mock.chat=[];mock.emit('received');});assert.equal(await list.count(),0);assert.equal(await page.locator('[data-action="target-more"]').isHidden(),true);
   assert.deepEqual(errors,[]);await page.close();
  }
- console.log('PASS: keyboard-opened HTML picker, all 55 eligible messages reachable in 10-row pages, oldest extraction, stable selection, latest mode, 5000-message DOM bound, chat reset, escaping, empty chat and mobile fit.');
+ console.log('PASS: dropdown-looking picker opened by keyboard, all 55 eligible messages reachable by growing the list ten at a time, oldest extraction, stable selection, latest mode, 5000-message DOM bound, chat reset, escaping, empty chat and mobile fit.');
 }finally{await browser.close();await new Promise(r=>server.close(r));}

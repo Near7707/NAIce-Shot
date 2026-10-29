@@ -303,11 +303,25 @@
 
 /* Ordinary HTML pages avoid browser-native select popup scrolling differences. */
 #naice-shot-dialog .ncs-target-title {display:block;margin-top:10px;}
-#naice-shot-dialog .ncs-target-picker {margin:6px 0 14px;border:1px solid var(--ncs-border);border-radius:var(--ncs-radius-control);padding:0 10px;}
-#naice-shot-dialog .ncs-target-picker > summary {min-height:42px;overflow-wrap:anywhere;}
-#naice-shot-dialog .ncs-target-list {display:grid;gap:6px;padding-bottom:10px;}
-#naice-shot-dialog .ncs-target-list button {text-align:left;overflow-wrap:anywhere;}
-#naice-shot-dialog .ncs-target-list button[aria-pressed="true"] {border-color:var(--ncs-edge);background:var(--ncs-tab-active-bg);}
-#naice-shot-dialog .ncs-target-picker nav {justify-content:space-between;}
+/* Target picker: closed it reads like the other dropdowns (same border, chevron on the right). */
+#naice-shot-dialog .ncs-target-picker {margin:6px 0 14px;border:var(--ncs-border-width) solid var(--ncs-border);border-radius:var(--ncs-radius-control);background:var(--ncs-control);}
+#naice-shot-dialog .ncs-target-picker[open] {border-color:var(--ncs-edge);}
+#naice-shot-dialog .ncs-target-summary {display:flex;align-items:center;gap:8px;min-height:42px;padding:9px 40px 9px 12px;position:relative;list-style:none;color:var(--ncs-fg);overflow-wrap:anywhere;line-height:1.4;}
+#naice-shot-dialog .ncs-target-summary::-webkit-details-marker {display:none;}
+#naice-shot-dialog .ncs-target-summary::marker {content:'';}
+#naice-shot-dialog .ncs-target-summary::after {content:'';position:absolute;right:14px;top:50%;width:8px;height:8px;margin-top:-6px;border-right:2px solid var(--ncs-arrow);border-bottom:2px solid var(--ncs-arrow);transform:rotate(45deg);transition:transform .15s;}
+#naice-shot-dialog .ncs-target-picker[open] > .ncs-target-summary::after {transform:rotate(-135deg);margin-top:-2px;}
+#naice-shot-dialog .ncs-target-summary:hover {background:var(--ncs-hover);border-radius:var(--ncs-radius-control);}
+/* Opened: a short list that scrolls inside itself and grows ten at a time. */
+#naice-shot-dialog .ncs-target-scroll {max-height:min(360px,48dvh);overflow-y:auto;padding:8px;border-top:1px solid var(--ncs-rule);}
+#naice-shot-dialog .ncs-target-list {display:grid;gap:6px;}
+#naice-shot-dialog .ncs-target-item {display:grid;gap:2px;width:100%;margin:0;padding:8px 40px 8px 12px;text-align:left;position:relative;overflow-wrap:anywhere;cursor:pointer;background-color:var(--ncs-surface);}
+#naice-shot-dialog .ncs-target-item:hover {background-color:var(--ncs-hover);border-color:var(--ncs-edge);}
+#naice-shot-dialog .ncs-target-meta {font-weight:650;color:var(--ncs-fg);font-size:13px;}
+#naice-shot-dialog .ncs-target-preview {color:var(--ncs-muted);font-size:13px;line-height:1.45;}
+#naice-shot-dialog .ncs-target-item[aria-pressed="true"] {border:2px solid var(--ncs-edge);padding:7px 39px 7px 11px;background-color:var(--ncs-tab-active-bg);}
+#naice-shot-dialog .ncs-target-item[aria-pressed="true"]::after {content:'✓';position:absolute;right:14px;top:50%;transform:translateY(-50%);font-weight:700;color:var(--ncs-accent-text);}
+#naice-shot-dialog .ncs-target-more {width:100%;margin-top:8px;border-style:dashed;}
+#naice-shot-dialog .ncs-target-count {display:block;padding:6px 12px 8px;color:var(--ncs-muted);}
 /* Message draw button inside SillyTavern's extra message menu (same 20px box as its own buttons). */
 #chat .ncs-mes-draw {display:inline-block;width:20px;height:20px;min-width:20px;background:var(--ncs-brand-icon-url) center / 20px 20px no-repeat;vertical-align:middle;}
