@@ -1,3 +1,11 @@
+# v0.1.27 validation — 2026-10-31
+
+- Extension Node suite: **115 passed, 0 failed, 0 skipped**, with server 0.1.7 available. Existing skin checks include Christmas text/control contrast, scoped selectors and unchanged layout rules. All fifteen previous skin files remain byte-identical to v0.1.26.
+- Two Chromium scripts passed: `browser-skins` and `browser-v016`. The skin test now covers sixteen choices, Christmas switching/saving, its berry-red viewer accent, mobile fit for every tab of every skin, one active skin stylesheet and deleted-file fallback. The second script verifies the unchanged page backdrop and existing profile-form/generation behavior.
+- Inspected actual desktop (1100px) and mobile (390px) panel screenshots using an external test-only Korean font, including scene and Settings screens. No fonts, screenshots or browser runtime dependencies were added to the extension. Header decoration is static and hidden on viewports at or below 360px to avoid crowding the title.
+- Pre-edit privacy scan covered 86 tracked files and 24 reachable commits. The only path match was a synthetic error fixture; the previously disclosed historical author email remains. New changes were checked separately. Remote issues, release attachments and external copies were outside this scan.
+- Real SillyTavern, iPhone Safari and live AI providers were not exercised. No server changes.
+
 # v0.1.26 validation — 2026-10-30
 
 - Reproduced on the unchanged v0.1.25 parent: after scrolling the target list to 250px, collapse/reopen returned it to about 1px. The new browser regression passes after fixing.

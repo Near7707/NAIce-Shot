@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.27 — 2026-10-31
+
+**Update: extension only.** Update NAIce Shot and refresh. The server plugin is unchanged (0.1.7).
+
+- Add 크리스마스 as the sixteenth skin: evergreen background, berry-red primary buttons/selected tabs, vanilla-cream secondary buttons, gold accents and a small static tree in the header. Includes matching viewer accents.
+- Keep all fifteen existing skins and their palettes. The new skin uses one optional CSS file, with its small vector decoration embedded locally; no animation, external image/font requests or extra runtime dependencies.
+
 ## 0.1.26 — 2026-10-30
 
 **Update: extension only.** Update NAIce Shot and refresh. The server plugin is unchanged (0.1.7).

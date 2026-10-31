@@ -1,0 +1,43 @@
+/* NAIce Shot skin · 크리스마스: evergreen, berry velvet and warm vanilla.
+   Static color and shadow accents; the shared layout and existing skins stay intact. */
+#naice-shot-dialog[data-skin="christmas"] {
+ color-scheme:dark;
+ --ncs-bg:#183b32;--ncs-fg:#fff4df;--ncs-muted:#d2dfc8;
+ --ncs-border:#8ca987;--ncs-rule:#456858;
+ --ncs-control:#123128;--ncs-hover:#2b5546;--ncs-surface:#214539;
+ --ncs-accent:#f3e7cf;--ncs-edge:#d3b66f;--ncs-accent-text:#f2d493;--ncs-warning:#f4ce8b;--ncs-danger-fg:#233d31;
+ --ncs-primary-bg:#a72c3a;--ncs-primary-fg:#fff6e6;--ncs-primary-border:#d3b66f;--ncs-primary-hover:#bb3847;
+ --ncs-tab-active-bg:#a72c3a;--ncs-tab-active-fg:#fff6e6;--ncs-tab-active-border:#d3b66f;
+ --ncs-check-border:#d3b66f;--ncs-check-bg:#123128;--ncs-check-on:#f3e7cf;--ncs-check-mark:#23483b;
+ --ncs-arrow:#d3b66f;--ncs-focus:#f2d493;
+ --ncs-radius:24px;--ncs-radius-card:16px;--ncs-radius-control:12px;
+ --ncs-shadow:0 24px 64px rgba(7,24,17,.45),inset 0 1px 0 rgba(243,218,160,.18);
+ --ncs-card-shadow:0 5px 16px rgba(5,24,17,.16);
+ --ncs-progress-bg:#254e40;
+ background:linear-gradient(155deg,#1c4337,#16362f);
+}
+#naice-shot-dialog[data-skin="christmas"] .ncs-header {
+ border-bottom-color:#8d804e;
+ background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2068%2064%22%3E%3Cpath%20d%3D%22M32%2051v8%22%20stroke%3D%22%23d3b66f%22%20stroke-width%3D%222%22%2F%3E%3Cpath%20d%3D%22M32%2018%2020%2032h6L16%2044h7L12%2055h40L41%2044h7L38%2032h6Z%22%20fill%3D%22%23234a3b%22%20stroke%3D%22%23b5c89b%22%20stroke-width%3D%221.2%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpath%20d%3D%22m32%203%202%205%205%20.3-4%203.4%201.3%205.3-4.3-2.9-4.3%202.9%201.3-5.3-4-3.4%205-.3Z%22%20fill%3D%22%23f2d493%22%2F%3E%3Ccircle%20cx%3D%2225%22%20cy%3D%2239%22%20r%3D%222.2%22%20fill%3D%22%23dc6570%22%2F%3E%3Ccircle%20cx%3D%2238%22%20cy%3D%2249%22%20r%3D%222.2%22%20fill%3D%22%23f3e7cf%22%2F%3E%3Ccircle%20cx%3D%2229%22%20cy%3D%2250%22%20r%3D%221.8%22%20fill%3D%22%23dc6570%22%2F%3E%3Ccircle%20cx%3D%2258%22%20cy%3D%2218%22%20r%3D%221%22%20fill%3D%22%23f2d493%22%2F%3E%3Ccircle%20cx%3D%228%22%20cy%3D%2227%22%20r%3D%221%22%20fill%3D%22%23f3e7cf%22%2F%3E%3C%2Fsvg%3E") right 74px center / 68px 64px no-repeat,linear-gradient(115deg,rgba(211,182,111,.07),transparent 65%);
+}
+#naice-shot-dialog[data-skin="christmas"] .ncs-brand .ncs-icon {background:#762936;border-radius:13px;box-shadow:0 3px 12px rgba(7,24,17,.22),inset 0 1px 0 rgba(243,218,160,.24);}
+#naice-shot-dialog[data-skin="christmas"] .ncs-tabs button,
+#naice-shot-dialog[data-skin="christmas"] .ncs-row > button:not(.ncs-primary):not(.ncs-danger):not(.ncs-danger-outline) {
+ background:linear-gradient(180deg,#fff3de,#eddfc2);border-color:#d8c192;color:#244a3e;
+ box-shadow:0 3px 6px rgba(5,24,17,.18),inset 0 1px 0 rgba(255,255,255,.4);
+}
+#naice-shot-dialog[data-skin="christmas"] .ncs-primary,
+#naice-shot-dialog[data-skin="christmas"] .ncs-tabs .ncs-active {
+ background:linear-gradient(180deg,#b23543,#952835);border-color:#d3b66f;color:#fff6e6;
+ box-shadow:0 3px 9px rgba(5,24,17,.24),inset 0 1px 0 rgba(255,225,198,.16);
+}
+#naice-shot-dialog[data-skin="christmas"] .ncs-primary:hover {background:#bb3847;color:#fff6e6;}
+#naice-shot-dialog[data-skin="christmas"] .ncs-notice:not(.ncs-error) {background:#214539;border-bottom-color:#456858;}
+#ncs-viewer[data-skin="christmas"] {--ncsv-accent:#a72c3a;--ncsv-accent-fg:#fff6e6;--ncsv-accent-hover:#bb3847;--ncsv-pressed:#d3b66f;}
+
+#naice-shot-dialog[data-skin="christmas"] .ncs-tabs button:not(.ncs-active):hover,
+#naice-shot-dialog[data-skin="christmas"] .ncs-row > button:not(.ncs-primary):not(.ncs-danger):not(.ncs-danger-outline):hover {background:#fff6e6;border-color:#e2c881;color:#244a3e;}
+
+@media (max-width:360px) {
+ #naice-shot-dialog[data-skin="christmas"] .ncs-header {background:linear-gradient(115deg,rgba(211,182,111,.07),transparent 65%);}
+}

@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.27
+
+Update the extension and refresh. Settings → 스킨 → 크리스마스. Check the tree header, red selected tab/primary action, cream secondary buttons and readable fields. Switch to another skin and back; the choice should persist and the viewer should use the holiday accent. All fifteen earlier skins remain available. No server update is needed.
+
 ## v0.1.26
 
 Update the extension and refresh. Scroll inside the target-message list, load more rows, then collapse/reopen it. The list should return to the same position and retain loaded rows. Repeat across tab and panel close/reopen, then verify that a direct message icon reveals its target once and latest/chat-switch resets the list to the top. No server update is needed.
