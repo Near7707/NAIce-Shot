@@ -60,7 +60,7 @@ try{
  // 3) Checkboxes stay readable on every skin despite the hostile theme.
  const skins=await page.locator('#ncs-skins input[name="ncs-skin"]').evaluateAll(els=>els.map(e=>e.value));
  for(const skin of skins){
-  await page.locator('[data-tab="settings"]').click();await page.locator(`.ncs-skin:has(input[value="${skin}"])`).click();
+  await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{document.querySelector('#ncs-theme-box').open=true;});await page.locator(`.ncs-skin:has(input[value="${skin}"])`).click();
   await page.waitForFunction(s=>document.querySelector('#naice-shot-dialog').dataset.skin===s||s==='classic',skin);
   await page.locator('[data-tab="history"]').click();await page.waitForTimeout(250);
   const look=await page.locator(`[data-history-pick="${ids[0]}"]`).evaluate(el=>{const box=getComputedStyle(el),mark=getComputedStyle(el,'::before'),after=getComputedStyle(el,'::after');

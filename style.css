@@ -325,3 +325,13 @@
 #naice-shot-dialog .ncs-target-count {display:block;padding:6px 12px 8px;color:var(--ncs-muted);}
 /* Message draw button inside SillyTavern's extra message menu (same 20px box as its own buttons). */
 #chat .ncs-mes-draw {display:inline-block;width:20px;height:20px;min-width:20px;background:var(--ncs-brand-icon-url) center / 20px 20px no-repeat;vertical-align:middle;}
+/* Theme list folds away; the summary keeps the current theme in view. */
+#naice-shot-dialog .ncs-theme-box {margin-top:0;}
+#naice-shot-dialog .ncs-theme-summary {display:flex;align-items:center;gap:10px;list-style:none;padding:4px 28px 4px 0;position:relative;color:var(--ncs-fg);}
+#naice-shot-dialog .ncs-theme-summary::-webkit-details-marker {display:none;}
+#naice-shot-dialog .ncs-theme-summary::marker {content:'';}
+#naice-shot-dialog .ncs-theme-summary h3 {margin:0;}
+#naice-shot-dialog .ncs-theme-current {margin-left:auto;font-size:13px;color:var(--ncs-muted);text-align:right;overflow-wrap:anywhere;}
+#naice-shot-dialog .ncs-theme-summary::after {content:'';position:absolute;right:6px;top:50%;width:8px;height:8px;margin-top:-6px;border-right:2px solid var(--ncs-arrow);border-bottom:2px solid var(--ncs-arrow);transform:rotate(45deg);transition:transform .15s;}
+#naice-shot-dialog .ncs-theme-box[open] > .ncs-theme-summary::after {transform:rotate(-135deg);margin-top:-2px;}
+#naice-shot-dialog .ncs-theme-summary:focus-visible {outline:2px solid var(--ncs-focus);outline-offset:3px;border-radius:6px;}

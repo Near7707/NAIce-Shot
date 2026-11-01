@@ -38,7 +38,7 @@ try{
  await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
  await page.locator('[data-tab="settings"]').click();
  const sections=await page.$$eval('[data-page="settings"] > .ncs-section h3',hs=>hs.map(h=>h.textContent));
- assert.equal(sections.at(-1),'스킨');assert.equal(sections.at(-2),'설정 백업');
+ assert.equal(sections.at(-1),'테마');assert.equal(sections.at(-2),'설정 백업');
  // The file picker is invisible and exactly covers its label button, even with a theme forcing inputs visible.
  const g=await page.evaluate(()=>{const l=document.querySelector('.ncs-file').getBoundingClientRect(),i=document.querySelector('#ncs-import'),r=i.getBoundingClientRect();
   return {l:[l.left,l.top,l.right,l.bottom],i:[r.left,r.top,r.right,r.bottom],o:getComputedStyle(i).opacity};});

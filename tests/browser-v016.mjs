@@ -34,7 +34,7 @@ try{
  const classic=await backdrop();assert.equal(classic,'rgba(0, 0, 0, 0.6)');
 
  // 1) Every skin keeps the same dim layer over the page.
- await page.locator('[data-tab="settings"]').click();
+ await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{document.querySelector('#ncs-theme-box').open=true;});
  for(const skin of await page.locator('#ncs-skins input[name="ncs-skin"]').evaluateAll(els=>els.map(e=>e.value))){
   await page.locator(`.ncs-skin:has(input[value="${skin}"])`).click();await page.waitForTimeout(200);
   assert.equal(await backdrop(),classic,`${skin} changes the page behind the panel`);

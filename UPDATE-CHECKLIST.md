@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.28
+
+Update the extension and refresh. Settings → 테마 should be folded and show the current theme on the right; press it to open the list. Try 크리스마스, 눈 오는 밤 and 캔디케인 on phone width: the garland and lights must not cross the subtitle. No server update is needed.
+
 ## v0.1.27
 
 Update the extension and refresh. Settings → 스킨 → 크리스마스. Check the tree header, red selected tab/primary action, cream secondary buttons and readable fields. Switch to another skin and back; the choice should persist and the viewer should use the holiday accent. All fifteen earlier skins remain available. No server update is needed.

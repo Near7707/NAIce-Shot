@@ -78,7 +78,7 @@ try{
  assert.equal(await buttons(page).count(),0);
  await page.evaluate(()=>mock.renderChat());await page.waitForTimeout(150);assert.equal(await buttons(page).count(),0);
  // 미니멀 keeps the icon in color.
- await page.locator('.ncs-skin:has(input[value="minimal"])').click();await page.waitForFunction(()=>document.querySelector('#naice-shot-dialog').dataset.skin==='minimal');
+ await page.evaluate(()=>{document.querySelector('#ncs-theme-box').open=true;});await page.locator('.ncs-skin:has(input[value="minimal"])').click();await page.waitForFunction(()=>document.querySelector('#naice-shot-dialog').dataset.skin==='minimal');
  assert.equal(await page.locator('#ncs-brand-icon .ncs-icon').evaluate(e=>getComputedStyle(e).filter),'none');
  assert.deepEqual(errors,[]);await page.close();
 

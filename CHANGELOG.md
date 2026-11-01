@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.28 — 2026-11-01
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- "스킨" is now called **테마** in Settings. The theme list is folded by default; the title row shows the theme in use and opens the list. Saved choices carry over unchanged.
+- 크리스마스 redesigned: a snow-dusted tree with a gold star, a fir garland with snow, berries and baubles under the header, snow on the selected tab and main buttons, and a snowdrift along the bottom.
+- New 눈 오는 밤: navy night sky with soft falling snow, a string of colored lights, a crescent moon, and berry-red buttons with a gold rim.
+- New 캔디케인: cream paper with a red-and-white candy stripe, holly with berries, green selected tabs and striped red buttons.
+- Decorations are background pictures only, so the layout stays identical on every theme; they shrink on phones so they never cross the header text. Snow behind text is kept faint for readability.
+- Tests updated for eighteen themes and the folded list; `browser-v019` (stale count since 0.1.27) passes again.
+
 ## 0.1.27 — 2026-10-31
 
 **Update: extension only.** Update NAIce Shot and refresh. The server plugin is unchanged (0.1.7).

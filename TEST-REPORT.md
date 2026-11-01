@@ -1,3 +1,11 @@
+# v0.1.28 validation — 2026-11-01
+
+- Extension Node suite **117 passed, 0 failed, 0 skipped**, including contrast and no-layout-change checks for the two new themes and the redesigned 크리스마스.
+- **25 of 25 browser scripts passed** in headless Chromium. `browser-skins` now checks the folded theme list (closed by default, current name in the title, opens on press) and all eighteen themes at 1280px and 375px; `browser-v060` confirms identical layout geometry on the three Christmas themes; `browser-v019` checks field readability on them under hostile input themes.
+- Checked by eye at 375px: the garland and string lights stay below the header subtitle.
+- Pre-push privacy check of the changes: no keys, personal paths, emails or story names.
+- Not exercised: a real SillyTavern instance, iPhone Safari.
+
 # v0.1.27 validation — 2026-10-31
 
 - Extension Node suite: **115 passed, 0 failed, 0 skipped**, with server 0.1.7 available. Existing skin checks include Christmas text/control contrast, scoped selectors and unchanged layout rules. All fifteen previous skin files remain byte-identical to v0.1.26.

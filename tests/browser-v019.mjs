@@ -46,8 +46,8 @@ try{
   await page.addStyleTag({content:`select,input,textarea{background:${theme.bg}!important;background-color:${theme.bg}!important;color:${theme.fg}!important;-webkit-text-fill-color:${theme.fg}!important}`});
   await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
   await page.locator('[data-tab="settings"]').click();
-  await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===15);
-  for(const skin of ['classic','glass','minimal','pastel','cream','matcha','deepblue','lavender','milk','strawberrymilk','bananamilk','chocomilk','coffeemilk','apple','cocoa']){
+  await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===18);await page.evaluate(()=>{document.querySelector('#ncs-theme-box').open=true;});
+  for(const skin of ['classic','glass','minimal','pastel','cream','matcha','deepblue','lavender','milk','strawberrymilk','bananamilk','chocomilk','coffeemilk','apple','cocoa','christmas','snownight','candycane']){
    await page.locator(`.ncs-skin:has(input[value="${skin}"])`).click();await page.waitForTimeout(250);
    for(const sel of ['#ncs-image-placement','#ncs-positive','#ncs-steps']){
     const look=await page.locator(sel).evaluate(el=>{const d=document.querySelector('#naice-shot-dialog'),s=getComputedStyle(el),ds=getComputedStyle(d);

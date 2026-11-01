@@ -229,7 +229,8 @@ async function useSkin(id,{save=false}={}) {
   if(save||(skinsDetected&&applied.id!==s.skin)){s.skin=applied.id;ctx().saveSettingsDebounced();}
   renderSkins();
   const missing=skinsDetected&&id!==applied.id;
-  $('ncs-skin-state').textContent=missing?`${skinById(id)?.name??id} 스킨 파일을 찾지 못해 기본으로 바꿨어요.`:`${skinById(applied.id)?.name} 스킨을 쓰고 있어요.`;
+  $('ncs-theme-current').textContent=skinById(applied.id)?.name??'';
+  $('ncs-skin-state').textContent=missing?`${skinById(id)?.name??id} 테마 파일을 찾지 못해 기본으로 바꿨어요.`:'';
   if(missing&&save)notice($('ncs-skin-state').textContent,true);
   return applied.id;
 }

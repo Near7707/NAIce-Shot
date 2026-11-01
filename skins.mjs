@@ -17,7 +17,9 @@ export const SKINS = [
   { id: 'coffeemilk', name: '커피우유', note: '라테 베이지와 커피색', file: 'coffeemilk.css', swatch: ['#f5eee5', '#c8a27c', '#8a5530', '#dccbb6'] },
   { id: 'apple', name: '애플 크림', note: '크림빛 바탕에 빨간 사과와 초록 잎', file: 'apple.css', swatch: ['#fffcf4', '#b7372b', '#526b35', '#e5dbb9'] },
   { id: 'cocoa', name: '코코아', note: '포근한 코코아와 바닐라 크림', file: 'cocoa.css', swatch: ['#795648', '#f7e9d4', '#684638', '#dbc3aa'] },
-  { id: 'christmas', name: '크리스마스', note: '전나무 초록과 베리 레드, 따뜻한 금빛', file: 'christmas.css', swatch: ['#183b32', '#a72c3a', '#f3e7cf', '#d3b66f'] },
+  { id: 'christmas', name: '크리스마스', note: '눈 덮인 트리와 전나무 가랜드', file: 'christmas.css', swatch: ['#183b32', '#a72c3a', '#f6f3ea', '#d3b66f'] },
+  { id: 'snownight', name: '눈 오는 밤', note: '남색 밤하늘, 꼬마전구와 초승달', file: 'snownight.css', swatch: ['linear-gradient(180deg,#1d2e52,#121c34)', '#c03048', '#ffd27a', '#6fe0b0'] },
+  { id: 'candycane', name: '캔디케인', note: '사탕 줄무늬와 호랑가시 열매', file: 'candycane.css', swatch: ['#fffaf5', 'repeating-linear-gradient(135deg,#d1303c 0 5px,#fff 5px 10px)', '#1f6b4a', '#ecc9cb'] },
 ];
 export const DEFAULT_SKIN = 'classic';
 let current = DEFAULT_SKIN;

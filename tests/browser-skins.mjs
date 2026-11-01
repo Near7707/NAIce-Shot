@@ -35,9 +35,14 @@ const skinOf=page=>page.locator('#naice-shot-dialog').getAttribute('data-skin');
 try{
  let page=await open();
  await page.locator('[data-tab="settings"]').click();
- await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===16);
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===18);
  assert.equal(await skinOf(page),'classic');assert.equal(await page.locator('#ncs-skin-css').count(),0,'classic loads no extra file');
  assert.equal(await page.locator('.ncs-tabs [data-tab] .ncs-tab-icon svg').count(),4,'tab icons');
+ // The theme list starts folded; its summary names the theme in use, and opening it shows the cards.
+ assert.equal(await page.locator('#ncs-theme-box').evaluate(el=>el.open),false,'theme list folded by default');
+ assert.equal(await page.locator('#ncs-skins .ncs-skin').first().isVisible(),false);
+ assert.equal(await page.locator('#ncs-theme-current').textContent(),'기본');
+ await page.locator('.ncs-theme-summary').click();assert.equal(await page.locator('#ncs-skins .ncs-skin').first().isVisible(),true);
 
  // Switch and save; only the chosen file is loaded.
  for(const id of ['glass','minimal','cream','matcha','deepblue','lavender','milk','strawberrymilk','bananamilk','chocomilk','coffeemilk','apple','cocoa','christmas','pastel']){
@@ -46,6 +51,7 @@ try{
   assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.skin),id);
   assert.equal(await page.locator('link#ncs-skin-css').count(),1);assert.match(await page.locator('link#ncs-skin-css').getAttribute('href'),new RegExp(`skins/${id}\\.css$`));
   assert.equal(await page.locator('.ncs-skin.ncs-selected input').getAttribute('value'),id);
+  assert.equal(await page.locator('#ncs-theme-current').textContent(),await page.locator('.ncs-skin.ncs-selected strong').textContent());
  }
  // Fixed palette: the same pastel colors under a light and a dark ST theme, checkbox included.
  const sample=async()=>{await page.evaluate(()=>{document.querySelector('#ncs-schema').checked=true;});await page.waitForTimeout(300); // let the color transition finish
@@ -80,7 +86,7 @@ try{
  deleted=new Set(['pastel.css']);
  page=await open('pastel');
  await page.locator('[data-tab="settings"]').click();
- await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===15);
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===17);
  assert.equal(await page.locator('#ncs-skins input[value="pastel"]').count(),0);
  await page.waitForFunction(()=>/찾지 못해 기본으로/.test(document.querySelector('#ncs-skin-state').textContent));
  assert.equal(await skinOf(page),'classic');assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.skin),'classic');
@@ -89,7 +95,7 @@ try{
  deleted=new Set();
  page=await open('neon');
  await page.locator('[data-tab="settings"]').click();
- await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===16);
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===18);
  assert.equal(await page.locator('#ncs-skins input[value="neon"]').count(),0);
  await page.waitForFunction(()=>mock.extensionSettings.naice_shot.skin==='classic');
  assert.equal(await skinOf(page),'classic');
