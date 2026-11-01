@@ -57,7 +57,9 @@ function messageButtonTemplate(){
   if(messageButtonNode)return messageButtonNode;
   const button=document.createElement('div');button.className='mes_button ncs-mes-draw';button.title='NAIce Shot으로 그리기';
   button.setAttribute('role','button');button.setAttribute('aria-label','이 메시지로 NAIce Shot 그림 그리기');button.tabIndex=0;
-  // The icon is one shared image (CSS background), so a long chat holds empty boxes, not a thousand vector drawings.
+  // The icon is one shared image (CSS background) on an inner box, so a long chat holds empty boxes, not a thousand
+  // vector drawings, and themes that clear every .mes_button background cannot erase it.
+  const icon=document.createElement('span');icon.className='ncs-mes-draw-icon';icon.setAttribute('aria-hidden','true');button.append(icon);
   document.documentElement.style.setProperty('--ncs-brand-icon-url',`url("data:image/svg+xml,${encodeURIComponent(BRAND_ICON)}")`);
   return messageButtonNode=button;
 }
@@ -69,7 +71,7 @@ function decorateMessages(){
     if(!ok){existing?.remove();continue;}
     if(existing)continue;
     const holder=el.querySelector('.extraMesButtons');if(!holder)continue;
-    holder.prepend(messageButtonTemplate().cloneNode(true));
+    holder.append(messageButtonTemplate().cloneNode(true)); // last in the row: themes that clip a crowded row cut from the start
   }
 }
 function setMessageButtons(on){

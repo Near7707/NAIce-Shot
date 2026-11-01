@@ -1,4 +1,4 @@
-/* NAIce Shot skin · 우유: creamy milk white, a soft round glass-bottle feel, milk-carton blue.
+/* NAIce Shot skin · 우유: milk-carton blue header with a milky wave edge, blue selected tab, creamy white body.
    Skins change color, corner radius and shadow only — never icon size, position, fonts or spacing,
    so every skin keeps the same layout. Fixed palette: it does not read SillyTavern theme colors.
    Delete this file to remove the skin; the panel falls back to the classic look. */
@@ -9,7 +9,7 @@
  --ncs-control:#ffffff;--ncs-hover:#f4f7fb;--ncs-surface:#ffffff;
  --ncs-accent:#cfe0fb;--ncs-edge:#3d6fbf;--ncs-accent-text:#2f5fae;--ncs-warning:#b4384c;--ncs-danger-fg:#ffffff;
  --ncs-primary-bg:#3d6fbf;--ncs-primary-fg:#ffffff;--ncs-primary-border:#2f5fae;--ncs-primary-hover:#4c7fd0;
- --ncs-tab-active-bg:#ffffff;--ncs-tab-active-fg:#2f3a4f;--ncs-tab-active-border:#9fbbe6;
+ --ncs-tab-active-bg:#3d6fbf;--ncs-tab-active-fg:#ffffff;--ncs-tab-active-border:#2f5fae;
  --ncs-check-border:#7f8da6;--ncs-check-bg:#ffffff;--ncs-check-on:#3d6fbf;--ncs-check-mark:#ffffff;
  --ncs-arrow:#7f8da6;--ncs-focus:#7fa3dd;
  --ncs-radius:28px;--ncs-radius-card:20px;--ncs-radius-control:16px;
@@ -23,3 +23,9 @@
 #naice-shot-dialog[data-skin="milk"] .ncs-tabs .ncs-active {border-color:#d5e2f6;color:var(--ncs-fg);box-shadow:0 6px 16px rgba(90,110,150,.16),inset 0 1px 0 #ffffff;}
 #naice-shot-dialog[data-skin="milk"] .ncs-character,#naice-shot-dialog[data-skin="milk"] .ncs-history-card {box-shadow:var(--ncs-card-shadow);}
 #ncs-viewer[data-skin="milk"] {--ncsv-accent:#ffffff;--ncsv-accent-fg:#2f3a4f;--ncsv-accent-hover:#eef2f8;--ncsv-pressed:#3d6fbf;}
+
+#naice-shot-dialog[data-skin="milk"] .ncs-header {background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20120%2012%22%20preserveAspectRatio%3D%22none%22%3E%3Cpath%20d%3D%22M0%2012V5Q15%200%2030%205T60%205T90%205T120%205V12Z%22%20fill%3D%22%23fffefb%22/%3E%3C/svg%3E") left bottom/120px 12px repeat-x,linear-gradient(180deg,#4677c6,#3a69b6);}
+#naice-shot-dialog[data-skin="milk"] .ncs-header strong {color:#ffffff;}
+#naice-shot-dialog[data-skin="milk"] .ncs-header small {color:#e3ecfb;}
+#naice-shot-dialog[data-skin="milk"] .ncs-brand .ncs-icon {box-shadow:0 4px 14px rgba(20,40,90,.3);}
+#naice-shot-dialog[data-skin="milk"] .ncs-tabs .ncs-active {background:#3d6fbf;border-color:#2f5fae;color:#ffffff;box-shadow:0 6px 16px rgba(61,111,191,.3);}

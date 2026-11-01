@@ -86,6 +86,13 @@ try{
  page=await browser.newPage({viewport:{width:1280,height:900}});
  await load(page,"m.extensionSettings.naice_shot.messageButton=true;");
  await page.waitForFunction(()=>document.querySelectorAll('#chat .ncs-mes-draw').length===3);
+ // A chat theme that clears every message-button background (as some popular themes do) and clips a crowded row
+ // from the start: the icon survives and the button sits last in the row, so it stays on screen.
+ await page.addStyleTag({content:'.mes_button{background:transparent!important;background-image:none!important;filter:none!important}.extraMesButtons{display:flex;justify-content:flex-end;overflow:hidden;width:24px}'});
+ const look=await page.locator('#chat .mes[mesid="0"] .ncs-mes-draw').evaluate(b=>{const i=b.querySelector('.ncs-mes-draw-icon')??b,r=i.getBoundingClientRect(),row=b.parentElement.getBoundingClientRect();
+  return {img:getComputedStyle(i).backgroundImage,w:r.width,h:r.height,last:b===b.parentElement.lastElementChild,inside:r.left>=row.left-1&&r.right<=row.right+1};});
+ assert.match(look.img,/^url\("data:image\/svg\+xml/,'icon still drawn');assert.equal(look.w,20);assert.equal(look.h,20);
+ assert.ok(look.last,'button is last in the extra menu');assert.ok(look.inside,'icon not clipped by a narrow row');
  await page.close();
  console.log('PASS: brand icon (no gradient ids) in drawer/menu/header; message button off by default, on for AI+user messages only (not system/empty), inside the extra menu, no duplicates, opens scene tab with that target, keyboard, blocked during extraction, removed when off, starts on when saved; 미니멀 keeps color');
 }finally{await browser.close();server.close();}

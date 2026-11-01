@@ -1,3 +1,12 @@
+# v0.1.29 validation — 2026-11-02
+
+- Extension Node suite **117 passed, 0 failed, 0 skipped**; the contrast check caught two 커피우유 colors on the darker latte body (warning text and checkbox outline), both darkened.
+- **25 of 25 browser scripts passed**. `browser-v0123` adds a chat theme that clears every message-button background and clips a narrow row: the icon is still drawn at 20×20, the button is last in the extra menu and inside the row. The same check fails on 0.1.28 ("icon still drawn").
+- Also loaded a real community chat theme's custom CSS into the test page: the icon was drawn.
+- Checked the four redesigned themes by eye at 375px.
+- Pre-push privacy check of the changes: no keys, personal paths, emails or story names.
+- Not exercised: a real SillyTavern instance and its mobile … menu, iPhone Safari.
+
 # v0.1.28 validation — 2026-11-01
 
 - Extension Node suite **117 passed, 0 failed, 0 skipped**, including contrast and no-layout-change checks for the two new themes and the redesigned 크리스마스.

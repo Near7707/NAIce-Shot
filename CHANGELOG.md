@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.29 — 2026-11-02
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- Fixed: the message draw button's icon disappeared under chat themes that clear every message button's background, and was cut off when a crowded button row was clipped from the start. The icon now sits on its own inner box that themes do not restyle, and the button is added at the end of the extra message menu.
+- Four look-alike light themes now differ at a glance. 우유: milk-carton blue header with a milky wave and a blue selected tab. 크림 노트: faintly lined note paper and a caramel index tab. 커피우유: deep latte body, milk-foam header, coffee tab. 초코우유: pink cocoa milk with chocolate dripping from the top and a dark chocolate tab. 미니멀 stays the plain one.
+- `browser-v0123` now loads a hostile chat theme (all button backgrounds cleared, narrow clipped row); it fails on 0.1.28 and passes now.
+
 ## 0.1.28 — 2026-11-01
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

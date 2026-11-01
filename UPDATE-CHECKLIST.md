@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.29
+
+Update the extension and refresh. With 메시지에 그리기 버튼 표시 on, open the … menu of both an AI and a user message under your usual chat theme: the icon should be the last one in the row and fully visible. Then look at 우유, 크림 노트, 커피우유 and 초코우유 — they should be easy to tell apart. No server update is needed.
+
 ## v0.1.28
 
 Update the extension and refresh. Settings → 테마 should be folded and show the current theme on the right; press it to open the list. Try 크리스마스, 눈 오는 밤 and 캔디케인 on phone width: the garland and lights must not cross the subtitle. No server update is needed.
