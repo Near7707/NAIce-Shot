@@ -89,17 +89,23 @@ try {
  assert.match(await page.locator('#ncs-final').inputValue(),/green hair/,'a successful generation consumes the historical prompt once');
  // Restore again to test editing dimensions while a history draft is still pending.
  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-id]').first().click();
- // Presets synchronize both fields; editing a dimension moves back to Custom.
- await page.locator('[data-tab="settings"]').click();await page.locator('#ncs-size-preset').selectOption('landscape');
- assert.equal(await page.locator('#ncs-width').inputValue(),'1216');assert.equal(await page.locator('#ncs-height').inputValue(),'832');
- await page.locator('#ncs-size-preset').selectOption('square');assert.equal(await page.locator('#ncs-width').inputValue(),'1024');assert.equal(await page.locator('#ncs-height').inputValue(),'1024');
- await page.locator('#ncs-width').fill('960');assert.equal(await page.locator('#ncs-size-preset').inputValue(),'custom');
+ // Only the three free sizes are offered, and choosing one sets both dimensions.
+ await page.locator('[data-tab="settings"]').click();
+ assert.deepEqual(await page.locator('#ncs-size-preset option').evaluateAll(o=>o.map(x=>x.value)),['portrait','square','landscape']);
+ assert.equal(await page.locator('#ncs-width').count(),0);assert.equal(await page.locator('#ncs-height').count(),0);
+ await page.locator('#ncs-size-preset').selectOption('landscape');
+ assert.deepEqual(await page.evaluate(()=>[mock.extensionSettings.naice_shot.options.width,mock.extensionSettings.naice_shot.options.height]),[1216,832]);
+ await page.locator('#ncs-size-preset').selectOption('square');
+ assert.deepEqual(await page.evaluate(()=>[mock.extensionSettings.naice_shot.options.width,mock.extensionSettings.naice_shot.options.height]),[1024,1024]);
+ // Steps above the free limit are pulled back to 28.
+ await page.locator('#ncs-steps').fill('40');await page.locator('#ncs-steps').dispatchEvent('change');
+ assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.options.steps),28);assert.equal(await page.locator('#ncs-steps').inputValue(),'28');
  await page.locator('#ncs-size-preset').selectOption('portrait');
  await page.locator('[data-tab="scene"]').click();assert.match(await page.locator('#ncs-final').inputValue(),/brown hair/,'size changes must preserve a restored final prompt');
  // Saved prompts and all NAI options, with explicit overwrite and form synchronization.
  await page.locator('[data-tab="settings"]').click();
  await page.locator('#ncs-positive').fill('watercolor');await page.locator('#ncs-negative').fill('photo');
- const presetOptions={'ncs-width':'832','ncs-height':'1216','ncs-steps':'18','ncs-scale':'5.5','ncs-seed':'-1','ncs-cfg':'0.2'};
+ const presetOptions={'ncs-steps':'18','ncs-scale':'5.5','ncs-seed':'-1','ncs-cfg':'0.2'};
  for(const [id,value] of Object.entries(presetOptions))await page.locator(`#${id}`).fill(value);
  await page.locator('#ncs-sampler').selectOption('k_euler');
  await page.locator('#ncs-common-preset-name').fill('수채화');await click('save-preset');

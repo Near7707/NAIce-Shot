@@ -36,7 +36,14 @@ function settings() {
   const c=ctx();if(!c.extensionSettings[KEY])c.extensionSettings[KEY]=clone(DEFAULTS);
   const s=c.extensionSettings[KEY];for(const [k,v] of Object.entries(DEFAULTS))if(s[k]===undefined)s[k]=clone(v);
   // Noise Schedule is no longer offered: new generations always use the default (karras).
-  s.options={...DEFAULTS.options,...s.options,scheduler:DEFAULTS.options.scheduler};s.version=VERSION;return s;
+  s.options=freeOptions({...DEFAULTS.options,...s.options,scheduler:DEFAULTS.options.scheduler});s.version=VERSION;return s;
+}
+// Only NovelAI's free-sized choices: one of the three sizes and at most 28 steps. Anything else (old custom sizes,
+// imported backups, history drafts) falls back to portrait / 28, so no one is charged Anlas for a size by accident.
+const FREE_STEPS=28;
+function freeOptions(o){
+  const out={...o};if(sizePresetOf(out)==='custom'){out.width=SIZE_PRESETS.portrait.width;out.height=SIZE_PRESETS.portrait.height;}
+  const steps=Number(out.steps);out.steps=Number.isFinite(steps)?Math.min(FREE_STEPS,Math.max(1,Math.round(steps))):DEFAULTS.options.steps;return out;
 }
 const imagePlacement=()=>settings().imagePlacement==='above'?'above':'below';
 function renderChatImages(){renderInlineImages(ctx(),document.getElementById('chat'),keyOf(),{placement:imagePlacement()});if(messageButtonsOn())decorateMessages();}
@@ -153,7 +160,7 @@ function say(message,error=false) {
 }
 function changed(){revision++;finalOverride=null;optionsOverride=null;updateFinal({force:true});}
 // History restore uses the stored options for the next generation only; the settings tab keeps the user's own values.
-function effectiveOptions(){return optionsOverride??settings().options;}
+function effectiveOptions(){return optionsOverride?freeOptions(optionsOverride):settings().options;}
 function setBusy(value,owner=0) {busy=value;busyOwner=value?owner:0;for(const b of dialog.querySelectorAll('[data-action="extract"],[data-action="generate"],[data-action="blank"],[data-action="same-seed"],[data-action="new-seed"],[data-action="convert-profile"]'))b.disabled=value;updateAttachButtons();}
 async function api(route,{method='GET',body}={}) {
   const response=await fetch(`${API}${route}`,{method,headers:ctx().getRequestHeaders(),body:body?JSON.stringify(body):undefined});
@@ -231,7 +238,9 @@ async function useSkin(id,{save=false}={}) {
   if(save||(skinsDetected&&applied.id!==s.skin)){s.skin=applied.id;ctx().saveSettingsDebounced();}
   renderSkins();
   const missing=skinsDetected&&id!==applied.id;
-  $('ncs-theme-current').textContent=skinById(applied.id)?.name??'';
+  // The folded card shows only the current theme's colors; its name is for screen readers and the tooltip.
+  const now=skinById(applied.id),cur=$('ncs-theme-current');cur.innerHTML=(now?.swatch??[]).map(c=>`<span style="background:${esc(c)}"></span>`).join('');
+  cur.setAttribute('aria-label',`지금 테마: ${now?.name??''}`);cur.title=now?.name??'';
   $('ncs-skin-state').textContent=missing?`${skinById(id)?.name??id} 테마 파일을 찾지 못해 기본으로 바꿨어요.`:'';
   if(missing&&save)notice($('ncs-skin-state').textContent,true);
   return applied.id;
@@ -240,7 +249,7 @@ function renderSettings() {
   const s=settings();
   $('ncs-model').innerHTML=Object.entries(MODELS).map(([id,m])=>`<option value="${id}">${m.label}</option>`).join('');
   for(const [id,k] of [['positive','positive'],['negative','negative'],['recent','recent'],['format','format']])$(`ncs-${id}`).value=s[k];
-  for(const [id,k] of [['model','model'],['width','width'],['height','height'],['steps','steps'],['scale','scale'],['seed','seed'],['cfg','cfgRescale'],['sampler','sampler']])$(`ncs-${id}`).value=s.options[k];
+  for(const [id,k] of [['model','model'],['steps','steps'],['scale','scale'],['seed','seed'],['cfg','cfgRescale'],['sampler','sampler']])$(`ncs-${id}`).value=s.options[k];
   $('ncs-include-user').checked=s.includeUser;$('ncs-schema').checked=s.structuredOutput;$('ncs-retain-raw').checked=s.retainRawExtraction===true;$('ncs-allow-anlas').checked=s.allowAnlas;
   $('ncs-image-placement').value=imagePlacement();$('ncs-message-button').checked=messageButtonsOn();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
   renderImagePresets();renderExtractionProfiles();$('ncs-extraction-max-tokens').value=s.extractionMaxTokens;
@@ -991,7 +1000,7 @@ function bindEvents() {
       if(el.id==='ncs-extraction-profile'){settings().extractionProfileId=el.value;revision++;ctx().saveSettingsDebounced();renderExtractionProfiles();return;}
       if(el.id==='ncs-extraction-max-tokens'){settings().extractionMaxTokens=Number(el.value);revision++;ctx().saveSettingsDebounced();return;}
       if(el.id==='ncs-size-preset'){
-        const preset=SIZE_PRESETS[el.value];if(preset){optionsOverride=null;settings().options.width=preset.width;settings().options.height=preset.height;$('ncs-width').value=preset.width;$('ncs-height').value=preset.height;ctx().saveSettingsDebounced();revision++;updateFinal();updatePresetState();}return;
+        const preset=SIZE_PRESETS[el.value];if(preset){optionsOverride=null;const o=settings().options;o.width=preset.width;o.height=preset.height;/* set together: a half-changed size would read as custom */ctx().saveSettingsDebounced();revision++;updateFinal();updatePresetState();}return;
       }
       if(el.dataset.final!==undefined){editFinalField(el);return;}
       if(el.id==='ncs-final'){
@@ -1009,9 +1018,9 @@ function bindEvents() {
       if(el.id==='ncs-message-button'){settings().messageButton=el.checked;ctx().saveSettingsDebounced();setMessageButtons(el.checked);notice(el.checked?'메시지의 추가 메뉴(…)에 그리기 버튼을 넣었어요.':'메시지의 그리기 버튼을 뺐어요.');return;}
       if(el.id==='ncs-image-placement'){settings().imagePlacement=el.value==='above'?'above':'below';ctx().saveSettingsDebounced();renderChatImages();notice(el.value==='above'?'채팅 속 그림을 메시지 글 위에 보여줘요.':'채팅 속 그림을 메시지 글 아래에 보여줘요.');return;}
       const settingMap={'ncs-positive':'positive','ncs-negative':'negative','ncs-format':'format','ncs-recent':'recent','ncs-include-user':'includeUser','ncs-schema':'structuredOutput','ncs-retain-raw':'retainRawExtraction','ncs-allow-anlas':'allowAnlas'};
-      const optionMap={'ncs-model':'model','ncs-width':'width','ncs-height':'height','ncs-steps':'steps','ncs-scale':'scale','ncs-seed':'seed','ncs-cfg':'cfgRescale','ncs-sampler':'sampler'};
+      const optionMap={'ncs-model':'model','ncs-steps':'steps','ncs-scale':'scale','ncs-seed':'seed','ncs-cfg':'cfgRescale','ncs-sampler':'sampler'};
       if(settingMap[el.id])settings()[settingMap[el.id]]=el.type==='checkbox'?el.checked:el.type==='number'?Number(el.value):el.value;
-      if(optionMap[el.id]){optionsOverride=null;settings().options[optionMap[el.id]]=el.type==='number'?Number(el.value):el.value;}
+      if(optionMap[el.id]){optionsOverride=null;settings().options[optionMap[el.id]]=el.type==='number'?Number(el.value):el.value;if(el.id==='ncs-steps'&&Number(el.value)>FREE_STEPS){settings().options.steps=FREE_STEPS;el.value=FREE_STEPS;}}
       if(settingMap[el.id]||optionMap[el.id]){
         ctx().saveSettingsDebounced();
         // Only the common prompts change the assembled prompt; other settings must not discard a manual edit.

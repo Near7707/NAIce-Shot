@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.30 — 2026-11-02
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- Message draw button: the icon now takes the size of the font icons beside it, so it lines up with them. SillyTavern cuts a crowded extra-menu row from the start (some chat themes make the row narrow), which hid other extensions' buttons; while our button is in a row, that row wraps to a second line instead, so no button disappears.
+- Image size: only the three free sizes remain (세로 832×1216, 정사각형 1024×1024, 가로 1216×832), with the note "세 크기 모두 Opus 무료 범위예요." Custom width/height are gone and steps are capped at 28, so no one is charged Anlas for a size or step count by accident. Saved custom sizes, imported backups and history drafts fall back to 세로 and 28 steps. The V5 note under "Anlas 사용 가능성 허용" now says V5 needs that box and that the remaining free usage is only visible on the NovelAI site.
+- 테마 is now a card at the top of Settings. Folded, it shows only the current theme's colors (the name is read out to screen readers and shown as a tooltip); pressing it opens the list.
+- Removed the 코코아 theme; anyone who had it gets the default look. 초코우유's background is lighter again.
+- Added `tests/browser-v0130.mjs` (free-size fallback and notes); `browser-v0123` now checks the icon size and that no button in a crowded row is cut.
+
 ## 0.1.29 — 2026-11-02
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

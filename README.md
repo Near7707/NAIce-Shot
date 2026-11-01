@@ -1,4 +1,4 @@
-# NAIce Shot v0.1.29
+# NAIce Shot v0.1.30
 
 실리태번의 RP 장면을 추출해 NovelAI 그림을 생성하는 비공식 확장이에요. 캐릭터 외형 프로필, 장면·복장 편집, 생성 프리셋, 이미지 이력과 채팅 첨부를 지원해요.
 
@@ -83,11 +83,12 @@ This repository contains the browser extension. The UI is in Korean. The compani
 - Keep outfits per chat, with manual editing and outfit locks.
 - Edit assembled prompts through individual fields or advanced JSON.
 - Save shared prompt and generation presets, including model, size, steps, Guidance, seed, CFG Rescale and sampler. (Noise Schedule is fixed to the default, karras.)
+- Image size is one of three free sizes (832×1216, 1024×1024, 1216×832) and steps are capped at 28, so generations stay inside NovelAI's Opus free conditions for size and steps. V5 still needs "Anlas 사용 가능성 허용"; check its remaining free usage on the NovelAI site.
 - Generate one image at a time, inspect it in a zoomable viewer and download the original PNG.
 - Attach images below existing messages without adding them to the RP message text or native media fields.
 - Browse current-chat or all-chat history, filter by chat and delete individual or selected images.
 - Optional draw button in each message's extra menu (Settings → 메시지에 그리기 버튼 표시, off by default): opens the scene tab with that message selected.
-- Choose from eighteen visual themes in Settings → 테마 (folded by default; the current theme shows next to the title): 기본 (follows the SillyTavern theme), 글래스, 미니멀, 파스텔 (sky blue and butter yellow), 크림 노트 (lined note paper), 말차 라떼, 딥 블루 (indigo night with sky-blue accents), 라벤더 (lavender with a purple-pink-peach glow), **애플 크림** (cream paper, red apple buttons and green leaf accents), **코코아** (warm dark cocoa, ivory text and softly raised vanilla-cream buttons), three Christmas themes — **크리스마스** (evergreen with a snow-dusted tree, a fir garland and snow-capped buttons), **눈 오는 밤** (navy night, falling snow, string lights and a crescent moon) and **캔디케인** (cream with candy stripes, holly and green tabs) — and five milk skins: 우유 (milk-carton blue header), 딸기우유, 바나나우유, 초코우유 (chocolate drips), 커피우유 (latte with a foam header).
+- Choose from seventeen visual themes with the 테마 card at the top of Settings (folded by default; it shows the current theme's colors): 기본 (follows the SillyTavern theme), 글래스, 미니멀, 파스텔 (sky blue and butter yellow), 크림 노트 (lined note paper), 말차 라떼, 딥 블루 (indigo night with sky-blue accents), 라벤더 (lavender with a purple-pink-peach glow), **애플 크림** (cream paper, red apple buttons and green leaf accents), three Christmas themes — **크리스마스** (evergreen with a snow-dusted tree, a fir garland and snow-capped buttons), **눈 오는 밤** (navy night, falling snow, string lights and a crescent moon) and **캔디케인** (cream with candy stripes, holly and green tabs) — and five milk skins: 우유 (milk-carton blue header), 딸기우유, 바나나우유, 초코우유 (chocolate drips), 커피우유 (latte with a foam header).
 
 The model menu currently includes V5 Full/Curated and V4.5 Full/Curated. External model availability and account eligibility are not validated by this review.
 

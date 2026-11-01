@@ -4,7 +4,7 @@
    Delete this file to remove the skin; the panel falls back to the classic look. */
 #naice-shot-dialog[data-skin="chocomilk"] {
  color-scheme:light;
- --ncs-bg:#f3dcd2;--ncs-fg:#3a2219;--ncs-muted:#6b4e42;
+ --ncs-bg:#f8eae4;--ncs-fg:#3a2219;--ncs-muted:#6b4e42;
  --ncs-border:#e1c8ba;--ncs-rule:#f0e1d8;
  --ncs-control:#fffaf7;--ncs-hover:#f3e4da;--ncs-surface:#fffaf7;
  --ncs-accent:#c99a80;--ncs-edge:#6a3a26;--ncs-accent-text:#6a3a26;--ncs-warning:#a8321f;--ncs-danger-fg:#ffffff;
@@ -23,7 +23,7 @@
 #naice-shot-dialog[data-skin="chocomilk"] .ncs-tabs .ncs-active {color:var(--ncs-fg);box-shadow:0 4px 12px rgba(110,64,48,.2);}
 #ncs-viewer[data-skin="chocomilk"] {--ncsv-accent:#ecd6c8;--ncsv-accent-fg:#3a2219;--ncsv-accent-hover:#f5e6dc;--ncsv-pressed:#5b3222;}
 
-#naice-shot-dialog[data-skin="chocomilk"] {background:linear-gradient(180deg,#f7e3db 0%,#efd2c6 100%);}
+#naice-shot-dialog[data-skin="chocomilk"] {background:linear-gradient(180deg,#fcf3ef 0%,#f6e6df 100%);}
 #naice-shot-dialog[data-skin="chocomilk"] .ncs-header {background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20120%2024%22%20preserveAspectRatio%3D%22none%22%3E%3Cpath%20d%3D%22M0%200H120V7Q114%207%20113%2012Q112%2020%20108%2020Q104%2020%20104%2012Q103%207%2096%208Q90%209%2089%2015Q88%2022%2084%2022Q80%2022%2080%2014Q79%208%2070%208Q62%208%2061%2011Q60%2016%2056%2016Q52%2016%2052%2011Q51%207%2042%208Q34%209%2033%2017Q32%2024%2028%2024Q24%2024%2024%2016Q23%208%2014%208Q8%208%207%2012Q6%2016%203%2016Q0%2016%200%2011Z%22%20fill%3D%22%235b3222%22/%3E%3C/svg%3E") left top/150px 14px repeat-x;}
-#naice-shot-dialog[data-skin="chocomilk"] .ncs-tabs button {background-color:#f6e4dc;}
+#naice-shot-dialog[data-skin="chocomilk"] .ncs-tabs button {background-color:#f3e2da;}
 #naice-shot-dialog[data-skin="chocomilk"] .ncs-tabs .ncs-active {background:#5b3222;color:#fff3ea;box-shadow:0 4px 12px rgba(90,40,20,.3);}

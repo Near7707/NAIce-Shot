@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.30
+
+Update the extension and refresh. Settings: the 테마 card is first and shows only color chips; press it to open the list. 이미지 크기 offers three sizes only and 스텝 stops at 28. With the message button on, open … on a character message under a theme with a narrow button row: every button, including ours, should be visible (the row may wrap to two lines). No server update is needed.
+
 ## v0.1.29
 
 Update the extension and refresh. With 메시지에 그리기 버튼 표시 on, open the … menu of both an AI and a user message under your usual chat theme: the icon should be the last one in the row and fully visible. Then look at 우유, 크림 노트, 커피우유 and 초코우유 — they should be easy to tell apart. No server update is needed.

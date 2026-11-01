@@ -1,3 +1,11 @@
+# v0.1.30 validation — 2026-11-02
+
+- Extension Node suite **116 passed, 0 failed, 0 skipped** (one fewer because the removed 코코아 theme no longer has a contrast test).
+- **26 of 26 browser scripts passed**, including the new `browser-v0130` (saved 1536×1024 / 40 steps come back as 832×1216 / 28; no custom size entry; steps max 28; both notes shown) and an updated `browser-v0123` (icon sized like a font icon; crowded row wraps so no button is cut). `browser-skins` checks the swatch-only card, that it comes first in Settings, and that a saved 코코아 falls back to the default.
+- Rebuilt a message from SillyTavern's own message template and stylesheet with a shared community chat theme applied, at a narrow width: before, the first buttons of the row were cut off; after, the row wraps and every button shows, with our icon level with the others.
+- Pre-push privacy check of the changes: no keys, personal paths, emails or story names.
+- Not exercised: a real SillyTavern instance, iPhone Safari, a live NovelAI generation.
+
 # v0.1.29 validation — 2026-11-02
 
 - Extension Node suite **117 passed, 0 failed, 0 skipped**; the contrast check caught two 커피우유 colors on the darker latte body (warning text and checkbox outline), both darkened.

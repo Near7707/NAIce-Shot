@@ -35,23 +35,25 @@ const skinOf=page=>page.locator('#naice-shot-dialog').getAttribute('data-skin');
 try{
  let page=await open();
  await page.locator('[data-tab="settings"]').click();
- await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===18);
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===17);
  assert.equal(await skinOf(page),'classic');assert.equal(await page.locator('#ncs-skin-css').count(),0,'classic loads no extra file');
  assert.equal(await page.locator('.ncs-tabs [data-tab] .ncs-tab-icon svg').count(),4,'tab icons');
  // The theme list starts folded; its summary names the theme in use, and opening it shows the cards.
  assert.equal(await page.locator('#ncs-theme-box').evaluate(el=>el.open),false,'theme list folded by default');
  assert.equal(await page.locator('#ncs-skins .ncs-skin').first().isVisible(),false);
- assert.equal(await page.locator('#ncs-theme-current').textContent(),'기본');
+ assert.equal(await page.locator('#ncs-theme-current').getAttribute('aria-label'),'지금 테마: 기본');assert.equal((await page.locator('#ncs-theme-current').innerText()).trim(),'','the card shows colors only, no text');
+ assert.equal(await page.locator('#ncs-theme-current span').count(),4,'four color chips');
+ assert.equal(await page.locator('[data-page="settings"] > .ncs-section').first().locator('#ncs-theme-box').count(),1,'theme card is the first thing in Settings');
  await page.locator('.ncs-theme-summary').click();assert.equal(await page.locator('#ncs-skins .ncs-skin').first().isVisible(),true);
 
  // Switch and save; only the chosen file is loaded.
- for(const id of ['glass','minimal','cream','matcha','deepblue','lavender','milk','strawberrymilk','bananamilk','chocomilk','coffeemilk','apple','cocoa','christmas','pastel']){
+ for(const id of ['glass','minimal','cream','matcha','deepblue','lavender','milk','strawberrymilk','bananamilk','chocomilk','coffeemilk','apple','christmas','pastel']){
   await page.locator(`#ncs-skins input[value="${id}"]`).check({force:true});
   await page.waitForFunction(id=>document.querySelector('#naice-shot-dialog').dataset.skin===id,id);
   assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.skin),id);
   assert.equal(await page.locator('link#ncs-skin-css').count(),1);assert.match(await page.locator('link#ncs-skin-css').getAttribute('href'),new RegExp(`skins/${id}\\.css$`));
   assert.equal(await page.locator('.ncs-skin.ncs-selected input').getAttribute('value'),id);
-  assert.equal(await page.locator('#ncs-theme-current').textContent(),await page.locator('.ncs-skin.ncs-selected strong').textContent());
+  assert.equal(await page.locator('#ncs-theme-current').getAttribute('aria-label'),'지금 테마: '+await page.locator('.ncs-skin.ncs-selected strong').textContent());
  }
  // Fixed palette: the same pastel colors under a light and a dark ST theme, checkbox included.
  const sample=async()=>{await page.evaluate(()=>{document.querySelector('#ncs-schema').checked=true;});await page.waitForTimeout(300); // let the color transition finish
@@ -70,7 +72,7 @@ try{
  await page.keyboard.press('Escape');
  // Mobile: every skin keeps the settings tab inside 375px.
  await page.setViewportSize({width:375,height:760});await page.locator('[data-tab="settings"]').click();
- for(const id of ['classic','glass','minimal','pastel','cream','matcha','deepblue','lavender','milk','strawberrymilk','bananamilk','chocomilk','coffeemilk','apple','cocoa','christmas']){
+ for(const id of ['classic','glass','minimal','pastel','cream','matcha','deepblue','lavender','milk','strawberrymilk','bananamilk','chocomilk','coffeemilk','apple','christmas']){
   await page.locator(`#ncs-skins input[value="${id}"]`).check({force:true});
   await page.waitForFunction(id=>document.querySelector('#naice-shot-dialog').dataset.skin===id,id);
   for(const tab of ['scene','profiles','settings','history']){
@@ -86,16 +88,22 @@ try{
  deleted=new Set(['pastel.css']);
  page=await open('pastel');
  await page.locator('[data-tab="settings"]').click();
- await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===17);
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===16);
  assert.equal(await page.locator('#ncs-skins input[value="pastel"]').count(),0);
  await page.waitForFunction(()=>/찾지 못해 기본으로/.test(document.querySelector('#ncs-skin-state').textContent));
  assert.equal(await skinOf(page),'classic');assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.skin),'classic');
  await page.close();
- // The removed neon skin: someone who had it saved gets the built-in look.
+ // The removed cocoa skin: someone who had it saved gets the built-in look.
  deleted=new Set();
+ page=await open('cocoa');
+ await page.locator('[data-tab="settings"]').click();
+ await page.waitForFunction(()=>mock.extensionSettings.naice_shot.skin==='classic');
+ assert.equal(await skinOf(page),'classic');assert.equal(await page.locator('#ncs-skins input[value="cocoa"]').count(),0);
+ await page.close();
+ // The removed neon skin: someone who had it saved gets the built-in look.
  page=await open('neon');
  await page.locator('[data-tab="settings"]').click();
- await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===18);
+ await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===17);
  assert.equal(await page.locator('#ncs-skins input[value="neon"]').count(),0);
  await page.waitForFunction(()=>mock.extensionSettings.naice_shot.skin==='classic');
  assert.equal(await skinOf(page),'classic');
