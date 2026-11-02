@@ -1,3 +1,12 @@
+# v0.1.36 validation — 2026-11-03
+
+- Extension Node suite **126 passed**; **29 of 29 browser scripts passed**. `browser-v0133` now checks:
+  - the new names and the chat-default note
+  - pressing "✓ 채팅 기본 복장" clears the default while keeping the lock
+  - "정하지 않음" clears too
+  - unlocking with no default removes the entry, and locking alone sets no default
+  - the button turns off as soon as 이번 그림 복장 is edited
+
 # v0.1.35 validation — 2026-11-03
 
 - Extension Node suite **126 passed** (new: English-only rule in the prompt; Korean found in action/location but not in titles or names).

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.36 — 2026-11-03
+
+**Update: extension only.** Server 0.1.8 is unchanged.
+
+- Plain names on the scene card:
+  - **채팅 기본 복장**: button "기본 복장 지정", which turns into "✓ 채팅 기본 복장"
+  - **복장 잠금** (🔒)
+  - **이번 그림 복장**
+  - **옷장에 저장**
+- One-line notes. The chat default reads "메시지에 복장 설명이 없으면 이 채팅에서 기본으로 입는 옷이에요."
+- Fixed: a chat default could not be cleared. Pressing "✓ 채팅 기본 복장" again clears it, and so does "정하지 않음 · 프로필 기본 복장" in the picker. The chat then follows the profile's default outfit, and a lock stays on if it was on.
+- Locking alone no longer sets a chat default outfit.
+- The button's state follows typing in 이번 그림 복장 immediately, so a stale "✓" can never clear a default by mistake.
+
 ## 0.1.35 — 2026-11-03
 
 **Update: extension only.** Server 0.1.8 is unchanged.
