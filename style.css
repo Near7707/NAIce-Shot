@@ -379,3 +379,7 @@
 #naice-shot-dialog .ncs-character select.ncs-on {border:2px solid var(--ncs-edge);background-color:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);font-weight:600;}
 #naice-shot-dialog .ncs-character button.ncs-on {border:2px solid var(--ncs-edge);background:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);font-weight:700;}
 #naice-shot-dialog .ncs-character .ncs-check.ncs-on {color:var(--ncs-accent-text);font-weight:700;}
+/* Temporary people (임시 인물). */
+#naice-shot-dialog .ncs-character.ncs-temp {border-style:dashed;}
+#naice-shot-dialog .ncs-temp-check {margin:8px 0;padding:8px 10px;border:1.5px solid var(--ncs-warning);border-radius:var(--ncs-radius-control);color:var(--ncs-fg);line-height:1.5;}
+#naice-shot-dialog .ncs-temp-check button {margin-left:6px;}

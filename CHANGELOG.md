@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.37 — 2026-11-03
+
+**Update: extension only.** Server 0.1.8 is unchanged.
+
+- Temporary people (임시 인물): draw someone without making a profile.
+  - **임시로 그리기** next to a name in the "no profile" list brings along the expression, action, position and clothes the extraction found.
+  - **임시 인물 추가** in the add row starts a blank one. It also works with no profiles at all.
+  - Each card has a name (display only, never in the image prompt), a subject tag, appearance, clothes, expression, action and position.
+  - The person counts toward the boy/girl/other tags and gets their own character slot.
+  - A note appears when appearance is empty.
+- Lifetime:
+  - kept through regeneration and saved in history (restoring brings them back)
+  - removed with **빼기**, by a chat change or by 직접 입력
+  - on re-extraction and on switching candidates they stay, but the card asks "지금 장면에도 있는지 확인해 주세요" unless the AI found that name again, in which case its fresh expression, action and clothes are used and the appearance is kept
+- **프로필로 저장** opens the profile form filled with the name, subject, appearance and clothes, but not this scene's expression or action. Saving turns the temporary slot into the new profile's slot in every candidate, so nobody is doubled.
+- Added `tests/browser-v0137.mjs`.
+
 ## 0.1.36 — 2026-11-03
 
 **Update: extension only.** Server 0.1.8 is unchanged.

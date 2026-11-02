@@ -324,12 +324,14 @@ function saveProfile() {
     subject:$('ncs-profile-subject').value,appearance:$('ncs-profile-appearance').value,defaultOutfit:$('ncs-profile-outfit').value,
     positive:$('ncs-profile-positive').value,negative:$('ncs-profile-negative').value,cardKey:$('ncs-binding').dataset.cardKey??'',wardrobe:readWardrobeForm()};
   const bind=pendingBind&&pendingBind.session===profileFormSession&&pendingBind.chatKey===keyOf()?pendingBind:null;
+  const fromTemp=pendingTempConvert&&pendingTempConvert.session===profileFormSession&&pendingTempConvert.chatKey===keyOf();
   if(bind&&(bind.role==='character'||bind.role==='member')&&bind.avatar&&!p.cardKey&&!s.profiles.some(x=>x.id!==id&&x.cardKey===bind.avatar))p.cardKey=bind.avatar;
   const next=s.profiles.filter(p=>p.id!==id);next.push(p);s.profiles=validateProfiles(next);ctx().saveSettingsDebounced();
   pendingBind=null; // only after the profile was accepted, so fixing a validation error keeps the planned link
   if(bind?.role==='user')setChatBinding('userProfileId',id);
   editProfile(id);renderProfiles();renderScene();changed();
   if(profileContext==='scene'){
+    if(fromTemp)convertTemp(s.profiles.find(x=>x.id===id));
     const saved=s.profiles.find(x=>x.id===id),{restored}=attachSceneProfile(scene,saved,[draftName,...profileSceneNames(saved)]);
     placeProfileForm('profiles');changed();renderScene();notice(`${saved.name} 프로필을 저장하고 장면에 넣었어요.${restored?' 추출해 둔 표정·행동·복장도 채웠어요.':' 장면 정보가 비어 있으면 장면 추출을 다시 눌러 확인할 수 있어요.'}`);
   }else notice('프로필을 저장했어요.');
@@ -468,11 +470,13 @@ async function proceedMissingDialog(){
 }
 function renderSceneExtras() {
   const none=!settings().profiles.length;
-  $('ncs-no-profiles').hidden=!none||profileContext==='scene';$('ncs-add-row').hidden=none;
+  $('ncs-no-profiles').hidden=!none||profileContext==='scene';
+  // Without profiles only "임시 인물 추가" is offered here; the empty-state box above handles the first profile.
+  for(const el of [$('ncs-add-profile'),dialog.querySelector('[data-action="add-character"]'),$('ncs-add-row')?.querySelector?.('[data-action="quick-profile"]')])if(el)el.hidden=none;
   const {main,others}=missingState(),names=others;
   renderMissingMain(main);renderLeftOut(main,others);
   const profiles=settings().profiles;
-  $('ncs-unregistered').innerHTML=names.length?`<small>장면에 보이지만 프로필이 없는 인물이에요. 조연이나 잠깐 나온 인물이면 그냥 두셔도 돼요. 프로필을 만들거나 연결하면 추출해 둔 표정·행동·복장을 함께 불러와요.</small>${names.map(n=>`<div class="ncs-unregistered-person"><div class="ncs-row"><button type="button" class="ncs-chip-add" data-quick-profile-name="${esc(n)}">＋ ${esc(n)} 프로필 만들기</button>${profiles.length?`<button type="button" data-missing-do="link" data-missing-name="${esc(n)}" aria-expanded="${linkTarget===n}">${esc(n)} · 기존 프로필 연결</button>`:''}</div>${renderMissingLink(n,{role:'other'},profiles)}</div>`).join('')}`:'';
+  $('ncs-unregistered').innerHTML=names.length?`<small>장면에 보이지만 프로필이 없는 인물이에요. 그냥 두면 그림에서 빠져요. 이번 장면에만 그리려면 임시로 그리기, 다음에도 쓰려면 프로필을 만들거나 연결하세요. 추출해 둔 표정·행동·복장을 함께 불러와요.</small>${names.map(n=>`<div class="ncs-unregistered-person"><div class="ncs-row"><button type="button" class="ncs-chip-add" data-quick-profile-name="${esc(n)}">＋ ${esc(n)} 프로필 만들기</button><button type="button" data-temp-from="${esc(n)}">${esc(n)} · 임시로 그리기</button>${profiles.length?`<button type="button" data-missing-do="link" data-missing-name="${esc(n)}" aria-expanded="${linkTarget===n}">${esc(n)} · 기존 프로필 연결</button>`:''}</div>${renderMissingLink(n,{role:'other'},profiles)}</div>`).join('')}`:'';
 }
 async function convertProfile({source='',truncated=false}={}) {
   if(busy)return;
@@ -518,7 +522,8 @@ function switchMoment(index){
   const list=scene.moments??[];if(!list[index]||index===scene.momentIndex)return;
   // A prompt restored from history is not the user's own edit; only a hand edit asks first.
   if(finalOverride&&finalOverride!==restoredFinal&&!confirm('직접 고친 최종 프롬프트가 있어요. 다른 순간으로 바꾸면 고른 순간의 조립 결과로 돌아가요. 바꿀까요?'))return;
-  syncMoment();Object.assign(scene,clone(list[index].scene));scene.momentIndex=index;
+  const temps=scene.characters.filter(c=>c.temp);
+  syncMoment();Object.assign(scene,clone(list[index].scene));scene.momentIndex=index;carryTemps(temps,scene);
   lastLink=null;linkTarget=null;changed();renderScene({forceFinal:true});
   notice(`"${list[index].title||`후보 ${index+1}`}" 순간으로 바꿨어요. 후보마다 고친 내용은 따로 남아 있어요.`);
 }
@@ -592,12 +597,66 @@ function saveToWardrobe(id){
   if($('ncs-profile-id').value===id)addWardrobeRow(item);
   wardrobeTarget=null;renderScene();notice(`"${name}"을(를) ${p.name}의 옷장에 넣었어요. 다른 채팅에서도 골라 입을 수 있어요.`);
 }
+const tempPerson=(name='',detail=null)=>({id:`tmp-${uuid()}`,temp:true,name,subject:'other',appearance:'',outfit:detail?.outfit??'',
+  entityName:name,expression:detail?.expression??'',action:detail?.action??'',position:detail?.position??'auto',included:true,needsCheck:false,manualOutfit:null,outfitMode:'unchanged'});
+function tempCard(c){
+  const id=esc(c.id),sel=(v,l)=>`<option value="${v}" ${c.subject===v?'selected':''}>${l}</option>`;
+  return `<article class="ncs-character ncs-temp" data-character="${id}"><div class="ncs-character-head"><label class="ncs-check"><input type="checkbox" data-field="included" ${c.included!==false?'checked':''}><strong>${esc(c.name||'이름 없는 인물')}</strong></label><button data-remove="${id}" aria-label="임시 인물 빼기">빼기</button></div>
+    <div class="ncs-clothes-badges"><span class="ncs-clothes-badge ncs-temp-badge">임시 인물</span></div>
+    ${c.needsCheck?`<div class="ncs-temp-check" role="status">⚠ 장면이 바뀌었어요. 이 인물이 지금 장면에도 있는지, 표정·행동이 맞는지 확인해 주세요. <button type="button" data-temp-confirm="${id}">확인했어요</button></div>`:''}
+    <small>프로필로 저장하지 않고 이 장면에만 그려요. 이름은 화면 표시용이라 그림 프롬프트엔 들어가지 않아요.</small>
+    <div class="ncs-grid"><label>이름<input data-temp="name" maxlength="80" value="${esc(c.name)}" placeholder="예: 길거리 상인"></label><label>인원 태그<select data-temp="subject">${sel('girl','girl')}${sel('boy','boy')}${sel('other','other')}</select></label></div>
+    <label>외형<textarea data-temp="appearance" rows="2" placeholder="예: middle-aged man, short grey hair, beard">${esc(c.appearance)}</textarea></label>
+    <label>복장<textarea data-temp="outfit" rows="2" placeholder="예: apron, white shirt">${esc(c.outfit)}</textarea></label>
+    <div class="ncs-grid"><label>표정<textarea data-field="expression" rows="2">${esc(c.expression)}</textarea></label><label>행동·포즈<textarea data-field="action" rows="2">${esc(c.action)}</textarea></label></div>
+    <label>위치<select data-field="position">${['auto','left','center','right'].map((x,i)=>`<option value="${x}" ${c.position===x?'selected':''}>${['AI 자동','왼쪽','가운데','오른쪽'][i]}</option>`).join('')}</select></label>
+    <div class="ncs-row"><button type="button" data-temp-save="${id}">프로필로 저장</button></div><small>프로필로 저장하면 다음부터 다른 장면·채팅에서도 알아봐요. 이번 장면의 표정·행동은 프로필에 넣지 않아요.</small>
+  </article>`;
+}
+// From the "no profile" list or the add row. A name the extraction already saw brings its expression, action and clothes.
+function addTemp(name=''){
+  const detail=name?(scene.unregisteredDetails??[]).find(d=>identityKey(d.entityName)===identityKey(name)):null;
+  const t=tempPerson(name,detail);scene.characters.push(t);
+  if(name){scene.unregistered=(scene.unregistered??[]).filter(n=>identityKey(n)!==identityKey(name));scene.unregisteredDetails=(scene.unregisteredDetails??[]).filter(d=>identityKey(d.entityName)!==identityKey(name));}
+  changed();renderScene();
+  notice(name?`"${name}"을(를) 임시 인물로 넣었어요. 외형을 채워 주세요.${detail?' 추출해 둔 표정·행동·복장은 채웠어요.':''}`:'임시 인물을 넣었어요. 외형·복장·행동을 채워 주세요.');
+  $('ncs-characters').querySelector(`[data-character="${t.id}"] [data-temp="${name?'appearance':'name'}"]`)?.focus({preventScroll:true});
+}
+// A new extraction or another candidate keeps temporary people, but never assumes they are still there:
+// a name the AI found again takes its fresh fields; otherwise the card asks for a check.
+function carryTemps(temps,part){
+  for(const t of temps){
+    if(part.characters.some(c=>c.id===t.id))continue;
+    const detail=t.name?(part.unregisteredDetails??[]).find(d=>identityKey(d.entityName)===identityKey(t.name)):null;
+    const copy={...clone(t),needsCheck:!detail};
+    if(detail){copy.expression=detail.expression??'';copy.action=detail.action??'';if(detail.position&&detail.position!=='auto')copy.position=detail.position;if(detail.outfitMode==='replace'&&detail.outfit)copy.outfit=detail.outfit;
+      part.unregistered=(part.unregistered??[]).filter(n=>identityKey(n)!==identityKey(t.name));part.unregisteredDetails=part.unregisteredDetails.filter(d=>d!==detail);}
+    part.characters.push(copy);
+  }
+}
+let pendingTempConvert=null;
+function tempToProfile(id){
+  const t=scene.characters.find(c=>c.id===id&&c.temp);if(!t)return;
+  openQuickProfile(t.name);setProfileMode('direct',{save:false});
+  $('ncs-profile-name').value=t.name;$('ncs-profile-subject').value=['boy','girl','other'].includes(t.subject)?t.subject:'other';
+  $('ncs-profile-appearance').value=t.appearance??'';$('ncs-profile-outfit').value=t.outfit??'';
+  pendingTempConvert={id,session:profileFormSession,chatKey:keyOf()};
+  notice('임시 인물의 이름·외형·복장으로 프로필 칸을 채웠어요. 확인하고 "저장하고 장면에 추가"를 눌러 주세요.');
+}
+// After the profile is saved, the temporary slot becomes that profile's slot (in every candidate), so nobody is doubled.
+function convertTemp(profile){
+  const convert=c=>c.id===pendingTempConvert.id&&c.temp?{id:profile.id,entityName:c.name||profile.name,included:c.included!==false,expression:c.expression,action:c.action,position:c.position,positionManual:c.positionManual,outfitMode:'unchanged',outfit:'',manualOutfit:c.outfit?c.outfit:null}:c;
+  scene.characters=scene.characters.map(convert);
+  for(const m of scene.moments??[])m.scene.characters=m.scene.characters.map(convert);
+  pendingTempConvert=null;
+}
 function renderScene({forceFinal=false}={}) {
   renderMoments();
   for(const k of ['location','lighting','camera','interaction'])$(`ncs-${k}`).value=scene[k];
   renderSceneExtras();
   const profiles=settings().profiles,states=outfitState();
   $('ncs-characters').innerHTML=scene.characters.map(c=>{
+    if(c.temp)return tempCard(c);
     const p=profiles.find(p=>p.id===c.id);if(!p)return '';
     const o=resolveOutfit(c,p,states[c.id]);
     const stale=states[c.id]?.source && !sourceValid(states[c.id].source,ctx().chat);
@@ -611,7 +670,15 @@ function renderScene({forceFinal=false}={}) {
   }).join('');
   $('ncs-raw').value=raw;updateFinal({force:forceFinal});
 }
-function finalData(){return finalOverride??assemble(settings(),scene,outfitState());}
+// --- Temporary people (임시 인물): drawn in this scene only, never saved as a profile -----------------
+// For assembly each one becomes a throwaway profile whose outfit is its own field.
+function assembleScene(){
+  const temps=scene.characters.filter(c=>c.temp),s=settings();
+  if(!temps.length)return assemble(s,scene,outfitState());
+  const virtual=temps.map(t=>({id:t.id,name:t.name||'임시 인물',aliases:[],subject:['boy','girl','other'].includes(t.subject)?t.subject:'other',appearance:t.appearance??'',defaultOutfit:'',positive:'',negative:'',cardKey:''}));
+  return assemble({...s,profiles:[...s.profiles,...virtual]},{...scene,characters:scene.characters.map(c=>c.temp?{...c,manualOutfit:c.outfit??''}:c)},outfitState());
+}
+function finalData(){return finalOverride??assembleScene();}
 function updateFinal({force=false}={}) {
   if(!dialog)return;
   try {
@@ -622,6 +689,7 @@ function updateFinal({force=false}={}) {
     $('ncs-length').textContent=`${lengths.join(' · ')} · 글자 수예요. NAI 토큰 수와 달라요.`;
     // The shared core still words this one the old way; show it in the clothes vocabulary of the scene card.
     const warnings=[...(a.warnings??[])].filter(w=>!w.startsWith('미등록 인물은 자동 생성하지 않아요')).map(w=>w.replace(/: 새 복장 후보가 있지만 잠금을 유지해요\.$/,': AI가 찾은 새 옷이 있지만 잠긴 복장을 입혀요.'));
+    for(const t of scene.characters.filter(c=>c.temp&&c.included!==false&&!(c.appearance??'').trim()))warnings.push(`임시 인물 ${t.name||'(이름 없음)'}의 외형이 비어 있어요. 외형을 채우면 더 잘 그려져요.`);
     if(scene.source?.historical)warnings.push('지난 메시지를 그리고 있어요. 여기서 고른 옷은 "채팅 기본 복장"을 자동으로 바꾸지 않아요.');
     if(scene.moments?.length>1&&scene.momentIndex<scene.moments.length-1)warnings.push('앞쪽 순간을 골랐어요. 메시지 끝에서는 옷이 달라졌을 수 있어요. "기본 복장 지정"은 마지막 순간에서 누르는 걸 추천해요.');
     if(scene.source&&!sourceValid(scene.source,ctx().chat))warnings.push('대상 메시지가 수정·삭제·리롤됐어요. 다시 추출하거나 내용을 확인해 주세요.');
@@ -642,7 +710,7 @@ function renderFinalForm(a,{force=false}={}) {
     :'<small>장면에 인물이 없어요. 공통 프롬프트만 보내요.</small>');
 }
 function editFinalField(el) {
-  const base=finalOverride&&!finalOverride.invalid?finalOverride:assemble(settings(),scene,outfitState());
+  const base=finalOverride&&!finalOverride.invalid?finalOverride:assembleScene();
   const next=clone(base),slot=el.dataset.slot;
   if(slot===undefined)next[el.dataset.final]=el.value;else next.characters[Number(slot)][el.dataset.final]=el.value;
   revision++;buildPayload(next,{...effectiveOptions(),seed:0});finalOverride=next;updateFinal();
@@ -673,6 +741,8 @@ async function extract() {
   const matching=matchChatProfiles(ctx(),profiles,selection.messages,chatBindings(),scene.characters.filter(c=>c.included!==false).map(c=>c.id));
   const wish=$('ncs-moment-wish').value.trim();
   // Positions the user chose by hand survive a re-extraction of the same message.
+  // Temporary people survive a new extraction (marked for a check unless the AI found them again).
+  const keptTemps=[...new Map([scene,...(scene.moments??[]).map(m=>m.scene)].flatMap(part=>(part.characters??[]).filter(c=>c.temp)).map(t=>[t.id,t])).values()];
   const manualPositions=new Map();
   if(scene.source?.target===selection.source.target)for(const part of [scene,...(scene.moments??[]).map(m=>m.scene)])for(const c of part.characters??[])if(c.positionManual&&c.id)manualPositions.set(c.id,c.position);
   const prompt=momentExtractionPrompt(selection.messages,matching.profiles,outfits,s.format,matching.mappings,wish);
@@ -705,7 +775,8 @@ async function extract() {
           for(const w of [...m.warnings,...reconciled.warnings])if(!warnings.includes(w))warnings.push(w);
           generic.removed.forEach(x=>removed.add(x));
           for(const ch of generic.scene.characters)if(manualPositions.has(ch.id)){ch.position=manualPositions.get(ch.id);ch.positionManual=true;}
-          return {title:m.title,scene:momentPart(generic.scene)};
+          const part=momentPart(generic.scene);carryTemps(keptTemps,part);
+          return {title:m.title,scene:part};
         });
         raw=response;
         scene={...blankScene(),...clone(moments[parsed.defaultIndex].scene),source:selection.source,moments:moments.length>1?moments:[],momentIndex:moments.length>1?parsed.defaultIndex:0,momentWish:wish,momentsPartial:parsed.partial};
@@ -996,7 +1067,7 @@ function restoreHistory(id) {
   if(busy)throw new Error('진행 중인 작업이 끝난 뒤 불러와 주세요.');
   const item=historyItems.find(x=>x.id===id);if(!item)return;
   scene=clone(item.snapshot?.scene??blankScene());scene.source=null;
-  const known=c=>settings().profiles.some(p=>p.id===c.id);
+  const known=c=>c.temp||settings().profiles.some(p=>p.id===c.id);
   scene.characters=scene.characters.filter(known);
   if(Array.isArray(scene.moments)&&scene.moments.length>1){for(const m of scene.moments)m.scene.characters=(m.scene.characters??[]).filter(known);scene.momentIndex=Math.min(Math.max(0,Number(scene.momentIndex)||0),scene.moments.length-1);}
   else{scene.moments=[];scene.momentIndex=0;}
@@ -1040,6 +1111,7 @@ async function onAction(action,el) {
     case 'extract':await extract();break;
     case 'blank':scene=blankScene();raw='';lastLink=null;linkTarget=null;changed();renderScene({forceFinal:true});notice('직접 장면을 입력해 주세요.');break;
     case 'add-character':addCharacter($('ncs-add-profile').value);break;
+    case 'add-temp':addTemp();break;
     case 'generate':await generate();break;
     case 'missing-proceed':await proceedMissingDialog();break;
     case 'missing-cancel':closeMissingDialog();notice('생성하지 않았어요. 위 경고 상자에서 프로필을 만들거나 연결할 수 있어요.');break;
@@ -1117,6 +1189,9 @@ function bindEvents() {
       else if(el.dataset.historyScope)setHistoryScope(el.dataset.historyScope);
       else if(el.dataset.profileMode)setProfileMode(el.dataset.profileMode);
       else if(el.dataset.moment!==undefined)switchMoment(Number(el.dataset.moment));
+      else if(el.dataset.tempFrom!==undefined)addTemp(el.dataset.tempFrom);
+      else if(el.dataset.tempSave)tempToProfile(el.dataset.tempSave);
+      else if(el.dataset.tempConfirm){const t=scene.characters.find(c=>c.id===el.dataset.tempConfirm);if(t){t.needsCheck=false;changed();renderScene();}}
       else if(el.dataset.missingDo)await missingAction(el.dataset.missingDo,el.dataset.missingName);
       else if(el.dataset.quickProfileName!==undefined)openQuickProfile(el.dataset.quickProfileName);
       else if(el.dataset.profile)editProfile(el.dataset.profile);
@@ -1180,6 +1255,7 @@ function bindEvents() {
         const w=(p.wardrobe??[]).find(w=>`w:${w.id}`===el.value);if(!w)return;const value=w.outfit;
         setChatOutfit(id,value,{note:`${p.name}의 채팅 기본 복장을 "${w.name}"(으)로 지정했어요. 이번 그림에도 적용했어요.`}).catch(e=>notice(e.message,true));return;
       }
+      if(el.dataset.temp){const t=scene.characters.find(c=>c.id===el.closest('[data-character]').dataset.character&&c.temp);if(!t)return;t[el.dataset.temp]=el.value;if(el.dataset.temp==='name'){t.entityName=el.value;el.closest('[data-character]').querySelector('strong').textContent=el.value||'이름 없는 인물';}changed();return;}
       if(el.hasAttribute('data-wear-once')){if(el.value)wearOnce(el.closest('[data-character]').dataset.character,el.value);return;}
       if(el.hasAttribute('data-lock')){const id=el.closest('[data-character]').dataset.character;saveOutfit(id,el.checked).catch(e=>notice(e.message,true));return;}
       for(const field of ['location','lighting','camera','interaction'])if(el.id===`ncs-${field}`){scene[field]=el.value;changed();return;}
@@ -1202,7 +1278,7 @@ function bindEvents() {
 }
 function chatChanged() {
   const key=keyOf();if(key===chatKey)return;
-  cancelExtraction('');closeMissingDialog();wardrobeTarget=null;pendingBind=null;quickProfileName='';lastLink=null;linkTarget=null;chatKey=key;task++;revision++;scene=blankScene();raw='';finalOverride=null;optionsOverride=null;result=null;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();
+  cancelExtraction('');closeMissingDialog();wardrobeTarget=null;pendingTempConvert=null;pendingBind=null;quickProfileName='';lastLink=null;linkTarget=null;chatKey=key;task++;revision++;scene=blankScene();raw='';finalOverride=null;optionsOverride=null;result=null;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();
   if(dialog){targetScroll=0;targetReveal=false;targetListRendered=false;targetShown=TARGET_STEP;$('ncs-target').value='';$('ncs-moment-wish').value='';$('ncs-target-picker').open=false;renderTargets();renderMatching();renderScene({forceFinal:true});renderResult();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.');}
   renderChatImages();
 }

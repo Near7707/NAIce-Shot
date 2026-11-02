@@ -34,7 +34,7 @@ try{
  await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
 
  // 1) Empty state in the scene tab, and 장면 추출 opens the quick profile instead of failing.
- assert.equal(await page.locator('#ncs-no-profiles').isVisible(),true);assert.equal(await page.locator('#ncs-add-row').isHidden(),true);
+ assert.equal(await page.locator('#ncs-no-profiles').isVisible(),true);assert.equal(await page.locator('#ncs-add-profile').isHidden(),true);assert.equal(await page.locator('[data-action="add-temp"]').isVisible(),true,'only 임시 인물 추가 without profiles');
  await click('extract');
  await page.locator('#ncs-scene-profile-slot #ncs-profile-form').waitFor();
  assert.match(await page.locator('#ncs-notice').textContent(),/첫 프로필을 만들면/);
