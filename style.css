@@ -373,3 +373,9 @@
 #naice-shot-dialog .ncs-saved-note.ncs-just-saved {animation:ncs-saved-flash 1.6s ease-out 1;border-radius:6px;}
 @keyframes ncs-saved-flash {0%{background:var(--ncs-progress-bg);box-shadow:0 0 0 4px var(--ncs-progress-bg);}100%{background:transparent;box-shadow:0 0 0 4px transparent;}}
 @media (prefers-reduced-motion:reduce){#naice-shot-dialog .ncs-saved-note.ncs-just-saved{animation:none;}}
+/* Clothes state at a glance: name badges, a lit chat-default picker and button, a lit lock. */
+#naice-shot-dialog .ncs-clothes-badges {display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px;}
+#naice-shot-dialog .ncs-clothes-badge {display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:650;border:1.5px solid var(--ncs-edge);color:var(--ncs-tab-active-fg);background:var(--ncs-tab-active-bg);vertical-align:middle;white-space:nowrap;}
+#naice-shot-dialog .ncs-character select.ncs-on {border:2px solid var(--ncs-edge);background-color:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);font-weight:600;}
+#naice-shot-dialog .ncs-character button.ncs-on {border:2px solid var(--ncs-edge);background:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);font-weight:700;}
+#naice-shot-dialog .ncs-character .ncs-check.ncs-on {color:var(--ncs-accent-text);font-weight:700;}

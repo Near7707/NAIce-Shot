@@ -63,6 +63,16 @@ try{
  // A complete reply with two candidates is not reported as cut off.
  await page.evaluate(d=>{mock.generateRaw=async function(o){this.extractCalls=(this.extractCalls??0)+1;this.lastExtract=o;return JSON.stringify(d);};},{...three,moments:three.moments.slice(1),defaultIndex:1});
  await extract(page);assert.doesNotMatch(await page.locator('#ncs-notice').innerText(),/불완전/);assert.match(await page.locator('#ncs-moments').innerText(),/마지막 순간/);
+ // Korean in descriptive fields: one more request asking for English; the English answer is used.
+ const ko={...three,moments:three.moments.map(m=>({...m,location:'카페',characters:[{...m.characters[0],action:'책을 읽는다'}]}))};
+ await page.evaluate(([bad,good])=>{let n=0;mock.generateRaw=async function(o){this.extractCalls=(this.extractCalls??0)+1;this.lastExtract=o;return JSON.stringify(n++===0?bad:good);};},[ko,three]);
+ await extract(page);
+ assert.match(await page.evaluate(()=>mock.lastExtract.prompt),/Your previous reply wrote descriptive fields in a language other than English/);
+ assert.equal(await page.locator('#ncs-location').inputValue(),'cafe');assert.ok(await page.evaluate(()=>!!mock.lastExtract.jsonSchema),'the language retry keeps structured output');
+ // If the second answer is still Korean, it is used with a note instead of failing.
+ await page.evaluate(bad=>{mock.generateRaw=async function(o){this.extractCalls=(this.extractCalls??0)+1;this.lastExtract=o;return JSON.stringify(bad);};},ko);
+ await extract(page);assert.match(await page.locator('#ncs-notice').innerText(),/영어로 바뀌지 않은 칸이 있어요\(.*(action|location)/);
+ await page.evaluate(d=>{mock.generateRaw=async function(o){this.extractCalls=(this.extractCalls??0)+1;this.lastExtract=o;return JSON.stringify(d);};},{...three,moments:three.moments.slice(1),defaultIndex:1});await extract(page);
  // A position chosen by hand survives re-extracting the same message; the AI's "auto" does not overwrite it.
  await page.locator('[data-character="leo"] [data-field="position"]').selectOption('left');
  await extract(page);

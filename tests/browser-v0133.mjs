@@ -40,20 +40,26 @@ try{
   assert.deepEqual(leo.wardrobe.map(w=>[w.name,w.outfit]),[['잠옷','pajamas, slippers'],['정장','black suit, tie']]);assert.equal(leo.defaultOutfit,'navy coat, white shirt, jeans');
   // Scene card: the four controls with their notes.
   await page.locator('[data-tab="scene"]').click();await page.locator('[data-action="extract"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&document.querySelector('[data-character="leo"]'));
-  const text=await card.innerText();for(const label of ['당분간 이 복장','평생 박제','입고 버림','옷장으로'])assert.ok(text.includes(label),label);
+  const text=await card.innerText();for(const label of ['이 채팅 기본 복장','평생 박제','입고 버림','옷장으로'])assert.ok(text.includes(label),label);
   assert.match(text,/이 채팅엔 아직 저장된 옷이 없어요/);
   assert.match(text,/추출 AI가 이 채팅에서 옷을 못 바꿔요/);assert.match(text,/AI가 찾은 새 옷/);
-  // 당분간 이 복장: picking 잠옷 saves it for this chat and puts it on this image, over the AI's new outfit.
+  // 이 채팅 기본 복장: picking 잠옷 saves it for this chat and puts it on this image, over the AI's new outfit.
   await card.locator('[data-chat-outfit]').selectOption({label:'잠옷'});
   await page.waitForFunction(()=>mock.chatMetadata.naice_shot?.outfits?.leo?.value==='pajamas, slippers');
   assert.equal(await once.inputValue(),'pajamas, slippers');assert.match(await page.locator('#ncs-final').inputValue(),/pajamas, slippers/);
+  // Lit at a glance: a badge by the name, the picker and the button.
+  assert.match(await card.locator('.ncs-clothes-badges').innerText(),/이 채팅 기본 옷/);
+  assert.equal(await card.locator('select[data-chat-outfit].ncs-on').count(),1);
+  assert.equal(await card.locator('[data-save-outfit]').getAttribute('aria-pressed'),'true');assert.match(await card.locator('[data-save-outfit]').innerText(),/✓ 이 채팅 기본 옷/);
   // 평생 박제, then a new extraction with different clothes: the image keeps the locked pajamas.
   await card.locator('[data-lock]').check();await page.waitForFunction(()=>mock.chatMetadata.naice_shot.outfits.leo.locked===true);
+  assert.match(await card.locator('.ncs-clothes-badges').innerText(),/평생 박제/);
   await page.locator('[data-action="extract"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden);
   assert.equal(await card.locator('[data-chat-outfit]').inputValue(),(await settings()).profiles.find(p=>p.id==='leo').wardrobe.map(w=>`w:${w.id}`)[0]);
   assert.equal(await once.inputValue(),'pajamas, slippers');assert.match(await card.innerText(),/박제된 옷을 유지해요/);
   // 옷장에서 꺼내 입기: this image only; the chat keeps the pajamas.
   await card.locator('[data-wear-once]').selectOption({label:'정장'});
+  assert.equal(await card.locator('[data-save-outfit]').getAttribute('aria-pressed'),'false','a one-off outfit is not the chat default');
   assert.equal(await once.inputValue(),'black suit, tie');assert.equal((await page.evaluate(()=>mock.chatMetadata.naice_shot.outfits.leo.value)),'pajamas, slippers');
   // 입고 버림 edit, then 옷장으로 with a name: the profile and the open profile form both get it.
   await once.fill('raincoat, boots');await card.locator('[data-to-wardrobe]').click();
@@ -88,5 +94,5 @@ try{
   assert.ok(await page.locator('.ncs-content').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
   assert.deepEqual(errors,[]);await page.close();
  }
- console.log('PASS: wardrobe in the profile form (default outfit untouched), 당분간 이 복장 saves for the chat and applies now, 평생 박제 keeps it through re-extraction, wear-once from the wardrobe, 옷장으로 with name checks updates profile and open form, later wardrobe edits do not rewrite chat clothes, revert and keep, history prompt view built on open with copy, backups include wardrobe, 375px fit');
+ console.log('PASS: wardrobe in the profile form (default outfit untouched), 이 채팅 기본 복장 saves for the chat and applies now, 평생 박제 keeps it through re-extraction, wear-once from the wardrobe, 옷장으로 with name checks updates profile and open form, later wardrobe edits do not rewrite chat clothes, revert and keep, history prompt view built on open with copy, backups include wardrobe, 375px fit');
 }finally{await browser.close();server.close();}

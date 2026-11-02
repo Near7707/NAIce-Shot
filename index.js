@@ -5,7 +5,7 @@ import { CAMERA_ICON, BRAND_ICON, TAB_ICONS } from './icons.mjs';
 import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } from './skins.mjs';
 import { attachInlineImage, detachInlineImage, detachInlineImages, countInlineImages, hasInlineImage, imageDownload, renderInlineImages } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
-import { momentExtractionPrompt, momentExtractionSchema, parseMoments, looksCut } from './scene-extraction.mjs';
+import { momentExtractionPrompt, momentExtractionSchema, parseMoments, looksCut, foreignFields } from './scene-extraction.mjs';
 import { isSceneMessage, isHiddenSceneMessage, chooseSceneMessages } from './scene-messages.mjs';
 import { captureImagePreset, applyImagePreset, imagePresetModified, validateImagePresets } from './presets.mjs';
 import { listExtractionProfiles, requestExtraction } from './extractor.mjs';
@@ -526,9 +526,9 @@ function renderMoments(){
   const list=scene.moments??[],box=$('ncs-moments');box.hidden=list.length<2;if(list.length<2){box.innerHTML='';return;}
   box.innerHTML=`<strong class="ncs-moments-title">장면 후보 · 그릴 순간을 골라 주세요</strong><div class="ncs-moment-list" role="group" aria-label="장면 후보">${list.map((m,i)=>`<button type="button" class="ncs-moment" data-moment="${i}" aria-pressed="${i===scene.momentIndex}"><span class="ncs-moment-step">${i+1}</span><span class="ncs-moment-name">${esc(m.title||`후보 ${i+1}`)}</span>${i===list.length-1&&!scene.momentsPartial?'<small>마지막 순간</small>':''}</button>`).join('')}</div>`;
 }
-// --- Clothes on a scene card: 당분간 이 복장 (this chat) · 평생 박제 (lock) · 입고 버림 (this image) · 옷장으로 -----
+// --- Clothes on a scene card: 이 채팅 기본 복장 (this chat) · 평생 박제 (lock) · 입고 버림 (this image) · 옷장으로 -----
 let wardrobeTarget=null;
-const ORIGIN_TEXT={'이번 편집':'직접 고르거나 고친 옷','잠금':'평생 박제된 옷','AI 후보':'AI가 찾은 새 옷 · 확인해 주세요 (저장된 옷 대신 이번 그림에 입혀요)','채팅 복장':'당분간 입는 옷','기본 복장':'프로필 기본 복장'};
+const ORIGIN_TEXT={'이번 편집':'직접 고르거나 고친 옷','잠금':'평생 박제된 옷','AI 후보':'AI가 찾은 새 옷 · 확인해 주세요 (저장된 옷 대신 이번 그림에 입혀요)','채팅 복장':'이 채팅 기본 복장','기본 복장':'프로필 기본 복장'};
 function chatOutfitChoice(p,state){
   const value=state?.value;if(value===undefined||value===p.defaultOutfit)return 'default';
   const w=(p.wardrobe??[]).find(w=>w.outfit===value);return w?`w:${w.id}`:'custom';
@@ -541,12 +541,14 @@ function savedNote(c,state){
   const text=state.value.length>60?`${state.value.slice(0,60)}…`:state.value;
   return `<small class="ncs-saved-note${fresh?' ncs-just-saved':''}" role="status">✓ 이 채팅에 저장된 옷: ${esc(text)}${state.locked?' · 평생 박제':''}</small>`;
 }
+// Badges next to the name: visible at a glance that this chat has its own clothes or a lock.
+const clothesBadges=state=>(state?.value!==undefined||state?.locked)?`<div class="ncs-clothes-badges">${state?.value!==undefined?'<span class="ncs-clothes-badge">👕 이 채팅 기본 옷</span>':''}${state?.locked?'<span class="ncs-clothes-badge ncs-lock-badge">📌 평생 박제</span>':''}</div>`:'';
 function outfitControls(c,p,o,state,stale){
   const id=esc(c.id),wardrobe=p.wardrobe??[],choice=chatOutfitChoice(p,state);
-  const chatSelect=`<label>당분간 이 복장<select data-chat-outfit><option value="default" ${choice==='default'?'selected':''}>프로필 기본 복장</option>${wardrobe.map(w=>`<option value="w:${esc(w.id)}" ${choice===`w:${w.id}`?'selected':''}>${esc(w.name)}</option>`).join('')}${choice==='custom'?'<option value="custom" selected>이 채팅에 저장된 옷 · 옷장에 없음</option>':''}</select></label><small>이 채팅의 다음 그림에도 계속 이 옷을 입어요. 추출 AI는 이 옷을 기준으로 갈아입었는지 판단해요.</small>${savedNote(c,state)}`;
-  const lock=`<label class="ncs-check"><input type="checkbox" data-lock ${state?.locked?'checked':''}>평생 박제</label><small>추출 AI가 이 채팅에서 옷을 못 바꿔요. 직접 고른 옷은 그대로 적용돼요.</small>${state?.locked&&c.outfitMode==='replace'?`<small>AI가 찾은 새 옷: ${esc(c.outfit)} · 박제된 옷을 유지해요.</small>`:''}`;
+  const chatSelect=`<label>이 채팅 기본 복장<select data-chat-outfit${state?.value!==undefined?' class="ncs-on"':''}><option value="default" ${choice==='default'?'selected':''}>프로필 기본 복장</option>${wardrobe.map(w=>`<option value="w:${esc(w.id)}" ${choice===`w:${w.id}`?'selected':''}>${esc(w.name)}</option>`).join('')}${choice==='custom'?'<option value="custom" selected>이 채팅에 저장된 옷 · 옷장에 없음</option>':''}</select></label><small>이 채팅에서 기본으로 입는 옷이에요. 메시지에서 갈아입으면 추출 AI가 그 그림에만 바꿔 입혀요. 아예 못 바꾸게 하려면 평생 박제를 켜요.</small>${savedNote(c,state)}`;
+  const lock=`<label class="ncs-check${state?.locked?' ncs-on':''}"><input type="checkbox" data-lock ${state?.locked?'checked':''}>📌 평생 박제</label><small>추출 AI가 이 채팅에서 옷을 못 바꿔요. 직접 고른 옷은 그대로 적용돼요.</small>${state?.locked&&c.outfitMode==='replace'?`<small>AI가 찾은 새 옷: ${esc(c.outfit)} · 박제된 옷을 유지해요.</small>`:''}`;
   const once=`<label>입고 버림 · 이번 그림의 옷<textarea data-field="manualOutfit" rows="3">${esc(o.value)}</textarea></label><small>이번 그림에만 입어요. 채팅에 저장된 옷과 옷장은 그대로예요. 지금 옷: ${esc(ORIGIN_TEXT[o.origin]??o.origin)}${stale?' · 근거 메시지가 바뀌었어요. 옷을 확인해 주세요.':''}</small>`;
-  const tools=`<div class="ncs-row">${wardrobe.length?`<select data-wear-once aria-label="옷장에서 이번만 꺼내 입기"><option value="">옷장에서 꺼내 입기</option>${wardrobe.map(w=>`<option value="${esc(w.id)}">${esc(w.name)}</option>`).join('')}</select>`:''}<button data-save-outfit="${id}">이 옷 당분간 입기</button><button data-to-wardrobe="${id}">옷장으로</button><button data-reset-outfit="${id}">되돌리기</button></div><small>옷장으로 · 다음에도 골라 입을 수 있게 이름을 붙여 보관해요. 다른 채팅에서도 꺼내 입을 수 있어요.</small>`;
+  const tools=`<div class="ncs-row">${wardrobe.length?`<select data-wear-once aria-label="옷장에서 이번만 꺼내 입기"><option value="">옷장에서 꺼내 입기</option>${wardrobe.map(w=>`<option value="${esc(w.id)}">${esc(w.name)}</option>`).join('')}</select>`:''}${o.value===state?.value?`<button data-save-outfit="${id}" class="ncs-on" aria-pressed="true">✓ 이 채팅 기본 옷</button>`:`<button data-save-outfit="${id}" aria-pressed="false">이 채팅 기본으로</button>`}<button data-to-wardrobe="${id}">옷장으로</button><button data-reset-outfit="${id}">되돌리기</button></div><small>옷장으로 · 다음에도 골라 입을 수 있게 이름을 붙여 보관해요. 다른 채팅에서도 꺼내 입을 수 있어요.</small>`;
   const naming=wardrobeTarget===c.id?`<div class="ncs-wardrobe-save"><label>옷장에 넣을 이름<input id="ncs-wardrobe-name" maxlength="80" placeholder="예: 비 오는 날 외출복"></label><div class="ncs-row"><button type="button" class="ncs-primary" data-wardrobe-confirm="${id}">옷장에 넣기</button><button type="button" data-wardrobe-cancel>취소</button></div></div>`:'';
   return chatSelect+lock+once+tools+naming;
 }
@@ -581,7 +583,7 @@ function renderScene({forceFinal=false}={}) {
     const p=profiles.find(p=>p.id===c.id);if(!p)return '';
     const o=resolveOutfit(c,p,states[c.id]);
     const stale=states[c.id]?.source && !sourceValid(states[c.id].source,ctx().chat);
-    return `<article class="ncs-character" data-character="${esc(c.id)}"><div class="ncs-character-head"><label class="ncs-check"><input type="checkbox" data-field="included" ${c.included!==false?'checked':''}><strong>${esc(p.name)}</strong></label><button data-remove="${esc(c.id)}" aria-label="${esc(p.name)} 장면에서 제거">제거</button></div>
+    return `<article class="ncs-character" data-character="${esc(c.id)}"><div class="ncs-character-head"><label class="ncs-check"><input type="checkbox" data-field="included" ${c.included!==false?'checked':''}><strong>${esc(p.name)}</strong></label><button data-remove="${esc(c.id)}" aria-label="${esc(p.name)} 장면에서 제거">제거</button></div>${clothesBadges(states[c.id])}
       <label>연결된 이미지 프로필<select data-profile-switch>${profiles.map(profile=>`<option value="${esc(profile.id)}" ${profile.id===c.id?'selected':''}>${esc(profile.name)}</option>`).join('')}</select></label><small>${c.entityName?'추출 인물: '+esc(c.entityName):'직접 추가한 인물'} · 변경하면 새 프로필의 복장을 사용해요.</small>
       <div class="ncs-grid"><label>표정<textarea data-field="expression" rows="2">${esc(c.expression)}</textarea></label><label>행동·포즈<textarea data-field="action" rows="2">${esc(c.action)}</textarea></label></div>
       <label>위치<select data-field="position">${['auto','left','center','right'].map((x,i)=>`<option value="${x}" ${c.position===x?'selected':''}>${['AI 자동','왼쪽','가운데','오른쪽'][i]}</option>`).join('')}</select></label>
@@ -602,8 +604,8 @@ function updateFinal({force=false}={}) {
     $('ncs-length').textContent=`${lengths.join(' · ')} · 글자 수예요. NAI 토큰 수와 달라요.`;
     // The shared core still words this one the old way; show it in the clothes vocabulary of the scene card.
     const warnings=[...(a.warnings??[])].filter(w=>!w.startsWith('미등록 인물은 자동 생성하지 않아요')).map(w=>w.replace(/: 새 복장 후보가 있지만 잠금을 유지해요\.$/,': AI가 찾은 새 옷이 있지만 평생 박제된 옷을 입혀요.'));
-    if(scene.source?.historical)warnings.push('지난 메시지를 그리고 있어요. 여기서 고른 옷은 채팅의 "당분간 이 복장"을 자동으로 바꾸지 않아요.');
-    if(scene.moments?.length>1&&scene.momentIndex<scene.moments.length-1)warnings.push('앞쪽 순간을 골랐어요. 메시지 끝에서는 옷이 달라졌을 수 있어요. "이 옷 당분간 입기"는 마지막 순간에서 누르는 걸 추천해요.');
+    if(scene.source?.historical)warnings.push('지난 메시지를 그리고 있어요. 여기서 고른 옷은 "이 채팅 기본 복장"을 자동으로 바꾸지 않아요.');
+    if(scene.moments?.length>1&&scene.momentIndex<scene.moments.length-1)warnings.push('앞쪽 순간을 골랐어요. 메시지 끝에서는 옷이 달라졌을 수 있어요. "이 채팅 기본으로"는 마지막 순간에서 누르는 걸 추천해요.');
     if(scene.source&&!sourceValid(scene.source,ctx().chat))warnings.push('대상 메시지가 수정·삭제·리롤됐어요. 다시 추출하거나 내용을 확인해 주세요.');
     if(a.base.length+a.characters.reduce((n,c)=>n+c.prompt.length,0)>2000)warnings.push('프롬프트가 길어요. 특히 V4.5는 전체 토큰 한도를 확인해 주세요.');
     if(finalOverride)warnings.push('직접 고친 최종 프롬프트를 이번 생성에 써요. 되돌리려면 "조립 결과로 되돌리기"를 눌러 주세요.');
@@ -660,15 +662,20 @@ async function extract() {
   setBusy(true,ticket);startProgress('extract',ticket);notice('장면 추출을 시작했어요.');
   let response='',failure;
   try {
+    let retryForLanguage=false;
     for(let attempt=0;attempt<2;attempt++) {
       if(ticket!==task||keyOf()!==startKey||revision!==rev||controller.signal.aborted)return;
       if(progress?.owner===ticket){progress.attempt=attempt+1;renderProgress();}
       let received=false;
       try {
-        response=await requestExtraction(ctx(),prompt+(attempt?'\nThe previous response could not be parsed. Return ONLY the complete JSON object.':''),
-          {profileId:s.extractionProfileId,structured:attempt===0&&s.structuredOutput,maxTokens:s.extractionMaxTokens,temperature:extractionTemperature(),schemaValue:momentExtractionSchema(matching.profiles),signal:controller.signal});
+        response=await requestExtraction(ctx(),prompt+(attempt?(retryForLanguage?'\nYour previous reply wrote descriptive fields in a language other than English. Return the complete JSON again with every descriptive field in English; keep title in Korean.':'\nThe previous response could not be parsed. Return ONLY the complete JSON object.'):''),
+          {profileId:s.extractionProfileId,structured:(attempt===0||retryForLanguage)&&s.structuredOutput,maxTokens:s.extractionMaxTokens,temperature:extractionTemperature(),schemaValue:momentExtractionSchema(matching.profiles),signal:controller.signal});
         received=true;
         const parsed=parseMoments(response,profiles);
+        // Fields in the chat's language instead of English: ask once more, then accept with a note.
+        const foreign=foreignFields(parsed.moments);
+        if(foreign.length&&attempt===0){retryForLanguage=true;notice('추출 결과가 영어가 아니어서 영어로 다시 요청하고 있어요.');continue;}
+        if(foreign.length)parsed.warnings.push(`영어로 바뀌지 않은 칸이 있어요(${foreign.join(', ')}). 직접 고치거나 다시 추출해 주세요.`);
         if(ticket!==task||keyOf()!==startKey||revision!==rev||!sourceValid(selection.source,ctx().chat)){notice('채팅·장면 또는 원문이 바뀌어서 추출 결과를 적용하지 않았어요.');return;}
         // Each candidate is reconciled and cleaned on its own, so one moment's people and poses never leak into another.
         const c=ctx(),baseNames=[...s.profiles.flatMap(p=>[p.name,...p.aliases]),...matching.profiles.flatMap(p=>[p.name,...p.aliases]),...matching.mappings.map(m=>m.name),
@@ -705,7 +712,7 @@ async function saveOutfit(id,lockOnly=null) {
   const source=lockOnly!==null?old?.source:(scene.source?compactSource(scene.source):null);
   if(keyOf()!==startKey)return;
   ctx().chatMetadata[KEY].outfits[id]={value,locked:lockOnly??old?.locked??false,source,updated:new Date().toISOString()};justSavedOutfit=id;
-  await ctx().saveMetadata();changed();renderScene();notice(lockOnly!==null?(lockOnly?'평생 박제했어요. 추출 AI가 이 채팅에서 옷을 못 바꿔요.':'박제를 풀었어요. 추출 AI가 갈아입은 옷을 찾으면 후보로 보여줘요.'):'이 옷을 당분간 입어요. 이 채팅의 다음 그림에도 이어져요.');
+  await ctx().saveMetadata();changed();renderScene();notice(lockOnly!==null?(lockOnly?'평생 박제했어요. 추출 AI가 이 채팅에서 옷을 못 바꿔요.':'박제를 풀었어요. 추출 AI가 갈아입은 옷을 찾으면 후보로 보여줘요.'):'이 옷을 이 채팅의 기본 복장으로 정했어요. 다음 그림에도 이어져요.');
 }
 function compactSource(source) {
   return {...source,fingerprints:source.fingerprints.map(f=>({index:f.index,swipeId:f.swipeId,signature:f.signature??textSignature(f.text)}))};
@@ -819,7 +826,7 @@ function updateHistoryTools() {
   dialog.querySelector('[data-action="delete-chat-history"]').disabled=locked||!historyTotal;dialog.querySelector('[data-action="delete-chat-history"]').hidden=allScope;
   const filterDelete=dialog.querySelector('[data-action="delete-filter-chat"]');filterDelete.hidden=!allScope||!historyFilter;filterDelete.disabled=locked||!historyTotal;
   $('ncs-history-target-row').hidden=allScope;$('ncs-history-all-tools').hidden=!allScope;
-  $('ncs-history-help').textContent=allScope?'모든 채팅에서 만든 그림을 모아 봐요. 지운 채팅이나 이름이 바뀐 카드의 그림도 여기서 정리할 수 있어요.':'편집으로 불러오면 당시 최종 프롬프트와 생성 설정을 이번 생성에 써요. "당분간 이 복장"과 설정 탭 값은 바뀌지 않아요.';
+  $('ncs-history-help').textContent=allScope?'모든 채팅에서 만든 그림을 모아 봐요. 지운 채팅이나 이름이 바뀐 카드의 그림도 여기서 정리할 수 있어요.':'편집으로 불러오면 당시 최종 프롬프트와 생성 설정을 이번 생성에 써요. "이 채팅 기본 복장"과 설정 탭 값은 바뀌지 않아요.';
   for(const b of dialog.querySelectorAll('[data-history-scope]'))b.setAttribute('aria-pressed',String(b.dataset.historyScope===historyScope));
   $('ncs-history-storage').textContent=allScope?`저장된 그림 전체 ${historyImageCount}장 · ${formatBytes(historyBytes)}`:'';
   const more=dialog.querySelector('[data-action="history-more"]');more.hidden=!historyHasMore;more.disabled=historyLoading;
@@ -976,7 +983,7 @@ function restoreHistory(id) {
   $('ncs-moment-wish').value=typeof scene.momentWish==='string'?scene.momentWish:'';lastLink=null;linkTarget=null;
   raw=item.snapshot?.rawExtraction??'';finalOverride=restoredFinal=clone(item.assembled);optionsOverride=clone(item.options);
   result=item;revision++;renderScene({forceFinal:true});renderResult();showTab('scene');
-  notice('당시 최종 프롬프트와 생성 설정(seed 포함)을 불러왔어요. 설정 탭 값과 "당분간 이 복장"은 바뀌지 않아요.');
+  notice('당시 최종 프롬프트와 생성 설정(seed 포함)을 불러왔어요. 설정 탭 값과 "이 채팅 기본 복장"은 바뀌지 않아요.');
 }
 function exportSettings() {
   const blob=new Blob([JSON.stringify(settings(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob);
@@ -1150,7 +1157,7 @@ function bindEvents() {
       if(el.hasAttribute('data-chat-outfit')){
         const id=el.closest('[data-character]').dataset.character,p=settings().profiles.find(p=>p.id===id);if(!p||el.value==='custom')return;
         const w=el.value.startsWith('w:')?(p.wardrobe??[]).find(w=>`w:${w.id}`===el.value):null,value=w?w.outfit:p.defaultOutfit;
-        setChatOutfit(id,value,{note:`이 채팅에서 당분간 ${p.name}에게 "${w?w.name:'기본 복장'}"을(를) 입혀요. 이번 그림에도 적용했어요.`}).catch(e=>notice(e.message,true));return;
+        setChatOutfit(id,value,{note:`${p.name}의 이 채팅 기본 복장을 "${w?w.name:'프로필 기본 복장'}"(으)로 정했어요. 이번 그림에도 적용했어요.`}).catch(e=>notice(e.message,true));return;
       }
       if(el.hasAttribute('data-wear-once')){if(el.value)wearOnce(el.closest('[data-character]').dataset.character,el.value);return;}
       if(el.hasAttribute('data-lock')){const id=el.closest('[data-character]').dataset.character;saveOutfit(id,el.checked).catch(e=>notice(e.message,true));return;}

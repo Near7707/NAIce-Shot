@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseMoments,momentExtractionPrompt,momentExtractionSchema,MOMENT_LIMIT,looksCut} from '../scene-extraction.mjs';
+import {parseMoments,momentExtractionPrompt,momentExtractionSchema,MOMENT_LIMIT,looksCut,foreignFields} from '../scene-extraction.mjs';
 
 const profiles=[{id:'mira',name:'Mira',aliases:[],defaultOutfit:'grey coat'},{id:'leo',name:'Leo',aliases:[],defaultOutfit:'hoodie'}];
 const person=(id,name,action)=>({id,name,expression:'smile',action,position:'auto',outfitMode:'unchanged',outfit:''});
@@ -57,4 +57,11 @@ test('a reply whose JSON never closes is recognised as cut off',()=>{
  assert.equal(looksCut(text.slice(0,text.length-30)),true);
  assert.equal(looksCut('<think>{ planning</think>'+text),false,'reasoning text is ignored');
  assert.equal(looksCut('no json at all'),false);
+});
+test('descriptive fields must be English; Korean in them is found, Korean titles and names are fine',()=>{
+ const prompt=momentExtractionPrompt([{index:0,speaker:'Mira',text:'미라가 웃는다.'}],profiles,{},'tags',[],'');
+ assert.match(prompt,/LANGUAGE: write expression, action, outfit, interaction, location, lighting and camera in English only/);
+ const ok=parseMoments(JSON.stringify(three),profiles).moments;assert.deepEqual(foreignFields(ok),[]);
+ const ko={...three,moments:[{...three.moments[0],location:'식당',characters:[{...three.moments[0].characters[0],name:'미라',action:'밥을 먹는다'}]}]};
+ assert.deepEqual(foreignFields(parseMoments(JSON.stringify(ko),profiles).moments).sort(),['action','location']);
 });

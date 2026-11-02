@@ -21,6 +21,7 @@ When Scene Info and prose disagree, prefer concrete prose of the target instant,
 interaction: describe the visible interaction without names or roster IDs, and put each person's participation in their action field. The identity-only name field is the sole place for personal names and aliases.
 ${GENERIC_VISUALS_RULE}
 ${format==='tags'?SCENE_TAG_GUIDE:'Write descriptive fields as short concrete English visual phrases, not story narration.'}
+LANGUAGE: write expression, action, outfit, interaction, location, lighting and camera in English only, even when the story is written in Korean or any other language: translate them. Only title and the identity-only name field may use another language.
 Use empty strings for unknown fields.`;
 }
 function context(profiles,outfits,mappings,messages) {
@@ -69,6 +70,17 @@ export function looksCut(raw) {
   if(quoted){if(escaped)escaped=false;else if(c==='\\')escaped=true;else if(c==='"')quoted=false;continue;}
   if(c==='"')quoted=true;else if(c==='{')depth++;else if(c==='}'&&--depth===0)return false;}
  return true;
+}
+// Descriptive fields that came back in Korean, Japanese or Chinese instead of English (the image model needs English).
+const FOREIGN=/[\u1100-\u11FF\u3040-\u30FF\u3130-\u318F\u3400-\u9FFF\uAC00-\uD7A3]/;
+export function foreignFields(moments) {
+ const hits=new Set();
+ for(const m of moments){
+  const sc=m.scene??m;
+  for(const k of ['interaction','location','lighting','camera'])if(FOREIGN.test(sc[k]??''))hits.add(k);
+  for(const c of [...(sc.characters??[]),...(sc.unregisteredDetails??[])])for(const k of ['expression','action','outfit'])if(FOREIGN.test(c[k]??''))hits.add(k);
+ }
+ return [...hits];
 }
 export function parseMoments(raw,profiles) {
  if(typeof raw!=='string')throw new Error('추출 응답이 문자열이 아니에요.');

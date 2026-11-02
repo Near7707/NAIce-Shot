@@ -1,3 +1,11 @@
+# v0.1.35 validation — 2026-11-03
+
+- Extension Node suite **126 passed** (new: English-only rule in the prompt; Korean found in action/location but not in titles or names).
+- **29 of 29 browser scripts passed**:
+  - `browser-v0132` now covers a Korean reply followed by an English one: the retry asks for English, keeps structured output, and the English fields are used. A reply still Korean after the retry is used with a note.
+  - `browser-v0133` checks the badges, the lit picker and the pressed "✓ 이 채팅 기본 옷" button, which turns off for a one-off outfit.
+- Checked the card by eye at 375px in classic and cream; badges use the tab colours, which are contrast-tested per theme.
+
 # v0.1.34 validation — 2026-11-03
 
 - Extension Node suite **125 passed**; **29 of 29 browser scripts passed**. `browser-v0133` also checks the "nothing saved yet" line and the "✓ 이 채팅에 저장된 옷: hoodie · 평생 박제" confirmation.

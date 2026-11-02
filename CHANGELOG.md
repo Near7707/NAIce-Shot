@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.35 — 2026-11-03
+
+**Update: extension only.** Server 0.1.8 is unchanged.
+
+- Fixed: extracting from a Korean chat could return Korean descriptive fields. The prompt now requires English for expression, action, outfit, interaction, location, lighting and camera; titles and names may stay in another language. If Korean, Japanese or Chinese still appears in those fields, the extension asks once more for English, keeping structured output. If the second reply is still not English, it is used with a note naming the fields.
+- "당분간 이 복장" is now **이 채팅 기본 복장**, and its button is **이 채팅 기본으로**. The note explains that a message can still change clothes for one image, and that 평생 박제 stops that.
+- Clothes state is visible at a glance:
+  - badges under the name: 👕 이 채팅 기본 옷 · 📌 평생 박제
+  - a lit picker when this chat has its own outfit
+  - the button turns into "✓ 이 채팅 기본 옷" while the image wears that outfit
+  - a lit lock
+
 ## 0.1.34 — 2026-11-03
 
 **Update: extension only.** Server 0.1.8 is unchanged.
