@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.1.39 — 2026-11-03
+
+**Update: extension only.** Server 0.1.8 is unchanged; 프리샷 images use their own history bucket, which the server already accepts.
+
+- **챗샷 / 프리샷** switch at the top of the scene tab. Each mode keeps its own work (people, scene, candidates, final prompt, one-off options, preview, text) while the other is in use. Switching is off during extraction or generation.
+- **프리샷**: draw with no chat at all.
+  - Write a situation, Korean is fine, and press **글로 채우기**. One request fills the scene fields.
+  - Profiles already added are "selected" and keep their saved look; the text AI never sees saved appearances. A roster name in the text also uses that profile.
+  - Anyone else becomes or updates a **temporary person** with the appearance the text gives. The same person is never doubled.
+  - Several actions collapse into one instant. Fields come back in English, with one retry if not.
+  - Clothes start from the profile's default outfit; chat clothes are never read or changed. Cards show 이번 그림 복장, 옷장에서 꺼내 입기, 옷장에 저장 and 되돌리기 only.
+  - Images go to a separate 프리샷 history ("프리샷" in the history tab and the all-chats view) with nothing to attach to a message. Restoring one brings its text back.
+  - A chat change leaves 프리샷 alone.
+- **이력 → 프리샷으로 보내기** (chat and all-chats history) loads the image's chosen moment, final prompt and generation options into 프리샷. The previous 프리샷 work is one 되돌리기 away.
+- **그리기창 비우기** replaces 직접 입력 in both modes.
+  - It empties the people, scene, candidates, wished moment, target message (back to latest), final-prompt edits, one-off history options, preview and extraction response, or the 프리샷 text.
+  - It keeps profiles, wardrobes, chat clothes, settings, presets, common prompts and history.
+  - It is off while extracting or generating.
+- **되돌리기** stays until the next edit, extraction, generation or chat change, and survives tab switches. It restores everything together.
+- Added `tests/browser-v0139.mjs` and `tests/free-scene.test.mjs`; older tests point at the 챗샷 clear button.
+
 ## 0.1.38 — 2026-11-03
 
 **Update: extension only.** Server 0.1.8 is unchanged.

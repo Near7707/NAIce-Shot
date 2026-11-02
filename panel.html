@@ -6,7 +6,9 @@
   <div class="ncs-progress" id="ncs-progress" hidden><span class="ncs-spinner" aria-hidden="true"></span><div class="ncs-progress-text"><strong id="ncs-progress-title" role="status">장면 추출 중</strong><small id="ncs-progress-detail"></small></div><button type="button" id="ncs-progress-cancel" data-action="cancel-extract">추출 중단</button></div>
   <div class="ncs-content">
     <section data-page="scene">
-      <div class="ncs-section"><h3>1 · 그릴 순간</h3><p>대상 메시지의 장면을 그려요. 앞선 메시지는 참고용이에요. 한 메시지에 장면이 여러 개면 최대 3개의 후보를 보여주고, 기본으로는 마지막 순간을 골라요. 캐릭터·유저 외의 등장인물도 함께 찾아요.</p>
+      <div class="ncs-mode-bar"><div class="ncs-segment ncs-mode" role="group" aria-label="그리기 방식"><button type="button" data-mode="chat" aria-pressed="true">챗샷</button><button type="button" data-mode="free" aria-pressed="false">프리샷</button></div><small class="ncs-mode-help">챗샷은 열린 채팅의 장면을, 프리샷은 채팅과 상관없이 적은 상황을 그려요. 작업은 따로 보관돼요.</small></div>
+      <div id="ncs-undo-clear" class="ncs-undo" role="status" hidden></div>
+      <div class="ncs-section"><h3 id="ncs-source-title">1 · 그릴 순간</h3><div id="ncs-chat-source"><p>대상 메시지의 장면을 그려요. 앞선 메시지는 참고용이에요. 한 메시지에 장면이 여러 개면 최대 3개의 후보를 보여주고, 기본으로는 마지막 순간을 골라요. 캐릭터·유저 외의 등장인물도 함께 찾아요.</p>
         <input id="ncs-target" type="hidden" value="">
         <span class="ncs-target-title">대상 메시지</span>
         <details id="ncs-target-picker" class="ncs-target-picker"><summary id="ncs-target-label" class="ncs-target-summary">가장 최근 메시지</summary>
@@ -22,7 +24,11 @@
         <small>1이면 대상 메시지만 보내요. 인물·복장·상황이 앞 메시지에서 이어지면 늘려 주세요. 앞 메시지는 지금 상태를 이해하는 자료로만 쓰고, 후보는 대상 메시지에서만 골라요.</small>
         <label class="ncs-check"><input id="ncs-include-user" type="checkbox" checked>유저 메시지 포함</label>
         <label>그리고 싶은 순간 · 선택<input id="ncs-moment-wish" maxlength="200" placeholder="예: 식탁에서 밥 먹는 순간"></label><small>원하는 후보가 없을 때만 적고 다시 추출해 주세요. 비워 두면 마지막 순간을 기본으로 골라요. 대상 메시지나 채팅을 바꾸면 비워져요.</small>
-        <div class="ncs-row"><button data-action="extract" class="ncs-primary">장면 추출</button><button data-action="blank">직접 입력</button></div>
+        <div class="ncs-row"><button data-action="extract" class="ncs-primary">장면 추출</button><button data-action="blank">그리기창 비우기</button></div></div>
+        <div id="ncs-free-source" hidden><p>채팅과 상관없이 자유롭게 그려요. 아래 장면 편집에서 프로필 인물을 넣거나 임시 인물을 만들고, 상황을 적어 "글로 채우기"를 누르면 AI가 칸을 채워 줘요. 직접 채워도 돼요.</p>
+          <label>상황 · 한국어로 적어도 돼요<textarea id="ncs-free-text" rows="4" maxlength="4000" placeholder="예: 비 오는 밤 편의점 앞에서 우산을 나눠 쓰는 두 사람"></textarea></label>
+          <small>프로필로 넣은 인물은 저장된 외형을 그대로 써요. 글에만 나오는 인물은 적은 묘사로 임시 인물을 만들어요. 여러 동작을 적으면 한 순간으로 골라요.</small>
+          <div class="ncs-row"><button data-action="free-fill" class="ncs-primary">글로 채우기</button><button data-action="blank">그리기창 비우기</button></div></div>
         <details><summary>추출 응답 확인</summary><textarea id="ncs-raw" readonly rows="6" aria-label="추출 원문"></textarea></details>
       </div>
       <div class="ncs-section"><h3>2 · 장면 편집</h3><div id="ncs-moments" class="ncs-moments" hidden></div><div id="ncs-missing-main"></div>
@@ -86,5 +92,5 @@
       <p class="ncs-small">삭제하면 서버의 원본 PNG와 생성 기록이 지워져요. 지금 채팅에 붙인 그림은 함께 빠지고, 다른 채팅에 붙여 둔 그림은 그 채팅에서 "찾을 수 없는 그림" 안내로 바뀌어요. 되돌릴 수 없어요.</p></div></section>
   </div>
   <dialog id="ncs-missing-dialog" class="ncs-missing-dialog" aria-labelledby="ncs-missing-title"><div class="ncs-overlay-card"></div></dialog>
-  <footer><span id="ncs-chat-label"></span><span id="ncs-version">v0.1.38</span></footer>
+  <footer><span id="ncs-chat-label"></span><span id="ncs-version">v0.1.39</span></footer>
 </div>

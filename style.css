@@ -392,3 +392,12 @@
 #naice-shot-dialog .ncs-gen-override {display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0 10px;padding:8px 10px;border:1.5px solid var(--ncs-edge);border-radius:var(--ncs-radius-control);}
 #naice-shot-dialog .ncs-gen-override span {flex:1 1 200px;}
 #naice-shot-dialog .ncs-gen-presets {margin-top:8px;}
+/* 챗샷 / 프리샷 switch and the undo bar after clearing. */
+#naice-shot-dialog .ncs-mode-bar {margin:14px 0 4px;}
+#naice-shot-dialog .ncs-mode {display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+#naice-shot-dialog .ncs-mode button {min-height:44px;font-weight:700;font-size:15px;}
+#naice-shot-dialog .ncs-mode button[aria-pressed="true"] {background:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);border:2px solid var(--ncs-tab-active-border,var(--ncs-edge));}
+#naice-shot-dialog .ncs-mode-help {display:block;margin-top:6px;}
+#naice-shot-dialog .ncs-undo {display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 0;padding:10px 12px;border:1.5px solid var(--ncs-edge);border-radius:var(--ncs-radius-control);background:var(--ncs-surface);}
+#naice-shot-dialog .ncs-undo[hidden] {display:none;}
+#naice-shot-dialog .ncs-undo span {flex:1 1 220px;}

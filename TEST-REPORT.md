@@ -1,3 +1,20 @@
+# v0.1.39 validation — 2026-11-03
+
+- Extension Node suite **128 passed**, including the new `free-scene.test.mjs`:
+  - prompt rules for one instant, selected people and no invented traits
+  - saved appearances never sent to the text AI
+  - empty and too-long text refused
+  - roster people never carry an appearance, unknown ids become temporary people, and bad fields fall back
+- **32 of 32 browser scripts passed**, including the new `browser-v0139` at 1280px and 375px:
+  - clearing keeps the common prompt; undo survives a tab switch and restores people, candidate, wish, target, final edit, one-off options and preview together; an edit ends it; clearing is disabled while extracting
+  - 프리샷 has its own work and the other mode's work is kept
+  - 글로 채우기 with a selected profile and a described stranger, with no doubling and an English retry
+  - no chat clothes; works after the chat closes and goes to its own history bucket with no attach controls
+  - clearing is per mode, and history restore brings the text back
+  - 프리샷으로 보내기 loads one moment, and the old 프리샷 work comes back with 되돌리기
+- Checked 프리샷 and the undo bar by eye at 375px (cream).
+- Not exercised: a real text model for 글로 채우기, real SillyTavern, iPhone Safari.
+
 # v0.1.38 validation — 2026-11-03
 
 - Extension Node suite **126 passed**. **31 of 31 browser scripts passed**, including the new `browser-v0138` at 1280px and 375px:

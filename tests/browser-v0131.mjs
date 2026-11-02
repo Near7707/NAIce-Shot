@@ -72,7 +72,7 @@ try{
   assert.match(sent.at(-1).assembled.characters.find(c=>c.name==='Mira').prompt,/holding chopsticks/);
   assert.doesNotMatch(JSON.stringify(sent.at(-1).assembled),/opening door|standing up/,'other moments never reach the image prompt');
   // History restore brings the candidates back, still switchable without AI.
-  await page.locator('[data-action="blank"]').click();assert.equal(await page.locator('#ncs-moments').isHidden(),true);
+  await page.locator('#ncs-chat-source [data-action="blank"]').click();assert.equal(await page.locator('#ncs-moments').isHidden(),true);
   await page.locator('[data-tab="history"]').click();await page.locator('[data-history-id]').first().click();
   assert.equal(await page.locator('.ncs-moment').count(),3);assert.equal(await pressed(),'0');
   await page.locator('.ncs-moment[data-moment="2"]').click();assert.equal(await action('mira').inputValue(),'opening door');

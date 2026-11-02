@@ -4,6 +4,17 @@
 
 - [ ] Add a temporary character slot for manual drawing without saving a reusable profile. Keep it available while editing or regenerating the current scene.
 
+## v0.1.39
+
+Update the extension and refresh.
+
+1. In 챗샷, extract and then press 그리기창 비우기. Switch tabs, come back, and press 되돌리기: everything should return.
+2. Switch to 프리샷, add a profile, write a situation with one extra person and press 글로 채우기. Check that the profile is not doubled and the extra person is a temporary person.
+3. Generate, then check the 프리샷 history.
+4. From a chat history card, press 프리샷으로 보내기.
+
+No server update is needed.
+
 ## v0.1.38
 
 Update the extension and refresh.

@@ -49,7 +49,7 @@ try{
   await page.locator('[data-action="generate"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&document.querySelector('#ncs-result img'));
   assert.ok(sent.at(-1).snapshot.scene.characters.some(c=>c.temp&&c.appearance==='old man, grey beard'));
   assert.equal(await temp.count(),1,'still there after generating');
-  await page.locator('[data-action="blank"]').click();assert.equal(await temp.count(),0);
+  await page.locator('#ncs-chat-source [data-action="blank"]').click();assert.equal(await temp.count(),0);
   await page.locator('[data-tab="history"]').click();await page.locator('[data-history-id]').first().click();assert.equal(await temp.count(),1,'history restores it');
   // Re-extraction without them: kept, flagged for a check, not silently confirmed.
   await page.evaluate(d=>{mock.extraction=d;},frame([leo('standing')]));await extract();
