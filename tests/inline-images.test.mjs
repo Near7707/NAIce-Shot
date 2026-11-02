@@ -37,3 +37,22 @@ test('wrong chat, missing targets, system messages and unsafe download URLs are 
  assert.throws(()=>imageDownload({...item,image:'https://outside.test/image.png'}));assert.throws(()=>imageDownload({...item,image:'/user/images/naice-shot/../secret'}));
  assert.deepEqual(imageDownload(item),{url:item.image,filename:`naice-shot-${id}.png`});assert.equal(ctx.saves,0);
 });
+
+test('message-scoped removal keeps another attachment of the same image and all RP text',async()=>{
+ const {detachMessageImage}=await import('../inline-images.mjs'),ctx=context();
+ ctx.chat[1].swipe_info=[{extra:{reasoning:'private'}}];
+ await attachInlineImage(ctx,item,{targetIndex:0});await attachInlineImage(ctx,item,{targetIndex:1});
+ const target=ctx.chat[1],entry=visibleInlineImages(target)[0],other=structuredClone(ctx.chat[0]);
+ await detachMessageImage(ctx,item,{message:target,swipeId:entry.swipeId,signature:entry.signature});
+ assert.deepEqual(ctx.chat[0],other);assert.equal(target.mes,'RP text');assert.equal(target.extra.reasoning,'private');
+ assert.equal(visibleInlineImages(target).length,0);assert.equal(target.swipe_info[0].extra[IMAGE_KEY],undefined);
+ assert.equal(visibleInlineImages(ctx.chat[0]).length,1);
+});
+test('message-scoped removal refuses a changed chat or source and rolls back a failed save',async()=>{
+ const {detachMessageImage}=await import('../inline-images.mjs'),ctx=context();await attachInlineImage(ctx,item,{targetIndex:1});
+ const message=ctx.chat[1],entry=visibleInlineImages(message)[0],options={message,swipeId:entry.swipeId,signature:entry.signature};
+ await assert.rejects(detachMessageImage(ctx,item,{...options,isCurrent:()=>false}),/채팅이 바뀌/);
+ message.mes='changed';await assert.rejects(detachMessageImage(ctx,item,options),/메시지나 리롤/);message.mes='RP text';
+ const before=structuredClone(message);ctx.saveChat=async()=>{throw new Error('save failed');};
+ await assert.rejects(detachMessageImage(ctx,item,options),/save failed/);assert.deepEqual(message,before);
+});

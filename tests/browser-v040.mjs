@@ -95,7 +95,7 @@ try{
  assert.equal(await page.locator('#ncs-history .ncs-history-card').count(),21,'refresh keeps everything that was shown');
 
  // 3) Single delete from a card, then from the viewer.
- const third=seeded.at(-3);await page.locator(`[data-history-delete="${third.id}"]`).click();
+ const third=seeded.at(-3);await page.locator(`[data-view-history="${third.id}"]`).locator('..').locator('[data-image-more]').click();await page.locator(`[data-history-delete="${third.id}"]`).click();
  await page.waitForFunction(()=>/총 20장/.test(document.querySelector('#ncs-history-count').textContent));assert.equal(await total(),20);
  const fourth=seeded.at(-4);await page.locator(`[data-view-history="${fourth.id}"]`).click();await page.locator('#ncs-viewer[open]').waitFor();
  assert.equal(await page.locator('#ncs-viewer [data-v="delete"]').isVisible(),true);
@@ -112,7 +112,8 @@ try{
  await page.evaluate(()=>{mock.renderChat();});
  await page.locator('#chat .ncs-inline-image.ncs-missing').waitFor();
  assert.match(await page.locator('#chat .ncs-missing-note').textContent(),/찾을 수 없는/);
- assert.equal(await page.locator('#chat [data-ncs-inline-remove]').isVisible(),true);
+ await click('close');await page.locator('#chat .ncs-inline-more').click();assert.equal(await page.locator('#chat [data-ncs-inline-remove]').isVisible(),true);
+ await page.keyboard.press('Escape');await page.locator('.ncs-launch-button').click();
 
  // 5) Generate with a mixed AI placement: no blocking error, a warning, no coordinates.
  await page.locator('[data-tab="scene"]').click();

@@ -3,6 +3,7 @@
 import { imageDownload } from './inline-images.mjs';
 import { saveCleanImage } from './downloads.mjs';
 import { currentSkin } from './skins.mjs';
+import { copyText } from './clipboard.mjs';
 
 export const ZOOM_MIN = 0.05, ZOOM_MAX = 8, ZOOM_STEP = 1.25;
 
@@ -41,17 +42,35 @@ function build() {
   dialog.innerHTML = `<div class="ncsv-bar">
     <div class="ncsv-group ncsv-modes"><button type="button" data-v="fit" aria-pressed="true">화면 맞춤</button><button type="button" data-v="original" aria-pressed="false">원본 크기</button></div>
     <div class="ncsv-group ncsv-zooms"><button type="button" data-v="out" aria-label="축소" title="축소 (-)">−</button><output class="ncsv-zoom" aria-live="polite">100%</output><button type="button" data-v="in" aria-label="확대" title="확대 (+)">+</button></div>
-    <div class="ncsv-group ncsv-save-group"><a class="ncsv-save" download>PNG 저장</a><button type="button" data-v="clean">공유용 PNG</button><button type="button" data-v="delete" class="ncsv-delete" hidden>삭제</button></div>
+    <div class="ncsv-group ncsv-save-group"><a class="ncsv-save" download>PNG 저장</a><button type="button" data-v="clean">공유용 PNG</button><button type="button" data-v="detach" hidden>이 메시지에서 빼기</button><button type="button" data-v="delete" class="ncsv-delete" hidden>그림 삭제</button></div>
     <div class="ncsv-group ncsv-close-group"><button type="button" data-v="close" aria-label="닫기" title="닫기 (Esc)">✕</button></div>
   </div>
   <div class="ncsv-stage"><img alt="생성된 장면 크게 보기" draggable="false"></div>
-  <div class="ncsv-meta"></div>`;
+  <details class="ncsv-prompt" hidden><summary>프롬프트 보기</summary><div class="ncsv-prompt-body"><button type="button" class="ncsv-copy" data-v="copy" disabled>프롬프트 복사</button><span class="ncsv-copy-status" role="status"></span><pre class="ncsv-prompt-text"></pre></div></details><div class="ncsv-meta"></div>`;
   document.body.append(dialog);
 
   const stage = dialog.querySelector('.ncsv-stage'), img = stage.querySelector('img');
   const zoomLabel = dialog.querySelector('.ncsv-zoom'), meta = dialog.querySelector('.ncsv-meta'), save = dialog.querySelector('.ncsv-save');
-  const state = { nat: { w: 0, h: 0 }, view: { scale: 1, x: 0, y: 0 }, mode: 'fit', caption: '', onDelete: null, item: null };
-  const deleteButton = dialog.querySelector('[data-v="delete"]');
+  const state = { nat: { w: 0, h: 0 }, view: { scale: 1, x: 0, y: 0 }, mode: 'fit', caption: '', onDelete: null, onDetach:null, loadPrompt:null, promptText:'', epoch:0, item: null };
+  const deleteButton = dialog.querySelector('[data-v="delete"]'), detachButton=dialog.querySelector('[data-v="detach"]');
+  const promptBox=dialog.querySelector('.ncsv-prompt'),promptContent=dialog.querySelector('.ncsv-prompt-text'),copyButton=dialog.querySelector('[data-v="copy"]'),copyStatus=dialog.querySelector('.ncsv-copy-status');
+  promptBox.addEventListener('toggle',async()=>{
+    if(!promptBox.open||promptBox.dataset.loaded||!state.loadPrompt)return;
+    const epoch=state.epoch;promptBox.dataset.loaded='1';promptContent.textContent='프롬프트를 불러오는 중…';
+    try{const text=await state.loadPrompt();if(epoch!==state.epoch)return;state.promptText=text;promptContent.textContent=text;copyButton.disabled=false;}
+    catch(e){if(epoch===state.epoch){delete promptBox.dataset.loaded;promptContent.textContent=e.message;}}
+  });
+  async function copyPrompt(){
+    if(!state.promptText)return;const epoch=state.epoch;copyButton.textContent='프롬프트 복사';copyStatus.textContent='';
+    try{await copyText(state.promptText,dialog);if(epoch===state.epoch){copyButton.textContent='복사됨';copyStatus.textContent='프롬프트를 복사했어요.';}}
+    catch(e){if(epoch===state.epoch)copyStatus.textContent=e.message;}
+  }
+  async function detach(){
+    if(!state.onDetach)return;const epoch=state.epoch;detachButton.disabled=true;
+    try{if(await state.onDetach()&&epoch===state.epoch)dialog.close();}
+    catch(e){if(epoch===state.epoch)meta.textContent=e.message;}
+    finally{if(epoch===state.epoch)detachButton.disabled=false;}
+  }
   async function cleanSave(){const button=dialog.querySelector('[data-v="clean"]');button.disabled=true;try{await saveCleanImage(state.item);meta.textContent='메타데이터를 뺀 공유용 PNG를 저장했어요.';}catch{meta.textContent='공유용 PNG를 저장하지 못했어요. 원본으로 대체 저장하지 않았어요.';}finally{button.disabled=false;}}
   async function remove() {
     if (!state.onDelete) return;
@@ -86,7 +105,7 @@ function build() {
 
   dialog.addEventListener('click', event => {
     const button = event.target.closest('[data-v]'); if (!button) return;
-    ({ fit, original: () => original(), in: () => zoomBy(ZOOM_STEP), out: () => zoomBy(1 / ZOOM_STEP), close: () => dialog.close(), delete: remove, clean: cleanSave })[button.dataset.v]?.();
+    ({ fit, original: () => original(), in: () => zoomBy(ZOOM_STEP), out: () => zoomBy(1 / ZOOM_STEP), close: () => dialog.close(), delete: remove, detach, copy:copyPrompt, clean: cleanSave })[button.dataset.v]?.();
   });
   dialog.addEventListener('keydown', event => {
     if (event.target.closest?.('a,button') && (event.key === 'Enter' || event.key === ' ')) return;
@@ -144,9 +163,12 @@ function build() {
 
   return {
     dialog,
-    open(item, { caption = '', onDelete = null } = {}) {
+    open(item, { caption = '', onDelete = null, onDetach=null, loadPrompt=null } = {}) {
       const file = imageDownload(item); // validates the same-origin generated PNG path
-      state.item = item;state.caption = caption; state.nat = { w: 0, h: 0 }; state.mode = 'fit';
+      state.epoch++;state.item = item;state.caption = caption;
+      state.loadPrompt=typeof loadPrompt==='function'?loadPrompt:null;state.promptText='';
+      promptBox.open=false;promptBox.hidden=!state.loadPrompt;delete promptBox.dataset.loaded;promptContent.textContent='';copyButton.disabled=true;copyButton.textContent='프롬프트 복사';copyStatus.textContent='';
+      state.onDetach=typeof onDetach==='function'?onDetach:null;detachButton.hidden=!state.onDetach;detachButton.disabled=false; state.nat = { w: 0, h: 0 }; state.mode = 'fit';
       state.onDelete = typeof onDelete === 'function' ? onDelete : null; deleteButton.hidden = !state.onDelete; deleteButton.disabled = false;
       save.href = file.url; save.download = file.filename;
       meta.textContent = '불러오는 중…'; img.style.transform = ''; img.removeAttribute('style');

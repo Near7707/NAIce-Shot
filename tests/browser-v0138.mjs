@@ -59,7 +59,7 @@ try{
   await page.locator('[data-action="gen-restore-default"]').click();assert.match(await page.locator('#ncs-gen-scope').innerText(),/기본 생성 설정/);
   // 설정을 프리셋으로: a new preset from one image; current work and the chosen preset do not change.
   const before=await page.evaluate(()=>({id:mock.extensionSettings.naice_shot.imagePresetId,options:{...mock.extensionSettings.naice_shot.options}}));
-  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-preset]').last().click();
+  await page.locator('[data-tab="history"]').click();await page.locator('.ncs-history-card [data-image-more]').last().click();await page.locator('[data-history-preset]').last().click();
   await page.locator('[data-history-preset-save]').click();assert.match(await page.locator('#ncs-notice').innerText(),/이름을 적어/);
   await page.locator('#ncs-history-preset-name').fill('가로 수채화');await page.locator('[data-history-preset-save]').click();assert.match(await page.locator('#ncs-notice').innerText(),/같은 이름/);
   await page.locator('#ncs-history-preset-name').fill('첫 그림 설정');await page.locator('[data-history-preset-save]').click();

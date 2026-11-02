@@ -88,14 +88,15 @@ try{
   await card.locator('[data-lock]').check();await page.waitForFunction(()=>mock.chatMetadata.naice_shot.outfits.leo?.locked===true);
   assert.equal(await page.evaluate(()=>'value' in mock.chatMetadata.naice_shot.outfits.leo),false,'a lock alone sets no default');
   await once.fill('hoodie');await card.locator('[data-save-outfit]').click();await page.waitForFunction(()=>mock.chatMetadata.naice_shot.outfits.leo.value==='hoodie');
-  // History: 프롬프트 보기 is built only when opened and shows what was sent.
+  // The shared viewer builds the prompt only after its disclosure opens.
   await page.locator('[data-action="generate"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&document.querySelector('#ncs-result img'));
-  await page.locator('[data-tab="history"]').click();await page.locator('[data-prompt-view]').first().waitFor();
-  assert.equal(await page.locator('.ncs-prompt-text').count(),0,'nothing built while closed');
-  await page.locator('[data-prompt-view] > summary').first().click();
-  const shown=await page.locator('.ncs-prompt-text').first().innerText();assert.match(shown,/\[공통 Positive\]/);assert.match(shown,/hoodie/);assert.match(shown,/seed /);
+  await page.locator('[data-tab="history"]').click();await page.locator('[data-view-history]').first().click();
+  assert.equal(await page.locator('.ncsv-prompt-text').innerText(),'','nothing built while closed');
+  await page.locator('.ncsv-prompt > summary').click();await page.waitForFunction(()=>!document.querySelector('[data-v="copy"]').disabled);
+  const shown=await page.locator('.ncsv-prompt-text').innerText();assert.match(shown,/\[공통 Positive\]/);assert.match(shown,/hoodie/);assert.match(shown,/seed /);
   await page.context().grantPermissions(['clipboard-read','clipboard-write']).catch(()=>{});
-  await page.locator('[data-copy-prompt]').first().click();await page.waitForFunction(()=>/복사했어요/.test(document.querySelector('#ncs-notice').textContent));
+  await page.locator('[data-v="copy"]').click();await page.waitForFunction(()=>/복사했어요/.test(document.querySelector('.ncsv-copy-status').textContent));
+  await page.locator('#ncs-viewer [data-v="close"]').click();
   // Backups carry the wardrobe.
   await page.locator('[data-tab="settings"]').click();
   const backup=JSON.stringify({...(await settings())});

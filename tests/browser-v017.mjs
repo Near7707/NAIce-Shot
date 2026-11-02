@@ -66,7 +66,7 @@ try{
  await page.locator('[data-tab="scene"]').click();await click('generate');await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===2);
  assert.equal(sent[1].retainRawExtraction,true);assert.doesNotMatch(sent[1].snapshot.rawExtraction,/PRIVATE_REASONING|<think>/);
  await click('attach');await click('close');
- checkClean((await downloadBy(page.locator('[data-ncs-inline-clean]').first())).bytes);
+ await page.locator('#chat .ncs-inline-more').first().click();checkClean((await downloadBy(page.locator('[data-ncs-inline-clean]').first())).bytes);
  await page.locator('.ncs-launch-button').click();await page.locator('[data-tab="history"]').click();await click('select-all-history');
  const zip=await downloadBy(page.locator('[data-action="save-selected-clean"]'));assert.match(zip.name,/shared-.*-2\.zip$/);
  const entries=JSON.parse(execFileSync('python3',['-c','import sys,zipfile,io,json\nz=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read()))\nprint(json.dumps([list(z.read(n)) for n in z.namelist()]))'],{input:zip.bytes}).toString());

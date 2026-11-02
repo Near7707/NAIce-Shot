@@ -1,3 +1,13 @@
+# v0.1.40 validation — 2026-11-03
+
+- Extension Node suite: **130 passed, 0 failed, 0 skipped**, with the server repository cloned alongside it. New regressions check message-scoped removal, preservation of another message's same image/native media/text, swipe cleanup, stale targets and save-failure rollback.
+- **33 of 33 browser scripts passed** in headless Chromium. The new `browser-v0140` runs at 1100, 375 and 320px and checks compact history/attachment menus, viewport bounds, Escape/focus, horizontal preset actions, raw response and viewer prompt copying, blocked-copy feedback, per-message removal and stale-source refusal. Existing browser flows were adapted to the new menus and terminology.
+- The existing `browser-v040` and `browser-v070` exercise the real server handlers with mocked NovelAI transport. No paid requests were sent.
+- Visual inspection: history actions, enlarged prompt view and attachment menu at phone width. Korean fonts used for local screenshots are test-only and are not shipped.
+- Menus use delegated events and create no polling loop. Opening a prompt from an attachment reads paged history on demand; no history request is made merely by scrolling chat.
+- Current files and the publication diff were screened for credential patterns, personal paths, private character/lore data and accidentally included runtime files. No new private data was identified. Existing historical author metadata was not rewritten.
+- Not exercised: real SillyTavern, iPhone Safari, actual extraction AI or NovelAI calls. Native popover behavior on iOS still needs device confirmation.
+
 # v0.1.39 validation — 2026-11-03
 
 - Extension Node suite **128 passed**, including the new `free-scene.test.mjs`:

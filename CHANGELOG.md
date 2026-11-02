@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.40 — 2026-11-03
+
+**Update: extension only.** Server 0.1.8 is unchanged.
+
+- History cards show **불러오기 / 본문에 넣기 / ⋯** in one row. Downloads, presets and 프리샷 are in ⋯; **그림 삭제** is last, below a separator. All-chats cards retain their existing read-only actions.
+- **프롬프트 보기** moves into the enlarged image viewer with a clear **프롬프트 복사** button and copy feedback. Attachment prompts load from history only when expanded. **추출 응답 확인** gains **응답 복사**. Blocked copying no longer reports success.
+- New-preset forms put **저장 / 취소** side by side. History preset guidance is shorter and still identifies when common Positive comes from current settings.
+- Attached images show one corner **⋯** instead of three buttons. Both its menu and the enlarged attachment viewer offer **이 메시지에서 빼기**. This removes that message's copy, including its swipe copies, while preserving other messages, the original PNG and history. Changed messages/swipes/chats are refused; failed saves restore the attachment.
+- Scene labels use **+ 캐릭터 프롬프트**, **프로필 / 직접 입력**, and **AI 선택**. The character-limit hint follows the selected model, including one-off history options.
+- This is stage one of the screen cleanup. Per-chat work persistence and message/image navigation are not included yet.
+
 ## 0.1.39 — 2026-11-03
 
 **Update: extension only.** Server 0.1.8 is unchanged; 프리샷 images use their own history bucket, which the server already accepts.

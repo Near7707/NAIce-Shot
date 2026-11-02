@@ -91,7 +91,7 @@ try{
   // 이력 → 프리샷으로 보내기 from 챗샷, with the old 프리샷 work one 되돌리기 away.
   await page.evaluate(()=>{mock.chatId='A';mock.emit('chat');});
   await page.locator('[data-tab="scene"]').click();await page.locator('[data-mode="chat"]').click();
-  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-free]').first().click();
+  await page.locator('[data-tab="history"]').click();await page.locator('.ncs-history-card [data-image-more]').first().click();await page.locator('[data-history-free]').first().click();
   assert.equal(await page.locator('[data-mode="free"]').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#ncs-free-text').inputValue(),'');
   assert.match(await page.locator('[data-character="leo"] [data-field="action"]').inputValue(),/sitting/);assert.equal(await page.locator('.ncs-moment').count(),0,'one moment only');
   assert.match(await page.locator('#ncs-undo-clear').innerText(),/이력에서 가져왔어요/);

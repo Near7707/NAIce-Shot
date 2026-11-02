@@ -51,7 +51,7 @@ try{
  assert.equal(await box.locator('[data-missing-do="direct"]').innerText(),'직접 만들기');
  assert.equal(await box.locator('[data-missing-do="link"]').innerText(),'기존 프로필 연결하기');
  assert.equal(await page.locator('#ncs-unregistered [data-quick-profile-name]').count(),1,'only the side character stays a chip');
- assert.match(await page.locator('#ncs-unregistered').innerText(),/그냥 두면 그림에서 빠져요. 이번 장면에만 그리려면 임시로 그리기/);
+ assert.match(await page.locator('#ncs-unregistered').innerText(),/그냥 두면 그림에서 빠져요. 이번 장면에만 그리려면 캐릭터 프롬프트로 추가/);
  assert.equal(await page.locator('#ncs-left-out').innerText(),'이번 그림에서 빠지는 인물: Leo(대화 중인 캐릭터), street vendor');
  assert.doesNotMatch(await page.locator('#ncs-warnings').innerText(),/미등록 인물은/);
 

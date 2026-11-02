@@ -41,6 +41,24 @@ export async function detachInlineImage(context,item,options={}) {
  imageDownload(item);
  return detachInlineImages(context,new Set([item.id]),options);
 }
+// A viewer opened from an attachment removes this message's copy only, including its swipe copies.
+export async function detachMessageImage(context,item,{message,swipeId,signature,isCurrent=()=>true}={}) {
+ imageDownload(item);
+ if(!isCurrent())throw new Error('채팅이 바뀌었어요. 현재 채팅에서 다시 선택해 주세요.');
+ if(!context.chat?.includes(message)||
+    (message.swipe_id??0)!==swipeId||textSignature(message.mes)!==signature||!visibleInlineImages(message).some(x=>x.id===item.id))
+  throw new Error('메시지나 리롤이 바뀌었어요. 해당 그림을 다시 열어 주세요.');
+ const edits=[];
+ for(const owner of [message,...(message.swipe_info??[]).filter(x=>x&&typeof x==='object')]){
+  const old=owner.extra,list=old?.[IMAGE_KEY];if(!Array.isArray(list)||!list.some(x=>x.id===item.id))continue;
+  const remaining=list.filter(x=>x.id!==item.id),next={...old};
+  if(remaining.length)next[IMAGE_KEY]=remaining;else delete next[IMAGE_KEY];
+  edits.push({owner,old,next});owner.extra=next;
+ }
+ try { await context.saveChat(); }
+ catch(e){for(const {owner,old,next} of edits)if(owner.extra===next)owner.extra=old;throw e;}
+ return {removed:edits.length};
+}
 // Removes every attachment of the given image IDs from the current chat (all messages and swipes), one save.
 export async function detachInlineImages(context,ids,{isCurrent=()=>true}={}) {
  if(!isCurrent())throw new Error('채팅이 바뀌었어요. 현재 채팅에서 다시 선택해 주세요.');
@@ -76,11 +94,13 @@ export function renderInlineImages(context,root,chatKey,{placement='below'}={}) 
    const img=document.createElement('img');img.src=item.image;img.alt='생성된 장면';img.loading='lazy';
    const open=document.createElement('button');open.type='button';open.className='ncs-inline-open';open.dataset.ncsInlineView=item.id;open.setAttribute('aria-label','생성된 장면 크게 보기');open.append(img);
    const actions=document.createElement('figcaption'),download=document.createElement('a'),clean=document.createElement('button'),remove=document.createElement('button');
+   actions.className='ncs-image-popup';actions.id=`ncs-inline-menu-${index}-${item.id}`;actions.hidden=true;actions.setAttribute('popover','manual');actions.setAttribute('role','group');actions.setAttribute('aria-label','첨부 그림 작업');
+   const more=document.createElement('button');more.type='button';more.className='ncs-inline-more';more.textContent='⋯';more.dataset.imageMore=actions.id;more.setAttribute('aria-controls',actions.id);more.setAttribute('aria-expanded','false');more.setAttribute('aria-label','첨부 그림 더 보기');more.title='그림 더 보기';
    clean.type='button';clean.dataset.ncsInlineClean=item.id;clean.textContent='공유용 PNG';
-   const file=imageDownload(item);download.href=file.url;download.download=file.filename;download.textContent='PNG 저장';
+   const file=imageDownload(item);download.href=file.url;download.download=file.filename;download.textContent='원본 PNG 저장';
    // A deleted or missing file shows a note instead of a broken image; the remove button stays.
    img.addEventListener('error',()=>{tile.classList.add('ncs-missing');open.disabled=true;download.remove();const note=document.createElement('span');note.className='ncs-missing-note';note.textContent='삭제됐거나 찾을 수 없는 그림이에요.';open.replaceChildren(note);},{once:true});
-   remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이미지 빼기';actions.append(download,clean,remove);tile.append(open,actions);holder.append(tile);
+   remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이 메시지에서 빼기';actions.append(download,clean,remove);tile.append(open,more,actions);holder.append(tile);
   }
   const text=element.querySelector('.mes_text');
   if(text)where==='above'?text.before(holder):text.after(holder);else (element.querySelector('.mes_block')??element)[where==='above'?'prepend':'append'](holder);

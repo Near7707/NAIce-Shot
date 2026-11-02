@@ -1,8 +1,16 @@
 # Installation and update checklist
 
-## Planned updates (not implemented)
+## v0.1.40
 
-- [ ] Add a temporary character slot for manual drawing without saving a reusable profile. Keep it available while editing or regenerating the current scene.
+Update the extension and refresh. No server update is needed.
+
+1. Check the history card's **불러오기 / 본문에 넣기 / ⋯** row and open ⋯ on a phone-width screen. Downloads, presets, 프리샷 and 그림 삭제 should remain available.
+2. Open a picture, expand **프롬프트 보기** and press **프롬프트 복사**. Copy the extraction response separately with **응답 복사**.
+3. Choose **설정을 프리셋으로** in ⋯ and check that 저장 / 취소 share a row.
+4. Attach the same picture to two messages. Open one attachment and press **이 메시지에서 빼기**: only that message's attachment should disappear; the other message and history should keep it. The corner ⋯ offers the same action.
+5. Switch models and check that the character-limit hint changes (V4.5: 6; V5: 22).
+
+Next stages, not included here: per-chat last-work persistence, then message/image counts, placement and navigation. The in-panel guide comes later.
 
 ## v0.1.39
 
