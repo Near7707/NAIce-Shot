@@ -4,6 +4,25 @@
 
 - [ ] Add a temporary character slot for manual drawing without saving a reusable profile. Keep it available while editing or regenerating the current scene.
 
+## v0.1.37
+
+Update the extension and refresh.
+
+1. Extract a scene with a side character that has no profile.
+2. Press 임시로 그리기, fill the appearance and generate.
+3. Re-extract and check that the card asks for a check.
+4. Press 프로필로 저장 and confirm the person is not doubled.
+
+No server update is needed.
+
+## v0.1.34 – v0.1.36
+
+Update the extension and refresh.
+
+- On a scene card, press 기본 복장 지정 and check the badge, the lit picker and "✓ 채팅 기본 복장".
+- Press "✓ 채팅 기본 복장" again to clear it.
+- Extract from a Korean chat and check that the fields come back in English.
+
 ## v0.1.33
 
 Update the extension, then restart SillyTavern (server plugin 0.1.8).

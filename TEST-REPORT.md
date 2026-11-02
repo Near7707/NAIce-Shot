@@ -1,3 +1,17 @@
+# v0.1.37 validation — 2026-11-03
+
+- Extension Node suite **126 passed**. **30 of 30 browser scripts passed**, including the new `browser-v0137` at 1280px and 375px:
+  - from the no-profile list with extracted fields
+  - the name stays out of the prompt, and the subject counts (2boys)
+  - kept after generating and restored from history
+  - re-extraction without them asks for a check; found again, fresh fields and the appearance kept
+  - candidates carry them with a check
+  - a blank add follows its name and can be removed
+  - 프로필로 저장 fills the form and swaps the slot in every candidate without doubling
+  - works with no profiles
+- `browser-v060` now expects the add row to show only 임시 인물 추가 when there are no profiles.
+- Checked the card by eye at 375px.
+
 # v0.1.36 validation — 2026-11-03
 
 - Extension Node suite **126 passed**; **29 of 29 browser scripts passed**. `browser-v0133` now checks:
