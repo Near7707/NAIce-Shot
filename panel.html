@@ -50,6 +50,7 @@
       <div class="ncs-grid"><label>별칭 · 쉼표로 구분<input id="ncs-profile-aliases" placeholder="예: Hana, 하나, 하나쨩"></label><label>인원 태그<select id="ncs-profile-subject"><option value="boy">boy</option><option value="girl">girl</option><option value="other">other</option></select></label></div>
       <label>고정 외형<textarea id="ncs-profile-appearance" rows="4" placeholder="brown hair, green eyes"></textarea></label>
       <label>기본 복장<textarea id="ncs-profile-outfit" rows="3"></textarea></label>
+      <fieldset class="ncs-wardrobe"><legend>옷장</legend><small>골라 입을 옷을 이름 붙여 보관해요. 옷장에 넣어도 기본 복장은 바뀌지 않아요. 장면에서 "옷장으로"를 눌러 바로 넣을 수도 있어요.</small><div id="ncs-wardrobe-list"></div><button type="button" data-action="wardrobe-add">+ 옷 추가</button></fieldset>
       <label>전용 Positive<textarea id="ncs-profile-positive" rows="2"></textarea></label>
       <label>전용 Negative<textarea id="ncs-profile-negative" rows="2"></textarea></label>
       <div class="ncs-row"><button type="submit" class="ncs-primary" id="ncs-profile-submit">프로필 저장</button><button type="button" data-action="bind-card">현재 캐릭터 카드 연결</button><button type="button" data-action="clear-profile-form">모든 칸 비우기</button><button type="button" data-action="delete-profile">삭제</button></div><small id="ncs-binding"></small>
@@ -76,5 +77,5 @@
       <p class="ncs-small">삭제하면 서버의 원본 PNG와 생성 기록이 지워져요. 지금 채팅에 붙인 그림은 함께 빠지고, 다른 채팅에 붙여 둔 그림은 그 채팅에서 "찾을 수 없는 그림" 안내로 바뀌어요. 되돌릴 수 없어요.</p></div></section>
   </div>
   <dialog id="ncs-missing-dialog" class="ncs-missing-dialog" aria-labelledby="ncs-missing-title"><div class="ncs-overlay-card"></div></dialog>
-  <footer><span id="ncs-chat-label"></span><span id="ncs-version">v0.1.32</span></footer>
+  <footer><span id="ncs-chat-label"></span><span id="ncs-version">v0.1.33</span></footer>
 </div>

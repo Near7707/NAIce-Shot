@@ -354,3 +354,16 @@
 #naice-shot-dialog .ncs-moment[aria-pressed="true"] .ncs-moment-step {border:2px solid var(--ncs-edge);color:var(--ncs-accent-text);}
 #naice-shot-dialog .ncs-moment[aria-pressed="true"]::after {content:'✓';position:absolute;right:14px;top:50%;transform:translateY(-50%);font-weight:700;color:var(--ncs-accent-text);}
 #naice-shot-dialog .ncs-moment[aria-pressed="true"] small {color:inherit;opacity:.85;}
+/* Wardrobe (옷장) in the profile form and the scene card. */
+#naice-shot-dialog .ncs-wardrobe {border:1px solid var(--ncs-border);border-radius:var(--ncs-radius-card);padding:10px 12px 12px;margin:12px 0;}
+#naice-shot-dialog .ncs-wardrobe legend {padding:0 6px;font-weight:650;color:var(--ncs-fg);}
+#naice-shot-dialog .ncs-wardrobe-item {border-top:1px solid var(--ncs-rule);padding-top:10px;margin-top:10px;}
+#naice-shot-dialog .ncs-wardrobe-head {display:flex;gap:8px;align-items:center;}
+#naice-shot-dialog .ncs-wardrobe-head input {flex:1;min-width:0;margin:0;}
+#naice-shot-dialog .ncs-wardrobe-item textarea {margin-top:6px;}
+#naice-shot-dialog .ncs-wardrobe-save {border:1px dashed var(--ncs-border);border-radius:var(--ncs-radius-control);padding:10px;margin-top:8px;}
+#naice-shot-dialog .ncs-character select[data-wear-once] {flex:1 1 100%;min-width:0;margin:0;}
+/* History: the prompt that was actually sent, built only when opened. */
+#naice-shot-dialog .ncs-prompt-view {margin:4px 0;}
+#naice-shot-dialog .ncs-prompt-view summary {min-height:32px;padding:6px 0;}
+#naice-shot-dialog .ncs-prompt-text {white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.5;max-height:260px;overflow:auto;margin:6px 0;padding:8px;background:var(--ncs-control);border:1px solid var(--ncs-rule);border-radius:var(--ncs-radius-control);color:var(--ncs-fg);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}

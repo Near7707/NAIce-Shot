@@ -97,3 +97,14 @@ test('reasoning removal handles known tags, case differences and unterminated bl
  assert.equal(stripReasoningBlocks('{"ok":true}<reasoning>unfinished secret'),'{"ok":true}');
  assert.equal(stripReasoningBlocks('<thinking>unfinished secret'),'');
 });
+test('wardrobe: missing is empty, items are trimmed and checked, the default outfit is untouched',async()=>{
+ const {validateProfiles,validateWardrobe,WARDROBE_LIMIT}=await import('../core.mjs');
+ const base={id:'p1',name:'Mira',aliases:[],subject:'girl',appearance:'',defaultOutfit:'grey coat',positive:'',negative:''};
+ assert.deepEqual(validateProfiles([base])[0].wardrobe,[]);
+ const [p]=validateProfiles([{...base,wardrobe:[{id:'w1',name:' 잠옷 ',outfit:' pajamas '}]}]);
+ assert.deepEqual(p.wardrobe,[{id:'w1',name:'잠옷',outfit:'pajamas'}]);assert.equal(p.defaultOutfit,'grey coat');
+ assert.throws(()=>validateWardrobe([{id:'w1',name:'a',outfit:'x'},{id:'w1',name:'b',outfit:'y'}]),/중복/);
+ assert.throws(()=>validateWardrobe([{id:'w1',name:'',outfit:'x'}]),/이름/);
+ assert.throws(()=>validateWardrobe([{id:'w1',name:'a',outfit:'  '}]),/비어/);
+ assert.throws(()=>validateWardrobe(Array.from({length:WARDROBE_LIMIT+1},(_,i)=>({id:`w${i}`,name:'a',outfit:'x'}))),/최대/);
+});

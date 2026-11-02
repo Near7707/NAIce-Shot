@@ -1,3 +1,20 @@
+# v0.1.33 validation — 2026-11-03
+
+- Extension Node suite **125 passed, 0 failed, 0 skipped** with server 0.1.8 present; the shared core matches apart from the version line. Server suite 18 passed.
+- **29 of 29 browser scripts passed**, including the new `browser-v0133` at 1280px and 375px:
+  - wardrobe edited in the profile form, default outfit untouched
+  - 당분간 이 복장 saves for the chat and applies to this image over an AI-found outfit
+  - 평생 박제 keeps it through re-extraction
+  - 옷장에서 꺼내 입기 changes only this image
+  - 옷장으로 refuses empty and repeated names, updates the profile and the open form, and survives a later form save
+  - editing a wardrobe item does not rewrite the chat's saved clothes
+  - 되돌리기 and 이 옷 당분간 입기 work
+  - 프롬프트 보기 is built only when opened and copies
+  - a backup round-trip keeps the wardrobe
+- Checked the card and the profile wardrobe by eye at 375px (cream).
+- Not exercised: real SillyTavern, iPhone Safari.
+- Pre-push privacy check of the changes: no keys, personal paths, emails or story names.
+
 # v0.1.32 validation — 2026-11-03
 
 - Extension Node suite **124 passed, 0 failed, 0 skipped**, including prompt checks for the beat rules, brief-moment priority and placement rules, cut-off detection (complete, fenced, cut, reasoning prefix, no JSON), and "one unreadable candidate in a complete reply is not cut off".

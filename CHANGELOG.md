@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.33 — 2026-11-03
+
+**Update: UI + server.** Update NAIce Shot, then restart SillyTavern so the server plugin updates to 0.1.8 (only its shared core changed: profiles now carry a wardrobe).
+
+- Wardrobe (옷장): each profile keeps named outfits to pick from, edited in the profile form. Adding to the wardrobe never changes the default outfit. A missing wardrobe is empty, and backups include it.
+- Clothes on a scene card, each with a one-line note:
+  - **당분간 이 복장**: pick the default outfit or a wardrobe item to keep wearing in this chat. It also goes on this image, even over a locked or AI-found outfit.
+  - **평생 박제**: the extraction AI cannot change clothes in this chat. Clothes the user picks still apply.
+  - **입고 버림 · 이번 그림의 옷**: this image only. "옷장에서 꺼내 입기" fills it from the wardrobe without touching the chat.
+  - **이 옷 당분간 입기**: keeps what is in that field for this chat.
+  - **옷장으로**: stores it in the profile's wardrobe under a name; empty or repeated names are refused. An open profile form gets the new item too.
+  - **되돌리기**
+- Picked clothes are stored as a copy, so later wardrobe edits or deletions never rewrite clothes already saved in a chat or used in history.
+- "지금 옷" now reads as a sentence (프로필 기본 복장 / 당분간 입는 옷 / 평생 박제된 옷 / AI가 찾은 새 옷 · 확인해 주세요 / 직접 고르거나 고친 옷).
+- History cards have **프롬프트 보기**: model, size, steps, seed, common Positive/Negative and each person's prompt as sent, with a copy button. It is built only when opened, from data the list already has.
+- Added `tests/browser-v0133.mjs` and a wardrobe test in `core.test.mjs`.
+
 ## 0.1.32 — 2026-11-03
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

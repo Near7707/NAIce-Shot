@@ -4,6 +4,15 @@
 
 - [ ] Add a temporary character slot for manual drawing without saving a reusable profile. Keep it available while editing or regenerating the current scene.
 
+## v0.1.33
+
+Update the extension, then restart SillyTavern (server plugin 0.1.8).
+
+1. Add two outfits to a profile's 옷장 and save.
+2. In a scene, pick one under 당분간 이 복장, turn on 평생 박제, re-extract, and check that the outfit stays.
+3. Try 옷장에서 꺼내 입기, 옷장으로 and 되돌리기.
+4. Open 프롬프트 보기 on a history card.
+
 ## v0.1.32
 
 Update the extension and refresh.
