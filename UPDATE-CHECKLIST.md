@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## Planned updates (not implemented)
+
+- [ ] Add a temporary character slot for manual drawing without saving a reusable profile. Keep it available while editing or regenerating the current scene.
+
 ## v0.1.30
 
 Update the extension and refresh. Settings: the 테마 card is first and shows only color chips; press it to open the list. 이미지 크기 offers three sizes only and 스텝 stops at 28. With the message button on, open … on a character message under a theme with a narrow button row: every button, including ours, should be visible (the row may wrap to two lines). No server update is needed.
