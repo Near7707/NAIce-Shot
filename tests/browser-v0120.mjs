@@ -91,7 +91,7 @@ try{
  assert.equal(await visual(t.page,'robin','action').inputValue(),'');
  await t.page.evaluate(data=>{mock.extraction=data;},frame([person('leo','Leo'),person('mira','Mira'),person('robin','Jae Sun','holding cup')]));
  await t.extract();assert.equal(await visual(t.page,'robin','action').inputValue(),'holding cup');
- assert.ok(await t.page.evaluate(()=>mock.lastExtract.jsonSchema.value.properties.characters.items.properties.id.enum.includes('robin')));
+ assert.ok(await t.page.evaluate(()=>mock.lastExtract.jsonSchema.value.properties.moments.items.properties.characters.items.properties.id.enum.includes('robin')));
  await t.page.evaluate(data=>{mock.extraction=data;},frame([person('leo','Leo')]));await t.extract();
  assert.equal(await row(t.page,'robin').count(),0);assert.equal(await t.page.locator('#ncs-left-out').isHidden(),true);
  assert.deepEqual(t.errors,[]);await t.page.close();

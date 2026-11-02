@@ -1,4 +1,4 @@
-# NAIce Shot v0.1.30
+# NAIce Shot v0.1.31
 
 실리태번의 RP 장면을 추출해 NovelAI 그림을 생성하는 비공식 확장이에요. 캐릭터 외형 프로필, 장면·복장 편집, 생성 프리셋, 이미지 이력과 채팅 첨부를 지원해요.
 
@@ -82,6 +82,7 @@ This repository contains the browser extension. The UI is in Korean. The compani
 - Match story participants to profiles by name, alias, card binding or explicit chat binding.
 - Keep outfits per chat, with manual editing and outfit locks.
 - Edit assembled prompts through individual fields or advanced JSON.
+- When a message holds several scenes, one extraction offers up to three moments to choose from (the last one by default), each with its own people, poses and place; an optional "그리고 싶은 순간" field asks for a specific moment.
 - Save shared prompt and generation presets, including model, size, steps, Guidance, seed, CFG Rescale and sampler. (Noise Schedule is fixed to the default, karras.)
 - Image size is one of three free sizes (832×1216, 1024×1024, 1216×832) and steps are capped at 28, so generations stay inside NovelAI's Opus free conditions for size and steps. V5 still needs "Anlas 사용 가능성 허용"; check its remaining free usage on the NovelAI site.
 - Generate one image at a time, inspect it in a zoomable viewer and download the original PNG.

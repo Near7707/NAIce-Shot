@@ -1,11 +1,11 @@
 import { DEFAULTS, MODELS, clone, PROFILE_SCHEMA, profileDraftPrompt, parseProfileDraft, blankScene, validateProfiles, sourceValid,
-  parseExtraction, assemble, resolveOutfit, buildPayload, costGuard, textSignature,
+  assemble, resolveOutfit, buildPayload, costGuard, textSignature,
   BRAND, SIZE_PRESETS, sizePresetOf, VERSION, stripReasoningBlocks } from './core.mjs';
 import { CAMERA_ICON, BRAND_ICON, TAB_ICONS } from './icons.mjs';
 import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } from './skins.mjs';
 import { attachInlineImage, detachInlineImage, detachInlineImages, countInlineImages, hasInlineImage, imageDownload, renderInlineImages } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
-import { sceneExtractionPrompt, sceneExtractionSchema } from './scene-extraction.mjs';
+import { momentExtractionPrompt, momentExtractionSchema, parseMoments } from './scene-extraction.mjs';
 import { isSceneMessage, isHiddenSceneMessage, chooseSceneMessages } from './scene-messages.mjs';
 import { captureImagePreset, applyImagePreset, imagePresetModified, validateImagePresets } from './presets.mjs';
 import { listExtractionProfiles, requestExtraction } from './extractor.mjs';
@@ -223,6 +223,7 @@ function renderTargets() {
 }
 function chooseTarget(value,{reveal=false}={}) {
   rememberTargetScroll();targetReveal=reveal;if(value==='')targetScroll=0;
+  if($('ncs-target').value!==value)$('ncs-moment-wish').value=''; // a wished moment belongs to the message it was written for
   $('ncs-target').value=value;$('ncs-target-picker').open=false;renderTargets();$('ncs-target-label').focus({preventScroll:true});
 }
 const skinTargets=()=>[dialog,document.getElementById('ncs-viewer')];
@@ -491,7 +492,26 @@ async function convertProfile({source='',truncated=false}={}) {
     stopProgress(ticket);if(busyOwner===ticket)setBusy(false);
   }
 }
+// --- Moment candidates --------------------------------------------------------------------------
+// The active candidate lives in scene's own fields; scene.moments keeps every candidate's (edited) copy.
+const MOMENT_FIELDS=['characters','unregistered','unregisteredDetails','interaction','location','lighting','camera'];
+function momentPart(from){const part={};for(const k of MOMENT_FIELDS)part[k]=clone(from[k]??(k==='interaction'||k==='location'||k==='lighting'||k==='camera'?'':[]));return part;}
+function syncMoment(){if(scene.moments?.length>1&&scene.moments[scene.momentIndex])scene.moments[scene.momentIndex].scene=momentPart(scene);}
+let restoredFinal=null;
+function switchMoment(index){
+  const list=scene.moments??[];if(!list[index]||index===scene.momentIndex)return;
+  // A prompt restored from history is not the user's own edit; only a hand edit asks first.
+  if(finalOverride&&finalOverride!==restoredFinal&&!confirm('직접 고친 최종 프롬프트가 있어요. 다른 순간으로 바꾸면 고른 순간의 조립 결과로 돌아가요. 바꿀까요?'))return;
+  syncMoment();Object.assign(scene,clone(list[index].scene));scene.momentIndex=index;
+  lastLink=null;linkTarget=null;changed();renderScene({forceFinal:true});
+  notice(`"${list[index].title||`후보 ${index+1}`}" 순간으로 바꿨어요. 후보마다 고친 내용은 따로 남아 있어요.`);
+}
+function renderMoments(){
+  const list=scene.moments??[],box=$('ncs-moments');box.hidden=list.length<2;if(list.length<2){box.innerHTML='';return;}
+  box.innerHTML=`<strong class="ncs-moments-title">장면 후보 · 그릴 순간을 골라 주세요</strong><div class="ncs-moment-list" role="group" aria-label="장면 후보">${list.map((m,i)=>`<button type="button" class="ncs-moment" data-moment="${i}" aria-pressed="${i===scene.momentIndex}"><span class="ncs-moment-step">${i+1}</span><span class="ncs-moment-name">${esc(m.title||`후보 ${i+1}`)}</span>${i===list.length-1?'<small>마지막 순간</small>':''}</button>`).join('')}</div>`;
+}
 function renderScene({forceFinal=false}={}) {
+  renderMoments();
   for(const k of ['location','lighting','camera','interaction'])$(`ncs-${k}`).value=scene[k];
   renderSceneExtras();
   const profiles=settings().profiles,states=outfitState();
@@ -523,6 +543,7 @@ function updateFinal({force=false}={}) {
     $('ncs-length').textContent=`${lengths.join(' · ')} · 글자 수예요. NAI 토큰 수와 달라요.`;
     const warnings=[...(a.warnings??[])].filter(w=>!w.startsWith('미등록 인물은 자동 생성하지 않아요'));
     if(scene.source?.historical)warnings.push('과거 장면이에요. 현재 복장은 자동으로 바뀌지 않아요.');
+    if(scene.moments?.length>1&&scene.momentIndex<scene.moments.length-1)warnings.push('앞쪽 순간을 골랐어요. 이 메시지 끝에서는 복장이 달라졌을 수 있으니, "현재 복장으로 저장"은 마지막 순간에서 쓰는 걸 추천해요.');
     if(scene.source&&!sourceValid(scene.source,ctx().chat))warnings.push('대상 메시지가 수정·삭제·리롤됐어요. 다시 추출하거나 내용을 확인해 주세요.');
     if(a.base.length+a.characters.reduce((n,c)=>n+c.prompt.length,0)>2000)warnings.push('프롬프트가 길어요. 특히 V4.5는 전체 토큰 한도를 확인해 주세요.');
     if(finalOverride)warnings.push('직접 고친 최종 프롬프트를 이번 생성에 써요. 되돌리려면 "조립 결과로 되돌리기"를 눌러 주세요.');
@@ -565,7 +586,8 @@ async function extract() {
   const selection=chooseSceneMessages(ctx().chat,{target:$('ncs-target').value===''?null:Number($('ncs-target').value),recent:Number($('ncs-recent').value),includeUser:$('ncs-include-user').checked});
   const startKey=keyOf(),rev=revision,ticket=++task,profiles=clone(s.profiles),outfits=clone(outfitState());
   const matching=matchChatProfiles(ctx(),profiles,selection.messages,chatBindings(),scene.characters.filter(c=>c.included!==false).map(c=>c.id));
-  const prompt=sceneExtractionPrompt(selection.messages,matching.profiles,outfits,s.format,matching.mappings);
+  const wish=$('ncs-moment-wish').value.trim();
+  const prompt=momentExtractionPrompt(selection.messages,matching.profiles,outfits,s.format,matching.mappings,wish);
   const controller=new AbortController();extraction={ticket,controller};
   setBusy(true,ticket);startProgress('extract',ticket);notice('장면 추출을 시작했어요.');
   let response='',failure;
@@ -576,18 +598,27 @@ async function extract() {
       let received=false;
       try {
         response=await requestExtraction(ctx(),prompt+(attempt?'\nThe previous response could not be parsed. Return ONLY the complete JSON object.':''),
-          {profileId:s.extractionProfileId,structured:attempt===0&&s.structuredOutput,maxTokens:s.extractionMaxTokens,schemaValue:sceneExtractionSchema(matching.profiles),signal:controller.signal});
+          {profileId:s.extractionProfileId,structured:attempt===0&&s.structuredOutput,maxTokens:s.extractionMaxTokens,schemaValue:momentExtractionSchema(matching.profiles),signal:controller.signal});
         received=true;
-        const parsed=parseExtraction(response,profiles),reconciled=reconcileCharacters(parsed.scene,matching);
+        const parsed=parseMoments(response,profiles);
         if(ticket!==task||keyOf()!==startKey||revision!==rev||!sourceValid(selection.source,ctx().chat)){notice('채팅·장면 또는 원문이 바뀌어서 추출 결과를 적용하지 않았어요.');return;}
-        // Names, possessives and macros never reach the image model; tag fields get Danbooru formatting.
-        const c=ctx(),storyNames=[...s.profiles.flatMap(p=>[p.name,...p.aliases]),...matching.profiles.flatMap(p=>[p.name,...p.aliases]),...matching.mappings.map(m=>m.name),
-          matching.userName,matching.characterName,c.name1,c.name2,...reconciled.scene.unregistered,...reconciled.scene.characters.map(x=>x.entityName)];
-        const generic=genericizeScene(reconciled.scene,storyNames,s.format);
-        raw=response;scene={...generic.scene,source:selection.source};finalOverride=null;optionsOverride=null;revision++;renderScene();
-        const warnings=[...matching.warnings,...parsed.warnings,...reconciled.warnings];
-        if(generic.removed.length)warnings.push(`장면 설명에 들어간 이름(${generic.removed.join(', ')})을 빼고 일반 표현으로 정리했어요.`);
-        notice(warnings.length?warnings.join(' / '):'추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.');return;
+        // Each candidate is reconciled and cleaned on its own, so one moment's people and poses never leak into another.
+        const c=ctx(),baseNames=[...s.profiles.flatMap(p=>[p.name,...p.aliases]),...matching.profiles.flatMap(p=>[p.name,...p.aliases]),...matching.mappings.map(m=>m.name),
+          matching.userName,matching.characterName,c.name1,c.name2];
+        const warnings=[...matching.warnings,...parsed.warnings],removed=new Set();
+        const moments=parsed.moments.map(m=>{
+          const reconciled=reconcileCharacters(m.scene,matching);
+          const generic=genericizeScene(reconciled.scene,[...baseNames,...reconciled.scene.unregistered,...reconciled.scene.characters.map(x=>x.entityName)],s.format);
+          for(const w of [...m.warnings,...reconciled.warnings])if(!warnings.includes(w))warnings.push(w);
+          generic.removed.forEach(x=>removed.add(x));
+          return {title:m.title,scene:momentPart(generic.scene)};
+        });
+        raw=response;
+        scene={...blankScene(),...clone(moments[parsed.defaultIndex].scene),source:selection.source,moments:moments.length>1?moments:[],momentIndex:moments.length>1?parsed.defaultIndex:0,momentWish:wish};
+        finalOverride=null;optionsOverride=null;lastLink=null;linkTarget=null;revision++;renderScene();
+        if(removed.size)warnings.push(`장면 설명에 들어간 이름(${[...removed].join(', ')})을 빼고 일반 표현으로 정리했어요.`);
+        const lead=parsed.partial?`응답이 중간에 끊겨서 온전히 받은 후보 ${moments.length}개만 보여줘요. `:wish&&!parsed.requestMatched?'적어 주신 순간을 이 메시지에서 찾지 못해서 마지막 순간을 골랐어요. ':moments.length>1?`장면 후보 ${moments.length}개를 찾았어요. 위에서 그릴 순간을 고를 수 있어요. `:'';
+        notice(lead+(warnings.length?warnings.join(' / '):'추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.'));return;
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}
     }
     if(ticket===task&&keyOf()===startKey){raw=response;renderScene();notice(`추출 실패: ${failure?.message}. 기존 편집 내용은 유지했어요.`,true);}
@@ -645,6 +676,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   options.seed=seedMode==='same'&&result?result.seed:seedMode==='new'||options.seed===-1?crypto.getRandomValues(new Uint32Array(1))[0]:options.seed;
   buildPayload(a,options); // Local validation before network or billing.
   if(!a.base.trim()&&!a.characters.length)throw new Error('장면이나 프롬프트를 먼저 입력해 주세요.');
+  syncMoment();
   const snapshot={scene:clone(scene),...(s.retainRawExtraction===true?{rawExtraction:stripReasoningBlocks(raw)}:{})};snapshot.scene.source=scene.source?compactSource(scene.source):null;
   if(keyOf()!==startKey)return;
   setBusy(true,ticket);startProgress('generate',ticket);notice('NAI에 생성 요청을 보내고 있어요. 창을 닫거나 채팅을 바꿔도 서버는 결과를 저장해요.');
@@ -850,8 +882,12 @@ function restoreHistory(id) {
   if(busy)throw new Error('진행 중인 작업이 끝난 뒤 불러와 주세요.');
   const item=historyItems.find(x=>x.id===id);if(!item)return;
   scene=clone(item.snapshot?.scene??blankScene());scene.source=null;
-  scene.characters=scene.characters.filter(c=>settings().profiles.some(p=>p.id===c.id));
-  raw=item.snapshot?.rawExtraction??'';finalOverride=clone(item.assembled);optionsOverride=clone(item.options);
+  const known=c=>settings().profiles.some(p=>p.id===c.id);
+  scene.characters=scene.characters.filter(known);
+  if(Array.isArray(scene.moments)&&scene.moments.length>1){for(const m of scene.moments)m.scene.characters=(m.scene.characters??[]).filter(known);scene.momentIndex=Math.min(Math.max(0,Number(scene.momentIndex)||0),scene.moments.length-1);}
+  else{scene.moments=[];scene.momentIndex=0;}
+  $('ncs-moment-wish').value=typeof scene.momentWish==='string'?scene.momentWish:'';lastLink=null;linkTarget=null;
+  raw=item.snapshot?.rawExtraction??'';finalOverride=restoredFinal=clone(item.assembled);optionsOverride=clone(item.options);
   result=item;revision++;renderScene({forceFinal:true});renderResult();showTab('scene');
   notice('당시 최종 프롬프트와 생성 설정(seed 포함)을 불러왔어요. 설정 탭 값과 현재 복장은 바뀌지 않아요.');
 }
@@ -887,7 +923,7 @@ async function onAction(action,el) {
     case 'target-latest':targetShown=TARGET_STEP;chooseTarget('');break;
     case 'target-message':chooseTarget(el.dataset.messageIndex);break;
     case 'extract':await extract();break;
-    case 'blank':scene=blankScene();raw='';changed();renderScene();notice('직접 장면을 입력해 주세요.');break;
+    case 'blank':scene=blankScene();raw='';lastLink=null;linkTarget=null;changed();renderScene({forceFinal:true});notice('직접 장면을 입력해 주세요.');break;
     case 'add-character':addCharacter($('ncs-add-profile').value);break;
     case 'generate':await generate();break;
     case 'missing-proceed':await proceedMissingDialog();break;
@@ -962,6 +998,7 @@ function bindEvents() {
       else if(el.dataset.action)await onAction(el.dataset.action,el);
       else if(el.dataset.historyScope)setHistoryScope(el.dataset.historyScope);
       else if(el.dataset.profileMode)setProfileMode(el.dataset.profileMode);
+      else if(el.dataset.moment!==undefined)switchMoment(Number(el.dataset.moment));
       else if(el.dataset.missingDo)await missingAction(el.dataset.missingDo,el.dataset.missingName);
       else if(el.dataset.quickProfileName!==undefined)openQuickProfile(el.dataset.quickProfileName);
       else if(el.dataset.profile)editProfile(el.dataset.profile);
@@ -1035,7 +1072,7 @@ function bindEvents() {
 function chatChanged() {
   const key=keyOf();if(key===chatKey)return;
   cancelExtraction('');closeMissingDialog();pendingBind=null;quickProfileName='';lastLink=null;linkTarget=null;chatKey=key;task++;revision++;scene=blankScene();raw='';finalOverride=null;optionsOverride=null;result=null;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();
-  if(dialog){targetScroll=0;targetReveal=false;targetListRendered=false;targetShown=TARGET_STEP;$('ncs-target').value='';$('ncs-target-picker').open=false;renderTargets();renderMatching();renderScene({forceFinal:true});renderResult();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.');}
+  if(dialog){targetScroll=0;targetReveal=false;targetListRendered=false;targetShown=TARGET_STEP;$('ncs-target').value='';$('ncs-moment-wish').value='';$('ncs-target-picker').open=false;renderTargets();renderMatching();renderScene({forceFinal:true});renderResult();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.');}
   renderChatImages();
 }
 const activeTab=()=>dialog?.querySelector('[data-tab][aria-selected="true"]')?.dataset.tab??'scene';

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.31 — 2026-11-03
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- Scene candidates: one extraction now returns up to three visually distinct moments of the target message (for example eating at the table, standing up, walking out), in story order. The final moment is chosen by default. Only the target message supplies moments; earlier messages are context.
+- Each candidate is a complete picture of one instant with its own people, actions, expressions, outfits, place and camera. The prompt tells the AI to keep what still holds (clothing, objects still held, the place) and to leave out what happens before or after.
+- Picking another candidate needs no AI call and replaces every scene field, including the missing-profile hints. Edits stay with their own candidate. A hand-edited final prompt asks before it is replaced. The picker is hidden when the message has one scene.
+- New optional field "그리고 싶은 순간". Use it when the wanted moment is not among the candidates. It is sent as data, matched to the default candidate, and reported when not found. It is kept for regeneration and cleared when the target message or chat changes.
+- A reply cut off mid-way keeps the candidates that arrived complete instead of failing.
+- History keeps every candidate, the choice and the edits, so a restored image can switch to another moment without re-extracting.
+- Choosing an earlier moment shows a note that clothing may have changed by the end of the message. "현재 복장으로 저장" is best used on the final moment.
+- Older single-scene replies still work.
+- Added `tests/moments.test.mjs` and `tests/browser-v0131.mjs`.
+
 ## 0.1.30 — 2026-11-02
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

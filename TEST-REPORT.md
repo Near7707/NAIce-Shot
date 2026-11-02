@@ -1,3 +1,11 @@
+# v0.1.31 validation — 2026-11-03
+
+- Extension Node suite **123 passed, 0 failed, 0 skipped**, including seven new `moments.test.mjs` cases: three moments with their own actions, the final one as default; older single-scene replies; a reply cut off mid-way keeps complete candidates; out-of-range default and extra moments; a requested moment not found; one unreadable candidate dropped; prompt rules and the wished moment passed as quoted data.
+- **27 of 27 browser scripts passed**, including the new `browser-v0131` at 1280px and 375px: three candidates with the last checked; switching changes people, actions, place and missing-profile hints with no extra AI call; edits kept per candidate; a hand-edited final prompt asks before switching; the generation snapshot carries every candidate while the image prompt holds only the chosen one; history restore brings candidates back; the wished moment reaches the prompt, reports "not found" and clears on target change; a single scene hides the picker. `browser-v0120` now reads the extraction schema under `moments`.
+- Checked the picker by eye at 375px in classic and cream.
+- Not exercised: a real extraction model. Whether moments mix less depends on the model; UPDATE-CHECKLIST has three invented messages for a before/after check. Real SillyTavern and iPhone Safari were not exercised either.
+- Pre-push privacy check of the changes: no keys, personal paths, emails or story names.
+
 # v0.1.30 validation — 2026-11-02
 
 - Extension Node suite **116 passed, 0 failed, 0 skipped** (one fewer because the removed 코코아 theme no longer has a contrast test).

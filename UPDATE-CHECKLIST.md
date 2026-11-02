@@ -4,6 +4,24 @@
 
 - [ ] Add a temporary character slot for manual drawing without saving a reusable profile. Keep it available while editing or regenerating the current scene.
 
+## v0.1.31
+
+Update the extension and refresh. Extract a message that holds several scenes: up to three candidates appear above 장소, the last one checked. Switch between them and confirm the people, actions and place change with them. Edit one candidate, switch away and back, and confirm the edit is still there. No server update is needed.
+
+### Checking whether moments still mix
+
+The effect depends on the extraction model, so compare with your own extraction connection. Paste each invented message below as the latest character message in a test chat. Use profiles named Mira and Leo, or any two of yours with the names changed.
+
+1. "Mira and Leo sat at the small kitchen table, chopsticks in hand, finishing the last of the noodles. Mira set her bowl down, pushed back her chair and stood, pulling on her grey coat. Without another word she crossed the hall, opened the front door and stepped out into the rain."
+2. "Leo leaned on the counter reading a paperback while the kettle hissed. When it clicked off he put the book face down, poured two cups of tea and carried them to the balcony, where Mira was watering the plants."
+3. "Mira stood alone at the bus stop, scrolling through her phone." (one scene: no picker should appear)
+
+For each message:
+
+- Check that the candidates are separate instants, with no chopsticks or sitting in the walking-out moment.
+- Check that clothing put on partway (the coat) appears only from that moment on.
+- Then write "식탁에서 밥 먹는 순간" in 그리고 싶은 순간 for message 1 and extract again. The eating moment should be chosen.
+
 ## v0.1.30
 
 Update the extension and refresh. Settings: the 테마 card is first and shows only color chips; press it to open the list. 이미지 크기 offers three sizes only and 스텝 stops at 28. With the message button on, open … on a character message under a theme with a narrow button row: every button, including ours, should be visible (the row may wrap to two lines). No server update is needed.

@@ -341,3 +341,16 @@
 #naice-shot-dialog .ncs-theme-box[open] > .ncs-theme-summary::after {transform:rotate(-135deg);margin-top:-2px;}
 #naice-shot-dialog .ncs-theme-box[open] > .ncs-theme-summary {margin-bottom:12px;}
 #naice-shot-dialog .ncs-theme-summary:focus-visible {outline:2px solid var(--ncs-focus);outline-offset:3px;}
+/* Moment candidates: up to three instants of one message, each with its own scene fields. */
+#naice-shot-dialog .ncs-moments {margin:0 0 14px;}
+#naice-shot-dialog .ncs-moments-title {display:block;margin-bottom:8px;font-size:14px;}
+#naice-shot-dialog .ncs-moment-list {display:grid;gap:8px;}
+#naice-shot-dialog .ncs-moment {display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 40px 10px 12px;position:relative;background:var(--ncs-control);border:1px solid var(--ncs-border);border-radius:var(--ncs-radius-control);color:var(--ncs-fg);min-height:44px;}
+#naice-shot-dialog .ncs-moment:hover {background:var(--ncs-hover);}
+#naice-shot-dialog .ncs-moment-step {flex:0 0 24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:1px solid var(--ncs-border);color:var(--ncs-muted);}
+#naice-shot-dialog .ncs-moment-name {flex:1;min-width:0;overflow-wrap:anywhere;}
+#naice-shot-dialog .ncs-moment small {color:var(--ncs-muted);white-space:nowrap;}
+#naice-shot-dialog .ncs-moment[aria-pressed="true"] {border:2px solid var(--ncs-edge);padding:9px 39px 9px 11px;background:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);}
+#naice-shot-dialog .ncs-moment[aria-pressed="true"] .ncs-moment-step {border:2px solid var(--ncs-edge);color:var(--ncs-accent-text);}
+#naice-shot-dialog .ncs-moment[aria-pressed="true"]::after {content:'✓';position:absolute;right:14px;top:50%;transform:translateY(-50%);font-weight:700;color:var(--ncs-accent-text);}
+#naice-shot-dialog .ncs-moment[aria-pressed="true"] small {color:inherit;opacity:.85;}
