@@ -1,3 +1,8 @@
+# v0.1.34 validation — 2026-11-03
+
+- Extension Node suite **125 passed**; **29 of 29 browser scripts passed**. `browser-v0133` also checks the "nothing saved yet" line and the "✓ 이 채팅에 저장된 옷: hoodie · 평생 박제" confirmation.
+- Read SillyTavern's code for chat metadata: `chatMetadata` is the open chat's metadata and `saveMetadata` saves the chat file, so 당분간 이 복장 and 평생 박제 are stored per chat. A real restart was not exercised here.
+
 # v0.1.33 validation — 2026-11-03
 
 - Extension Node suite **125 passed, 0 failed, 0 skipped** with server 0.1.8 present; the shared core matches apart from the version line. Server suite 18 passed.

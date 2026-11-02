@@ -367,3 +367,9 @@
 #naice-shot-dialog .ncs-prompt-view {margin:4px 0;}
 #naice-shot-dialog .ncs-prompt-view summary {min-height:32px;padding:6px 0;}
 #naice-shot-dialog .ncs-prompt-text {white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.5;max-height:260px;overflow:auto;margin:6px 0;padding:8px;background:var(--ncs-control);border:1px solid var(--ncs-rule);border-radius:var(--ncs-radius-control);color:var(--ncs-fg);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+/* Saved clothes for this chat: a visible confirmation that flashes once after saving. */
+#naice-shot-dialog .ncs-saved-note {color:var(--ncs-accent-text);font-weight:600;}
+#naice-shot-dialog .ncs-saved-note.ncs-saved-none {color:var(--ncs-muted);font-weight:400;}
+#naice-shot-dialog .ncs-saved-note.ncs-just-saved {animation:ncs-saved-flash 1.6s ease-out 1;border-radius:6px;}
+@keyframes ncs-saved-flash {0%{background:var(--ncs-progress-bg);box-shadow:0 0 0 4px var(--ncs-progress-bg);}100%{background:transparent;box-shadow:0 0 0 4px transparent;}}
+@media (prefers-reduced-motion:reduce){#naice-shot-dialog .ncs-saved-note.ncs-just-saved{animation:none;}}

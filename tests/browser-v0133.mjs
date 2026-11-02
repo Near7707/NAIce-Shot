@@ -41,6 +41,7 @@ try{
   // Scene card: the four controls with their notes.
   await page.locator('[data-tab="scene"]').click();await page.locator('[data-action="extract"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&document.querySelector('[data-character="leo"]'));
   const text=await card.innerText();for(const label of ['당분간 이 복장','평생 박제','입고 버림','옷장으로'])assert.ok(text.includes(label),label);
+  assert.match(text,/이 채팅엔 아직 저장된 옷이 없어요/);
   assert.match(text,/추출 AI가 이 채팅에서 옷을 못 바꿔요/);assert.match(text,/AI가 찾은 새 옷/);
   // 당분간 이 복장: picking 잠옷 saves it for this chat and puts it on this image, over the AI's new outfit.
   await card.locator('[data-chat-outfit]').selectOption({label:'잠옷'});
@@ -69,6 +70,7 @@ try{
   // 되돌리기 and 이 옷 당분간 입기.
   await card.locator('[data-reset-outfit]').click();assert.equal(await once.inputValue(),'pajamas, slippers');
   await once.fill('hoodie');await card.locator('[data-save-outfit]').click();await page.waitForFunction(()=>mock.chatMetadata.naice_shot.outfits.leo.value==='hoodie');
+  assert.match(await card.locator('.ncs-saved-note').innerText(),/✓ 이 채팅에 저장된 옷: hoodie · 평생 박제/);
   // History: 프롬프트 보기 is built only when opened and shows what was sent.
   await page.locator('[data-action="generate"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&document.querySelector('#ncs-result img'));
   await page.locator('[data-tab="history"]').click();await page.locator('[data-prompt-view]').first().waitFor();

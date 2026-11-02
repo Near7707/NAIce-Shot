@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.34 — 2026-11-03
+
+**Update: extension only.** Server 0.1.8 is unchanged.
+
+- Leftover clothing wording now uses the scene card's terms:
+  - the past-message and earlier-moment warnings
+  - the history help and restore notice
+  - the backup note, which now also lists the wardrobe
+  - the locked-outfit warning
+- The card shows what this chat has saved under 당분간 이 복장 ("✓ 이 채팅에 저장된 옷: … · 평생 박제"), or that nothing is saved yet. The line flashes once after "이 옷 당분간 입기" or a pick, so the save is visible where it happened.
+- "지금 옷" for an AI-found outfit says it is used instead of the saved one for this image.
+
 ## 0.1.33 — 2026-11-03
 
 **Update: UI + server.** Update NAIce Shot, then restart SillyTavern so the server plugin updates to 0.1.8 (only its shared core changed: profiles now carry a wardrobe).
