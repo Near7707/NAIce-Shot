@@ -259,6 +259,34 @@ function renderSettings() {
   $('ncs-image-placement').value=imagePlacement();$('ncs-message-button').checked=messageButtonsOn();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
   renderImagePresets();renderExtractionProfiles();$('ncs-extraction-max-tokens').value=s.extractionMaxTokens;$('ncs-extraction-temperature').value=extractionTemperature()??'';
 }
+// --- Generation settings box in the scene tab: the same values as the settings tab, edited in place.
+// While options restored from history are in use, edits go to that one-off copy instead.
+const GEN_FIELDS=['model','steps','scale','seed','cfgRescale','sampler'];
+let genNaming=false;
+function renderGenBox() {
+  if(!dialog)return;const o=effectiveOptions(),history=!!optionsOverride,s=settings();
+  const model=dialog.querySelector('[data-gen="model"]');if(!model.options.length)model.innerHTML=Object.entries(MODELS).map(([id,m])=>`<option value="${id}">${m.label}</option>`).join('');
+  for(const k of GEN_FIELDS){const el=dialog.querySelector(`[data-gen="${k}"]`);if(el&&document.activeElement!==el)el.value=o[k];}
+  const size=sizePresetOf(o);dialog.querySelector('[data-gen="size"]').value=size==='custom'?'portrait':size;
+  $('ncs-gen-scope').textContent=history?'이력 설정 · 이번 생성에만':'기본 생성 설정 · 다음 생성에도 유지';
+  $('ncs-gen-scope').classList.toggle('ncs-gen-history',history);$('ncs-gen-override').hidden=!history;$('ncs-gen-note').hidden=history;
+  $('ncs-gen-line').textContent=` · ${MODELS[o.model]?.label??o.model} · ${SIZE_PRESETS[size]?.label.split(' · ')[0]??'세로'} ${o.width}×${o.height} · ${o.steps}스텝 · Guidance ${o.scale} · ${o.seed===-1?'새 seed':`seed ${o.seed}`}`;
+  const p=s.imagePresets.find(p=>p.id===s.imagePresetId),over=dialog.querySelector('[data-action="gen-preset-overwrite"]');
+  $('ncs-gen-presets').hidden=history;
+  over.hidden=!p;if(p)over.textContent=`‘${p.name}’에 덮어쓰기`;
+  $('ncs-gen-preset-state').textContent=p?(imagePresetModified(s)?`프리셋 ‘${p.name}’에서 수정됨 · 저장본은 그대로예요.`:`프리셋 ‘${p.name}’ 그대로예요.`):'프리셋을 고르지 않았어요. 지금 값을 새 프리셋으로 저장할 수 있어요.';
+  $('ncs-gen-preset-namebox').hidden=!genNaming;
+}
+function editGenField(el) {
+  const key=el.dataset.gen,target=optionsOverride??settings().options;
+  if(key==='size'){const p=SIZE_PRESETS[el.value];if(!p)return;target.width=p.width;target.height=p.height;}
+  else{let v=el.type==='number'?Number(el.value):el.value;if(el.type==='number'&&(el.value===''||!Number.isFinite(v)))return;if(key==='steps'&&v>FREE_STEPS){v=FREE_STEPS;el.value=FREE_STEPS;}target[key]=v;}
+  revision++;
+  if(!optionsOverride){ctx().saveSettingsDebounced();
+    // Keep the settings tab showing the same values.
+    $('ncs-size-preset').value=sizePresetOf(settings().options);for(const [id,k] of [['model','model'],['steps','steps'],['scale','scale'],['seed','seed'],['cfg','cfgRescale'],['sampler','sampler']])$(`ncs-${id}`).value=settings().options[k];}
+  updateFinal();renderGenBox();
+}
 function renderImagePresets() {
   const s=settings(),options='<option value="">현재 설정 유지 · 프리셋 선택</option>'+s.imagePresets.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
   for(const id of ['ncs-common-preset','ncs-scene-preset']){$(id).innerHTML=options;$(id).value=s.imagePresetId;}
@@ -270,9 +298,10 @@ function updatePresetState() {
   $('ncs-scene-preset-state').textContent=optionsOverride?'이력에서 불러온 프롬프트·생성 설정을 사용 중이에요. 프리셋을 고르면 선택한 값으로 다시 조립해요.':$('ncs-preset-state').textContent;
   $('ncs-preset-save-hint').textContent=p?`프리셋 저장: 선택한 "${p.name}"에 지금 값을 덮어써요. 새 프리셋으로 저장: 지금 값을 이름을 붙여 따로 저장해요.`:'프리셋 저장: 지금 값을 입력한 이름으로 새로 저장해요.';
   dialog.querySelector('[data-action="delete-preset"]').disabled=!p;
+  renderGenBox();
 }
-function saveImagePreset(overwrite=false) {
-  const s=settings(),name=$('ncs-common-preset-name').value.trim(),old=overwrite?s.imagePresets.find(p=>p.id===s.imagePresetId):null;
+function saveImagePreset(overwrite=false,typedName=null) {
+  const s=settings(),name=(typedName??$('ncs-common-preset-name').value).trim(),old=overwrite?s.imagePresets.find(p=>p.id===s.imagePresetId):null;
   if(!name)throw new Error('저장할 이름을 입력해 주세요.');
   if(overwrite&&!old)throw new Error('덮어쓸 프리셋을 먼저 선택해 주세요.');
   if(s.imagePresets.some(p=>p.id!==old?.id&&p.name.toLowerCase()===name.toLowerCase()))throw new Error('같은 이름의 프리셋이 있어요. 다른 이름으로 저장하거나 해당 프리셋을 선택해 덮어써 주세요.');
@@ -835,6 +864,9 @@ async function refreshStatus() {
 }
 async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   if(busy)return;assertChat();
+  // Nothing extracted or entered yet: the image would be the common prompt alone. Ask first.
+  const emptyScene=!scene.characters.some(c=>c.included!==false)&&!['location','lighting','camera','interaction'].some(k=>(scene[k]??'').trim());
+  if(!skipMissingCheck&&emptyScene&&!finalOverride&&!confirm('장면을 아직 추출하지 않았어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "장면 추출" 누르기')){notice('생성하지 않았어요. "장면 추출"을 먼저 눌러 주세요.');return;}
   if(!skipMissingCheck){const {main}=missingState();if(main.length&&!skipMissingWarning()){openMissingDialog(main,seedMode);return;}}
   const s=settings(),startKey=keyOf(),ticket=++task;
   if(finalOverride?.invalid)throw new Error('최종 프롬프트 JSON이 올바르지 않아요. 고치거나 "조립 결과로 되돌리기"를 눌러 주세요.');
@@ -1005,6 +1037,31 @@ function renderHistoryFilter() {
   select.innerHTML=`<option value="">모든 채팅 · ${historyImageCount}장</option>`+historyChats.map(c=>`<option value="${esc(c.chatKey)}">${esc(chatLabel(c.chatKey))}${c.chatKey===current?' · 지금 채팅':''} · ${c.count}장</option>`).join('');
   select.value=historyChats.some(c=>c.chatKey===historyFilter)?historyFilter:'';
 }
+// --- History → preset: saves this image's generation options as a new preset without touching current work.
+let historyPresetTarget=null;
+const historyPresetControls=item=>item.options?(historyPresetTarget===item.id?`<div class="ncs-wardrobe-save"><label>새 프리셋 이름<input id="ncs-history-preset-name" maxlength="80" placeholder="예: 이 그림 설정"></label><small>모델·크기·스텝·Guidance·CFG·Sampler와 공통 Negative를 이 그림에서 가져와요. 공통 Positive는 이 그림에서 장면 부분과 분리할 수 있으면 그 값을, 아니면 지금 설정 탭의 값을 써요. seed는 새 seed(-1)로 저장해요. 인물·장면 프롬프트는 넣지 않아요.</small><div class="ncs-row"><button type="button" class="ncs-primary" data-history-preset-save="${esc(item.id)}">저장</button><button type="button" data-history-preset-cancel>취소</button></div></div>`:`<button type="button" data-history-preset="${esc(item.id)}">설정을 프리셋으로</button>`):'';
+// The common Positive is merged into the base prompt. It can be recovered only when the rest of the base is
+// exactly what the scene contributed; otherwise the settings tab's current value is used (and said so).
+function commonPositiveOf(item){
+  const a=item.assembled,sc=item.snapshot?.scene;if(!a||!sc)return null;
+  const count={boy:0,girl:0,other:0};
+  for(const c of a.characters??[]){const sub=(c.prompt??'').split(',')[0].trim();if(count[sub]!==undefined)count[sub]++;}
+  const tags=Object.entries(count).filter(([,n])=>n).map(([k,n])=>`${n}${k}${n===1?'':'s'}`);
+  const tail=[...tags,sc.location,sc.lighting,sc.camera,sc.interaction].filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim()).join(', ');
+  const base=String(a.base??'');
+  if(!tail)return base;if(base===tail)return '';if(base.endsWith(`, ${tail}`))return base.slice(0,-(tail.length+2));
+  return null;
+}
+function saveHistoryPreset(id){
+  const item=historyItems.find(x=>x.id===id);if(!item?.options)return;
+  const s=settings(),name=($('ncs-history-preset-name')?.value??'').trim();if(!name)throw new Error('새 프리셋 이름을 적어 주세요.');
+  if(s.imagePresets.some(p=>p.name.toLowerCase()===name.toLowerCase()))throw new Error('같은 이름의 프리셋이 있어요. 다른 이름을 적어 주세요.');
+  const recovered=commonPositiveOf(item),options={...freeOptions({...DEFAULTS.options,...item.options}),seed:-1,scheduler:DEFAULTS.options.scheduler};
+  const preset=captureImagePreset({positive:recovered??s.positive,negative:typeof item.assembled?.negative==='string'?item.assembled.negative:s.negative,options},uuid(),name);
+  s.imagePresets=validateImagePresets([...s.imagePresets,preset]);ctx().saveSettingsDebounced();
+  historyPresetTarget=null;renderImagePresets();renderHistory();
+  notice(`새 프리셋 ‘${name}’로 저장했어요. 공통 Positive는 ${recovered===null?'지금 설정 탭 값':'이 그림'}에서 가져왔어요. 지금 작업 중인 설정은 그대로예요. 쓰려면 프리셋에서 골라 주세요.`);
+}
 // What was actually sent for a history image. Built only when opened, from data the list already has.
 const promptView=item=>item.assembled?`<details class="ncs-prompt-view" data-prompt-view="${esc(item.id)}"><summary>프롬프트 보기</summary></details>`:'';
 function promptText(item){
@@ -1032,13 +1089,13 @@ function renderHistory() {
     renderHistoryFilter();
     $('ncs-history').innerHTML=historyItems.length?historyItems.map(item=>{
       const id=esc(item.id),file=imageDownload(item),here=item.chatKey===current;
-      return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button><small class="ncs-chat-name${here?' ncs-here':''}">${esc(chatLabel(item.chatKey))}${here?' · 지금 채팅':''}</small><small>${esc(new Date(item.created).toLocaleString())} · seed ${esc(item.seed)}</small>${promptView(item)}<a href="${esc(file.url)}" download="${file.filename}">PNG 저장</a><button type="button" data-clean-save="${esc(item.id)}" title="프롬프트 메타데이터와 알파 채널 정보를 뺀 불투명 PNG 사본">공유용 PNG</button><button data-history-delete="${id}" class="ncs-danger-outline">삭제</button></article>`;
+      return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button><small class="ncs-chat-name${here?' ncs-here':''}">${esc(chatLabel(item.chatKey))}${here?' · 지금 채팅':''}</small><small>${esc(new Date(item.created).toLocaleString())} · seed ${esc(item.seed)}</small>${promptView(item)}${historyPresetControls(item)}<a href="${esc(file.url)}" download="${file.filename}">PNG 저장</a><button type="button" data-clean-save="${esc(item.id)}" title="프롬프트 메타데이터와 알파 채널 정보를 뺀 불투명 PNG 사본">공유용 PNG</button><button data-history-delete="${id}" class="ncs-danger-outline">삭제</button></article>`;
     }).join(''):'<p>저장된 그림이 없어요.</p>';
     updateAttachButtons();restoreScroll();return;
   }
   $('ncs-history').innerHTML=historyItems.length?historyItems.map(item=>{
     const id=esc(item.id),file=imageDownload(item),attached=hasInlineImage(chat,item);
-    return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button><small>${esc(new Date(item.created).toLocaleString())} · seed ${esc(item.seed)}</small>${promptView(item)}<button data-history-id="${id}">편집으로 불러오기</button><button data-history-attach="${id}" class="ncs-primary">본문 아래에 넣기</button>${attached?`<button data-history-detach="${id}">이미지 빼기</button>`:''}<a href="${esc(file.url)}" download="${file.filename}">PNG 저장</a><button type="button" data-clean-save="${esc(item.id)}" title="프롬프트 메타데이터와 알파 채널 정보를 뺀 불투명 PNG 사본">공유용 PNG</button><button data-history-delete="${id}" class="ncs-danger-outline">삭제</button></article>`;
+    return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button><small>${esc(new Date(item.created).toLocaleString())} · seed ${esc(item.seed)}</small>${promptView(item)}${historyPresetControls(item)}<button data-history-id="${id}">편집으로 불러오기</button><button data-history-attach="${id}" class="ncs-primary">본문 아래에 넣기</button>${attached?`<button data-history-detach="${id}">이미지 빼기</button>`:''}<a href="${esc(file.url)}" download="${file.filename}">PNG 저장</a><button type="button" data-clean-save="${esc(item.id)}" title="프롬프트 메타데이터와 알파 채널 정보를 뺀 불투명 PNG 사본">공유용 PNG</button><button data-history-delete="${id}" class="ncs-danger-outline">삭제</button></article>`;
   }).join(''):'<p>아직 생성 이력이 없어요.</p>';
   updateAttachButtons();restoreScroll();
 }
@@ -1157,6 +1214,11 @@ async function onAction(action,el) {
       s.imagePresets=s.imagePresets.filter(p=>p.id!==id);s.imagePresetId='';ctx().saveSettingsDebounced();renderImagePresets();notice('이미지 프리셋을 삭제했어요. 현재 값은 유지돼요.');break;
     }
     case 'refresh-extraction-profiles':renderExtractionProfiles();break;
+    case 'gen-restore-default':optionsOverride=null;revision++;updateFinal();renderGenBox();notice('기본 생성 설정으로 돌아왔어요. 최종 프롬프트는 그대로예요.');break;
+    case 'gen-preset-overwrite':{const s=settings(),p=s.imagePresets.find(p=>p.id===s.imagePresetId);if(!p)break;if(!confirm(`‘${p.name}’ 프리셋을 지금 값으로 덮어쓸까요?`))break;saveImagePreset(true,p.name);break;}
+    case 'gen-preset-new':genNaming=true;renderGenBox();$('ncs-gen-preset-name').focus({preventScroll:true});break;
+    case 'gen-preset-new-cancel':genNaming=false;renderGenBox();break;
+    case 'gen-preset-new-confirm':saveImagePreset(false,$('ncs-gen-preset-name').value);genNaming=false;$('ncs-gen-preset-name').value='';renderGenBox();break;
     case 'wardrobe-add':addWardrobeRow().querySelector('[data-w="name"]').focus({preventScroll:true});break;
     case 'wardrobe-remove':{el.closest('.ncs-wardrobe-item')?.remove();if(!$('ncs-wardrobe-list').children.length)renderWardrobeForm([]);notice('옷을 뺐어요. 프로필 저장을 눌러야 반영돼요.');break;}
     case 'extraction-recommended':settings().extractionMaxTokens=RECOMMENDED_MAX_TOKENS;$('ncs-extraction-max-tokens').value=RECOMMENDED_MAX_TOKENS;revision++;ctx().saveSettingsDebounced();notice(`독립 추출 응답 한도를 권장값 ${RECOMMENDED_MAX_TOKENS}로 바꿨어요. 실제로 쓰는 양은 응답 길이만큼이에요.`);break;
@@ -1203,6 +1265,9 @@ function bindEvents() {
       else if(el.dataset.resetOutfit){scene.characters.find(c=>c.id===el.dataset.resetOutfit).manualOutfit=null;changed();renderScene();}
       else if(el.dataset.historyId)restoreHistory(el.dataset.historyId);
       else if(el.dataset.copyPrompt)await copyPrompt(el.dataset.copyPrompt);
+      else if(el.dataset.historyPreset){historyPresetTarget=el.dataset.historyPreset;renderHistory();$('ncs-history-preset-name')?.focus({preventScroll:true});}
+      else if(el.dataset.historyPresetSave)saveHistoryPreset(el.dataset.historyPresetSave);
+      else if(el.dataset.historyPresetCancel!==undefined){historyPresetTarget=null;renderHistory();}
       else if(el.dataset.viewResult!==undefined)viewImage(result);
       else if(el.dataset.viewHistory)viewImage(historyItems.find(x=>x.id===el.dataset.viewHistory));
       else if(el.dataset.historyAttach){const item=historyItems.find(x=>x.id===el.dataset.historyAttach),chosen=$('ncs-history-target').value;await putImageInChat(item,chosen===''?preferredTarget(item):Number(chosen));}
@@ -1238,6 +1303,7 @@ function bindEvents() {
       if(el.id==='ncs-size-preset'){
         const preset=SIZE_PRESETS[el.value];if(preset){optionsOverride=null;const o=settings().options;o.width=preset.width;o.height=preset.height;/* set together: a half-changed size would read as custom */ctx().saveSettingsDebounced();revision++;updateFinal();updatePresetState();}return;
       }
+      if(el.dataset.gen){editGenField(el);return;}
       if(el.dataset.final!==undefined){editFinalField(el);return;}
       if(el.id==='ncs-final'){
         revision++;try{const value=JSON.parse(el.value);buildPayload(value,{...effectiveOptions(),seed:0});if(typeof value.base!=='string'||typeof value.negative!=='string'||value.characters.some(c=>typeof c.prompt!=='string'||typeof c.name!=='string'))throw new Error('base·negative·characters[].name·prompt는 문자열이어야 해요.');finalOverride=value;renderFinalForm(value);$('ncs-final-badge').hidden=false;$('ncs-warnings').textContent='직접 수정한 최종 프롬프트를 이번 생성에 사용해요.';}catch(e){finalOverride={invalid:true,message:e.message};$('ncs-warnings').textContent=`최종 프롬프트 JSON을 확인해 주세요: ${e.message}`;}return;

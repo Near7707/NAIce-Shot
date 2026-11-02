@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.38 — 2026-11-03
+
+**Update: extension only.** Server 0.1.8 is unchanged.
+
+- Generation settings box in the scene tab (생성), folded by default. The summary shows its scope and the values (model, size, steps, Guidance, seed). Inside: model, size, steps (max 28), Guidance and seed, with CFG Rescale and Sampler under 더 보기.
+  - Normally it reads **기본 생성 설정 · 다음 생성에도 유지**. These are the settings tab's own values, edited in place, and the settings tab follows.
+  - While history options are in use it reads **이력 설정 · 이번 생성에만**. Edits go to that one-off copy only, and **기본 설정으로 돌아가기** leaves it.
+  - Presets from the box: "수정됨" when values differ from the chosen preset, **‘이름’에 덮어쓰기** naming its target and asking first, and **새 프리셋으로 저장** with a name. Hidden while history options are in use.
+- History cards: **설정을 프리셋으로** saves a new preset without generating and without changing current work or the chosen preset.
+  - It takes model, size, steps, Guidance, CFG and Sampler from the image, with seed set to a new seed.
+  - The common Negative comes from the image too.
+  - The common Positive comes from the image when it separates cleanly from the scene part; otherwise it uses the settings tab's current value, and the notice says which.
+  - People and scene prompts are never included.
+- Generating a scene that was never extracted or entered now asks first: "인물·장소 없이 공통 프롬프트만으로 그릴까요?" Cancelling sends nothing.
+- Added `tests/browser-v0138.mjs`. `browser-v0119` accepts the new confirm, and `browser-v0117` matches the reworded no-profile note.
+
 ## 0.1.37 — 2026-11-03
 
 **Update: extension only.** Server 0.1.8 is unchanged.

@@ -383,3 +383,12 @@
 #naice-shot-dialog .ncs-character.ncs-temp {border-style:dashed;}
 #naice-shot-dialog .ncs-temp-check {margin:8px 0;padding:8px 10px;border:1.5px solid var(--ncs-warning);border-radius:var(--ncs-radius-control);color:var(--ncs-fg);line-height:1.5;}
 #naice-shot-dialog .ncs-temp-check button {margin-left:6px;}
+/* Generation settings box in the scene tab. */
+#naice-shot-dialog .ncs-gen-box {border:1px solid var(--ncs-border);border-radius:var(--ncs-radius-card);padding:2px 12px 10px;margin:10px 0 12px;background:var(--ncs-surface);}
+#naice-shot-dialog .ncs-gen-summary {color:var(--ncs-fg);line-height:1.5;padding:10px 0;}
+#naice-shot-dialog .ncs-gen-scope {display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;border:1.5px solid var(--ncs-border);color:var(--ncs-fg);}
+#naice-shot-dialog .ncs-gen-scope.ncs-gen-history {border-color:var(--ncs-edge);background:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);}
+#naice-shot-dialog .ncs-gen-line {font-size:13px;color:var(--ncs-muted);overflow-wrap:anywhere;}
+#naice-shot-dialog .ncs-gen-override {display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0 10px;padding:8px 10px;border:1.5px solid var(--ncs-edge);border-radius:var(--ncs-radius-control);}
+#naice-shot-dialog .ncs-gen-override span {flex:1 1 200px;}
+#naice-shot-dialog .ncs-gen-presets {margin-top:8px;}

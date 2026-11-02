@@ -55,6 +55,8 @@ try{
   assert.equal(sent[0].assembled.base,'one generation edit');
   assert.equal(sent[0].options.seed,777);
   assert.equal(await page.locator('[data-final="base"]').inputValue(),'current settings prompt');
+  // The scene is empty now, so a confirm asks first; this test means to draw the common prompt alone.
+  const confirms=[];page.on('dialog',d=>{confirms.push(d.message());d.accept();});
   await click('generate');
   await page.waitForFunction(()=>!document.querySelector('[data-action="generate"]').disabled);
   assert.equal(sent[1].assembled.base,'current settings prompt');
@@ -71,6 +73,7 @@ try{
   await click('generate');
   await page.waitForFunction(()=>!document.querySelector('[data-action="generate"]').disabled);
   assert.equal(JSON.parse(sent[2].chatKey).chat,'B');
+  assert.ok(confirms.length>=2&&confirms.every(m=>/장면을 아직 추출하지 않았어요/.test(m)),'empty scenes ask before generating');
   assert.equal(sent[2].assembled.base,'current settings prompt');
   assert.equal(sent[2].options.steps,normal.steps);
 

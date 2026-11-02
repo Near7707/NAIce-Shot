@@ -4,6 +4,17 @@
 
 - [ ] Add a temporary character slot for manual drawing without saving a reusable profile. Keep it available while editing or regenerating the current scene.
 
+## v0.1.38
+
+Update the extension and refresh.
+
+1. Open 생성 설정 in the scene tab and change Guidance. The settings tab should show the same value.
+2. Restore an image from history and check the "이력 설정 · 이번 생성에만" label and 기본 설정으로 돌아가기.
+3. Try 설정을 프리셋으로 on a history card.
+4. Press 이미지 생성 before extracting: a confirm should appear.
+
+No server update is needed.
+
 ## v0.1.37
 
 Update the extension and refresh.

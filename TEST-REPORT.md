@@ -1,3 +1,13 @@
+# v0.1.38 validation — 2026-11-03
+
+- Extension Node suite **126 passed**. **31 of 31 browser scripts passed**, including the new `browser-v0138` at 1280px and 375px:
+  - an empty scene asks first, and cancelling sends nothing
+  - the box is folded with its scope and summary, edits the settings values (steps capped at 28), and the settings tab follows
+  - a new preset is saved from the box; the overwrite button names its target; "수정됨" shows and clears after overwriting
+  - history options show "이력 설정 · 이번 생성에만", edits stay one-off and are used, and it returns to normal after success or via 기본 설정으로 돌아가기
+  - 설정을 프리셋으로 refuses empty or duplicate names and saves options with a new seed, the recovered common Positive and the image's Negative, with no scene or people, leaving current settings and the chosen preset unchanged
+- Checked the box by eye at 375px in both modes.
+
 # v0.1.37 validation — 2026-11-03
 
 - Extension Node suite **126 passed**. **30 of 30 browser scripts passed**, including the new `browser-v0137` at 1280px and 375px:
