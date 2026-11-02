@@ -1,3 +1,18 @@
+# v0.1.32 validation — 2026-11-03
+
+- Extension Node suite **124 passed, 0 failed, 0 skipped**, including prompt checks for the beat rules, brief-moment priority and placement rules, cut-off detection (complete, fenced, cut, reasoning prefix, no JSON), and "one unreadable candidate in a complete reply is not cut off".
+- **28 of 28 browser scripts passed**, including the new `browser-v0132`:
+  - a new user starts at 8192 / one message
+  - an existing user keeps 4096 / 3 until "권장값 적용", which leaves the message count alone
+  - temperature is sent only with a separate connection and only when set; never on the main connection; structured output still sent
+  - a cut-off reply shows two candidates without "마지막 순간" and with the 불완전 + main-preset hint
+  - a reply cut before any candidate fails with the same hint
+  - a complete two-candidate reply is not flagged
+  - a hand-picked left position survives re-extraction on every candidate
+- Read SillyTavern's current connection-manager code: the per-request payload is applied after the profile's preset, so the temperature reaches the request. Whether a model honours it was not tested.
+- Not exercised: a real extraction model, real SillyTavern, iPhone Safari.
+- Pre-push privacy check of the changes: no keys, personal paths, emails or story names.
+
 # v0.1.31 validation — 2026-11-03
 
 - Extension Node suite **123 passed, 0 failed, 0 skipped**, including seven new `moments.test.mjs` cases: three moments with their own actions, the final one as default; older single-scene replies; a reply cut off mid-way keeps complete candidates; out-of-range default and extra moments; a requested moment not found; one unreadable candidate dropped; prompt rules and the wished moment passed as quoted data.

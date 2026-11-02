@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.32 — 2026-11-03
+
+**Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).
+
+- Moment splitting rules are concrete. A new beat starts when an object starts or stops being held or used, the main action or pose changes, the place or doorway changes, or someone arrives or leaves. Head turns, glances, hand gestures and facial changes alone do not count. Brief but distinctive actions and objects (taking out a phone to type) are kept on purpose. With more than three beats, the final beat is always kept, plus the two most different, preferring brief distinctive ones.
+- Cut-off replies are told apart from short ones. When the reply's JSON never closes, the notice says "응답이 불완전해요" and explains where the response length comes from: the main connection's preset, or the separate connection's limit. Candidates salvaged from a cut-off reply are not labelled "마지막 순간", and the notice warns that the final moment may be missing. A complete reply with fewer candidates is not flagged. The API's finish reason is not available to the extension, so the JSON's shape is the signal.
+- 추출 AI settings:
+  - New guidance: use a separate connection, start at 8192, and the limit is only a ceiling.
+  - New "권장값 적용 · 8192" button.
+  - New optional "추출 온도", sent with a separate extraction connection's request only. Empty keeps the connection's own value, and the main connection is never changed. It has an effect only on models that honour temperature.
+- New users start with an 8192 response limit and one message. Existing users keep their values.
+- "참고 메시지 수" is now "보낼 메시지 수 · 대상 포함", with a note that earlier messages explain the current state and candidates come only from the target.
+- Positions: the AI no longer picks a side to make a composition. A placement stated in the text is followed and may stay in the action wording. Relations such as facing each other or across the table are always kept. A position chosen by hand survives re-extracting the same message, on every candidate.
+- Added `tests/browser-v0132.mjs`; `moments.test.mjs` covers the new rules and cut-off detection.
+
 ## 0.1.31 — 2026-11-03
 
 **Update: extension only.** Update NAIce Shot from Manage extensions and refresh. The server plugin is unchanged (0.1.7).

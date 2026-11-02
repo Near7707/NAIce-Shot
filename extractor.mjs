@@ -21,7 +21,7 @@ export function abortable(promise,signal) {
   Promise.resolve(promise).then(v=>{signal.removeEventListener('abort',onAbort);resolve(v);},e=>{signal.removeEventListener('abort',onAbort);reject(e);});
  });
 }
-export async function requestExtraction(context,prompt,{profileId='',structured=true,maxTokens=4096,schemaValue=SCENE_SCHEMA,signal=null,systemPrompt='You extract visible scenes into JSON. Do not roleplay.',schemaName='naice_shot'}={}) {
+export async function requestExtraction(context,prompt,{profileId='',structured=true,maxTokens=4096,temperature=null,schemaValue=SCENE_SCHEMA,signal=null,systemPrompt='You extract visible scenes into JSON. Do not roleplay.',schemaName='naice_shot'}={}) {
  if(signal?.aborted)throw abortError();
  const schema={name:schemaName,strict:true,value:schemaValue,returnInvalid:true};
  if(!profileId){
@@ -46,7 +46,8 @@ export async function requestExtraction(context,prompt,{profileId='',structured=
  try {
   const result=await abortable(service.sendRequest(profileId,messages,maxTokens,
    {stream:false,extractData:true,includePreset:true,includeInstruct:true,...(signal?{signal}:{})},
-   structured&&type==='openai'?{json_schema:schema}:{}),signal);
+   // Temperature rides on this one request only (applied after the profile's preset); the main connection is never touched.
+   {...(structured&&type==='openai'?{json_schema:schema}:{}),...(typeof temperature==='number'?{temperature}:{})}),signal);
   if(typeof result==='string')return result;
   if(typeof result?.content==='string')return result.content;
   if(result?.content&&typeof result.content==='object')return JSON.stringify(result.content);

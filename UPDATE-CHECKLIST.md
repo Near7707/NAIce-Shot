@@ -4,6 +4,18 @@
 
 - [ ] Add a temporary character slot for manual drawing without saving a reusable profile. Keep it available while editing or regenerating the current scene.
 
+## v0.1.32
+
+Update the extension and refresh.
+
+- Settings → 추출 AI shows the recommendation, the "권장값 적용 · 8192" button and "추출 온도". Existing values are not changed until you press the button.
+- Extract the same multi-scene message several times with a separate connection, at 8192 and a low temperature if your model supports it. The titles need not match. Check three things:
+  - the brief distinctive moment (the phone) keeps appearing
+  - actions do not mix
+  - the final moment is always included
+- If a notice says "응답이 불완전해요", raise the limit it names.
+- No server update is needed.
+
 ## v0.1.31
 
 Update the extension and refresh. Extract a message that holds several scenes: up to three candidates appear above 장소, the last one checked. Switch between them and confirm the people, actions and place change with them. Edit one candidate, switch away and back, and confirm the edit is still there. No server update is needed.

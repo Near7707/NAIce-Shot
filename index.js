@@ -5,7 +5,7 @@ import { CAMERA_ICON, BRAND_ICON, TAB_ICONS } from './icons.mjs';
 import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } from './skins.mjs';
 import { attachInlineImage, detachInlineImage, detachInlineImages, countInlineImages, hasInlineImage, imageDownload, renderInlineImages } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
-import { momentExtractionPrompt, momentExtractionSchema, parseMoments } from './scene-extraction.mjs';
+import { momentExtractionPrompt, momentExtractionSchema, parseMoments, looksCut } from './scene-extraction.mjs';
 import { isSceneMessage, isHiddenSceneMessage, chooseSceneMessages } from './scene-messages.mjs';
 import { captureImagePreset, applyImagePreset, imagePresetModified, validateImagePresets } from './presets.mjs';
 import { listExtractionProfiles, requestExtraction } from './extractor.mjs';
@@ -33,14 +33,18 @@ function uuid(){
   return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
 }
 function settings() {
-  const c=ctx();if(!c.extensionSettings[KEY])c.extensionSettings[KEY]=clone(DEFAULTS);
+  const c=ctx();
+  // New users start with the recommended extraction values; existing users keep theirs (see "권장값 적용").
+  if(!c.extensionSettings[KEY])c.extensionSettings[KEY]={...clone(DEFAULTS),extractionMaxTokens:RECOMMENDED_MAX_TOKENS,recent:1};
   const s=c.extensionSettings[KEY];for(const [k,v] of Object.entries(DEFAULTS))if(s[k]===undefined)s[k]=clone(v);
   // Noise Schedule is no longer offered: new generations always use the default (karras).
   s.options=freeOptions({...DEFAULTS.options,...s.options,scheduler:DEFAULTS.options.scheduler});s.version=VERSION;return s;
 }
 // Only NovelAI's free-sized choices: one of the three sizes and at most 28 steps. Anything else (old custom sizes,
 // imported backups, history drafts) falls back to portrait / 28, so no one is charged Anlas for a size by accident.
-const FREE_STEPS=28;
+const FREE_STEPS=28,RECOMMENDED_MAX_TOKENS=8192;
+// Optional temperature for a separate extraction connection only; empty keeps the connection's own value.
+const extractionTemperature=()=>{const t=settings().extractionTemperature;return typeof t==='number'&&Number.isFinite(t)&&t>=0&&t<=2?t:null;};
 function freeOptions(o){
   const out={...o};if(sizePresetOf(out)==='custom'){out.width=SIZE_PRESETS.portrait.width;out.height=SIZE_PRESETS.portrait.height;}
   const steps=Number(out.steps);out.steps=Number.isFinite(steps)?Math.min(FREE_STEPS,Math.max(1,Math.round(steps))):DEFAULTS.options.steps;return out;
@@ -253,7 +257,7 @@ function renderSettings() {
   for(const [id,k] of [['model','model'],['steps','steps'],['scale','scale'],['seed','seed'],['cfg','cfgRescale'],['sampler','sampler']])$(`ncs-${id}`).value=s.options[k];
   $('ncs-include-user').checked=s.includeUser;$('ncs-schema').checked=s.structuredOutput;$('ncs-retain-raw').checked=s.retainRawExtraction===true;$('ncs-allow-anlas').checked=s.allowAnlas;
   $('ncs-image-placement').value=imagePlacement();$('ncs-message-button').checked=messageButtonsOn();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
-  renderImagePresets();renderExtractionProfiles();$('ncs-extraction-max-tokens').value=s.extractionMaxTokens;
+  renderImagePresets();renderExtractionProfiles();$('ncs-extraction-max-tokens').value=s.extractionMaxTokens;$('ncs-extraction-temperature').value=extractionTemperature()??'';
 }
 function renderImagePresets() {
   const s=settings(),options='<option value="">현재 설정 유지 · 프리셋 선택</option>'+s.imagePresets.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
@@ -508,7 +512,7 @@ function switchMoment(index){
 }
 function renderMoments(){
   const list=scene.moments??[],box=$('ncs-moments');box.hidden=list.length<2;if(list.length<2){box.innerHTML='';return;}
-  box.innerHTML=`<strong class="ncs-moments-title">장면 후보 · 그릴 순간을 골라 주세요</strong><div class="ncs-moment-list" role="group" aria-label="장면 후보">${list.map((m,i)=>`<button type="button" class="ncs-moment" data-moment="${i}" aria-pressed="${i===scene.momentIndex}"><span class="ncs-moment-step">${i+1}</span><span class="ncs-moment-name">${esc(m.title||`후보 ${i+1}`)}</span>${i===list.length-1?'<small>마지막 순간</small>':''}</button>`).join('')}</div>`;
+  box.innerHTML=`<strong class="ncs-moments-title">장면 후보 · 그릴 순간을 골라 주세요</strong><div class="ncs-moment-list" role="group" aria-label="장면 후보">${list.map((m,i)=>`<button type="button" class="ncs-moment" data-moment="${i}" aria-pressed="${i===scene.momentIndex}"><span class="ncs-moment-step">${i+1}</span><span class="ncs-moment-name">${esc(m.title||`후보 ${i+1}`)}</span>${i===list.length-1&&!scene.momentsPartial?'<small>마지막 순간</small>':''}</button>`).join('')}</div>`;
 }
 function renderScene({forceFinal=false}={}) {
   renderMoments();
@@ -579,6 +583,11 @@ function addCharacter(id) {
   notice(restored?`${profile.name}을(를) 추가하고 추출해 둔 표정·행동·복장을 채웠어요.`:`${profile.name}을(를) 추가했어요. 장면 추출을 다시 누르면 이 인물도 후보에 넣어 표정·행동·복장을 확인해요. 실제 장면에 없으면 자동으로 넣지 않아요.`);
 }
 function assertChat(){if(!keyOf())throw new Error('먼저 캐릭터 채팅을 열어 주세요.');}
+// Where the response length comes from depends on the connection used for extraction.
+function limitHint(){
+  return settings().extractionProfileId?`설정 → 추출 AI의 "독립 추출 응답 한도"(지금 ${settings().extractionMaxTokens})를 올려 주세요.`
+    :'본편 연결로 추출하면 본편 프리셋의 응답 길이가 그대로 적용돼요. 설정 → 추출 AI에서 별도 연결 프로필을 고르고 응답 한도를 넉넉히(8192부터) 잡아 주세요.';
+}
 async function extract() {
   if(busy)return;assertChat();
   const s=settings();if(!s.profiles.length){openQuickProfile();notice('등록된 프로필이 없어요. 아래에서 첫 프로필을 만들면 바로 추출할 수 있어요.');return;}
@@ -587,6 +596,9 @@ async function extract() {
   const startKey=keyOf(),rev=revision,ticket=++task,profiles=clone(s.profiles),outfits=clone(outfitState());
   const matching=matchChatProfiles(ctx(),profiles,selection.messages,chatBindings(),scene.characters.filter(c=>c.included!==false).map(c=>c.id));
   const wish=$('ncs-moment-wish').value.trim();
+  // Positions the user chose by hand survive a re-extraction of the same message.
+  const manualPositions=new Map();
+  if(scene.source?.target===selection.source.target)for(const part of [scene,...(scene.moments??[]).map(m=>m.scene)])for(const c of part.characters??[])if(c.positionManual&&c.id)manualPositions.set(c.id,c.position);
   const prompt=momentExtractionPrompt(selection.messages,matching.profiles,outfits,s.format,matching.mappings,wish);
   const controller=new AbortController();extraction={ticket,controller};
   setBusy(true,ticket);startProgress('extract',ticket);notice('장면 추출을 시작했어요.');
@@ -598,7 +610,7 @@ async function extract() {
       let received=false;
       try {
         response=await requestExtraction(ctx(),prompt+(attempt?'\nThe previous response could not be parsed. Return ONLY the complete JSON object.':''),
-          {profileId:s.extractionProfileId,structured:attempt===0&&s.structuredOutput,maxTokens:s.extractionMaxTokens,schemaValue:momentExtractionSchema(matching.profiles),signal:controller.signal});
+          {profileId:s.extractionProfileId,structured:attempt===0&&s.structuredOutput,maxTokens:s.extractionMaxTokens,temperature:extractionTemperature(),schemaValue:momentExtractionSchema(matching.profiles),signal:controller.signal});
         received=true;
         const parsed=parseMoments(response,profiles);
         if(ticket!==task||keyOf()!==startKey||revision!==rev||!sourceValid(selection.source,ctx().chat)){notice('채팅·장면 또는 원문이 바뀌어서 추출 결과를 적용하지 않았어요.');return;}
@@ -611,17 +623,18 @@ async function extract() {
           const generic=genericizeScene(reconciled.scene,[...baseNames,...reconciled.scene.unregistered,...reconciled.scene.characters.map(x=>x.entityName)],s.format);
           for(const w of [...m.warnings,...reconciled.warnings])if(!warnings.includes(w))warnings.push(w);
           generic.removed.forEach(x=>removed.add(x));
+          for(const ch of generic.scene.characters)if(manualPositions.has(ch.id)){ch.position=manualPositions.get(ch.id);ch.positionManual=true;}
           return {title:m.title,scene:momentPart(generic.scene)};
         });
         raw=response;
-        scene={...blankScene(),...clone(moments[parsed.defaultIndex].scene),source:selection.source,moments:moments.length>1?moments:[],momentIndex:moments.length>1?parsed.defaultIndex:0,momentWish:wish};
+        scene={...blankScene(),...clone(moments[parsed.defaultIndex].scene),source:selection.source,moments:moments.length>1?moments:[],momentIndex:moments.length>1?parsed.defaultIndex:0,momentWish:wish,momentsPartial:parsed.partial};
         finalOverride=null;optionsOverride=null;lastLink=null;linkTarget=null;revision++;renderScene();
         if(removed.size)warnings.push(`장면 설명에 들어간 이름(${[...removed].join(', ')})을 빼고 일반 표현으로 정리했어요.`);
-        const lead=parsed.partial?`응답이 중간에 끊겨서 온전히 받은 후보 ${moments.length}개만 보여줘요. `:wish&&!parsed.requestMatched?'적어 주신 순간을 이 메시지에서 찾지 못해서 마지막 순간을 골랐어요. ':moments.length>1?`장면 후보 ${moments.length}개를 찾았어요. 위에서 그릴 순간을 고를 수 있어요. `:'';
+        const lead=parsed.partial?`응답이 불완전해요. 온전히 받은 후보 ${moments.length}개만 보여줘요. 메시지의 마지막 순간이 빠졌을 수 있어요. ${limitHint()} `:wish&&!parsed.requestMatched?'적어 주신 순간을 이 메시지에서 찾지 못해서 마지막 순간을 골랐어요. ':moments.length>1?`장면 후보 ${moments.length}개를 찾았어요. 위에서 그릴 순간을 고를 수 있어요. `:'';
         notice(lead+(warnings.length?warnings.join(' / '):'추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.'));return;
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}
     }
-    if(ticket===task&&keyOf()===startKey){raw=response;renderScene();notice(`추출 실패: ${failure?.message}. 기존 편집 내용은 유지했어요.`,true);}
+    if(ticket===task&&keyOf()===startKey){raw=response;renderScene();notice(`추출 실패: ${failure?.message}.${looksCut(response)?` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
   }finally{
     if(extraction?.ticket===ticket)extraction=null;
     stopProgress(ticket);if(busyOwner===ticket)setBusy(false);
@@ -907,6 +920,7 @@ async function importSettings(file) {
   const clean={};for(const k of Object.keys(DEFAULTS))clean[k]=next[k];
   clean.imagePlacement=next.imagePlacement==='above'?'above':'below';
   clean.messageButton=next.messageButton===true;
+  if(typeof next.extractionTemperature==='number'&&next.extractionTemperature>=0&&next.extractionTemperature<=2)clean.extractionTemperature=next.extractionTemperature;
   clean.retainRawExtraction=false; // importing a backup must not enable raw response retention
   clean.allowAnlas=false; // a shared backup must never switch on paid generation by itself
   if(typeof clean.skin!=='string'||!skinById(clean.skin))clean.skin=DEFAULT_SKIN;
@@ -970,6 +984,7 @@ async function onAction(action,el) {
       s.imagePresets=s.imagePresets.filter(p=>p.id!==id);s.imagePresetId='';ctx().saveSettingsDebounced();renderImagePresets();notice('이미지 프리셋을 삭제했어요. 현재 값은 유지돼요.');break;
     }
     case 'refresh-extraction-profiles':renderExtractionProfiles();break;
+    case 'extraction-recommended':settings().extractionMaxTokens=RECOMMENDED_MAX_TOKENS;$('ncs-extraction-max-tokens').value=RECOMMENDED_MAX_TOKENS;revision++;ctx().saveSettingsDebounced();notice(`독립 추출 응답 한도를 권장값 ${RECOMMENDED_MAX_TOKENS}로 바꿨어요. 실제로 쓰는 양은 응답 길이만큼이에요.`);break;
     case 'history':await loadHistory();break;
     case 'history-more':await loadHistory({append:true});break;
     case 'select-all-history':{
@@ -1036,6 +1051,7 @@ function bindEvents() {
       }
       if(el.id==='ncs-extraction-profile'){settings().extractionProfileId=el.value;revision++;ctx().saveSettingsDebounced();renderExtractionProfiles();return;}
       if(el.id==='ncs-extraction-max-tokens'){settings().extractionMaxTokens=Number(el.value);revision++;ctx().saveSettingsDebounced();return;}
+      if(el.id==='ncs-extraction-temperature'){const v=el.value.trim(),n=Number(v);if(v===''){delete settings().extractionTemperature;}else if(Number.isFinite(n)&&n>=0&&n<=2)settings().extractionTemperature=n;else throw new Error('추출 온도는 0~2 사이로 입력하거나 비워 두세요.');ctx().saveSettingsDebounced();return;}
       if(el.id==='ncs-size-preset'){
         const preset=SIZE_PRESETS[el.value];if(preset){optionsOverride=null;const o=settings().options;o.width=preset.width;o.height=preset.height;/* set together: a half-changed size would read as custom */ctx().saveSettingsDebounced();revision++;updateFinal();updatePresetState();}return;
       }
@@ -1049,7 +1065,7 @@ function bindEvents() {
         const c=scene.characters.find(c=>c.id===oldId);c.id=el.value;c.entityName=settings().profiles.find(p=>p.id===c.id)?.name??'';
         c.manualOutfit=null;c.outfitMode='unchanged';c.outfit='';changed();renderScene();return;
       }
-      if(el.dataset.field){const c=scene.characters.find(c=>c.id===el.closest('[data-character]').dataset.character);c[el.dataset.field]=el.type==='checkbox'?el.checked:el.value;changed();return;}
+      if(el.dataset.field){const c=scene.characters.find(c=>c.id===el.closest('[data-character]').dataset.character);c[el.dataset.field]=el.type==='checkbox'?el.checked:el.value;if(el.dataset.field==='position')c.positionManual=true;changed();return;}
       if(el.hasAttribute('data-lock')){const id=el.closest('[data-character]').dataset.character;saveOutfit(id,el.checked).catch(e=>notice(e.message,true));return;}
       for(const field of ['location','lighting','camera','interaction'])if(el.id===`ncs-${field}`){scene[field]=el.value;changed();return;}
       if(el.id==='ncs-message-button'){settings().messageButton=el.checked;ctx().saveSettingsDebounced();setMessageButtons(el.checked);notice(el.checked?'메시지의 추가 메뉴(…)에 그리기 버튼을 넣었어요.':'메시지의 그리기 버튼을 뺐어요.');return;}
