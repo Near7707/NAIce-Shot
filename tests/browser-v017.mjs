@@ -5,6 +5,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {deflateSync} from 'node:zlib';
 import {execFileSync} from 'node:child_process';
+import {pick,reveal} from './menu-helper.mjs';
 import assert from 'node:assert/strict';
 import {crc32} from '../zip.mjs';
 const modules=process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES;
@@ -36,7 +37,7 @@ await page.route('**/api/plugins/naice-shot/**',route=>{
  return route.fulfill({json:{keyConfigured:true,version:'0.1.7',features:['paged-history','delete','private-records','all-history','privacy-controls'],minClient:'0.1.0'}});
 });
 const click=action=>page.locator(`[data-action="${action}"]`).first().click();
-const downloadBy=async locator=>{const [d]=await Promise.all([page.waitForEvent('download'),locator.click().then(async()=>{const box=page.locator('#ncs-privacy-dialog');if(await box.isVisible()){await box.locator('input').check();await box.locator('[data-choice=original]').click();}})]);return {name:d.suggestedFilename(),bytes:await fs.readFile(await d.path())};};
+const downloadBy=async locator=>{const [d]=await Promise.all([page.waitForEvent('download'),pick(page,locator)]);return {name:d.suggestedFilename(),bytes:await fs.readFile(await d.path())};};
 function checkClean(bytes){
  assert.equal(bytes.subarray(0,8).equals(png.subarray(0,8)),true);assert.equal(bytes.includes(Buffer.from('PRIVATE_PROMPT_MARKER')),false);
  const types=[];for(let i=8;i<bytes.length;){const n=bytes.readUInt32BE(i);types.push(bytes.toString('ascii',i+4,i+8));i+=n+12;}
@@ -68,7 +69,7 @@ try{
  await click('attach');await click('close');
  await page.locator('#chat .ncs-inline-more').first().click();checkClean((await downloadBy(page.locator('[data-ncs-inline-clean]').first())).bytes);
  await page.locator('.ncs-launch-button').click();await page.locator('[data-tab="history"]').click();await click('select-all-history');
- const zip=await downloadBy(page.locator('[data-action="save-selected-clean"]'));assert.match(zip.name,/shared-.*-2\.zip$/);
+ await reveal(page,'[data-action="save-selected-clean"]');await page.locator('#ncs-save-zip').check();assert.match(await page.locator('[data-action="save-selected-clean"]').innerText(),/공유용 ZIP/);const zip=await downloadBy(page.locator('[data-action="save-selected-clean"]'));assert.match(zip.name,/shared-.*-2\.zip$/);
  const entries=JSON.parse(execFileSync('python3',['-c','import sys,zipfile,io,json\nz=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read()))\nprint(json.dumps([list(z.read(n)) for n in z.namelist()]))'],{input:zip.bytes}).toString());
  assert.equal(entries.length,2);entries.forEach(x=>checkClean(Buffer.from(x)));
  await page.locator('[data-tab="settings"]').click();const backup=await page.evaluate(()=>JSON.stringify(mock.extensionSettings.naice_shot));

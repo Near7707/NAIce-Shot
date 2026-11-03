@@ -3,6 +3,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
+import {pick,reveal} from './menu-helper.mjs';
 import assert from 'node:assert/strict';
 const modules=process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES;
 const {chromium}=await import(modules?pathToFileURL(path.join(modules,'playwright/index.mjs')).href:'playwright');
@@ -39,7 +40,7 @@ await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{
 const click=action=>page.locator(`[data-action="${action}"]`).first().click();
 const restore=async()=>{
   await page.locator('[data-tab="history"]').click();
-  await page.locator('[data-history-id]').first().click();
+  await pick(page,'[data-history-id]');
   await assert.equal(await page.locator('[data-final="base"]').inputValue(),'history only prompt');
 };
 try{

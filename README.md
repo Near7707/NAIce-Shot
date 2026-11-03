@@ -57,8 +57,8 @@ Termux로 실리태번을 쓰는 경우에도 순서는 같아요. 명령은 Ter
 - **추출 AI로 보내는 내용:** 선택한 범위의 메시지 본문, 인물 이름·연결 정보, 관련 복장 정보예요. 설명을 프로필로 바꿀 때는 입력한 캐릭터 설명을 보내요. 실리태번의 연결·프리셋 설정에 따른 추가 동작도 고려해 주세요.
 - **NovelAI로 보내는 내용:** 최종 이미지 프롬프트, 캐릭터별 프롬프트와 생성 설정이에요. 생성 요청에 추출 응답 원문 전체를 추가로 보내지는 않아요.
 - **설정 백업 JSON:** 캐릭터 프로필, 이름·별칭·카드 연결, 공통 프롬프트, 프리셋, 생성 옵션, 추출 연결 프로필 ID와 환경설정 등이 포함돼요. NAIce Shot이 내보내는 설정 백업을 다른 사람에게 공유하기 전에 내용을 확인해 주세요.
-- **생성 이력:** 프롬프트·생성 요청 데이터·장면 정보는 사용자 데이터 폴더에 저장해요. 추출 AI 원문은 기본으로 보관하지 않아요. 설정 → 개인정보 보관에서 직접 켜면 사고 태그를 제거한 응답을 앞으로 생성하는 그림의 이력에 저장해요. 이전 버전에서 이미 저장한 원문은 자동 삭제하지 않아요. 채팅 파일에는 복장·연결·이미지 첨부 정보가 저장돼요. 전체 사용자 데이터 폴더를 백업하거나 공유하면 이러한 정보도 포함될 수 있어요.
-- **PNG 공유:** `PNG 저장`은 메타데이터를 포함할 수 있는 원본이에요. `공유용 PNG`는 브라우저에서 그림을 다시 인코딩해 PNG 메타데이터와 알파 채널에 숨겨진 정보를 제거한 불투명 사본을 저장해요. 투명한 부분은 흰색 배경으로 합쳐져요. 결과·이력·크게 보기·채팅 첨부에서 사용할 수 있고, 여러 장은 `선택 공유용 저장`으로 ZIP에 모을 수 있어요. 원본과 생성 이력은 그대로 유지돼요. 그림 자체에 보이는 이름·글자는 제거하지 않아요.
+- **생성 이력:** 프롬프트·생성 요청 데이터·장면 정보는 사용자 데이터 폴더에 저장해요. 추출 AI 원문은 기본으로 보관하지 않아요. 설정 → 개인정보 보관에서 직접 켜면 사고 태그를 제거한 응답을 앞으로 생성하는 그림의 이력에 저장해요. 이전 버전에서 이미 저장한 원문은 자동 삭제하지 않아요. 그리기창의 마지막 작업(프롬프트·직접 입력한 인물 묘사 포함)은 서버의 `naice-shot-work/` 폴더에 저장되고, `설정 → 저장된 작업 모두 지우기` 또는 `이 채팅 이력 전체 삭제`로 지울 수 있어요. 채팅 파일에는 복장·연결·이미지 첨부 정보가 저장돼요. 전체 사용자 데이터 폴더를 백업하거나 공유하면 이러한 정보도 포함될 수 있어요.
+- **PNG 공유:** `저장 ▾`을 누르면 `공유용 PNG`와 `원본 PNG` 중에서 골라요. `원본 PNG`는 메타데이터를 포함할 수 있어요. `공유용 PNG`는 브라우저에서 그림을 다시 인코딩해 PNG 메타데이터와 알파 채널에 숨겨진 정보를 제거한 불투명 사본을 저장해요. 투명한 부분은 흰색 배경으로 합쳐져요. 결과·이력·크게 보기·채팅 첨부에서 사용할 수 있고, 여러 장은 `선택 저장 ▾`에서 ZIP 하나로 묶거나 한 장씩 받을 수 있어요. 원본과 생성 이력은 그대로 유지돼요. 그림 자체에 보이는 이름·글자는 제거하지 않아요.
 - **접근 보호:** PNG는 채팅 표시를 위해 실리태번의 이미지 경로로 제공돼요. 인증과 접근 제한은 실리태번 설정을 사용하며, 확장이 별도의 로그인 기능을 추가하지는 않아요.
 - **오류 화면 공유:** 파일 처리나 예상치 못한 내부 오류는 정리한 메시지로 표시해 로컬 경로를 노출하지 않아요. 선택한 추출 연결에서 반환한 임의의 오류 원문도 그대로 표시하지 않아요.
 
@@ -141,9 +141,9 @@ Per-version notes (UI-only or UI + server) are in `CHANGELOG.md`.
 7. Select the target message and reference-message count, then choose `장면 추출` (Extract scene). Review the people, outfits, actions and background.
 8. Expand `최종 프롬프트` (Final prompt) if you want to edit exactly what will be sent.
 9. In section `3 · 생성` (Generate), choose a saved **common image preset** without leaving the drawing tab (그리기), then select `이미지 생성` (Generate image). Generation is manual. The scene and Settings pickers share the same selection; presets can be saved or overwritten in the generation settings box too.
-10. Click the result to zoom and open **프롬프트 보기 → 프롬프트 복사**, use `PNG 저장` (Save PNG), or attach it with `본문에 넣기` (Attach to message).
+10. Click the result to zoom and open **프롬프트 보기 → 프롬프트 복사**, save it with **저장 ▾** (공유용 PNG or 원본 PNG), or attach it with `본문에 넣기` (Attach to message).
 
-History cards show **불러오기 / 본문에 넣기 / ⋯**. Downloads, saving settings as a preset, sending to 프리샷 and deletion are in **⋯**. Attached images also have a corner **⋯**; **이 메시지에서 빼기** there or in the enlarged viewer removes only that message's attachment, keeping other copies, the original PNG and history.
+History cards show the date (to the minute) and **저장 ▾ / 삭제 / ⋯**. **저장 ▾** opens two choices with a one-line note each: **공유용 PNG** (metadata removed) and **원본 PNG** (may contain prompt/seed metadata); a click elsewhere or the button again folds it. **⋯** holds 불러오기, 본문에 넣기, 설정을 프리셋으로, 프리샷으로 보내기 and, when attached, removing the chat's attachments. The seed is shown and copyable in the enlarged viewer and is still stored for restoring and same-seed drawing. Attached images also have a corner **⋯**; **이 메시지에서 빼기** there or in the enlarged viewer removes only that message's attachment, keeping other copies, the original PNG and history.
 
 Profiles are shared across character chats. Scene extraction checks visible people against saved names, aliases and linked card names, including side characters. Unregistered people retain their extracted expression, action, position and clothing in the scene; creating or linking their profile restores those fields. Side characters also offer **기존 프로필 연결**. Manually adding a profile makes it a candidate in the next **장면 추출**, without forcing an absent person into the image. Old records that stored only a missing name need a fresh extraction to obtain the missing visual fields.
 
@@ -155,7 +155,9 @@ Work files live privately under the signed-in user's `naice-shot-work/`, separat
 
 **문제 제보용 추출 응답 보관** is off by default and asks before enabling. It controls raw extraction responses in both new image history and work drafts, with reasoning blocks removed. The current response is still viewable/copyable while retention is off. It does not add the response to PNG metadata or send it to NovelAI. Existing image history is unchanged.
 
-Original PNG downloads, including selection ZIPs, show a metadata warning with original/shared/cancel choices. **새로고침 전까지 다시 묻지 않기** suppresses it only for the current page. Shared copies have no warning; visible names/text in the picture are not removed.
+Every save point (result, history card, history selection, enlarged viewer, attached image) offers the same two choices with their notes, shared first; choosing 원본 shows no further warning. Visible names/text in the picture are not removed. Selecting several history images adds **ZIP 파일 하나로 묶기**: on, one ZIP (**공유용 ZIP / 원본 ZIP**); off, one PNG at a time with a short gap. The first default is one file at a time on a computer and ZIP on a touch device; your last choice is remembered. Browsers may ask once whether this site can download several files.
+
+Saved work can be removed: **설정 → 개인정보 보관 → 저장된 작업 모두 지우기** deletes every chat's and 프리샷's saved work (image history, profiles and settings stay) and empties the drawing window. **이 채팅 이력 전체 삭제** also deletes that chat's saved work. A restored chat work names its target message (`이 채팅에서 작업하던 장면을 불러왔어요 · 대상 메시지 #N`). Renaming a chat file starts a new work and a new history bucket, because SillyTavern identifies chats by file name.
 
 Extraction can be cancelled. Image generation has no cancellation button once submitted. If you switch chats while generation runs, the server saves the result under the originating chat.
 
@@ -190,8 +192,9 @@ Restoring history uses that record's prompt, seed and options without changing p
 - Generation records use `<user data root>/naice-shot-records/`, outside the web-served image folder.
 - Records include submitted prompts, exact payload and extracted scene. Raw extraction responses are omitted by default; explicit opt-in retains a copy with known reasoning tags removed. Older records are not automatically scrubbed. They do not include the NovelAI request authorization header.
 - All-chat history is scoped to the authenticated SillyTavern user's data directory.
-- **선택 저장** downloads the selected history images: one as its PNG, several as a single ZIP file.
-- `공유용 PNG` exports an opaque, re-encoded copy without PNG text metadata or alpha-channel stealth data; `선택 공유용 저장` exports several such copies in one ZIP. The original-save controls preserve original bytes.
+- **선택 저장 ▾** downloads the selected history images as 공유용 or 원본, either one ZIP or one file at a time.
+- `공유용 PNG` exports an opaque, re-encoded copy without PNG text metadata or alpha-channel stealth data. `원본 PNG` preserves original bytes.
+- Saved drawing work uses `<user data root>/naice-shot-work/` and can be deleted from Settings or with a chat's whole history.
 - Image deletion removes PNGs and generation records. Attachments in the open chat are cleaned up; other chats can show a missing-image notice.
 
 Generated PNGs are served through SillyTavern so they can appear in chat. Protect access to your SillyTavern instance. This extension does not add its own authentication layer.

@@ -3,6 +3,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {pick,reveal} from './menu-helper.mjs';
 import assert from 'node:assert/strict';
 const modules=process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES;
 const {chromium}=await import(modules?`${modules}/playwright/index.mjs`:'playwright');
@@ -90,7 +91,7 @@ try{
  await page.keyboard.press('0');assert.equal(parseInt(await zoom()),fitPct,'0 key fits');
  const save=page.locator('#ncs-viewer .ncsv-save');const id=items.at(-1).id;
  assert.equal(await save.getAttribute('href'),`/user/images/naice-shot/${id}.png`);assert.equal(await save.getAttribute('download'),`naice-shot-${id}.png`);
- const [download]=await Promise.all([page.waitForEvent('download'),save.click().then(async()=>{await page.locator('#ncs-privacy-dialog input').check();await page.locator('[data-choice=original]').click();})]);
+ const [download]=await Promise.all([page.waitForEvent('download'),pick(page,save)]);
  assert.equal(download.suggestedFilename(),`naice-shot-${id}.png`);
  assert.deepEqual(await fs.readFile(await download.path()),png,'saves the original PNG bytes');
  // Wheel zoom around the cursor, then drag-pan stays inside bounds.
@@ -103,7 +104,7 @@ try{
 
  // 4) Viewer from history, then from the chat attachment.
  await page.locator('[data-tab="history"]').click();await page.locator('#ncs-history .ncs-image-open').first().click();
- await page.locator('#ncs-viewer[open]').waitFor();assert.match(await page.locator('#ncs-viewer .ncsv-meta').textContent(),/seed/);
+ await page.locator('#ncs-viewer[open]').waitFor();assert.doesNotMatch(await page.locator('#ncs-viewer .ncsv-meta').textContent(),/seed|:\d\d:\d\d/,'date without seconds; seed has its own button');assert.match(await page.locator('#ncs-viewer [data-v="seed"]').innerText(),/^seed \d+ 복사$/);
  await page.keyboard.press('Escape');await page.locator('#ncs-viewer').waitFor({state:'hidden'});
  await page.locator('[data-tab="scene"]').click();await click('attach');await page.locator('#chat .ncs-inline-open img').waitFor();
  await click('close');

@@ -24,3 +24,9 @@ test('drafts round-trip candidates, direct-input people, invalid JSON and one-le
  w.finalOverride={invalid:true,message:'unfinished JSON'};w.finalText='{"base":';w.undoClear=work();w.settings={apiKey:'should not be copied'};
  const out=unpackWork(packWork(w));assert.deepEqual(out.scene.moments,w.scene.moments);assert.equal(out.scene.characters[0].temp,true);assert.equal(out.finalText,'{"base":');assert.equal(out.finalOverride.invalid,true);assert.equal(out.undoClear.wish,'reading');assert.equal(out.settings,undefined);
 });
+test('forgetting a deleted work starts a fresh file and does not save an unchanged screen back',async()=>{
+ const sent=[];const q=new DraftQueue({delay:100000,read:async()=>({revision:'old',work:{value:1}}),write:async(key,b)=>{sent.push(b);return {revision:'new'};}});
+ await q.ensure('A');q.forget('A',{value:0});q.put('A',{value:0});assert.equal(q.entry('A').dirty,false,'same as the screen: nothing to save');
+ q.put('A',{value:2});await q.flush('A');assert.deepEqual(sent.map(b=>[b.work.value,b.expectedRevision]),[[2,null]]);
+ q.forget('B');assert.equal(q.entry('B').loaded,true);assert.equal(q.entry('B').data,null);
+});

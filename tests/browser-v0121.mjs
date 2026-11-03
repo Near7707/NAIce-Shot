@@ -3,6 +3,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {pick,reveal} from './menu-helper.mjs';
 import assert from 'node:assert/strict';
 const {chromium}=await import(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/playwright/index.mjs`:'playwright');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -48,7 +49,7 @@ try{
   const scene=await scroll(220);assert.ok(scene>100);
   await tab('settings');await same(0,'first settings visit');const settings=await scroll(800);assert.ok(settings>500);
   await tab('profiles');await same(0,'first profile visit');const profiles=await scroll(180);assert.ok(profiles>50);
-  await tab('history');await page.locator('[data-history-id]').first().waitFor();await page.locator('#ncs-history img').first().evaluate(img=>img.decode());
+  await tab('history');await page.locator('.ncs-history-card').first().waitFor();await page.locator('#ncs-history img').first().evaluate(img=>img.decode());
   const history=await scroll(1300);assert.ok(history>700);
   for(const [name,y] of [['settings',settings],['profiles',profiles],['scene',scene],['history',history]]){await tab(name);await same(y,`${name} return`);}
   const before=historyRequests;await page.locator('[data-action="history"]').evaluate(el=>el.click());await page.waitForResponse(r=>r.url().includes('/history?'));await page.waitForTimeout(200);assert.ok(historyRequests>before);await same(history,'after explicit history reload and images');

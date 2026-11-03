@@ -3,7 +3,7 @@ import { DEFAULTS, MODELS, clone, PROFILE_SCHEMA, profileDraftPrompt, parseProfi
   BRAND, SIZE_PRESETS, sizePresetOf, VERSION, stripReasoningBlocks } from './core.mjs';
 import { CAMERA_ICON, BRAND_ICON, TAB_ICONS } from './icons.mjs';
 import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } from './skins.mjs';
-import { attachInlineImage, detachInlineImage, detachInlineImages, detachMessageImage, countInlineImages, hasInlineImage, imageDownload, renderInlineImages } from './inline-images.mjs';
+import { attachInlineImage, detachInlineImage, detachInlineImages, detachMessageImage, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, SAVE_NOTES } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
 import { freeScenePrompt, freeSceneSchema, parseFreeScene } from './free-scene.mjs';
 import { momentExtractionPrompt, momentExtractionSchema, parseMoments, looksCut, foreignFields } from './scene-extraction.mjs';
@@ -13,7 +13,7 @@ import { listExtractionProfiles, requestExtraction } from './extractor.mjs';
 import { openImageViewer } from './viewer.mjs';
 import { copyText } from './clipboard.mjs';
 import {DraftQueue,packWork,unpackWork} from './draft-work.mjs';
-import {choosePngDownload,bindPngDownloads,downloadOriginal} from './download-choice.mjs';
+import {saveMenu,downloadOriginal} from './download-choice.mjs';
 import { genericizeScene } from './tags.mjs';
 import { checkCompat } from './compat.mjs';
 import { makeZip } from './zip.mjs';
@@ -32,7 +32,7 @@ let profileContext='profiles',busyOwner=0,extraction=null,progress=null,optionsO
 const selectedIds=new Set(),HISTORY_PAGE=20;
 let historyScope='chat',historyFilter='',historyChats=[],historyBytes=0,historyImageCount=0,historyRequest=0;
 let availableSkins=SKINS.filter(s=>!s.file),skinsDetected=false;
-let draftsEnabled=false,draftLoading=false,pauseDraftCapture=false,draftLoadToken=0,draftSource=null,draftNote='';
+let serverFeatures=[],draftsEnabled=false,draftLoading=false,pauseDraftCapture=false,draftLoadToken=0,draftSource=null,draftNote='';
 const $=id=>dialog.querySelector(`#${id}`);
 const ctx=()=>SillyTavern.getContext();
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -177,10 +177,12 @@ async function promptForImage(item) {
   }
   throw new Error('이 그림의 프롬프트 기록을 찾을 수 없어요.');
 }
+// 2026. 10. 27. 오후 12:27 — minutes, no seconds.
+function shortDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?'':d.toLocaleString('ko-KR',{year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'});}
 function viewImage(item,{attachment=null}={}) {
   if(!item)return;
-  const caption=[item.seed!==undefined?`seed ${item.seed}`:'',item.created?new Date(item.created).toLocaleString():''].filter(Boolean).join(' · ');
-  openImageViewer(item,{caption,loadPrompt:()=>promptForImage(item),
+  const caption=item.created?shortDate(item.created):'';
+  openImageViewer(item,{caption,seed:item.seed,loadPrompt:()=>promptForImage(item),
     onDetach:attachment?()=>removeMessageImage(item,attachment):null,
     onDelete:attachment?null:()=>deleteImages({ids:[item.id],owners:item.chatKey?{[item.id]:item.chatKey}:null}).then(r=>!!r?.deleted?.includes(item.id),e=>{say(e.message,true);return false;})});
 }
@@ -203,8 +205,11 @@ function positionImageMenu(){
   if(!imageMenu)return;const {menu,button}=imageMenu;
   if(!button.isConnected){closeImageMenu();return;}
   const r=button.getBoundingClientRect(),m=menu.getBoundingClientRect(),pad=8;
-  menu.style.left=`${Math.max(pad,Math.min(r.right-m.width,innerWidth-m.width-pad))}px`;
-  menu.style.top=`${Math.max(pad,Math.min(r.bottom+4,innerHeight-m.height-pad))}px`;
+  const start=button.classList.contains('ncs-save-toggle')?r.left:r.right-m.width; // 저장 opens under itself, ⋯ toward the left
+  menu.style.left=`${Math.max(pad,Math.min(start,innerWidth-m.width-pad))}px`;
+  // Below the button when it fits, otherwise above it, so the menu never covers its own button.
+  const below=r.bottom+4,above=r.top-4-m.height,top=below+m.height<=innerHeight-pad||above<pad?below:above;
+  menu.style.top=`${Math.max(pad,Math.min(top,innerHeight-m.height-pad))}px`;
 }
 function bindImageMenus(){
   document.addEventListener('click',event=>{
@@ -275,7 +280,8 @@ async function recallDraft(key=workKey()){
     if(data){loadWork(unpackWork(packWork(data,{retainRaw:settings().retainRawExtraction===true})));
       const stale=!isFree()&&(!sourceValid(scene.source,ctx().chat)||!sourceValid(draftSource,ctx().chat));
       if(stale){$('ncs-target').value='';$('ncs-moment-wish').value='';}
-      draftNote=stale?'마지막 작업을 불러왔어요. 원문이나 리롤이 바뀌었으니 대상과 프롬프트를 다시 확인해 주세요.':'마지막 작업을 불러왔어요. AI를 다시 호출하지 않았어요.';
+      const target=isFree()?'':$('ncs-target').value,where=isFree()?'':target===''?' · 대상 메시지: 최신':` · 대상 메시지 #${target}`;
+      draftNote=stale?'이 채팅에서 작업하던 장면을 불러왔어요. 원문이나 리롤이 바뀌었으니 대상과 프롬프트를 다시 확인해 주세요.':isFree()?'프리샷에서 작업하던 장면을 불러왔어요. AI를 다시 호출하지 않았어요.':`이 채팅에서 작업하던 장면을 불러왔어요${where}`;
     }
     renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();
   }catch(e){if(token===draftLoadToken)draftNote='작업을 불러오지 못했어요. 다시 시도해 주세요.';}
@@ -398,6 +404,22 @@ function undoClearWork(){
   loadWork({...w,undoClear:null});targetShown=w.targetShown??TARGET_STEP;
   revision++;renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();notice('비우기 전으로 되돌렸어요.');
   rememberDraft();
+}
+// After saved work was deleted on the server: empty the drawing window (no undo) and remember that as saved.
+function forgetWork(keys){
+  const here=keys.includes(workKey());
+  if(isFree()&&keys.includes(chatKey))delete spare.chat; // the waiting 챗샷 work of that chat
+  if(here){loadWork(blankWork());targetShown=TARGET_STEP;targetScroll=0;draftSource=null;revision++;
+    renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();}
+  for(const key of keys)drafts.forget(key,key===workKey()?packWork(captureWork(),{retainRaw:settings().retainRawExtraction===true}):null);
+}
+async function deleteAllWork(){
+  if(busy||attaching||draftLoading)throw new Error('진행 중인 작업이 끝난 뒤 지워 주세요.');
+  if(!confirm('저장된 작업을 모두 지울까요?\n채팅별·프리샷의 마지막 작업 기억이 서버에서 지워지고 되돌릴 수 없어요. 지금 그리기창도 비워져요.\n그림 이력·프로필·설정은 그대로예요.'))return;
+  const r=await api('/draft',{method:'POST',body:{delete:true,all:true}});
+  const keys=[...new Set([...drafts.entries.keys(),workKey(),chatKey,FREE_KEY].filter(Boolean))];
+  for(const k of Object.keys(spare))delete spare[k];
+  forgetWork(keys);notice(`저장된 작업 ${r.deleted??0}개를 지웠어요. 그림 이력은 그대로예요.`);
 }
 const skinTargets=()=>[dialog,document.getElementById('ncs-viewer')];
 function renderSkins() {
@@ -1084,6 +1106,7 @@ async function checkServer({force=false}={}) {
     try{data=JSON.parse(await response.text());}catch{data=null;}
   }catch{status=-1;}
   compatResult=checkCompat({uiVersion:VERSION,status,data});
+  serverFeatures=Array.isArray(data?.features)?data.features:[];if(dialog)$('ncs-delete-work-box').hidden=!serverFeatures.includes('draft-delete');
   if(data?.features?.includes('draft-work')&&!draftsEnabled){draftsEnabled=true;await recallDraft();}
   if(force)compatDismissed=false;
   renderCompat();renderDraftState();return compatResult;
@@ -1148,9 +1171,10 @@ function preferredTarget(item) {
   return existing>=0?existing:source&&sourceValid(source,chat)?source.target:chatRows().filter(({m})=>!m.is_system).at(-1)?.i;
 }
 function imageControls(item) {
-  if(isFree()){const file=imageDownload(item);return `<div class="ncs-row"><a href="${esc(file.url)}" download="${file.filename}">PNG 저장</a><button type="button" data-clean-save="${esc(item.id)}" title="프롬프트 메타데이터와 알파 채널 정보를 뺀 불투명 PNG 사본">공유용 PNG</button><button type="button" data-action="delete-result" class="ncs-danger-outline">삭제</button></div>`;}
-  const file=imageDownload(item),attached=hasInlineImage(ctx().chat,item),preferred=preferredTarget(item);
-  return `<label>그림을 넣을 메시지<select data-image-target="${esc(item.id)}">${chatRows().map(row=>rowOption(row,row.i===preferred)).join('')}</select></label><div class="ncs-row"><button data-action="attach" class="ncs-primary">본문에 넣기</button>${attached?'<button data-action="detach">이미지 빼기</button>':''}<a href="${esc(file.url)}" download="${file.filename}">PNG 저장</a><button type="button" data-clean-save="${esc(item.id)}" title="프롬프트 메타데이터와 알파 채널 정보를 뺀 불투명 PNG 사본">공유용 PNG</button><button type="button" data-action="delete-result" class="ncs-danger-outline">삭제</button></div>`;
+  const save=saveMenu(item,`ncs-result-save-${item.id}`);
+  if(isFree())return `<div class="ncs-row">${save.button}<button type="button" data-action="delete-result" class="ncs-danger-outline">삭제</button></div>${save.menu}`;
+  const attached=hasInlineImage(ctx().chat,item),preferred=preferredTarget(item);
+  return `<label>그림을 넣을 메시지<select data-image-target="${esc(item.id)}">${chatRows().map(row=>rowOption(row,row.i===preferred)).join('')}</select></label><div class="ncs-row"><button data-action="attach" class="ncs-primary">본문에 넣기</button>${attached?'<button data-action="detach">이미지 빼기</button>':''}${save.button}<button type="button" data-action="delete-result" class="ncs-danger-outline">삭제</button></div>${save.menu}`;
 }
 function renderResult() {
   $('ncs-result').innerHTML=result?`<button type="button" class="ncs-image-open" data-view-result aria-label="생성된 장면 크게 보기"><img src="${esc(result.image)}" alt="생성된 장면"></button>${imageControls(result)}<div class="ncs-row"><button data-action="same-seed">같은 seed로 생성</button><button data-action="new-seed">새 seed로 생성</button><button type="button" data-view-result>크게 보기</button></div><small>seed ${result.seed} · ${esc(MODELS[result.options.model]?.label)} · 메시지 본문은 유지되고, 첨부 그림은 본편 AI 입력에 포함되지 않아요.</small>`:'';
@@ -1164,15 +1188,26 @@ function updateAttachButtons() {
 }
 let savingSelection=false;
 const downloadFile=downloadOriginal;
-// Saves the selected history images: one PNG as-is, several as a single ZIP (one download prompt, works on mobile).
+// Saves the selected history images, either as one ZIP (one download prompt, reliable on phones)
+// or one file at a time with a short gap so browsers do not drop any.
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+function zipChosen(){const v=settings().saveAsZip;return typeof v==='boolean'?v:!!globalThis.matchMedia?.('(pointer:coarse)').matches;}
 async function saveSelected(clean=false) {
   const items=historyItems.filter(x=>selectedIds.has(x.id)).sort((a,b)=>String(a.created).localeCompare(String(b.created)));
   if(!items.length||savingSelection)return;
-  if(!clean){savingSelection=true;updateHistoryTools();try{const choice=await choosePngDownload();if(!choice)return;clean=choice==='shared';}finally{savingSelection=false;updateHistoryTools();}}
-  if(items.length===1&&clean){savingSelection=true;updateHistoryTools();try{await saveCleanImage(items[0]);notice('메타데이터를 뺀 공유용 PNG를 저장했어요.');}finally{savingSelection=false;updateHistoryTools();}return;}
-  if(items.length===1){const file=imageDownload(items[0]);downloadFile(file.url,file.filename);notice('선택한 그림 1장을 PNG로 저장했어요.');return;}
   savingSelection=true;updateHistoryTools();
   try{
+    if(items.length===1){if(clean){await saveCleanImage(items[0]);notice('메타데이터를 뺀 공유용 PNG를 저장했어요.');}else{const file=imageDownload(items[0]);downloadFile(file.url,file.filename);notice('선택한 그림 1장을 원본 PNG로 저장했어요.');}return;}
+    if(!zipChosen()){
+      let saved=0,missing=0;
+      for(const [i,item] of items.entries()){
+        notice(`선택한 그림을 하나씩 저장하고 있어요… ${i+1}/${items.length}`);
+        try{if(clean)await saveCleanImage(item);else{const file=imageDownload(item),check=await fetch(file.url,{method:'HEAD',cache:'no-store'});if(!check.ok)throw new Error(String(check.status));downloadFile(file.url,file.filename);}saved++;}catch{missing++;}
+        if(i<items.length-1)await wait(400);
+      }
+      notice(`${clean?'공유용':'원본'} PNG ${saved}장을 하나씩 저장했어요.${missing?` ${missing}장은 불러오지 못해 빠졌어요.`:''} 브라우저가 여러 파일 저장을 물어보면 허용해 주세요. 빠진 파일이 있으면 ZIP으로 묶어 받아 보세요.`);
+      return;
+    }
     const files=[];let missing=0;
     for(const [i,item] of items.entries()){
       notice(`선택한 그림을 모으고 있어요… ${i+1}/${items.length}`);
@@ -1185,14 +1220,22 @@ async function saveSelected(clean=false) {
     const d=new Date(),pad=n=>String(n).padStart(2,'0'),stamp=`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
     const url=URL.createObjectURL(new Blob([makeZip(files)],{type:'application/zip'}));
     downloadFile(url,`naice-shot-${clean?"shared-":""}${stamp}-${files.length}.zip`);setTimeout(()=>URL.revokeObjectURL(url),60000);
-    notice(`${clean?"메타데이터를 뺀 공유용 그림":"선택한 그림"} ${files.length}장을 ZIP 파일 하나로 저장했어요.${missing?` 불러오기·변환에 실패한 ${missing}장은 빠졌어요.`:''}`);
+    notice(`${clean?"메타데이터를 뺀 공유용 그림":"선택한 원본 그림"} ${files.length}장을 ZIP 파일 하나로 저장했어요.${missing?` 불러오기·변환에 실패한 ${missing}장은 빠졌어요.`:''}`);
   }finally{savingSelection=false;updateHistoryTools();}
+}
+// The selection save menu: two choices, plus "ZIP 하나로 묶기" when several images are selected.
+function renderSelectionSave(){
+  const n=selectedIds.size,zip=zipChosen(),many=n>1,box=$('ncs-selection-save');if(!box?.querySelector)return;
+  const kind=many?(zip?'ZIP':`PNG · ${n}장 따로`):'PNG';
+  box.querySelector('[data-action="save-selected-clean"]').innerHTML=`공유용 ${kind}<small>${SAVE_NOTES.shared}</small>`;
+  box.querySelector('[data-action="save-selected"]').innerHTML=`원본 ${kind}<small>${SAVE_NOTES.original}</small>`;
+  const zipRow=box.querySelector('.ncs-zip-choice');zipRow.hidden=!many;$('ncs-save-zip').checked=zip;
 }
 function updateHistoryTools() {
   if(!dialog)return;const locked=busy||attaching;
   for(const id of [...selectedIds])if(!historyItems.some(x=>x.id===id))selectedIds.delete(id);
-  const save=dialog.querySelector('[data-action="save-selected"]');save.textContent=savingSelection?'저장 준비 중…':selectedIds.size?`선택 저장 (${selectedIds.size})`:'선택 저장';save.disabled=savingSelection||!selectedIds.size;
-  const clean=dialog.querySelector('[data-action="save-selected-clean"]');clean.disabled=savingSelection||!selectedIds.size;
+  const save=dialog.querySelector('[data-image-more="ncs-selection-save"]');const saveLabel=save.querySelector?.('.ncs-save-label');if(saveLabel)saveLabel.textContent=savingSelection?'저장 준비 중…':selectedIds.size?`선택 저장 (${selectedIds.size})`:'선택 저장';save.disabled=savingSelection||!selectedIds.size;
+  if(!save.disabled)renderSelectionSave();
   const del=dialog.querySelector('[data-action="delete-selected"]');del.textContent=selectedIds.size?`선택 삭제 (${selectedIds.size})`:'선택 삭제';del.disabled=locked||!selectedIds.size;
   const all=dialog.querySelector('[data-action="select-all-history"]'),every=historyItems.length>0&&historyItems.every(x=>selectedIds.has(x.id));
   all.textContent=every?'선택 해제':'표시된 항목 모두 선택';all.disabled=locked||!historyItems.length;
@@ -1233,19 +1276,20 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
   const elsewhere=all?target!==current:ids.some(id=>ownerOf(id)!==current);
   const allCount=historyScope==='all'?historyChats.find(c=>c.chatKey===target)?.count??historyTotal:historyTotal;
   const what=all?(here?`이 채팅에서 만든 그림 ${allCount}장을 모두`:`"${chatLabel(target)}" 채팅의 그림 ${allCount}장을 모두`):ids.length===1?'이 그림을':`선택한 그림 ${ids.length}장을`;
-  if(!confirm(`${what} 삭제할까요?\n원본 PNG와 생성 기록이 서버에서 지워지며 되돌릴 수 없어요.${attached?`\n지금 채팅 본문 아래에 붙인 그림 ${attached}장도 함께 빠져요.`:''}${elsewhere?'\n다른 채팅에 붙여 둔 그림이 있었다면 그 채팅에서는 "찾을 수 없는 그림" 안내로 바뀌어요.':''}`))return null;
+  if(!confirm(`${what} 삭제할까요?\n원본 PNG와 생성 기록이 서버에서 지워지며 되돌릴 수 없어요.${attached?`\n지금 채팅 본문 아래에 붙인 그림 ${attached}장도 함께 빠져요.`:''}${elsewhere?'\n다른 채팅에 붙여 둔 그림이 있었다면 그 채팅에서는 "찾을 수 없는 그림" 안내로 바뀌어요.':''}${all&&serverFeatures.includes('draft-delete')?'\n이 채팅의 마지막 작업 기억(그리기창 작업)도 함께 지워져요.':''}`))return null;
   attaching=true;updateAttachButtons();
   try {
-    const deleted=new Set(),skipped=[];
+    const deleted=new Set(),skipped=[],workGone=[];
     for(const [key,list] of groups){
       let response;
       try{response=await api('/delete',{method:'POST',body:list==='all'?{chatKey:key,all:true}:{chatKey:key,ids:list}});}
       catch(e){if(/\(404\)|\(405\)/.test(e.message))throw new Error('서버 플러그인이 이전 버전이에요. 최신 server 파일로 바꾸고 실리태번을 재시작해 주세요.');throw e;}
-      for(const id of response.deleted??[])deleted.add(id);skipped.push(...(response.skipped??[]));
+      for(const id of response.deleted??[])deleted.add(id);skipped.push(...(response.skipped??[]));if(response.workDeleted)workGone.push(key);
     }
     // Clean attachments of the open chat in one save; other chats keep a "missing image" note.
     if(deleted.size&&current&&keyOf()===current)await detachInlineImages(ctx(),deleted,{isCurrent:()=>keyOf()===current});
     if(result&&deleted.has(result.id))result=null;
+    if(workGone.length)forgetWork(workGone);
     for(const id of deleted)selectedIds.delete(id);
     if(current&&keyOf()===current){renderChatImages();renderResult();}
     const skippedText=skipped.length?` 찾지 못한 ${skipped.length}장은 지우지 않았어요.`:'';
@@ -1292,8 +1336,11 @@ function renderHistoryFilter() {
 let historyPresetTarget=null;
 const historyPresetControls=item=>item.options?(historyPresetTarget===item.id?`<div class="ncs-wardrobe-save ncs-preset-form"><label>새 프리셋 이름<input id="ncs-history-preset-name" maxlength="80" placeholder="예: 이 그림 설정"></label><small>이 그림의 생성 설정·공통 태그를 저장해요. 인물·장면은 제외하고 seed는 새로 뽑아요.</small>${commonPositiveOf(item)===null?'<small>공통 Positive는 현재 설정값을 사용해요.</small>':''}<div class="ncs-row ncs-form-actions"><button type="button" class="ncs-primary" data-history-preset-save="${esc(item.id)}">저장</button><button type="button" data-history-preset-cancel>취소</button></div></div>`:''):'';
 function historyActions(item,{editable=false,attached=false}={}){
-  const id=esc(item.id),menu=`ncs-history-menu-${id}`,file=imageDownload(item);
-  return `<div class="ncs-history-actions${editable?'':' ncs-history-readonly'}">${editable?`<button type="button" data-history-id="${id}" title="이 그림의 작업을 그리기창으로 불러오기">불러오기</button>${isFree()?'':`<button type="button" data-history-attach="${id}" class="ncs-primary">본문에 넣기</button>`}`:''}<button type="button" data-image-more="${menu}" aria-controls="${menu}" aria-expanded="false" aria-label="이력 그림 더 보기">⋯</button></div><div id="${menu}" class="ncs-image-popup" popover="manual" hidden role="group" aria-label="이력 그림 작업"><a href="${esc(file.url)}" download="${file.filename}">원본 PNG 저장<small>메타데이터가 포함될 수 있어요.</small></a><button type="button" data-clean-save="${id}">공유용 PNG 저장<small>메타데이터를 제거한 사본이에요.</small></button>${item.options?`<button type="button" data-history-preset="${id}">설정을 프리셋으로</button>`:''}<button type="button" data-history-free="${id}">프리샷으로 보내기</button>${editable&&attached?`<button type="button" data-history-detach="${id}">이 채팅의 첨부 모두 빼기</button>`:''}<hr><button type="button" data-history-delete="${id}" class="ncs-danger-outline">그림 삭제</button></div>${historyPresetControls(item)}`;
+  const id=esc(item.id),menu=`ncs-history-menu-${id}`,save=saveMenu(item,`ncs-history-save-${item.id}`);
+  const more=[editable?`<button type="button" data-history-id="${id}">불러오기<small>이 그림의 작업을 그리기창으로 가져와요.</small></button>`:'',editable&&!isFree()?`<button type="button" data-history-attach="${id}">본문에 넣기</button>`:'',
+    item.options?`<button type="button" data-history-preset="${id}">설정을 프리셋으로</button>`:'',`<button type="button" data-history-free="${id}">프리샷으로 보내기</button>`,
+    editable&&attached?`<button type="button" data-history-detach="${id}">이 채팅의 첨부 모두 빼기</button>`:''].join('');
+  return `<div class="ncs-history-actions">${save.button}<button type="button" data-history-delete="${id}" class="ncs-danger-outline">삭제</button><button type="button" data-image-more="${menu}" aria-controls="${menu}" aria-expanded="false" aria-haspopup="true" aria-label="이력 그림 더 보기">⋯</button></div>${save.menu}<div id="${menu}" class="ncs-image-popup" popover="manual" hidden role="group" aria-label="이력 그림 작업">${more}</div>${historyPresetControls(item)}`;
 }
 // The common Positive is merged into the base prompt. It can be recovered only when the rest of the base is
 // exactly what the scene contributed; otherwise the settings tab's current value is used (and said so).
@@ -1339,13 +1386,13 @@ function renderHistory() {
     renderHistoryFilter();
     $('ncs-history').innerHTML=historyItems.length?historyItems.map(item=>{
       const id=esc(item.id),file=imageDownload(item),here=item.chatKey===current;
-      return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button><small class="ncs-chat-name${here?' ncs-here':''}">${esc(chatLabel(item.chatKey))}${here?' · 지금 채팅':''}</small><small>${esc(new Date(item.created).toLocaleString())} · seed ${esc(item.seed)}</small>${historyActions(item)}</article>`;
+      return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button><small class="ncs-chat-name${here?' ncs-here':''}">${esc(chatLabel(item.chatKey))}${here?' · 지금 채팅':''}</small><small class="ncs-history-date">${esc(shortDate(item.created))}</small>${historyActions(item)}</article>`;
     }).join(''):'<p>저장된 그림이 없어요.</p>';
     updateAttachButtons();restoreScroll();return;
   }
   $('ncs-history').innerHTML=historyItems.length?historyItems.map(item=>{
     const id=esc(item.id),file=imageDownload(item),attached=hasInlineImage(chat,item);
-    return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button><small>${esc(new Date(item.created).toLocaleString())} · seed ${esc(item.seed)}</small>${historyActions(item,{editable:true,attached})}</article>`;
+    return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button><small class="ncs-history-date">${esc(shortDate(item.created))}</small>${historyActions(item,{editable:true,attached})}</article>`;
   }).join(''):'<p>아직 생성 이력이 없어요.</p>';
   updateAttachButtons();restoreScroll();
 }
@@ -1494,6 +1541,7 @@ async function onAction(action,el) {
     case 'extraction-recommended':settings().extractionMaxTokens=RECOMMENDED_MAX_TOKENS;$('ncs-extraction-max-tokens').value=RECOMMENDED_MAX_TOKENS;revision++;ctx().saveSettingsDebounced();notice(`독립 추출 응답 한도를 권장값 ${RECOMMENDED_MAX_TOKENS}로 바꿨어요. 실제로 쓰는 양은 응답 길이만큼이에요.`);break;
     case 'copy-raw':await copyRaw();break;
     case 'draft-retry':await retryDraft();break;
+    case 'delete-all-work':await deleteAllWork();break;
     case 'history':await loadHistory();break;
     case 'history-more':await loadHistory({append:true});break;
     case 'select-all-history':{
@@ -1601,6 +1649,7 @@ function bindEvents() {
       for(const field of ['location','lighting','camera','interaction'])if(el.id===`ncs-${field}`){scene[field]=el.value;changed();return;}
       if(el.id==='ncs-message-button'){settings().messageButton=el.checked;ctx().saveSettingsDebounced();setMessageButtons(el.checked);notice(el.checked?'메시지의 추가 메뉴(…)에 그리기 버튼을 넣었어요.':'메시지의 그리기 버튼을 뺐어요.');return;}
       if(el.id==='ncs-image-placement'){settings().imagePlacement=el.value==='above'?'above':'below';ctx().saveSettingsDebounced();renderChatImages();notice(el.value==='above'?'채팅 속 그림을 메시지 글 위에 보여줘요.':'채팅 속 그림을 메시지 글 아래에 보여줘요.');return;}
+      if(el.id==='ncs-save-zip'){settings().saveAsZip=el.checked;ctx().saveSettingsDebounced();renderSelectionSave();return;}
       if(el.id==='ncs-retain-raw'){
         if(el.checked&&!confirm('추출 응답을 이력에 보관할까요?\n응답에는 대화 인용이나 인물·장면 정보가 포함될 수 있어요. 앞으로 생성하는 그림의 이력과 마지막 작업에 저장되며, PNG에는 추가되지 않아요. 문제 확인·제보가 필요할 때만 켜 주세요.'))el.checked=false;
         settings().retainRawExtraction=el.checked;ctx().saveSettingsDebounced();renderRawRetention();return;
@@ -1677,7 +1726,7 @@ async function initialize() {
   // Apply the saved skin right away when it is the built-in one; file skins wait for detection.
   renderSkins();useSkin(skinById(settings().skin)?.file?DEFAULT_SKIN:settings().skin).catch(()=>{});
   detectSkins(new URL('./',import.meta.url).href).then(list=>{availableSkins=list;skinsDetected=true;return useSkin(settings().skin);}).catch(e=>console.warn('[NAIce Shot] skin detection failed',e?.message));
-  bindImageMenus();bindPngDownloads((message,error=false)=>{const viewer=document.getElementById('ncs-viewer');if(viewer?.open)viewer.querySelector('.ncsv-meta').textContent=message;else say(message,error);});
+  bindImageMenus();
   window.addEventListener('beforeunload',event=>{if(!draftsEnabled)return;rememberDraft(workKey(),null,{flush:true});if([...drafts.entries.values()].some(e=>e.dirty||e.saving)){event.preventDefault();event.returnValue='';}});
   window.addEventListener('pagehide',()=>rememberDraft(workKey(),null,{flush:true}));
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')rememberDraft(workKey(),null,{flush:true});});

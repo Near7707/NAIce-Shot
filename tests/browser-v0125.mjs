@@ -42,7 +42,7 @@ try{
   const icon=i=>page.locator(`#chat .mes[mesid="${i}"] .ncs-mes-draw`),action=name=>page.locator(`[data-action="${name}"]`).first().click();
   assert.equal(await icon(0).count(),1,'hidden user has a button');assert.equal(await icon(1).count(),1,'hidden character has a button');assert.equal(await icon(2).count(),0,'help has none');assert.equal(await icon(5).count(),0,'system notice has none');
   const before=await page.evaluate(()=>structuredClone(mock.chat));
-  await icon(1).click();assert.equal(await page.locator('#ncs-target').inputValue(),'1');assert.match(await page.locator('#ncs-target-label').innerText(),/숨김/);
+  await icon(1).click();await page.waitForFunction(()=>document.querySelector('#ncs-target')?.value==='1');assert.match(await page.locator('#ncs-target-label').innerText(),/숨김/);
   assert.equal(await page.evaluate(()=>mock.extractCalls??0),0,'selecting hidden text never calls AI automatically');
   await page.locator('#ncs-target-label').click();await page.locator('#ncs-target-list [data-message-index="4"]').waitFor();
   assert.deepEqual(await page.locator('#ncs-target-list [data-message-index]').evaluateAll(els=>els.map(e=>e.dataset.messageIndex)),['4','3','1','0']);

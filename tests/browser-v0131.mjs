@@ -4,6 +4,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {pick,reveal} from './menu-helper.mjs';
 import assert from 'node:assert/strict';
 const {chromium}=await import(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/playwright/index.mjs`:'playwright');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -73,7 +74,7 @@ try{
   assert.doesNotMatch(JSON.stringify(sent.at(-1).assembled),/opening door|standing up/,'other moments never reach the image prompt');
   // History restore brings the candidates back, still switchable without AI.
   await page.locator('#ncs-chat-source [data-action="blank"]').click();assert.equal(await page.locator('#ncs-moments').isHidden(),true);
-  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-id]').first().click();
+  await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-id]');
   assert.equal(await page.locator('.ncs-moment').count(),3);assert.equal(await pressed(),'0');
   await page.locator('.ncs-moment[data-moment="2"]').click();assert.equal(await action('mira').inputValue(),'opening door');
   // Wished moment: sent as data, kept for regeneration, cleared when the target message changes; not-found notice.

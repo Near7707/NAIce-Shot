@@ -1,6 +1,8 @@
 import {buildImageMessage} from './chat.mjs';
 import {isSceneMessage} from './scene-messages.mjs';
 import {textSignature,clone} from './core.mjs';
+// Shown under each save choice wherever a PNG can be saved.
+export const SAVE_NOTES={shared:'프롬프트·생성 설정 메타데이터를 제거한 사본',original:'프롬프트·seed 등 생성 메타데이터가 포함될 수 있어요.'};
 export const IMAGE_KEY='naice_shot_images';
 export function imageDownload(item) {
  buildImageMessage(item);return {url:item.image,filename:`naice-shot-${item.id}.png`};
@@ -96,11 +98,11 @@ export function renderInlineImages(context,root,chatKey,{placement='below'}={}) 
    const actions=document.createElement('figcaption'),download=document.createElement('a'),clean=document.createElement('button'),remove=document.createElement('button');
    actions.className='ncs-image-popup';actions.id=`ncs-inline-menu-${index}-${item.id}`;actions.hidden=true;actions.setAttribute('popover','manual');actions.setAttribute('role','group');actions.setAttribute('aria-label','첨부 그림 작업');
    const more=document.createElement('button');more.type='button';more.className='ncs-inline-more';more.textContent='⋯';more.dataset.imageMore=actions.id;more.setAttribute('aria-controls',actions.id);more.setAttribute('aria-expanded','false');more.setAttribute('aria-label','첨부 그림 더 보기');more.title='그림 더 보기';
-   clean.type='button';clean.dataset.ncsInlineClean=item.id;clean.textContent='공유용 PNG 저장';const cleanNote=document.createElement('small');cleanNote.textContent='메타데이터를 제거한 사본이에요.';clean.append(cleanNote);
-   const file=imageDownload(item);download.href=file.url;download.download=file.filename;download.textContent='원본 PNG 저장';const originalNote=document.createElement('small');originalNote.textContent='메타데이터가 포함될 수 있어요.';download.append(originalNote);
+   clean.type='button';clean.dataset.ncsInlineClean=item.id;clean.textContent='공유용 PNG 저장';const cleanNote=document.createElement('small');cleanNote.textContent=SAVE_NOTES.shared;clean.append(cleanNote);
+   const file=imageDownload(item);download.href=file.url;download.download=file.filename;download.textContent='원본 PNG 저장';const originalNote=document.createElement('small');originalNote.textContent=SAVE_NOTES.original;download.append(originalNote);
    // A deleted or missing file shows a note instead of a broken image; the remove button stays.
    img.addEventListener('error',()=>{tile.classList.add('ncs-missing');open.disabled=true;download.remove();const note=document.createElement('span');note.className='ncs-missing-note';note.textContent='삭제됐거나 찾을 수 없는 그림이에요.';open.replaceChildren(note);},{once:true});
-   remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이 메시지에서 빼기';actions.append(download,clean,remove);tile.append(open,more,actions);holder.append(tile);
+   remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이 메시지에서 빼기';clean.classList.add('ncs-popup-primary');actions.append(clean,download,remove);tile.append(open,more,actions);holder.append(tile);
   }
   const text=element.querySelector('.mes_text');
   if(text)where==='above'?text.before(holder):text.after(holder);else (element.querySelector('.mes_block')??element)[where==='above'?'prepend':'append'](holder);

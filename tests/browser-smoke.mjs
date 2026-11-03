@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {pick,reveal} from './menu-helper.mjs';
 import assert from 'node:assert/strict';
 const modules=process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES;
 const {chromium}=await import(modules?`${modules}/playwright/index.mjs`:'playwright');
@@ -70,7 +71,7 @@ try {
  assert.deepEqual(await page.locator('#chat .mes_text').allTextContents(),textBefore);
  assert.equal(await page.locator('#chat img').count(),1);assert.equal(await page.locator('#chat .mes').count(),2);
  assert.equal(await page.evaluate(()=>mock.chat[1].extra.media),undefined);assert.equal(await page.evaluate(()=>mock.chatSaves),1);
- const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#ncs-result a[download]').click().then(async()=>{await page.locator('#ncs-privacy-dialog input').check();await page.locator('[data-choice=original]').click();})]);
+ const [download]=await Promise.all([page.waitForEvent('download'),pick(page,'#ncs-result a[download]')]);
  assert.equal(download.suggestedFilename(),`naice-shot-${first.id}.png`);assert.deepEqual(await fs.readFile(await download.path()),Buffer.from(png,'base64'));
  await click('attach');assert.equal(await page.locator('#chat img').count(),1);assert.equal(await page.evaluate(()=>mock.chat.length),2);
  await click('detach');await page.waitForFunction(()=>!mock.chat[1].extra?.naice_shot_images);assert.equal(await page.locator('#chat img').count(),0);
@@ -80,7 +81,7 @@ try {
  const metadataBefore=await page.evaluate(()=>JSON.stringify(mock.chatMetadata));
  await page.locator('[data-tab="profiles"]').click();await page.locator('[data-profile="leo"]').click();
  await page.locator('#ncs-profile-appearance').fill('green hair');await page.getByRole('button',{name:'프로필 저장',exact:true}).click();
- await page.locator('[data-tab="history"]').click();await page.locator('[data-history-id]').first().click();
+ await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-id]');
  assert.match(await page.locator('#ncs-final').inputValue(),/brown hair/);assert.doesNotMatch(await page.locator('#ncs-final').inputValue(),/green hair/);
  assert.equal(await page.evaluate(()=>JSON.stringify(mock.chatMetadata)),metadataBefore);
  await click('same-seed');await page.waitForFunction(seed=>document.querySelector('#ncs-notice').textContent.includes(`seed ${seed}`),first.seed);
@@ -88,7 +89,7 @@ try {
  await page.waitForFunction(()=>document.querySelector('#ncs-final-badge').hidden);
  assert.match(await page.locator('#ncs-final').inputValue(),/green hair/,'a successful generation consumes the historical prompt once');
  // Restore again to test editing dimensions while a history draft is still pending.
- await page.locator('[data-tab="history"]').click();await page.locator('[data-history-id]').first().click();
+ await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-id]');
  // Only the three free sizes are offered, and choosing one sets both dimensions.
  await page.locator('[data-tab="settings"]').click();
  assert.deepEqual(await page.locator('#ncs-size-preset option').evaluateAll(o=>o.map(x=>x.value)),['portrait','square','landscape']);

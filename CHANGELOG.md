@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.42 — 2026-11-03
+
+**Update: extension + server 0.1.10.** Update the server, restart SillyTavern, then update and refresh the extension.
+
+- **History cards:** the date (to the minute) and **저장 ▾ / 삭제 / ⋯**. 불러오기 and 본문에 넣기 move into ⋯; 삭제 asks before deleting. The seed leaves the card and appears in the enlarged viewer with **seed N 복사**; it is still stored for restoring and same-seed drawing.
+- **One save menu everywhere** (result, history card, selection, viewer, attached image): **공유용 PNG** "프롬프트·생성 설정 메타데이터를 제거한 사본" first and highlighted, then **원본 PNG** "프롬프트·seed 등 생성 메타데이터가 포함될 수 있어요." No title, no cancel button, no extra warning after choosing 원본 and no "다시 묻지 않기". A chevron on the button shows it opens a menu; a click elsewhere, Escape or the button itself folds it. Menus open below their button, or above it near the bottom of the screen.
+- **Several images:** **ZIP 파일 하나로 묶기** — on: **공유용 ZIP / 원본 ZIP**; off: one PNG at a time, missing files skipped and counted. First default: separate files on a computer, ZIP on touch devices; the last choice is remembered.
+- **Hover fix:** SillyTavern brightens links on hover, which washed out 원본 PNG on light skins. NAIce Shot links no longer inherit that filter (checked on all 17 skins).
+- **프리샷 history keeps its situation text** (server 0.1.10). Restoring a 프리샷 image or sending it to 프리샷 brings the text back. Images saved by older servers have no text to restore.
+- **Restored-work notice** names the target message: "이 채팅에서 작업하던 장면을 불러왔어요 · 대상 메시지 #N" (or 최신).
+- **Deleting saved work:** 설정 → 개인정보 보관 → **저장된 작업 모두 지우기**; **이 채팅 이력 전체 삭제** also deletes that chat's saved work. The drawing window is emptied without undo, and nothing is saved straight back.
+- The server version check now asks for server 0.1.10 (`draft-delete`, `free-text`).
+- Tests: a shared browser helper opens menus the way a person would; `browser-v0125` waits for the asynchronously opened panel instead of reading the target too early.
+
 ## 0.1.41 — 2026-11-03
 
 **Update: extension + server 0.1.9.** Restart SillyTavern after updating the server, then refresh the extension.

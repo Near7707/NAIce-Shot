@@ -5,6 +5,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {pick,reveal} from './menu-helper.mjs';
 import assert from 'node:assert/strict';
 const {chromium}=await import(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/playwright/index.mjs`:'playwright');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -49,13 +50,13 @@ try{
   assert.match(await page.locator('#ncs-gen-preset-state').innerText(),/그대로/);
   assert.equal(await generate(),true);assert.equal(sent.at(-1).options.scale,7);
   // History options: the box says so, edits stay one-off, and there is a way back.
-  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-id]').first().click();
+  await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-id]');
   assert.match(await page.locator('#ncs-gen-scope').innerText(),/이력 설정 · 이번 생성에만/);assert.equal(await page.locator('#ncs-gen-override').isVisible(),true);
   assert.equal(await page.locator('#ncs-gen-presets').isHidden(),true);
   await gen('steps').fill('20');assert.equal((await opts()).steps,28,'settings untouched');
   assert.equal(await generate(),true);assert.equal(sent.at(-1).options.steps,20,'the one-off copy was used');
   assert.match(await page.locator('#ncs-gen-scope').innerText(),/기본 생성 설정/,'back to normal after a successful generation');
-  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-id]').first().click();
+  await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-id]');
   await page.locator('[data-action="gen-restore-default"]').click();assert.match(await page.locator('#ncs-gen-scope').innerText(),/기본 생성 설정/);
   // 설정을 프리셋으로: a new preset from one image; current work and the chosen preset do not change.
   const before=await page.evaluate(()=>({id:mock.extensionSettings.naice_shot.imagePresetId,options:{...mock.extensionSettings.naice_shot.options}}));

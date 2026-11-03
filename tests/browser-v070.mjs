@@ -7,6 +7,7 @@ import path from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {deflateRawSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
+import {pick,reveal} from './menu-helper.mjs';
 import assert from 'node:assert/strict';
 import {hasServer,serverModule,SKIP_NOTE} from './server-dir.mjs';
 if(!hasServer){console.log(SKIP_NOTE);process.exit(0);}
@@ -76,7 +77,7 @@ try{
 
  // 3) Attach one of this chat's images, then delete a cross-chat selection: one request per chat, attachment cleaned.
  await page.locator('[data-history-scope="chat"]').click();await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===3);
- await page.locator(`[data-history-attach="${a[2].id}"]`).click();await page.waitForFunction(id=>mock.chat[1]?.extra?.naice_shot_images?.some(x=>x.id===id),a[2].id);
+ await pick(page,`[data-history-attach="${a[2].id}"]`);await page.waitForFunction(id=>mock.chat[1]?.extra?.naice_shot_images?.some(x=>x.id===id),a[2].id);
  await page.locator('[data-history-scope="all"]').click();await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===4);
  await page.locator(`[data-history-pick="${a[2].id}"]`).check();await page.locator(`[data-history-pick="${c[0].id}"]`).check();
  await click('delete-selected');

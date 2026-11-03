@@ -5,6 +5,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {pick,reveal} from './menu-helper.mjs';
 import assert from 'node:assert/strict';
 const {chromium}=await import(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/playwright/index.mjs`:'playwright');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -50,7 +51,7 @@ try{
   assert.ok(sent.at(-1).snapshot.scene.characters.some(c=>c.temp&&c.appearance==='old man, grey beard'));
   assert.equal(await temp.count(),1,'still there after generating');
   await page.locator('#ncs-chat-source [data-action="blank"]').click();assert.equal(await temp.count(),0);
-  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-id]').first().click();assert.equal(await temp.count(),1,'history restores it');
+  await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-id]');assert.equal(await temp.count(),1,'history restores it');
   // Re-extraction without them: kept, flagged for a check, not silently confirmed.
   await page.evaluate(d=>{mock.extraction=d;},frame([leo('standing')]));await extract();
   assert.equal(await temp.count(),1);assert.match(await temp.innerText(),/지금 장면에도 있는지/);

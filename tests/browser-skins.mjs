@@ -68,7 +68,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('#naice-shot-dialog').dataset.skin==='christmas');
  await page.locator('[data-tab="history"]').click();await page.locator('#ncs-history .ncs-image-open').first().click();
  await page.locator('#ncs-viewer[open]').waitFor();assert.equal(await page.locator('#ncs-viewer').getAttribute('data-skin'),'christmas');
- assert.equal(await page.locator('#ncs-viewer .ncsv-save').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(167, 44, 58)');
+ assert.equal(await page.locator('#ncs-viewer [data-v="save-menu"]').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(167, 44, 58)');
  await page.keyboard.press('Escape');
  // Mobile: every skin keeps the settings tab inside 375px.
  await page.setViewportSize({width:375,height:760});await page.locator('[data-tab="settings"]').click();

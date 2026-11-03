@@ -8,6 +8,7 @@ import path from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {deflateRawSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
+import {pick,reveal} from './menu-helper.mjs';
 import assert from 'node:assert/strict';
 import {hasServer,serverModule,SKIP_NOTE} from './server-dir.mjs';
 if(!hasServer){console.log(SKIP_NOTE);process.exit(0);}
@@ -79,7 +80,7 @@ try{
 
  // 2) Attach via the shared selector (auto → latest), then delete two selected incl. the attached one.
  const newest=seeded.at(-1),second=seeded.at(-2);
- await page.locator(`[data-history-attach="${newest.id}"]`).click();
+ await pick(page,`[data-history-attach="${newest.id}"]`);
  await page.waitForFunction(id=>mock.chat[1]?.extra?.naice_shot_images?.some(x=>x.id===id),newest.id);
  await page.locator('#chat .ncs-inline-images img').waitFor();
  await page.locator(`[data-history-pick="${newest.id}"]`).check();await page.locator(`[data-history-pick="${second.id}"]`).check();
@@ -95,7 +96,7 @@ try{
  assert.equal(await page.locator('#ncs-history .ncs-history-card').count(),21,'refresh keeps everything that was shown');
 
  // 3) Single delete from a card, then from the viewer.
- const third=seeded.at(-3);await page.locator(`[data-view-history="${third.id}"]`).locator('..').locator('[data-image-more]').click();await page.locator(`[data-history-delete="${third.id}"]`).click();
+ const third=seeded.at(-3);await page.locator(`[data-history-delete="${third.id}"]`).click();
  await page.waitForFunction(()=>/총 20장/.test(document.querySelector('#ncs-history-count').textContent));assert.equal(await total(),20);
  const fourth=seeded.at(-4);await page.locator(`[data-view-history="${fourth.id}"]`).click();await page.locator('#ncs-viewer[open]').waitFor();
  assert.equal(await page.locator('#ncs-viewer [data-v="delete"]').isVisible(),true);
@@ -104,7 +105,7 @@ try{
 
  // 4) Missing PNG (removed by hand) shows a note in chat instead of a broken image; viewer from chat can still delete.
  const fifth=seeded.at(-5);
- await page.locator('#ncs-history-target').selectOption('1');await page.locator(`[data-history-attach="${fifth.id}"]`).click();
+ await page.locator('#ncs-history-target').selectOption('1');await pick(page,`[data-history-attach="${fifth.id}"]`);
  await page.locator('#chat .ncs-inline-images img').waitFor();
  await fs.unlink(path.join(directories.userImages,'naice-shot',`${fifth.id}.png`));
  // Chromium may reuse the image already decoded on this page even with no-store; bypass caches like a fresh load would.
@@ -142,7 +143,7 @@ try{
  // 8) History restore uses stored options for this generation only; the settings tab keeps seed -1.
  await page.locator('[data-tab="settings"]').click();await page.locator('#ncs-seed').fill('-1');
  await page.locator('[data-tab="history"]').click();await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length>0);
- const restored=seeded.at(-6);await page.locator(`[data-history-id="${restored.id}"]`).click();
+ const restored=seeded.at(-6);await pick(page,`[data-history-id="${restored.id}"]`);
  assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.options.seed),-1);
  assert.match(await page.locator('#ncs-warnings').textContent(),new RegExp(`seed ${restored.seed}`));
  await click('generate');await page.waitForFunction(()=>document.querySelector('#ncs-result img'));

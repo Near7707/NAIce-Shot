@@ -1,3 +1,12 @@
+# v0.1.42 validation — 2026-11-03
+
+- Extension Node suite: **134 passed, 0 failed, 0 skipped** (server repository alongside). New: deleted work starts a fresh file and an unchanged screen is not saved back.
+- Server Node suite: **22 passed**. New: 프리샷 snapshots keep `mode`/`freeText` (≤4000 chars) and other snapshots never gain one; saved work deleted per chat, all at once and with a chat's whole history, while deleting single images keeps it.
+- **34 of 34 Chromium browser scripts passed.** Updated scripts open ⋯ / 저장 ▾ through `tests/menu-helper.mjs`. `browser-v0140`: card buttons 저장/삭제/⋯, no seed or seconds on the card, ⋯ contents, save menu fold/outside click. `browser-v014`: one image has no ZIP option, PC default is separate files, ZIP toggle keeps the menu open and is remembered, separate saves skip a missing file. `browser-v0141`: viewer menu with two choices only, Escape/outside click/button fold it, shared and original downloads with no extra warning, restored notice with target number, delete-all and chat-history deletion forgetting work without re-saving. `browser-v031`: seed copy button, date without seconds. `browser-v0125` ran 5 more times without failing.
+- Hover check with SillyTavern's own `a:hover{filter:brightness(1.25)}` added to the fixture: no filter on either save choice on all 17 skins. Phone-width screenshots of the save menu on classic/cream/matcha (local QA only).
+- Publication diffs screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: real SillyTavern, iPhone Safari multi-file downloads (ZIP is the touch default for that reason), real NovelAI calls.
+
 # v0.1.41 validation — 2026-11-03
 
 - Extension Node suite: **133 passed, 0 failed, 0 skipped**. Draft tests cover source-text/raw/payload omission, explicit raw consent, candidates/direct-input people/unfinished final JSON/one undo round trips, reference semantics for restored finals, queued saves during in-flight writes and failed-save retry.

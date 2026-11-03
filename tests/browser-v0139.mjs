@@ -4,6 +4,7 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {pick,reveal} from './menu-helper.mjs';
 import assert from 'node:assert/strict';
 const {chromium}=await import(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/playwright/index.mjs`:'playwright');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -40,7 +41,7 @@ try{
   // --- Clearing in 챗샷 and a full undo ----------------------------------------------------------------
   await page.evaluate(()=>{document.querySelector('#ncs-target-picker').open=true;});await page.locator('#ncs-target-list [data-message-index="1"]').click();
   await page.locator('#ncs-moment-wish').fill('앉아 있는 순간');await extract();await page.locator('.ncs-moment[data-moment="0"]').click();
-  await generate();await page.locator('[data-tab="history"]').click();await page.locator('[data-history-id]').first().click();
+  await generate();await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-id]');
   await page.locator('.ncs-moment[data-moment="0"]').waitFor();
   const look=()=>page.evaluate(()=>({people:document.querySelectorAll('[data-character]').length,moment:document.querySelector('.ncs-moment[aria-pressed="true"]')?.dataset.moment??null,
    wish:document.querySelector('#ncs-moment-wish').value,target:document.querySelector('#ncs-target').value,badge:!document.querySelector('#ncs-final-badge').hidden,
@@ -84,14 +85,14 @@ try{
   assert.match(last.assembled.characters.find(c=>c.name==='Leo').prompt,/raincoat/);assert.equal(await page.evaluate(()=>JSON.stringify(mock.chatMetadata.naice_shot?.outfits??{})),'{}');
   assert.equal(await page.locator('#ncs-result [data-action="attach"]').count(),0,'nothing to attach to in 프리샷');
   await page.locator('[data-tab="history"]').click();assert.equal(await page.locator('[data-history-scope="chat"]').innerText(),'프리샷');
-  await page.locator('[data-history-id]').first().waitFor();assert.equal(await page.locator('[data-history-attach]').count(),0);
+  await page.locator('[data-history-id]').first().waitFor({state:'attached'});assert.equal(await page.locator('[data-history-attach]').count(),0);
   // Clearing 프리샷 clears only 프리샷; history restore brings the text back.
   await page.locator('[data-tab="scene"]').click();await freeClear.click();assert.equal(await page.locator('#ncs-free-text').inputValue(),'');
-  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-id]').first().click();assert.match(await page.locator('#ncs-free-text').inputValue(),/비 오는 밤/);
+  await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-id]');assert.match(await page.locator('#ncs-free-text').inputValue(),/비 오는 밤/);
   // 이력 → 프리샷으로 보내기 from 챗샷, with the old 프리샷 work one 되돌리기 away.
   await page.evaluate(()=>{mock.chatId='A';mock.emit('chat');});
   await page.locator('[data-tab="scene"]').click();await page.locator('[data-mode="chat"]').click();
-  await page.locator('[data-tab="history"]').click();await page.locator('.ncs-history-card [data-image-more]').first().click();await page.locator('[data-history-free]').first().click();
+  await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-free]');
   assert.equal(await page.locator('[data-mode="free"]').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#ncs-free-text').inputValue(),'');
   assert.match(await page.locator('[data-character="leo"] [data-field="action"]').inputValue(),/sitting/);assert.equal(await page.locator('.ncs-moment').count(),0,'one moment only');
   assert.match(await page.locator('#ncs-undo-clear').innerText(),/이력에서 가져왔어요/);

@@ -1,5 +1,18 @@
 # Installation and update checklist
 
+## v0.1.42
+
+Update **NAIce-Shot-Server 0.1.10**, restart SillyTavern, then update the extension and refresh.
+
+1. History card: date without seconds, **저장 ▾ / 삭제 / ⋯**. Open 저장 ▾: 공유용 PNG (highlighted) and 원본 PNG with notes. Click elsewhere or the button to fold it. Hover 원본 PNG on a light skin: text stays readable.
+2. ⋯ holds 불러오기, 본문에 넣기, 설정을 프리셋으로, 프리샷으로 보내기.
+3. Open a picture: seed appears as **seed N 복사**. 저장 ▾ works the same there and on attached images.
+4. Select several history images → 선택 저장 ▾: try **ZIP 파일 하나로 묶기** on and off. If the browser asks about several downloads, allow it.
+5. 프리샷: draw, then restore that image from history — the situation text comes back (new images only).
+6. Leave and return to a chat: the notice names the target message.
+7. 설정 → 개인정보 보관 → **저장된 작업 모두 지우기**: the drawing window empties; returning to another chat shows no old work. **이 채팅 이력 전체 삭제** also forgets that chat's work.
+
+
 ## v0.1.41
 
 Update **both extension and NAIce-Shot-Server 0.1.9**, restart SillyTavern, then refresh the browser.

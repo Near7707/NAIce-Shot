@@ -1,6 +1,6 @@
 // Full-screen image viewer: fit / original size / zoom / pan / pinch / PNG save.
 // Pure view math is exported separately so it can be unit tested without a DOM.
-import { imageDownload } from './inline-images.mjs';
+import { imageDownload, SAVE_NOTES } from './inline-images.mjs';
 import { saveCleanImage } from './downloads.mjs';
 import { currentSkin } from './skins.mjs';
 import { copyText } from './clipboard.mjs';
@@ -42,16 +42,24 @@ function build() {
   dialog.innerHTML = `<div class="ncsv-bar">
     <div class="ncsv-group ncsv-modes"><button type="button" data-v="fit" aria-pressed="true">화면 맞춤</button><button type="button" data-v="original" aria-pressed="false">원본 크기</button></div>
     <div class="ncsv-group ncsv-zooms"><button type="button" data-v="out" aria-label="축소" title="축소 (-)">−</button><output class="ncsv-zoom" aria-live="polite">100%</output><button type="button" data-v="in" aria-label="확대" title="확대 (+)">+</button></div>
-    <div class="ncsv-group ncsv-save-group"><a class="ncsv-save" download>PNG 저장</a><button type="button" data-v="clean">공유용 PNG</button><button type="button" data-v="detach" hidden>이 메시지에서 빼기</button><button type="button" data-v="delete" class="ncsv-delete" hidden>그림 삭제</button></div>
+    <div class="ncsv-group ncsv-save-group"><div class="ncsv-save-wrap"><button type="button" class="ncs-save-toggle" data-v="save-menu" aria-expanded="false" aria-haspopup="true">저장<span class="ncs-caret" aria-hidden="true"></span></button><div class="ncsv-save-menu" role="group" aria-label="저장 방식" hidden><button type="button" class="ncs-popup-primary" data-v="clean">공유용 PNG<small>${SAVE_NOTES.shared}</small></button><a class="ncsv-save" download>원본 PNG<small>${SAVE_NOTES.original}</small></a></div></div><button type="button" data-v="detach" hidden>이 메시지에서 빼기</button><button type="button" data-v="delete" class="ncsv-delete" hidden>그림 삭제</button></div>
     <div class="ncsv-group ncsv-close-group"><button type="button" data-v="close" aria-label="닫기" title="닫기 (Esc)">✕</button></div>
   </div>
   <div class="ncsv-stage"><img alt="생성된 장면 크게 보기" draggable="false"></div>
-  <details class="ncsv-prompt" hidden><summary>프롬프트 보기</summary><div class="ncsv-prompt-body"><button type="button" class="ncsv-copy" data-v="copy" disabled>프롬프트 복사</button><span class="ncsv-copy-status" role="status"></span><pre class="ncsv-prompt-text"></pre></div></details><div class="ncsv-meta"></div>`;
+  <details class="ncsv-prompt" hidden><summary>프롬프트 보기</summary><div class="ncsv-prompt-body"><button type="button" class="ncsv-copy" data-v="copy" disabled>프롬프트 복사</button><span class="ncsv-copy-status" role="status"></span><pre class="ncsv-prompt-text"></pre></div></details><div class="ncsv-info"><span class="ncsv-meta"></span><button type="button" class="ncsv-seed" data-v="seed" hidden></button></div>`;
   document.body.append(dialog);
 
   const stage = dialog.querySelector('.ncsv-stage'), img = stage.querySelector('img');
   const zoomLabel = dialog.querySelector('.ncsv-zoom'), meta = dialog.querySelector('.ncsv-meta'), save = dialog.querySelector('.ncsv-save');
-  const state = { nat: { w: 0, h: 0 }, view: { scale: 1, x: 0, y: 0 }, mode: 'fit', caption: '', onDelete: null, onDetach:null, loadPrompt:null, promptText:'', epoch:0, item: null };
+  const state = { nat: { w: 0, h: 0 }, view: { scale: 1, x: 0, y: 0 }, mode: 'fit', caption: '', seed: null, onDelete: null, onDetach:null, loadPrompt:null, promptText:'', epoch:0, item: null };
+  const saveToggle=dialog.querySelector('[data-v="save-menu"]'),saveMenu=dialog.querySelector('.ncsv-save-menu'),seedButton=dialog.querySelector('[data-v="seed"]');
+  const showSaveMenu=open=>{saveMenu.hidden=!open;saveToggle.setAttribute('aria-expanded',String(open));if(open)saveMenu.querySelector('button')?.focus({preventScroll:true});};
+  // The menu closes on its own button, on a choice, on Escape and on any click outside it.
+  dialog.addEventListener('click',event=>{if(!saveMenu.hidden&&!event.target.closest('.ncsv-save-wrap'))showSaveMenu(false);},true);
+  saveMenu.addEventListener('click',event=>{if(event.target.closest('button,a'))showSaveMenu(false);});
+  dialog.addEventListener('cancel',event=>{if(!saveMenu.hidden){event.preventDefault();showSaveMenu(false);saveToggle.focus({preventScroll:true});}});
+  const seedLabel=()=>`seed ${state.seed} 복사`;
+  async function copySeed(){const epoch=state.epoch;try{await copyText(String(state.seed),dialog);if(epoch===state.epoch)seedButton.textContent='seed 복사됨';}catch(e){if(epoch===state.epoch)meta.textContent=e.message;}}
   const deleteButton = dialog.querySelector('[data-v="delete"]'), detachButton=dialog.querySelector('[data-v="detach"]');
   const promptBox=dialog.querySelector('.ncsv-prompt'),promptContent=dialog.querySelector('.ncsv-prompt-text'),copyButton=dialog.querySelector('[data-v="copy"]'),copyStatus=dialog.querySelector('.ncsv-copy-status');
   promptBox.addEventListener('toggle',async()=>{
@@ -105,7 +113,7 @@ function build() {
 
   dialog.addEventListener('click', event => {
     const button = event.target.closest('[data-v]'); if (!button) return;
-    ({ fit, original: () => original(), in: () => zoomBy(ZOOM_STEP), out: () => zoomBy(1 / ZOOM_STEP), close: () => dialog.close(), delete: remove, detach, copy:copyPrompt, clean: cleanSave })[button.dataset.v]?.();
+    ({ fit, original: () => original(), in: () => zoomBy(ZOOM_STEP), out: () => zoomBy(1 / ZOOM_STEP), close: () => dialog.close(), delete: remove, detach, copy:copyPrompt, clean: cleanSave, 'save-menu':()=>showSaveMenu(saveMenu.hidden), seed:copySeed })[button.dataset.v]?.();
   });
   dialog.addEventListener('keydown', event => {
     if (event.target.closest?.('a,button') && (event.key === 'Enter' || event.key === ' ')) return;
@@ -163,9 +171,10 @@ function build() {
 
   return {
     dialog,
-    open(item, { caption = '', onDelete = null, onDetach=null, loadPrompt=null } = {}) {
+    open(item, { caption = '', seed = null, onDelete = null, onDetach=null, loadPrompt=null } = {}) {
       const file = imageDownload(item); // validates the same-origin generated PNG path
-      state.epoch++;state.item = item;state.caption = caption;
+      state.epoch++;state.item = item;state.caption = caption;showSaveMenu(false);
+      state.seed=seed===null||seed===undefined||seed===''?null:seed;seedButton.hidden=state.seed===null;if(state.seed!==null)seedButton.textContent=seedLabel();
       state.loadPrompt=typeof loadPrompt==='function'?loadPrompt:null;state.promptText='';
       promptBox.open=false;promptBox.hidden=!state.loadPrompt;delete promptBox.dataset.loaded;promptContent.textContent='';copyButton.disabled=true;copyButton.textContent='프롬프트 복사';copyStatus.textContent='';
       state.onDetach=typeof onDetach==='function'?onDetach:null;detachButton.hidden=!state.onDetach;detachButton.disabled=false; state.nat = { w: 0, h: 0 }; state.mode = 'fit';
