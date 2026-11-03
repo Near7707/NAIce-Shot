@@ -1,3 +1,11 @@
+# v0.1.43 validation — 2026-11-03
+
+- Extension Node suite: **135 passed, 0 failed, 0 skipped**. New DraftQueue test: `quiesce` waits for a save in flight and drops unsent ones; a late write reply or late read after `forget` changes nothing.
+- Server Node suite: **22 passed** (server unchanged apart from the shared `draft-work.mjs` copy).
+- **34 of 34 Chromium browser scripts passed.** `browser-v0141` adds the two reported cases: (1) first save held before the server processes it → delete-all waits, order is save → delete, nothing returns after refresh; (2) save processed but its reply held → after deletion the next edit saves without a conflict; (3) 프리샷 work, switch to 챗샷, delete 프리샷 history from the all-chats view, switch back → empty, and no work is saved back. Both new checks fail on the 0.1.42 code (checked by running them against it). `browser-v014` checks the ZIP-off note and the shorter notice.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: real SillyTavern, iPhone Safari, two real windows saving at once.
+
 # v0.1.42 validation — 2026-11-03
 
 - Extension Node suite: **134 passed, 0 failed, 0 skipped** (server repository alongside). New: deleted work starts a fresh file and an unchanged screen is not saved back.

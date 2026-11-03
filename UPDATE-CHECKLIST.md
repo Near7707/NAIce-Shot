@@ -1,5 +1,14 @@
 # Installation and update checklist
 
+## v0.1.43
+
+Update the extension and refresh. No server update is needed.
+
+1. Type in the drawing window and, right away, use 설정 → **저장된 작업 모두 지우기**. Refresh: the old work must not come back. Edit again: it saves without a conflict notice.
+2. Put something in 프리샷, switch to 챗샷, open 이력 → all chats → 프리샷 and delete its images. Switch back to 프리샷: the window is empty.
+3. Select several history images → 선택 저장 ▾ with ZIP off: the note about allowing several downloads appears; with ZIP on it disappears.
+
+
 ## v0.1.42
 
 Update **NAIce-Shot-Server 0.1.10**, restart SillyTavern, then update the extension and refresh.

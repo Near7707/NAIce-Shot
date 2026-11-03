@@ -44,7 +44,7 @@ try{
  // 1) One image: plain PNG download.
  await page.locator(`[data-history-pick="${ids[0]}"]`).check();
  assert.equal(await save.textContent(),'선택 저장 (1)');
- await save.click();assert.equal(await page.locator('.ncs-zip-choice').isHidden(),true,'one image: no ZIP choice');
+ await save.click();assert.equal(await page.locator('.ncs-zip-choice').isHidden(),true,'one image: no ZIP choice');assert.equal(await page.locator('.ncs-zip-note').isHidden(),true);
  assert.match(await shared.innerText(),/^공유용 PNG\n프롬프트·생성 설정 메타데이터를 제거한 사본/);assert.match(await original.innerText(),/^원본 PNG\n프롬프트·seed 등/);
  let [download]=await Promise.all([page.waitForEvent('download'),original.click()]);assert.equal(await page.locator('#ncs-privacy-dialog').count(),0,'no extra warning');
  assert.equal(download.suggestedFilename(),`naice-shot-${ids[0]}.png`);
@@ -52,7 +52,7 @@ try{
  // 2) Several images, one missing on disk: one ZIP with the rest, oldest first, and a note.
  await click('select-all-history');assert.equal(await save.textContent(),'선택 저장 (4)');
  await save.click();const zip=page.locator('#ncs-save-zip');assert.equal(await zip.isChecked(),false,'PC default: one file at a time');
- assert.match(await original.innerText(),/^원본 PNG · 4장 따로/);await zip.check();assert.match(await original.innerText(),/^원본 ZIP/);
+ assert.match(await original.innerText(),/^원본 PNG · 4장 따로/);const zipNote=page.locator('.ncs-zip-note');assert.equal(await zipNote.innerText(),'여러 파일 다운로드 허용이 필요할 수 있어요. 일부가 저장되지 않으면 ZIP으로 받아 주세요.');await zip.check();assert.match(await original.innerText(),/^원본 ZIP/);assert.equal(await zipNote.isHidden(),true,'ZIP needs no note');
  assert.equal(await page.locator('#ncs-selection-save').isVisible(),true,'ticking the box keeps the menu open');
  [download]=await Promise.all([page.waitForEvent('download'),original.click()]);
  assert.match(download.suggestedFilename(),/^naice-shot-\d{8}-\d{4}-3\.zip$/);
@@ -65,7 +65,7 @@ try{
  await save.click();assert.equal(await page.locator('#ncs-save-zip').isChecked(),true,'remembers ZIP');await page.locator('#ncs-save-zip').uncheck();
  const singles=[];page.on('download',d=>singles.push(d.suggestedFilename()));await original.click();
  await page.waitForFunction(()=>/원본 PNG 3장을 하나씩 저장했어요/.test(document.querySelector('#ncs-notice').textContent));
- await page.waitForTimeout(300);assert.equal(singles.length,3,'the missing file is skipped');assert.match(await page.locator('#ncs-notice').textContent(),/1장은 불러오지 못해/);assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.saveAsZip),false);
+ await page.waitForTimeout(300);assert.equal(singles.length,3,'the missing file is skipped');assert.match(await page.locator('#ncs-notice').textContent(),/1장은 불러오지 못했어요\. ZIP으로 받아 보세요\.$/);assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.saveAsZip),false);
 
  // 3) Checkboxes stay readable on every skin despite the hostile theme.
  const skins=await page.locator('#ncs-skins input[name="ncs-skin"]').evaluateAll(els=>els.map(e=>e.value));

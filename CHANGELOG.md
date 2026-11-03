@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.43 — 2026-11-03
+
+**Update: extension only.** Server 0.1.10 is unchanged.
+
+- **Deleted work no longer comes back (UI-042-02, P1).** Deleting saved work (설정 → 저장된 작업 모두 지우기, or a chat's whole history) now locks the drawing window, drops saves that have not been sent, waits for saves already on their way, and only then deletes. Saved-work bookkeeping has a generation per chat: replies to reads or saves sent before a deletion are ignored, so a late reply cannot restore an old revision and the next edit saves without a conflict.
+- **프리샷 work waiting off screen is emptied too (UI-042-03, P2).** Deleting 프리샷 history from 챗샷 (all-chats view) also empties the 프리샷 work kept in memory, so switching back shows an empty window and nothing is saved back.
+- An empty drawing window is not saved as a new empty work file when the chat has none.
+- **Separate files note:** with several images selected and ZIP off, the save menu says "여러 파일 다운로드 허용이 필요할 수 있어요. 일부가 저장되지 않으면 ZIP으로 받아 주세요." The note disappears with ZIP on or one image. The finished-saving notice is shorter and suggests ZIP only when a file could not be read.
+- Known limit: another window or device whose *first* save for that chat arrives after the deletion can still create a new work file. Windows that saved before are refused with the usual conflict notice.
+
 ## 0.1.42 — 2026-11-03
 
 **Update: extension + server 0.1.10.** Update the server, restart SillyTavern, then update and refresh the extension.

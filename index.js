@@ -266,10 +266,14 @@ function renderDraftState(){
   $('ncs-draft-retry').hidden=!draftsEnabled||!e.error;
   $('ncs-draft-retry').textContent=e.error?.status===409?'서버 작업 다시 불러오기':'다시 시도';
 }
+const emptyWork=w=>!w.scene.characters?.length&&!w.scene.moments?.length&&!['location','lighting','camera','interaction'].some(k=>w.scene[k])&&
+  !w.finalOverride&&!w.optionsOverride&&!w.result&&!w.undoClear&&!w.raw&&!w.target&&!w.wish&&!w.freeText;
 function rememberDraft(key=workKey(),work=null,{flush=false}={}){
   clearTimeout(captureTimer);captureTimer=null;
   if(!draftsEnabled||!key||draftLoading||pauseDraftCapture)return;
-  try{drafts.put(key,packWork(work??captureWork(),{retainRaw:settings().retainRawExtraction===true}));if(flush)drafts.flush(key);}
+  try{const packed=packWork(work??captureWork(),{retainRaw:settings().retainRawExtraction===true}),e=drafts.entry(key);
+    if(e.loaded&&e.data===null&&emptyWork(packed))return; // nothing saved and nothing to save: no empty file
+    drafts.put(key,packed);if(flush)drafts.flush(key);}
   catch(e){drafts.entry(key).error=e;}finally{renderDraftState();}
 }
 async function recallDraft(key=workKey()){
@@ -408,18 +412,31 @@ function undoClearWork(){
 // After saved work was deleted on the server: empty the drawing window (no undo) and remember that as saved.
 function forgetWork(keys){
   const here=keys.includes(workKey());
-  if(isFree()&&keys.includes(chatKey))delete spare.chat; // the waiting 챗샷 work of that chat
+  // Work waiting off screen (the other mode) is emptied too, so switching back cannot bring it back.
+  if(isFree()&&keys.includes(chatKey))delete spare.chat;
+  if(!isFree()&&keys.includes(FREE_KEY))delete spare.free;
   if(here){loadWork(blankWork());targetShown=TARGET_STEP;targetScroll=0;draftSource=null;revision++;
     renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();}
   for(const key of keys)drafts.forget(key,key===workKey()?packWork(captureWork(),{retainRaw:settings().retainRawExtraction===true}):null);
 }
+// Deleting saved work: lock the drawing window, let saves already sent finish (later ones are dropped), delete,
+// then forget. Server requests of one user run in order, so nothing sent before can recreate the work.
+async function whileDeletingWork(keys,remove,forgetKeys=()=>keys){
+  pauseDraftCapture=true;clearTimeout(captureTimer);captureTimer=null;const fields=$('ncs-work-fields'),wasDisabled=fields.disabled;fields.disabled=true;
+  try{
+    await drafts.quiesce(keys);
+    const response=await remove();
+    const gone=forgetKeys(response);if(gone?.length)forgetWork(gone);
+    return response;
+  }finally{pauseDraftCapture=false;fields.disabled=wasDisabled;renderDraftState();}
+}
 async function deleteAllWork(){
   if(busy||attaching||draftLoading)throw new Error('진행 중인 작업이 끝난 뒤 지워 주세요.');
   if(!confirm('저장된 작업을 모두 지울까요?\n채팅별·프리샷의 마지막 작업 기억이 서버에서 지워지고 되돌릴 수 없어요. 지금 그리기창도 비워져요.\n그림 이력·프로필·설정은 그대로예요.'))return;
-  const r=await api('/draft',{method:'POST',body:{delete:true,all:true}});
-  const keys=[...new Set([...drafts.entries.keys(),workKey(),chatKey,FREE_KEY].filter(Boolean))];
-  for(const k of Object.keys(spare))delete spare[k];
-  forgetWork(keys);notice(`저장된 작업 ${r.deleted??0}개를 지웠어요. 그림 이력은 그대로예요.`);
+  const r=await whileDeletingWork(null,()=>api('/draft',{method:'POST',body:{delete:true,all:true}}),()=>{
+    for(const k of Object.keys(spare))delete spare[k];
+    return [...new Set([...drafts.entries.keys(),workKey(),chatKey,FREE_KEY].filter(Boolean))];});
+  notice(`저장된 작업 ${r.deleted??0}개를 지웠어요. 그림 이력은 그대로예요.`);
 }
 const skinTargets=()=>[dialog,document.getElementById('ncs-viewer')];
 function renderSkins() {
@@ -1205,7 +1222,7 @@ async function saveSelected(clean=false) {
         try{if(clean)await saveCleanImage(item);else{const file=imageDownload(item),check=await fetch(file.url,{method:'HEAD',cache:'no-store'});if(!check.ok)throw new Error(String(check.status));downloadFile(file.url,file.filename);}saved++;}catch{missing++;}
         if(i<items.length-1)await wait(400);
       }
-      notice(`${clean?'공유용':'원본'} PNG ${saved}장을 하나씩 저장했어요.${missing?` ${missing}장은 불러오지 못해 빠졌어요.`:''} 브라우저가 여러 파일 저장을 물어보면 허용해 주세요. 빠진 파일이 있으면 ZIP으로 묶어 받아 보세요.`);
+      notice(`${clean?'공유용':'원본'} PNG ${saved}장을 하나씩 저장했어요.${missing?` ${missing}장은 불러오지 못했어요. ZIP으로 받아 보세요.`:''}`);
       return;
     }
     const files=[];let missing=0;
@@ -1230,6 +1247,7 @@ function renderSelectionSave(){
   box.querySelector('[data-action="save-selected-clean"]').innerHTML=`공유용 ${kind}<small>${SAVE_NOTES.shared}</small>`;
   box.querySelector('[data-action="save-selected"]').innerHTML=`원본 ${kind}<small>${SAVE_NOTES.original}</small>`;
   const zipRow=box.querySelector('.ncs-zip-choice');zipRow.hidden=!many;$('ncs-save-zip').checked=zip;
+  box.querySelector('.ncs-zip-note').hidden=!many||zip; // separate files: the browser may ask once
 }
 function updateHistoryTools() {
   if(!dialog)return;const locked=busy||attaching;
@@ -1279,17 +1297,18 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
   if(!confirm(`${what} 삭제할까요?\n원본 PNG와 생성 기록이 서버에서 지워지며 되돌릴 수 없어요.${attached?`\n지금 채팅 본문 아래에 붙인 그림 ${attached}장도 함께 빠져요.`:''}${elsewhere?'\n다른 채팅에 붙여 둔 그림이 있었다면 그 채팅에서는 "찾을 수 없는 그림" 안내로 바뀌어요.':''}${all&&serverFeatures.includes('draft-delete')?'\n이 채팅의 마지막 작업 기억(그리기창 작업)도 함께 지워져요.':''}`))return null;
   attaching=true;updateAttachButtons();
   try {
-    const deleted=new Set(),skipped=[],workGone=[];
+    const deleted=new Set(),skipped=[];
     for(const [key,list] of groups){
       let response;
-      try{response=await api('/delete',{method:'POST',body:list==='all'?{chatKey:key,all:true}:{chatKey:key,ids:list}});}
+      try{response=list==='all'&&serverFeatures.includes('draft-delete')
+        ?await whileDeletingWork([key],()=>api('/delete',{method:'POST',body:{chatKey:key,all:true}}),r=>r.workDeleted?[key]:[])
+        :await api('/delete',{method:'POST',body:list==='all'?{chatKey:key,all:true}:{chatKey:key,ids:list}});}
       catch(e){if(/\(404\)|\(405\)/.test(e.message))throw new Error('서버 플러그인이 이전 버전이에요. 최신 server 파일로 바꾸고 실리태번을 재시작해 주세요.');throw e;}
-      for(const id of response.deleted??[])deleted.add(id);skipped.push(...(response.skipped??[]));if(response.workDeleted)workGone.push(key);
+      for(const id of response.deleted??[])deleted.add(id);skipped.push(...(response.skipped??[]));
     }
     // Clean attachments of the open chat in one save; other chats keep a "missing image" note.
     if(deleted.size&&current&&keyOf()===current)await detachInlineImages(ctx(),deleted,{isCurrent:()=>keyOf()===current});
     if(result&&deleted.has(result.id))result=null;
-    if(workGone.length)forgetWork(workGone);
     for(const id of deleted)selectedIds.delete(id);
     if(current&&keyOf()===current){renderChatImages();renderResult();}
     const skippedText=skipped.length?` 찾지 못한 ${skipped.length}장은 지우지 않았어요.`:'';
