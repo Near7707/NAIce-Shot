@@ -4,14 +4,14 @@
 
 | 구분 | 대상 커밋 | 변경 내용 |
 | --- | --- | --- |
-| 확장(UI) v0.1.44 | 미커밋 | 삭제 후 저장된 작업을 다시 읽어 서버의 삭제 표시 revision 위에서 저장(`DraftQueue.reset`). 서버 0.1.11 요구. `browser-v040` 대기 경쟁 수정. |
-| 서버 플러그인 v0.1.11 | 미커밋 | 작업 삭제 시 파일을 지우지 않고 내용 없는 삭제 표시(`{revision, work:null, deleted:true}`)를 남김. 삭제 전에 준비된 저장은 409. `draft-tombstone` 기능 표시, `MIN_CLIENT_VERSION` 0.1.44. |
+| 확장(UI) v0.1.44 | [91df96c](https://github.com/Near7707/NAIce-Shot/commit/91df96c2813a2975a3e8e763b4397408019cc30c) | 삭제 후 저장된 작업을 다시 읽어 서버의 삭제 표시 revision 위에서 저장(`DraftQueue.reset`). 서버 0.1.11 요구. `browser-v040` 대기 경쟁 수정. |
+| 서버 플러그인 v0.1.11 | [d09af1a](https://github.com/Near7707/NAIce-Shot-Server/commit/d09af1aa25564bd3968a741539f9c1da4d490279) | 작업 삭제 시 파일을 지우지 않고 내용 없는 삭제 표시(`{revision, work:null, deleted:true}`)를 남김. 삭제 전에 준비된 저장은 409. `draft-tombstone` 기능 표시, `MIN_CLIENT_VERSION` 0.1.44. |
 
 **검토 방식:** 사용자 요청으로 v0.1.43에서 보류한 UI-042-02의 남은 한계를 서버까지 고쳤다. 구현자 자체 검토와 자동 검사만 수행했다.
 
 | ID | 해결 방법·커밋 | 검증·상태 |
 | --- | --- | --- |
-| UI-042-02 (남은 한계) | 서버가 삭제 표시에 새 revision을 남겨, 다른 창·기기의 첫 저장(`expectedRevision:null`)이나 옛 revision 저장을 409로 거부. 확장은 삭제 후 표시를 읽고 그 revision으로 저장. 표시 파일에는 프롬프트·묘사가 없다. 미커밋. | 서버 검사(표시 읽기·옛 저장 409·표시 revision 저장 성공·전체 삭제 개수·새 채팅 첫 저장), `draft-work.test`, `browser-v0141`(revision을 확인하는 모의 서버). **수정됨·재검증 대기.** |
+| UI-042-02 (남은 한계) | 서버가 삭제 표시에 새 revision을 남겨, 다른 창·기기의 첫 저장(`expectedRevision:null`)이나 옛 revision 저장을 409로 거부. 확장은 삭제 후 표시를 읽고 그 revision으로 저장. 표시 파일에는 프롬프트·묘사가 없다. [91df96c](https://github.com/Near7707/NAIce-Shot/commit/91df96c2813a2975a3e8e763b4397408019cc30c), [d09af1a](https://github.com/Near7707/NAIce-Shot-Server/commit/d09af1aa25564bd3968a741539f9c1da4d490279). | 서버 검사(표시 읽기·옛 저장 409·표시 revision 저장 성공·전체 삭제 개수·새 채팅 첫 저장), `draft-work.test`, `browser-v0141`(revision을 확인하는 모의 서버). **수정됨·재검증 대기.** |
 
 ### 테스트 결과와 확인 한계
 
