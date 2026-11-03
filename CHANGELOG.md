@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.51 — 2026-11-03 (extension only; server v0.1.13 unchanged)
+
+- **메시지로 가기** at the bottom of each history card's ⋯ menu (under a divider) and in the enlarged viewer.
+  - One line when the image was made from and attached to the same message ("#12 · 이 그림을 만들고 넣은 메시지"), or when only one is known. Two lines when they differ: **넣은 메시지로 가기** / **만든 메시지로 가기**. In the viewer, two targets open a small menu.
+  - In the open chat the panel closes, the chat scrolls to the message (older messages are loaded as needed) and it lights up for two seconds.
+  - An image from another chat asks once ("… 채팅으로 이동할까요?"), opens that chat with SillyTavern's own chat switch and then goes to the message.
+  - A message that was edited, is on another swipe, or moved after earlier deletions is still found, with a short note. A deleted one greys the line with the reason. 프리샷 images and images without a source say they have no message.
+- **본문에 넣기** with the automatic target no longer falls back to the last message when the made message cannot be found: it asks you to pick one in "그림을 넣을 메시지". The automatic option now reads "자동 · 넣은 메시지나 만든 메시지".
+- New `message-jump.mjs` (pure locating functions) with `tests/message-jump.test.mjs`, and `tests/browser-v0151.mjs`. The test fixture gained `openCharacterChat`.
+
 ## 0.1.50 — 2026-11-03 (extension only; server v0.1.13 unchanged)
 
 - **Clothes saving (GPT review):** a failed chat-outfit save no longer wipes what you typed in the meantime (UI-049-03); a card rebuilt while saving keeps its "저장 중…" hold (UI-049-04); typing in the outfit box shows **자동으로 되돌리기** and the "지금" line at once (UI-049-05).

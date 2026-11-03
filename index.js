@@ -19,6 +19,7 @@ import { checkCompat } from './compat.mjs';
 import { makeZip } from './zip.mjs';
 import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, exactName } from './missing.mjs';
 import { cleanImageFile, saveCleanImage } from './downloads.mjs';
+import { jumpTargets, locateSource, locateAttached } from './message-jump.mjs';
 
 const KEY='naice_shot',API='/api/plugins/naice-shot';
 // 챗샷 draws from the open chat; 프리샷 draws from free text with no chat at all. Each mode keeps its own work.
@@ -204,7 +205,9 @@ function historyGallery(){
   };return gallery;
 }
 function imageViewerOptions(item,{attachment=null}={}){
+  const jumps=attachment?[]:jumpChoices(item); // an attached image is opened from its own message
   return {caption:item.created?shortDate(item.created):'',seed:item.seed,loadPrompt:()=>promptForImage(item),
+    jumps:Array.isArray(jumps)?jumps.map(j=>({label:j.label,note:j.note,run:()=>goToMessage(item,j.index,j.kind).catch(e=>{toast(e.message,true);notice(e.message,true);})})):[],
     onDetach:attachment?()=>removeMessageImage(item,attachment):null,
     onDelete:attachment?null:()=>deleteImages({ids:[item.id],owners:item.chatKey?{[item.id]:item.chatKey}:null}).then(r=>!!r?.deleted?.includes(item.id),e=>{say(e.message,true);return false;})};
 }
@@ -223,6 +226,7 @@ function closeImageMenu({focus=false}={}){
 function toggleImageMenu(button){
   if(imageMenu?.button===button){closeImageMenu({focus:true});return;}
   closeImageMenu();const menu=document.getElementById(button.dataset.imageMore);if(!menu)return;
+  fillJumpSlot(menu);
   menu.hidden=false;if(typeof menu.showPopover==='function')menu.showPopover();else menu.removeAttribute('popover');
   imageMenu={menu,button,anchor:button.getBoundingClientRect()};button.setAttribute('aria-expanded','true');
   positionImageMenu();
@@ -1345,10 +1349,11 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
 const chatRows=()=>ctx().chat.map((m,i)=>({m,i})).filter(({m})=>isSceneMessage(m));
 const rowOption=({m,i},selected=false)=>`<option value="${i}" ${selected?'selected':''}>#${i} · ${esc(m.name)}${isHiddenSceneMessage(m)?' · 숨김':''} · ${esc(m.mes.replace(/\s+/g,' ').slice(0,35))}</option>`;
 // Where an image goes by default: where it is already attached, else the message it was generated for, else the latest.
-function preferredTarget(item) {
+function preferredTarget(item,{fallback=true}={}) {
   const chat=ctx().chat,existing=chat.findIndex(m=>m.extra?.naice_shot_images?.some(x=>x.id===item.id));
-  const source=item.snapshot?.scene?.source;
-  return existing>=0?existing:source&&sourceValid(source,chat)?source.target:chatRows().filter(({m})=>!m.is_system).at(-1)?.i;
+  if(existing>=0)return existing;
+  const made=locateSource(item.snapshot?.scene?.source,chat);if(made.index!==null)return made.index;
+  return fallback?chatRows().filter(({m})=>!m.is_system).at(-1)?.i:null;
 }
 function imageControls(item) {
   const save=saveMenu(item,`ncs-result-save-${item.id}`);
@@ -1511,7 +1516,7 @@ async function removeImageFromChat(item) {
 // One shared target selector for all history cards keeps the DOM small in long chats.
 function renderHistoryTarget() {
   if(!dialog)return;const select=$('ncs-history-target'),current=select.value;
-  select.innerHTML='<option value="">자동 · 생성했던 메시지 (없으면 최근 메시지)</option>'+chatRows().map(row=>rowOption(row)).join('');
+  select.innerHTML='<option value="">자동 · 넣은 메시지나 만든 메시지</option>'+chatRows().map(row=>rowOption(row)).join('');
   if([...select.options].some(o=>o.value===current))select.value=current;
 }
 function renderHistoryFilter() {
@@ -1527,8 +1532,79 @@ function historyActions(item,{editable=false,attached=false}={}){
   // Order (docs/DESIGN.md): 챗샷으로 보내기 · 프리샷으로 보내기 · 설정을 프리셋으로 · 본문에 넣기.
   const more=[`<button type="button" data-history-id="${id}" ${keyOf()?'':'disabled'}>챗샷으로 보내기<small>${keyOf()?'지금 열린 채팅의 그리기창으로 가져와요.':'채팅을 먼저 열어 주세요.'}</small></button>`,`<button type="button" data-history-free="${id}">프리샷으로 보내기</button>`,
     item.options?`<button type="button" data-history-preset="${id}">설정을 프리셋으로</button>`:'',`<button type="button" data-history-attach="${id}" ${item.chatKey===keyOf()?'':'disabled data-unavailable="true"'}>본문에 넣기${item.chatKey===keyOf()?'':`<small>${item.chatKey===FREE_KEY?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.'}</small>`}</button>`,
-    editable&&attached?`<button type="button" data-history-detach="${id}">이 채팅의 첨부 모두 빼기</button>`:''].join('');
+    editable&&attached?`<button type="button" data-history-detach="${id}">이 채팅의 첨부 모두 빼기</button>`:'',
+    `<hr><div class="ncs-jump-slot" data-jump-slot="${id}"></div>`].join('');
   return `<div class="ncs-history-actions">${save.button}<button type="button" data-history-delete="${id}" class="ncs-danger-outline">삭제</button><button type="button" data-image-more="${menu}" aria-controls="${menu}" aria-expanded="false" aria-haspopup="true" aria-label="이력 그림 더 보기">⋯</button></div>${save.menu}<div id="${menu}" class="ncs-image-popup" popover="manual" hidden role="group" aria-label="이력 그림 작업">${more}</div>${historyPresetControls(item)}`;
+}
+// --- 메시지로 가기: the attached message and the message the image was made from (docs/ROADMAP.md 0.1.51).
+const JUMP_STATE={swipe:' · 다른 스와이프에서 만들었어요',edited:' · 그림을 만든 뒤 내용이 바뀌었어요',moved:''};
+// Choices for one image: [{label,note,index,kind}] to go to, or {disabled:reason}.
+function jumpChoices(item){
+  if(!item||item.chatKey===FREE_KEY)return {disabled:'프리샷 그림은 연결된 메시지가 없어요.'};
+  const source=item.snapshot?.scene?.source;
+  if(item.chatKey!==keyOf()){
+    if(!item.chatKey)return {disabled:'이 그림은 연결된 메시지가 없어요.'};
+    if(!source)return {disabled:'이 그림은 연결된 메시지가 없어요.'};
+    return [{label:'메시지로 가기',note:'다른 채팅이에요. 이동 전에 물어봐요.',index:null,kind:'other'}];
+  }
+  const {targets,both,made}=jumpTargets(item,ctx().chat);
+  if(!targets.length)return {disabled:source?'그림을 만든 메시지를 찾지 못했어요. 지워졌을 수 있어요.':'이 그림은 연결된 메시지가 없어요.'};
+  const note=t=>JUMP_STATE[t.state]??'';
+  if(targets.length===1){const t=targets[0];
+    return [{label:'메시지로 가기',note:`#${t.index} · ${both?'이 그림을 만들고 넣은 메시지':t.kind==='attached'?'이 그림을 넣은 메시지':'이 그림을 만든 메시지'}${note(t)}`,index:t.index,kind:t.kind,state:t.state}];}
+  return targets.map(t=>t.kind==='attached'?{label:'넣은 메시지로 가기',note:`#${t.index} · 지금 그림이 들어 있는 곳`,index:t.index,kind:'attached',state:'same'}
+    :{label:'만든 메시지로 가기',note:`#${t.index} · 이 그림을 만든 메시지${note(t)}`,index:t.index,kind:'made',state:t.state});
+}
+// The ⋯ menu computes its jump lines only when it opens, so long chats are not scanned for every card.
+function fillJumpSlot(menu){
+  const slot=menu.querySelector('[data-jump-slot]');if(!slot)return;
+  const item=historyItems.find(x=>x.id===slot.dataset.jumpSlot),c=jumpChoices(item);
+  slot.innerHTML=Array.isArray(c)?c.map(j=>`<button type="button" data-history-jump="${esc(item.id)}"${j.index===null?'':` data-jump-index="${j.index}"`} data-jump-kind="${j.kind}">${esc(j.label)}<small>${esc(j.note)}</small></button>`).join('')
+    :`<button type="button" disabled data-unavailable="true">메시지로 가기<small>${esc(c.disabled)}</small></button>`;
+}
+// Opens the chat a history key points to (character or group), with SillyTavern's own chat switching.
+async function openChatByKey(key){
+  let o;try{o=JSON.parse(key);}catch{throw new Error('이 그림의 채팅을 알 수 없어요.');}
+  const c=ctx(),unable='이 실리태번 버전에서는 다른 채팅으로 이동할 수 없어요. 그 채팅을 직접 연 뒤 다시 눌러 주세요.';
+  if(o.group){if(typeof c.openGroupChat!=='function')throw new Error(unable);await c.openGroupChat(o.group,o.chat);}
+  else{
+    const chid=(c.characters??[]).findIndex(x=>x.avatar===o.card);if(chid<0)throw new Error('그 채팅의 캐릭터 카드를 찾지 못했어요. 지워졌거나 이름이 바뀌었을 수 있어요.');
+    if(typeof c.openCharacterChat!=='function'||(String(c.characterId)!==String(chid)&&typeof c.selectCharacterById!=='function'))throw new Error(unable);
+    if(String(c.characterId)!==String(chid))await c.selectCharacterById(String(chid));
+    if(keyOf()!==key)await ctx().openCharacterChat(o.chat);
+  }
+  for(let i=0;i<150&&keyOf()!==key;i++)await new Promise(r=>setTimeout(r,100));
+  if(keyOf()!==key)throw new Error('채팅을 열지 못했어요. 그 채팅을 직접 연 뒤 다시 눌러 주세요.');
+}
+// Scrolls the chat to one message, loading older messages when it is not shown yet, and lights it for 2 s.
+async function scrollToMessage(index){
+  const find=()=>document.querySelector(`#chat .mes[mesid="${index}"]`);
+  for(let i=0;i<60&&!find();i++){const more=document.getElementById('show_more_messages');if(!more)break;more.click();await new Promise(r=>setTimeout(r,250));}
+  const el=find();if(!el)return false;
+  el.scrollIntoView({block:'center',behavior:'smooth'});
+  el.classList.remove('ncs-jump-flash');void el.offsetWidth;el.classList.add('ncs-jump-flash');
+  setTimeout(()=>el.classList.remove('ncs-jump-flash'),2000);return true;
+}
+const toast=(text,error=false)=>{const t=globalThis.toastr;if(t)(error?t.warning:t.info).call(t,text,'NAIce Shot');};
+async function goToMessage(item,index,kind){
+  if(!item)return;if(busy||attaching||draftLoading||outfitSaving)throw new Error('진행 중인 작업이 끝난 뒤 눌러 주세요.');
+  if(item.chatKey!==keyOf()){
+    if(!confirm(`${chatLabel(item.chatKey)} 채팅으로 이동할까요?\n지금 채팅을 벗어나요. 그리기창 작업은 저장돼 있어요.`))return;
+    await openChatByKey(item.chatKey);
+    const {targets}=jumpTargets(item,ctx().chat);const t=targets[0];
+    if(!t){toast('채팅은 열었지만 그림을 만든 메시지를 찾지 못했어요. 지워졌을 수 있어요.',true);return;}
+    index=t.index;kind=t.kind;
+    if(targets.length>1)toast(`그림이 들어 있는 #${t.index}로 왔어요. 그림을 만든 메시지는 #${targets[1].index}예요.`);
+    else if(JUMP_STATE[t.state])toast(`#${t.index}${JUMP_STATE[t.state]}.`);
+  }else{
+    // Re-check now: the chat may have changed since the menu opened.
+    const now=Array.isArray(jumpChoices(item))?jumpChoices(item).find(j=>j.kind===kind)??jumpChoices(item)[0]:null;
+    if(!now)throw new Error('그림을 만든 메시지를 찾지 못했어요. 지워졌거나 채팅이 바뀌었을 수 있어요.');
+    index=now.index;if(JUMP_STATE[now.state])toast(`#${index}${JUMP_STATE[now.state]}.`);
+  }
+  closeImageMenu();document.getElementById('ncs-viewer')?.open&&document.getElementById('ncs-viewer').close();
+  if(dialog?.open){rememberScroll();dialog.close();}
+  if(!await scrollToMessage(index))toast(`#${index} 메시지를 화면에서 찾지 못했어요. 위로 스크롤해 이전 메시지를 불러와 주세요.`,true);
 }
 // The common Positive is merged into the base prompt. It can be recovered only when the rest of the base is
 // exactly what the scene contributed; otherwise the settings tab's current value is used (and said so).
@@ -1773,7 +1849,10 @@ function bindEvents() {
       else if(el.dataset.historyPresetCancel!==undefined){historyPresetTarget=null;renderHistory();}
       else if(el.dataset.viewResult!==undefined)viewImage(result);
       else if(el.dataset.viewHistory)viewImage(historyItems.find(x=>x.id===el.dataset.viewHistory),{gallery:true});
-      else if(el.dataset.historyAttach){const item=historyItems.find(x=>x.id===el.dataset.historyAttach),chosen=$('ncs-history-target').value;await putImageInChat(item,chosen===''?preferredTarget(item):Number(chosen));}
+      else if(el.dataset.historyAttach){const item=historyItems.find(x=>x.id===el.dataset.historyAttach),chosen=$('ncs-history-target').value,target=chosen===''?preferredTarget(item,{fallback:false}):Number(chosen);
+        if(target===null||target===undefined){closeImageMenu();$('ncs-history-target').focus();throw new Error('그림을 만든 메시지를 찾지 못했어요. 위 "그림을 넣을 메시지"에서 넣을 메시지를 골라 주세요.');}
+        await putImageInChat(item,target);}
+      else if(el.dataset.historyJump){const item=historyItems.find(x=>x.id===el.dataset.historyJump);await goToMessage(item,el.dataset.jumpIndex===undefined?null:Number(el.dataset.jumpIndex),el.dataset.jumpKind);}
       else if(el.dataset.historyDelete)await deleteImages({ids:[el.dataset.historyDelete]});
       else if(el.dataset.historyDetach)await removeImageFromChat(historyItems.find(x=>x.id===el.dataset.historyDetach));
     }).catch(e=>notice(e.message,true,originTab)).finally(()=>rememberDraft());

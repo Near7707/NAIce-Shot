@@ -1,3 +1,11 @@
+# v0.1.51 validation — 2026-11-03
+
+- Extension Node suite: **140 passed, 0 failed** (new `message-jump.test.mjs`: made message found unchanged, on another swipe, moved after deletions, edited, missing, hidden; one or two targets).
+- Server Node suite: **25 passed** (server unchanged).
+- **40 of 40 Chromium browser scripts passed.** New `browser-v0151` at 375 and 1100px: one line (made only / made and attached), two lines when they differ, the viewer's choice menu, panel and viewer close and the message lights up, edited note, deleted greys the line, 프리샷 reason, another chat asks then opens and lands on the message, 본문에 넣기 (자동) asks instead of using the last message. `browser-v040`, `browser-v070` now pick the message explicitly for seeded images without a source.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: real SillyTavern chat switching (`openCharacterChat`, `selectCharacterById`, `openGroupChat`), loading older messages with `#show_more_messages`, group chats, iPhone Safari.
+
 # v0.1.50 validation — 2026-11-03
 
 - Extension Node suite: **138 passed, 0 failed** (skins-lint now also checks itself with upper-case property names).

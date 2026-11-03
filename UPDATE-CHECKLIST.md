@@ -1,5 +1,15 @@
 # Installation and update checklist
 
+## v0.1.51
+
+Update the extension and refresh. No server update is needed.
+
+1. History ⋯ → 메시지로 가기: the panel closes and the message lights up.
+2. Attach an image to a different message than it was made from: ⋯ shows 넣은 메시지로 가기 / 만든 메시지로 가기; the enlarged viewer's 메시지로 가기 ▾ offers both.
+3. 모든 채팅 or 전체 보기 → an image from another chat → 메시지로 가기 asks first, then opens that chat.
+4. Delete the message an image was made from: the line is greyed; 본문에 넣기 (자동) asks you to pick a message.
+
+
 ## v0.1.50
 
 Update the extension and refresh. No server update is needed.

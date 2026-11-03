@@ -77,6 +77,7 @@ try{
 
  // 3) Attach one of this chat's images, then delete a cross-chat selection: one request per chat, attachment cleaned.
  await page.locator('#ncs-history-scope').selectOption('chat');await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===3);
+ await page.locator('#ncs-history-target').selectOption('1'); // seeded images have no source message (v0.1.51: 자동 would ask)
  await pick(page,`[data-history-attach="${a[2].id}"]`);await page.waitForFunction(id=>mock.chat[1]?.extra?.naice_shot_images?.some(x=>x.id===id),a[2].id);
  await page.locator('#ncs-history-scope').selectOption('all');await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===4);
  await page.locator(`[data-history-pick="${a[2].id}"]`).check();await page.locator(`[data-history-pick="${c[0].id}"]`).check();

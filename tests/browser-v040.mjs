@@ -78,8 +78,13 @@ try{
  await click('history-more');await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===23);
  assert.equal(await page.locator('[data-action="history-more"]').isHidden(),true);
 
- // 2) Attach via the shared selector (auto → latest), then delete two selected incl. the attached one.
+ // 2) Attach via the shared selector, then delete two selected incl. the attached one. These seeded images have
+ // no source message, so 자동 asks for a message instead of quietly using the latest (v0.1.51).
  const newest=seeded.at(-1),second=seeded.at(-2);
+ await pick(page,`[data-history-attach="${newest.id}"]`);
+ await page.waitForFunction(()=>/넣을 메시지를 골라 주세요/.test(document.querySelector('#ncs-notice')?.innerText??''));
+ assert.equal(await page.evaluate(()=>mock.chat.some(m=>m.extra?.naice_shot_images?.length)),false);
+ await page.locator('#ncs-history-target').selectOption('1');
  await pick(page,`[data-history-attach="${newest.id}"]`);
  await page.waitForFunction(id=>mock.chat[1]?.extra?.naice_shot_images?.some(x=>x.id===id),newest.id);
  await page.locator('#chat .ncs-inline-images img').waitFor();
