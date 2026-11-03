@@ -4,16 +4,16 @@
 
 | 구분 | 대상 커밋 | 변경 내용 |
 | --- | --- | --- |
-| 확장(UI) v0.1.46 | 미커밋 | 그리기창 Anlas 잔액·↻(설정과 같은 조회 공유, 생성 후 갱신, "이전 조회보다" 표기, 실패 시 옛 값 숨김), 계정별 비용 문구, 알려진 계정의 비용 동의 차단과 [Anlas 허용 설정으로 이동](켜지 않음), 서버 동의 거절 표시. |
-| 서버 플러그인 v0.1.12 | 미커밋 | NovelAI 생성 오류 분류(`nai-auth`·`nai-anlas`·`nai-permission`·`nai-busy`·`nai-down`·`nai-rejected`)와 NovelAI 짧은 안내(120자, 토큰 제거) 첨부, 확장의 동의 차단은 `anlas-consent`(428)로 분리. 계정별 `costGuard` 문구(공유 core). `nai-error-codes` 기능 표시. |
+| 확장(UI) v0.1.46 | [8643829](https://github.com/Near7707/NAIce-Shot/commit/8643829b247cc88309bd0b2952b395ed77d4a456) | 그리기창 Anlas 잔액·↻(설정과 같은 조회 공유, 생성 후 갱신, "이전 조회보다" 표기, 실패 시 옛 값 숨김), 계정별 비용 문구, 알려진 계정의 비용 동의 차단과 [Anlas 허용 설정으로 이동](켜지 않음), 서버 동의 거절 표시. |
+| 서버 플러그인 v0.1.12 | [202e868](https://github.com/Near7707/NAIce-Shot-Server/commit/202e868564638068a6b17ee2f5cabb332428080e) | NovelAI 생성 오류 분류(`nai-auth`·`nai-anlas`·`nai-permission`·`nai-busy`·`nai-down`·`nai-rejected`)와 NovelAI 짧은 안내(120자, 토큰 제거) 첨부, 확장의 동의 차단은 `anlas-consent`(428)로 분리. 계정별 `costGuard` 문구(공유 core). `nai-error-codes` 기능 표시. |
 
 **검토 방식:** GPT 하위 티어 검토(Tablet·Scroll 사용 가능 여부, 오류·비용 안내 P2/P3)와 사용자·GPT 세부 의견을 반영해 Claude가 구현했다. 구현자 자체 검토와 자동 검사만 수행했다.
 
 | 출처 | 해결 방법·커밋 | 검증·상태 |
 | --- | --- | --- |
-| P2 · 인증·권한·잔액·요청 제한·장애를 구분하지 못함 | 응답 본문으로 원인이 확실할 때만 구체 안내, 나머지는 거절 안내 + NovelAI 안내. 상태 번호만으로 잔액 부족이라 하지 않는다. 확장 자체 차단은 별도 코드. 미커밋. | 서버 검사(상태·본문 조합 9가지, 안내 정리), `browser-v0146`. **수정됨·재검증 대기.** 실제 NovelAI 오류 본문은 미확인이라 분류 키워드는 추정이다(확인되지 않으면 일반 거절 안내로 떨어진다). |
-| P3 · 하위 티어 정상 계정을 확인 실패처럼 안내 | 계정별 문구 4가지, Opus V5 문구에 NovelAI 링크. 미커밋. | `core.test`, `browser-v0146`. **수정됨·재검증 대기.** |
-| P3 · 잔액 표시가 오래될 수 있음 | 그리기창 잔액·↻, 생성 후 재조회, 시각 표시, 실패 시 "잔액 확인 실패". 차이는 "이전 조회보다"로만 표기. 미커밋. | `browser-v0146`. **수정됨·재검증 대기.** |
+| P2 · 인증·권한·잔액·요청 제한·장애를 구분하지 못함 | 응답 본문으로 원인이 확실할 때만 구체 안내, 나머지는 거절 안내 + NovelAI 안내. 상태 번호만으로 잔액 부족이라 하지 않는다. 확장 자체 차단은 별도 코드. [8643829](https://github.com/Near7707/NAIce-Shot/commit/8643829b247cc88309bd0b2952b395ed77d4a456), [202e868](https://github.com/Near7707/NAIce-Shot-Server/commit/202e868564638068a6b17ee2f5cabb332428080e). | 서버 검사(상태·본문 조합 9가지, 안내 정리), `browser-v0146`. **수정됨·재검증 대기.** 실제 NovelAI 오류 본문은 미확인이라 분류 키워드는 추정이다(확인되지 않으면 일반 거절 안내로 떨어진다). |
+| P3 · 하위 티어 정상 계정을 확인 실패처럼 안내 | 계정별 문구 4가지, Opus V5 문구에 NovelAI 링크. [8643829](https://github.com/Near7707/NAIce-Shot/commit/8643829b247cc88309bd0b2952b395ed77d4a456), [202e868](https://github.com/Near7707/NAIce-Shot-Server/commit/202e868564638068a6b17ee2f5cabb332428080e). | `core.test`, `browser-v0146`. **수정됨·재검증 대기.** |
+| P3 · 잔액 표시가 오래될 수 있음 | 그리기창 잔액·↻, 생성 후 재조회, 시각 표시, 실패 시 "잔액 확인 실패". 차이는 "이전 조회보다"로만 표기. [8643829](https://github.com/Near7707/NAIce-Shot/commit/8643829b247cc88309bd0b2952b395ed77d4a456), [202e868](https://github.com/Near7707/NAIce-Shot-Server/commit/202e868564638068a6b17ee2f5cabb332428080e). | `browser-v0146`. **수정됨·재검증 대기.** |
 
 ### 테스트 결과와 확인 한계
 
