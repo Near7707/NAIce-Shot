@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.41 — 2026-11-03
+
+**Update: extension + server 0.1.9.** Restart SillyTavern after updating the server, then refresh the extension.
+
+- **Last work per chat** is stored server-side and restored after returning or refreshing, without another AI request. It includes candidates, direct-input people, wished moment, target, manual prompt edits, one-off options and preview. 프리샷 uses a separate work bucket.
+- Clearing stores an empty work plus **one undo**. Undo survives chat changes and refresh; editing, extracting or generating ends it. Source signatures are kept instead of a second copy of chat text; changed source/swipes trigger a visible reminder.
+- Debounced saves show pending/error status and retry. Writes are serialized per work key with revision checks: a different window/device's save is never silently overwritten. Failed work stays on screen. Clean chat caches are bounded; failed/unsaved work stays in memory.
+- Successful generation consumes submitted final/option overrides in the stored work too, including a generation that completes after leaving the chat. Failed generation preserves them. Older partial history scene snapshots receive missing empty fields when restored.
+- **장면 → 그리기** tab. **문제 제보용 추출 응답 보관** stays off by default, gains a short explanation, confirmation on enable and an on/off status. Off also omits raw responses from work drafts; existing image history is unchanged.
+- Original PNG and selection ZIP downloads ask about metadata, with **공유용 저장 / 원본 저장 / 취소** and **새로고침 전까지 다시 묻지 않기**. Shared downloads do not warn. Menu notes distinguish metadata inclusion/removal; visible text in a picture is not removed.
+- Stage three (message badges, per-image placement and navigation) and the in-panel guide are not included.
+
 ## 0.1.40 — 2026-11-03
 
 **Update: extension only.** Server 0.1.8 is unchanged.

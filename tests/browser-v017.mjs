@@ -36,7 +36,7 @@ await page.route('**/api/plugins/naice-shot/**',route=>{
  return route.fulfill({json:{keyConfigured:true,version:'0.1.7',features:['paged-history','delete','private-records','all-history','privacy-controls'],minClient:'0.1.0'}});
 });
 const click=action=>page.locator(`[data-action="${action}"]`).first().click();
-const downloadBy=async locator=>{const [d]=await Promise.all([page.waitForEvent('download'),locator.click()]);return {name:d.suggestedFilename(),bytes:await fs.readFile(await d.path())};};
+const downloadBy=async locator=>{const [d]=await Promise.all([page.waitForEvent('download'),locator.click().then(async()=>{const box=page.locator('#ncs-privacy-dialog');if(await box.isVisible()){await box.locator('input').check();await box.locator('[data-choice=original]').click();}})]);return {name:d.suggestedFilename(),bytes:await fs.readFile(await d.path())};};
 function checkClean(bytes){
  assert.equal(bytes.subarray(0,8).equals(png.subarray(0,8)),true);assert.equal(bytes.includes(Buffer.from('PRIVATE_PROMPT_MARKER')),false);
  const types=[];for(let i=8;i<bytes.length;){const n=bytes.readUInt32BE(i);types.push(bytes.toString('ascii',i+4,i+8));i+=n+12;}

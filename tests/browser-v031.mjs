@@ -90,7 +90,7 @@ try{
  await page.keyboard.press('0');assert.equal(parseInt(await zoom()),fitPct,'0 key fits');
  const save=page.locator('#ncs-viewer .ncsv-save');const id=items.at(-1).id;
  assert.equal(await save.getAttribute('href'),`/user/images/naice-shot/${id}.png`);assert.equal(await save.getAttribute('download'),`naice-shot-${id}.png`);
- const [download]=await Promise.all([page.waitForEvent('download'),save.click()]);
+ const [download]=await Promise.all([page.waitForEvent('download'),save.click().then(async()=>{await page.locator('#ncs-privacy-dialog input').check();await page.locator('[data-choice=original]').click();})]);
  assert.equal(download.suggestedFilename(),`naice-shot-${id}.png`);
  assert.deepEqual(await fs.readFile(await download.path()),png,'saves the original PNG bytes');
  // Wheel zoom around the cursor, then drag-pan stays inside bounds.

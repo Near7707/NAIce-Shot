@@ -1,3 +1,13 @@
+# v0.1.41 validation — 2026-11-03
+
+- Extension Node suite: **133 passed, 0 failed, 0 skipped**. Draft tests cover source-text/raw/payload omission, explicit raw consent, candidates/direct-input people/unfinished final JSON/one undo round trips, reference semantics for restored finals, queued saves during in-flight writes and failed-save retry.
+- Server Node suite: **20 passed**. New endpoint tests exercise user/chat isolation, hashed filenames, revision-conflict refusal, raw consent/reasoning removal and preservation of previous work after a failed atomic replacement. No NAI request is needed for drafts.
+- **34 of 34 Chromium browser scripts passed** across this update. New `browser-v0141` at 1100/375px covers chat/free separation, refresh restore without AI, persistent clear undo, changed-source reminder, save failure/retry, concurrent-writer refusal and explicit reload, stale delayed reads, cancellation while switching into a previously loaded chat, one-off settings after failure/success and completion after a chat change, raw-consent cancellation, and original/shared/cancel/session download-warning paths. Existing download regressions explicitly approve the original warning and still compare PNG bytes/ZIP contents. Real server-handler fixtures include the new draft route.
+- Visual check: metadata confirmation at phone width; narrow action layout uses a full row for the shared choice at 360px and below. Screenshots and Korean fonts are local QA only.
+- Saving is debounced; no polling, whole-chat-file saves or extra AI calls were added. Background/unload writes are best effort and unsaved work can be lost if the browser is forcibly terminated before saving completes.
+- Publication files/diffs screened for credentials, personal paths and private character/lore data. No new private data identified. Historical metadata was not rewritten; external copies and nonlocal branches/releases were not audited.
+- Not exercised: real SillyTavern, real extraction/NovelAI accounts, iPhone Safari background termination or native popovers.
+
 # v0.1.40 validation — 2026-11-03
 
 - Extension Node suite: **130 passed, 0 failed, 0 skipped**, with the server repository cloned alongside it. New regressions check message-scoped removal, preservation of another message's same image/native media/text, swipe cleanup, stale targets and save-failure rollback.

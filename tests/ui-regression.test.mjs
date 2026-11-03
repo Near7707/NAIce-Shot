@@ -38,7 +38,7 @@ async function setup() {
     generateRaw:async()=>JSON.stringify({characters:[{id:'leo',name:'Leo',expression:'smile',action:'standing',position:'auto',outfitMode:'unchanged',outfit:''}],unregistered:[],location:'cafe',lighting:'day',camera:'medium shot',interaction:''}),
   };
   const sent=[];
-  const sandbox=vm.createContext({...imports,console,URL,crypto:webcrypto,AbortController,setInterval,clearInterval,confirm:()=>true,
+  const sandbox=vm.createContext({...imports,console,URL,crypto:webcrypto,AbortController,setInterval,clearInterval,setTimeout,clearTimeout,confirm:()=>true,
     SillyTavern:{getContext:()=>context},document:{readyState:'loading',activeElement:null,addEventListener(){},querySelectorAll:()=>[],querySelector:()=>null,getElementById:()=>null},
     fetch:async(url,options)=>{
       if(String(url).endsWith('/generate')) {

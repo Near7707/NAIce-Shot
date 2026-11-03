@@ -1,5 +1,18 @@
 # Installation and update checklist
 
+## v0.1.41
+
+Update **both extension and NAIce-Shot-Server 0.1.9**, restart SillyTavern, then refresh the browser.
+
+1. In **그리기 → 챗샷**, extract, edit a candidate and add a direct-input character. Wait for saving to finish, visit another chat and return; repeat with a browser refresh. No extraction request should be sent on restore.
+2. Keep a different work in **프리샷** and check that chat changes leave it alone.
+3. Clear, visit another chat, return and undo. Refresh a cleared work and check its undo again. Editing should end undo.
+4. Restore a history image's one-off settings: failed generation keeps them; successful generation consumes them, including after changing chats.
+5. Original PNG downloads (result, history, attached image and enlarged viewer) and original ZIP selection show the same metadata warning. Try cancel, shared alternative, original and session suppression. Refresh restores the warning.
+6. **문제 제보용 추출 응답 보관** starts off, asks before enabling and shows its state. It does not embed the response in PNGs.
+7. If saving fails, keep the page open and use **다시 시도**. For a concurrent-edit conflict, **서버 작업 다시 불러오기** asks before replacing local edits. Wait for saving to finish before force-closing the app.
+
+
 ## v0.1.40
 
 Update the extension and refresh. No server update is needed.

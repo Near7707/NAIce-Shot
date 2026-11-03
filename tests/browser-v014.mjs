@@ -44,7 +44,7 @@ try{
  // 1) One image: plain PNG download.
  await page.locator(`[data-history-pick="${ids[0]}"]`).check();
  assert.equal(await save.textContent(),'선택 저장 (1)');
- let [download]=await Promise.all([page.waitForEvent('download'),save.click()]);
+ let [download]=await Promise.all([page.waitForEvent('download'),save.click().then(async()=>{await page.locator('#ncs-privacy-dialog input').check();await page.locator('[data-choice=original]').click();})]);
  assert.equal(download.suggestedFilename(),`naice-shot-${ids[0]}.png`);
 
  // 2) Several images, one missing on disk: one ZIP with the rest, oldest first, and a note.

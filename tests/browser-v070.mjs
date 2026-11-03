@@ -25,7 +25,7 @@ const userRoot=await fs.mkdtemp(path.join(os.tmpdir(),'naice-shot-all-'));
 const directories={root:userRoot,userImages:path.join(userRoot,'user','images')};
 const handlers=createHandlers({readKey:()=>'k',fetcher:async url=>url.endsWith('/subscription')?new Response(JSON.stringify({tier:3,perks:{unlimitedImageGeneration:true}})):new Response(archive(png))});
 let legacy=false;
-const call=(name,{query={},body=null}={})=>new Promise(resolve=>{const res={statusCode:200,status(n){this.statusCode=n;return this;},json(d){resolve({status:this.statusCode,body:d});return this;}};handlers[name]({user:{directories},query,body},res);});
+const call=(name,{query={},body=null}={})=>new Promise(resolve=>{const res={statusCode:200,status(n){this.statusCode=n;return this;},json(d){resolve({status:this.statusCode,body:d});return this;}};handlers[name]({method:body?'POST':'GET',user:{directories},query,body},res);});
 const key=chat=>JSON.stringify({group:null,card:'Leo.png',chat});
 const A=key('A'),B=key('Leo - old chat'),C=key('Leo - another chat');
 const seed=async chatKey=>{const r=(await call('generate',{body:{requestId:randomUUID(),chatKey,allowAnlas:true,options:{...DEFAULTS.options,seed:1},assembled:{base:'x',negative:'',characters:[]},snapshot:null}})).body;await new Promise(r=>setTimeout(r,3));return r;};

@@ -420,3 +420,21 @@
 #naice-shot-dialog .ncs-undo {display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 0;padding:10px 12px;border:1.5px solid var(--ncs-edge);border-radius:var(--ncs-radius-control);background:var(--ncs-surface);}
 #naice-shot-dialog .ncs-undo[hidden] {display:none;}
 #naice-shot-dialog .ncs-undo span {flex:1 1 220px;}
+/* Work persistence and privacy confirmations. */
+#naice-shot-dialog .ncs-work-fields {border:0;padding:0;margin:0;min-width:0;}
+#naice-shot-dialog .ncs-work-fields:disabled {opacity:.7;}
+#naice-shot-dialog .ncs-draft-bar {display:flex;align-items:center;gap:8px;margin:0 0 8px;}
+#naice-shot-dialog .ncs-draft-bar button {font-size:12px;padding:6px 10px;}
+#naice-shot-dialog .ncs-image-popup a[download],#naice-shot-dialog .ncs-image-popup button,#chat .ncs-image-popup a,#chat .ncs-image-popup button {flex-direction:column;align-items:flex-start;}
+#naice-shot-dialog .ncs-image-popup small,#chat .ncs-image-popup small {display:block;font-size:11px;line-height:1.5;opacity:.75;}
+#ncs-privacy-dialog {box-sizing:border-box;max-width:calc(100vw - 24px);width:420px;max-height:calc(100dvh - 24px);overflow:auto;padding:20px;border:1px solid #818b9b;border-radius:16px;background:#1b202b;color:#f1f3f6;font:inherit;box-shadow:0 12px 40px #0008;}
+#ncs-privacy-dialog::backdrop {background:#0008;}
+#ncs-privacy-dialog h3 {margin:0 0 12px;font-size:18px;}
+#ncs-privacy-dialog p {line-height:1.7;}
+#ncs-privacy-dialog label {display:flex;align-items:center;gap:8px;font-size:13px;}
+#ncs-privacy-dialog input {width:20px;height:20px;flex:none;}
+#ncs-privacy-dialog .ncs-privacy-actions {display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;}
+#ncs-privacy-dialog button {flex:1;min-height:44px;padding:9px;border:1px solid #818b9b;border-radius:9px;background:#2a3240;color:#f1f3f6;font:inherit;cursor:pointer;}
+#ncs-privacy-dialog [data-choice="shared"] {background:#75c6cc;color:#163334;font-weight:bold;}
+#ncs-privacy-dialog button {font-size:14px;white-space:nowrap;}
+@media(max-width:360px){#ncs-privacy-dialog .ncs-privacy-actions{display:grid;grid-template-columns:1fr 1fr;}#ncs-privacy-dialog [data-choice="shared"]{grid-column:1/-1;}}

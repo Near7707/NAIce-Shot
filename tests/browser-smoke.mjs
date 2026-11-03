@@ -70,7 +70,7 @@ try {
  assert.deepEqual(await page.locator('#chat .mes_text').allTextContents(),textBefore);
  assert.equal(await page.locator('#chat img').count(),1);assert.equal(await page.locator('#chat .mes').count(),2);
  assert.equal(await page.evaluate(()=>mock.chat[1].extra.media),undefined);assert.equal(await page.evaluate(()=>mock.chatSaves),1);
- const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#ncs-result a[download]').click()]);
+ const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#ncs-result a[download]').click().then(async()=>{await page.locator('#ncs-privacy-dialog input').check();await page.locator('[data-choice=original]').click();})]);
  assert.equal(download.suggestedFilename(),`naice-shot-${first.id}.png`);assert.deepEqual(await fs.readFile(await download.path()),Buffer.from(png,'base64'));
  await click('attach');assert.equal(await page.locator('#chat img').count(),1);assert.equal(await page.evaluate(()=>mock.chat.length),2);
  await click('detach');await page.waitForFunction(()=>!mock.chat[1].extra?.naice_shot_images);assert.equal(await page.locator('#chat img').count(),0);

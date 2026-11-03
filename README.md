@@ -1,4 +1,4 @@
-# NAIce Shot v0.1.40
+# NAIce Shot v0.1.41
 
 실리태번의 RP 장면을 추출해 NovelAI 그림을 생성하는 비공식 확장이에요. 캐릭터 외형 프로필, 장면·복장 편집, 생성 프리셋, 이미지 이력과 채팅 첨부를 지원해요.
 
@@ -84,14 +84,14 @@ This repository contains the browser extension. The UI is in Korean. The compani
 - Edit assembled prompts through individual fields or advanced JSON.
 - When a message holds several scenes, one extraction offers up to three moments to choose from (the last one by default), each with its own people, poses and place; an optional "그리고 싶은 순간" field asks for a specific moment.
 - Keep a wardrobe per profile and dress people per scene: 채팅 기본 복장 (this chat's default), 복장 잠금 (the AI cannot change it), 이번 그림 복장 (this image only) and 옷장에 저장 (keep it for later). History cards show the prompt that was sent.
-- Adjust model, size, steps, Guidance and seed right in the scene tab (생성 설정), save or overwrite presets there, and turn a history image's settings into a new preset.
+- Adjust model, size, steps, Guidance and seed right in the drawing tab (그리기) (생성 설정), save or overwrite presets there, and turn a history image's settings into a new preset.
 - 프리샷: draw with no chat at all — write a situation and 글로 채우기 fills the scene (saved profiles keep their look; anyone else becomes a temporary person); history images can be sent to 프리샷. 그리기창 비우기 empties the current work with a lasting 되돌리기.
 - Save shared prompt and generation presets, including model, size, steps, Guidance, seed, CFG Rescale and sampler. (Noise Schedule is fixed to the default, karras.)
 - Image size is one of three free sizes (832×1216, 1024×1024, 1216×832) and steps are capped at 28, so generations stay inside NovelAI's Opus free conditions for size and steps. V5 still needs "Anlas 사용 가능성 허용"; check its remaining free usage on the NovelAI site.
 - Generate one image at a time, inspect it in a zoomable viewer and download the original PNG.
 - Attach images below existing messages without adding them to the RP message text or native media fields.
 - Browse current-chat or all-chat history, filter by chat and delete individual or selected images.
-- Optional draw button in each message's extra menu (Settings → 메시지에 그리기 버튼 표시, off by default): opens the scene tab with that message selected.
+- Optional draw button in each message's extra menu (Settings → 메시지에 그리기 버튼 표시, off by default): opens the drawing tab (그리기) with that message selected.
 - Choose from seventeen visual themes with the 테마 card at the top of Settings (folded by default; it shows the current theme's colors): 기본 (follows the SillyTavern theme), 글래스, 미니멀, 파스텔 (sky blue and butter yellow), 크림 노트 (lined note paper), 말차 라떼, 딥 블루 (indigo night with sky-blue accents), 라벤더 (lavender with a purple-pink-peach glow), **애플 크림** (cream paper, red apple buttons and green leaf accents), three Christmas themes — **크리스마스** (evergreen with a snow-dusted tree, a fir garland and snow-capped buttons), **눈 오는 밤** (navy night, falling snow, string lights and a crescent moon) and **캔디케인** (cream with candy stripes, holly and green tabs) — and five milk skins: 우유 (milk-carton blue header), 딸기우유, 바나나우유, 초코우유 (chocolate drips), 커피우유 (latte with a foam header).
 
 The model menu currently includes V5 Full/Curated and V4.5 Full/Curated. External model availability and account eligibility are not validated by this review.
@@ -134,13 +134,13 @@ Per-version notes (UI-only or UI + server) are in `CHANGELOG.md`.
 
 1. Save your NovelAI key in SillyTavern. NAIce Shot reuses that key on the server.
 2. Open a character chat, then NAIce Shot.
-3. Create profiles in `프로필` (Profiles), or use `새 프로필 만들기` (Create profile) on the scene tab. Register the user's RP persona separately if it should appear in the image.
+3. Create profiles in `프로필` (Profiles), or use `새 프로필 만들기` (Create profile) on the drawing tab (그리기). Register the user's RP persona separately if it should appear in the image.
 4. Keep fixed appearance and clothing in their respective fields. Use `설명으로 만들기` (From description) to generate a draft, or `직접 입력` (Direct input) to enter tags yourself. Review and save the result.
 5. Enter shared positive and negative prompts in `설정` (Settings). Quality tags are not automatically added.
 6. Start with a manually assembled scene to check image generation.
 7. Select the target message and reference-message count, then choose `장면 추출` (Extract scene). Review the people, outfits, actions and background.
 8. Expand `최종 프롬프트` (Final prompt) if you want to edit exactly what will be sent.
-9. In section `3 · 생성` (Generate), choose a saved **common image preset** without leaving the scene tab, then select `이미지 생성` (Generate image). Generation is manual. The scene and Settings pickers share the same selection; saving or overwriting presets remains in Settings.
+9. In section `3 · 생성` (Generate), choose a saved **common image preset** without leaving the drawing tab (그리기), then select `이미지 생성` (Generate image). Generation is manual. The scene and Settings pickers share the same selection; presets can be saved or overwritten in the generation settings box too.
 10. Click the result to zoom and open **프롬프트 보기 → 프롬프트 복사**, use `PNG 저장` (Save PNG), or attach it with `본문에 넣기` (Attach to message).
 
 History cards show **불러오기 / 본문에 넣기 / ⋯**. Downloads, saving settings as a preset, sending to 프리샷 and deletion are in **⋯**. Attached images also have a corner **⋯**; **이 메시지에서 빼기** there or in the enlarged viewer removes only that message's attachment, keeping other copies, the original PNG and history.
@@ -148,6 +148,14 @@ History cards show **불러오기 / 본문에 넣기 / ⋯**. Downloads, saving 
 Profiles are shared across character chats. Scene extraction checks visible people against saved names, aliases and linked card names, including side characters. Unregistered people retain their extracted expression, action, position and clothing in the scene; creating or linking their profile restores those fields. Side characters also offer **기존 프로필 연결**. Manually adding a profile makes it a candidate in the next **장면 추출**, without forcing an absent person into the image. Old records that stored only a missing name need a fresh extraction to obtain the missing visual fields.
 
 The expandable target-message picker lists newest messages first in a scrolling box. **이전 메시지 N개 더 보기** adds ten more rows. Hidden RP messages are marked **숨김** and can also use the optional draw icon. Selecting a hidden target explicitly sends it and the preceding reference range (including hidden RP) to the extraction AI, without changing chat hide flags. Latest mode and visible targets exclude hidden history. Images can be attached to hidden RP too. Explicit system-type/UI notices are excluded; legacy untyped `is_system` records cannot be distinguished reliably from hidden RP and are available for manual selection. The target-message list also remembers its browsing position and loaded rows when reopened. Each panel tab remembers its own scroll position when switching tabs or closing and reopening the panel, until the browser page is refreshed.
+
+The drawing tab remembers one last work per chat on the server: people (including direct-input slots), scene candidates, chosen moment, target, manual final prompt, one-off generation options and preview. 프리샷 has its own separate work bucket. Returning or refreshing restores saved work without another AI request. Clearing saves an empty work with one undo; the undo survives chat changes and refresh until another edit, extraction or generation. Saved source signatures warn when chat text or swipes changed.
+
+Work files live privately under the signed-in user's `naice-shot-work/`, separate from chat files and image history. Edits are debounced; the status line shows loading, saving or an error with retry. A concurrent edit from another window/device is refused instead of overwritten. Wait for saving to finish before force-closing the browser; background/unload saves are best effort. Profiles, wardrobes and shared settings are not part of the work draft.
+
+**문제 제보용 추출 응답 보관** is off by default and asks before enabling. It controls raw extraction responses in both new image history and work drafts, with reasoning blocks removed. The current response is still viewable/copyable while retention is off. It does not add the response to PNG metadata or send it to NovelAI. Existing image history is unchanged.
+
+Original PNG downloads, including selection ZIPs, show a metadata warning with original/shared/cancel choices. **새로고침 전까지 다시 묻지 않기** suppresses it only for the current page. Shared copies have no warning; visible names/text in the picture are not removed.
 
 Extraction can be cancelled. Image generation has no cancellation button once submitted. If you switch chats while generation runs, the server saves the result under the originating chat.
 
@@ -169,7 +177,7 @@ Generation errors are not automatically retried. A timeout does not establish wh
 
 ## Preset and history settings
 
-The scene tab and Settings tab both offer the saved common image preset list. Applying a preset loads its shared positive/negative prompts and saved generation options, reassembles the current scene and clears any manually edited final prompt or history settings override. The saved preset itself is not overwritten. Clearing the picker keeps the current values.
+The drawing tab (그리기) and Settings tab both offer the saved common image preset list. Applying a preset loads its shared positive/negative prompts and saved generation options, reassembles the current scene and clears any manually edited final prompt or history settings override. The saved preset itself is not overwritten. Clearing the picker keeps the current values.
 
 Restoring history uses that record's prompt, seed and options without changing persistent Settings values. A successful image generation consumes those temporary overrides once and returns to your current settings. Resetting the final prompt or switching chats also clears both overrides and refreshes the editor even if it has focus. A successful new scene extraction clears those temporary overrides as well. A failed or cancelled extraction leaves the previous edit intact. Editing the scene, applying a preset or changing generation settings also clears the history options override. The scene preset helper indicates when history settings take priority.
 

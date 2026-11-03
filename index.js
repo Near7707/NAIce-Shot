@@ -12,6 +12,8 @@ import { captureImagePreset, applyImagePreset, imagePresetModified, validateImag
 import { listExtractionProfiles, requestExtraction } from './extractor.mjs';
 import { openImageViewer } from './viewer.mjs';
 import { copyText } from './clipboard.mjs';
+import {DraftQueue,packWork,unpackWork} from './draft-work.mjs';
+import {choosePngDownload,bindPngDownloads,downloadOriginal} from './download-choice.mjs';
 import { genericizeScene } from './tags.mjs';
 import { checkCompat } from './compat.mjs';
 import { makeZip } from './zip.mjs';
@@ -30,6 +32,7 @@ let profileContext='profiles',busyOwner=0,extraction=null,progress=null,optionsO
 const selectedIds=new Set(),HISTORY_PAGE=20;
 let historyScope='chat',historyFilter='',historyChats=[],historyBytes=0,historyImageCount=0,historyRequest=0;
 let availableSkins=SKINS.filter(s=>!s.file),skinsDetected=false;
+let draftsEnabled=false,draftLoading=false,pauseDraftCapture=false,draftLoadToken=0,draftSource=null,draftNote='';
 const $=id=>dialog.querySelector(`#${id}`);
 const ctx=()=>SillyTavern.getContext();
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -101,7 +104,7 @@ function setMessageButtons(on){
 }
 async function drawFromMessage(index){
   await (panelReady??Promise.resolve());
-  if(busy||attaching){await open();notice('진행 중인 작업이 끝난 뒤 선택해 주세요.',true);return;}
+  if(busy||attaching||draftLoading){await open();notice('진행 중인 작업이 끝난 뒤 선택해 주세요.',true);return;}
   await open();showTab('scene');
   const m=ctx().chat?.[index];
   if(!Number.isInteger(index)||!isSceneMessage(m)){notice('이 메시지는 그림 대상으로 고를 수 없어요.',true);return;}
@@ -236,14 +239,53 @@ function say(message,error=false) {
   if(dialog?.open||!globalThis.toastr)notice(message,error);
   else globalThis.toastr[error?'error':'success'](message,brand());
 }
-function changed(){revision++;finalOverride=null;optionsOverride=null;dropUndo();updateFinal({force:true});}
+function changed(){revision++;finalOverride=null;optionsOverride=null;dropUndo();updateFinal({force:true});scheduleDraft();}
 // History restore uses the stored options for the next generation only; the settings tab keeps the user's own values.
 function effectiveOptions(){return optionsOverride?freeOptions(optionsOverride):settings().options;}
-function setBusy(value,owner=0) {busy=value;busyOwner=value?owner:0;for(const b of dialog.querySelectorAll('[data-action="extract"],[data-action="free-fill"],[data-mode],[data-history-free],[data-action="generate"],[data-action="blank"],[data-action="same-seed"],[data-action="new-seed"],[data-action="convert-profile"]'))b.disabled=value;updateAttachButtons();}
-async function api(route,{method='GET',body}={}) {
-  const response=await fetch(`${API}${route}`,{method,headers:ctx().getRequestHeaders(),body:body?JSON.stringify(body):undefined});
+function setBusy(value,owner=0) {busy=value;busyOwner=value?owner:0;for(const b of dialog.querySelectorAll('[data-action="extract"],[data-action="free-fill"],[data-mode],[data-history-free],[data-action="generate"],[data-action="blank"],[data-action="same-seed"],[data-action="new-seed"],[data-action="convert-profile"]'))b.disabled=value;updateAttachButtons();if(!value)rememberDraft();}
+async function api(route,{method='GET',body,keepalive=false,signal}={}) {
+  const response=await fetch(`${API}${route}`,{method,headers:ctx().getRequestHeaders(),body:body?JSON.stringify(body):undefined,keepalive,signal});
   const text=await response.text();let data;try{data=JSON.parse(text);}catch{throw new Error(`서버 플러그인을 확인해 주세요 (${response.status}).`);}
-  if(!response.ok||data.error)throw new Error(data.error??`요청 실패 (${response.status})`);return data;
+  if(!response.ok||data.error){const error=new Error(data.error??`요청 실패 (${response.status})`);error.status=response.status;throw error;}return data;
+}
+const draftSignal=()=>globalThis.AbortSignal?.timeout?.(15000);
+const drafts=new DraftQueue({read:key=>api(`/draft?chatKey=${encodeURIComponent(key)}`,{signal:draftSignal()}),
+  write:(key,body)=>{const value={...body,chatKey:key,retainRawExtraction:settings().retainRawExtraction===true};return api('/draft',{method:'POST',body:value,keepalive:new Blob([JSON.stringify(value)]).size<60000,signal:draftSignal()});},onState:()=>renderDraftState()});
+let captureTimer=null;
+function scheduleDraft(){clearTimeout(captureTimer);captureTimer=null;if(draftsEnabled){captureTimer=setTimeout(()=>rememberDraft(),450);renderDraftState();}}
+function renderRawRetention(){if(dialog)$('ncs-retain-state').textContent=settings().retainRawExtraction===true?'켜짐 · 추출 응답 보관 중':'꺼짐 · 추출 응답은 보관하지 않아요.';}
+function renderDraftState(){
+  if(!dialog)return;const e=drafts.entry(workKey()),box=$('ncs-draft-status');
+  if(!draftsEnabled){box.hidden=!compatChecked;box.textContent='작업 기억을 사용할 수 없어요. 서버 연결·업데이트를 확인해 주세요.';$('ncs-draft-retry').hidden=!compatChecked;$('ncs-draft-retry').textContent='연결 다시 확인';return;}
+  box.hidden=!draftsEnabled;box.textContent=draftLoading?'마지막 작업을 불러오는 중…':e.error?`작업 저장을 확인해 주세요: ${e.error.message}`:e.saving||e.dirty||captureTimer?'마지막 작업 저장 중…':draftNote||'마지막 작업을 서버에 기억해요.';
+  $('ncs-draft-retry').hidden=!draftsEnabled||!e.error;
+  $('ncs-draft-retry').textContent=e.error?.status===409?'서버 작업 다시 불러오기':'다시 시도';
+}
+function rememberDraft(key=workKey(),work=null,{flush=false}={}){
+  clearTimeout(captureTimer);captureTimer=null;
+  if(!draftsEnabled||!key||draftLoading||pauseDraftCapture)return;
+  try{drafts.put(key,packWork(work??captureWork(),{retainRaw:settings().retainRawExtraction===true}));if(flush)drafts.flush(key);}
+  catch(e){drafts.entry(key).error=e;}finally{renderDraftState();}
+}
+async function recallDraft(key=workKey()){
+  if(!draftsEnabled||!key)return;
+  const token=++draftLoadToken;draftLoading=true;draftNote='';$('ncs-work-fields').disabled=true;renderDraftState();
+  try{
+    const data=await drafts.ensure(key);if(token!==draftLoadToken||key!==workKey())return;
+    if(data){loadWork(unpackWork(packWork(data,{retainRaw:settings().retainRawExtraction===true})));
+      const stale=!isFree()&&(!sourceValid(scene.source,ctx().chat)||!sourceValid(draftSource,ctx().chat));
+      if(stale){$('ncs-target').value='';$('ncs-moment-wish').value='';}
+      draftNote=stale?'마지막 작업을 불러왔어요. 원문이나 리롤이 바뀌었으니 대상과 프롬프트를 다시 확인해 주세요.':'마지막 작업을 불러왔어요. AI를 다시 호출하지 않았어요.';
+    }
+    renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();
+  }catch(e){if(token===draftLoadToken)draftNote='작업을 불러오지 못했어요. 다시 시도해 주세요.';}
+  finally{if(token===draftLoadToken){draftLoading=false;$('ncs-work-fields').disabled=false;renderDraftState();}}
+}
+async function retryDraft(){
+  if(!draftsEnabled){await checkServer({force:true});return;}
+  const key=workKey(),e=drafts.entry(key);
+  if(e.error?.status===409){if(!confirm('서버에 저장된 작업을 다시 불러올까요? 현재 화면의 저장되지 않은 편집은 바뀌어요.'))return;drafts.entries.delete(key);await recallDraft(key);}
+  else if(!e.loaded){if((scene.characters.length||['location','lighting','camera','interaction'].some(k=>scene[k])||$('ncs-free-text').value)&&!confirm('서버 작업을 다시 불러오면 현재 화면의 편집이 바뀔 수 있어요. 불러올까요?'))return;await recallDraft(key);}else await drafts.flush(key);
 }
 // Each tab owns its last position for this page session. Never record the zero
 // geometry of a closed dialog; showModal's focus step may also move the viewport.
@@ -300,19 +342,23 @@ function renderTargets() {
   targetListRendered=true;restoreTargetScroll();
 }
 function chooseTarget(value,{reveal=false}={}) {
+  dropUndo();
   rememberTargetScroll();targetReveal=reveal;if(value==='')targetScroll=0;
   if($('ncs-target').value!==value)$('ncs-moment-wish').value=''; // a wished moment belongs to the message it was written for
   $('ncs-target').value=value;$('ncs-target-picker').open=false;renderTargets();$('ncs-target-label').focus({preventScroll:true});
+  const m=ctx().chat?.[Number(value)];draftSource=value!==''&&m?{fingerprints:[{index:Number(value),swipeId:m.swipe_id??0,signature:textSignature(m.mes)}]}:null;
+  rememberDraft();
 }
 // --- Work per mode (챗샷 / 프리샷), clearing and undo --------------------------------------------------
 // The active mode's work lives in the usual variables; the other mode's work waits in `spare`.
 const spare={};
 let undoClear=null;
 const blankWork=()=>({scene:blankScene(),raw:'',finalOverride:null,optionsOverride:null,restoredFinal:null,result:null,undoClear:null,target:'',wish:'',freeText:''});
-function captureWork(){return {scene,raw,finalOverride,optionsOverride,restoredFinal,result,undoClear,target:$('ncs-target').value,wish:$('ncs-moment-wish').value,freeText:$('ncs-free-text').value};}
+function captureWork(){return {scene,raw,finalOverride,optionsOverride,restoredFinal,result,undoClear,target:$('ncs-target').value,wish:$('ncs-moment-wish').value,freeText:$('ncs-free-text').value,targetSource:draftSource,targetShown,finalText:$('ncs-final').value};}
 function loadWork(w){
   ({scene,raw,finalOverride,optionsOverride,restoredFinal,result,undoClear}=w);
   $('ncs-target').value=w.target??'';$('ncs-moment-wish').value=w.wish??'';$('ncs-free-text').value=w.freeText??'';
+  draftSource=w.targetSource??null;targetShown=w.targetShown??TARGET_STEP;if(w.finalOverride?.invalid)$('ncs-final').value=w.finalText??'';
   lastLink=null;linkTarget=null;wardrobeTarget=null;pendingTempConvert=null;
 }
 function renderModeUI(){
@@ -323,25 +369,27 @@ function renderModeUI(){
   dialog.querySelector('[data-history-scope="chat"]').textContent=free?'프리샷':'이 채팅';
   dialog.dataset.workMode=mode;renderUndo();
 }
-function setMode(next){
-  if(next===mode)return;if(busy||attaching)throw new Error('진행 중인 작업이 끝난 뒤 바꿔 주세요.');
-  rememberScroll();spare[mode]=captureWork();mode=next;loadWork(spare[mode]??blankWork());delete spare[mode];
+async function setMode(next){
+  if(next===mode)return;if(busy||attaching||draftLoading)throw new Error('진행 중인 작업이 끝난 뒤 바꿔 주세요.');
+  rememberDraft(workKey(),null,{flush:true});rememberScroll();spare[mode]=captureWork();mode=next;loadWork(spare[mode]??blankWork());delete spare[mode];
   historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();historyPresetTarget=null;
   revision++;renderModeUI();renderTargets();renderScene({forceFinal:true});renderResult();if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true));
   notice(isFree()?'프리샷이에요. 채팅과 상관없이 자유롭게 그려요.':'챗샷이에요. 열린 채팅의 장면을 그려요.');
+  await recallDraft();
 }
 function renderUndo(){
   if(!dialog)return;const box=$('ncs-undo-clear');box.hidden=!undoClear;
   if(undoClear)box.innerHTML=`<span>${esc(undoClear.label??'이번 작업을 비웠어요. 공통 프롬프트와 기본 설정은 유지돼요.')}</span><button type="button" data-action="undo-clear">되돌리기</button>`;
 }
-// Undo lasts until the next edit, extraction, generation or chat change; switching tabs keeps it.
+// One undo belongs to the saved work; edits, extraction and generation end it, while chat/tab switches keep it.
 function dropUndo(){if(undoClear){undoClear=null;renderUndo();}}
 function clearWork(){
   if(busy||attaching)throw new Error('진행 중인 작업이 끝난 뒤 비워 주세요.');
-  const before={...captureWork(),targetShown};
-  scene=blankScene();raw='';finalOverride=null;optionsOverride=null;restoredFinal=null;result=null;lastLink=null;linkTarget=null;wardrobeTarget=null;pendingTempConvert=null;
+  const before={...captureWork(),targetShown,undoClear:null};
+  scene=blankScene();draftSource=null;raw='';finalOverride=null;optionsOverride=null;restoredFinal=null;result=null;lastLink=null;linkTarget=null;wardrobeTarget=null;pendingTempConvert=null;
   if(isFree())$('ncs-free-text').value='';else{$('ncs-moment-wish').value='';$('ncs-target').value='';$('ncs-target-picker').open=false;targetScroll=0;targetShown=TARGET_STEP;renderTargets();}
   revision++;undoClear=before;renderScene({forceFinal:true});renderResult();renderUndo();
+  rememberDraft();
   notice('이번 작업을 비웠어요. 공통 프롬프트와 기본 설정은 유지돼요.');
 }
 // Everything comes back together: people, scene, candidates, target, final prompt, one-off options, preview.
@@ -349,6 +397,7 @@ function undoClearWork(){
   const w=undoClear;if(!w)return;if(busy||attaching)throw new Error('진행 중인 작업이 끝난 뒤 되돌려 주세요.');
   loadWork({...w,undoClear:null});targetShown=w.targetShown??TARGET_STEP;
   revision++;renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();notice('비우기 전으로 되돌렸어요.');
+  rememberDraft();
 }
 const skinTargets=()=>[dialog,document.getElementById('ncs-viewer')];
 function renderSkins() {
@@ -375,6 +424,7 @@ function renderSettings() {
   $('ncs-model').innerHTML=Object.entries(MODELS).map(([id,m])=>`<option value="${id}">${m.label}</option>`).join('');
   for(const [id,k] of [['positive','positive'],['negative','negative'],['recent','recent'],['format','format']])$(`ncs-${id}`).value=s[k];
   for(const [id,k] of [['model','model'],['steps','steps'],['scale','scale'],['seed','seed'],['cfg','cfgRescale'],['sampler','sampler']])$(`ncs-${id}`).value=s.options[k];
+  renderRawRetention();
   $('ncs-include-user').checked=s.includeUser;$('ncs-schema').checked=s.structuredOutput;$('ncs-retain-raw').checked=s.retainRawExtraction===true;$('ncs-allow-anlas').checked=s.allowAnlas;
   $('ncs-image-placement').value=imagePlacement();$('ncs-message-button').checked=messageButtonsOn();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
   renderImagePresets();renderExtractionProfiles();$('ncs-extraction-max-tokens').value=s.extractionMaxTokens;$('ncs-extraction-temperature').value=extractionTemperature()??'';
@@ -852,7 +902,7 @@ function updateFinal({force=false}={}) {
     if(scene.source&&!sourceValid(scene.source,ctx().chat))warnings.push('대상 메시지가 수정·삭제·리롤됐어요. 다시 추출하거나 내용을 확인해 주세요.');
     if(a.base.length+a.characters.reduce((n,c)=>n+c.prompt.length,0)>2000)warnings.push('프롬프트가 길어요. 특히 V4.5는 전체 토큰 한도를 확인해 주세요.');
     if(finalOverride)warnings.push('직접 고친 최종 프롬프트를 이번 생성에 써요. 되돌리려면 "조립 결과로 되돌리기"를 눌러 주세요.');
-    if(optionsOverride)warnings.push(`이력에서 불러온 생성 설정(seed ${optionsOverride.seed})을 이번 생성에만 써요. 생성 성공·조립 결과로 되돌리기·채팅 변경 시 현재 설정으로 돌아가요.`);
+    if(optionsOverride)warnings.push(`이력에서 불러온 생성 설정(seed ${optionsOverride.seed})을 이번 생성에만 써요. 생성 성공·조립 결과로 되돌리기 시 현재 설정으로 돌아가요. 이 채팅의 마지막 작업에 함께 기억해요.`);
     $('ncs-warnings').textContent=warnings.join('\n');
     const guard=costGuard(effectiveOptions(),subscription);$('ncs-cost').textContent=guard.message;
     updatePresetState();
@@ -1034,8 +1084,9 @@ async function checkServer({force=false}={}) {
     try{data=JSON.parse(await response.text());}catch{data=null;}
   }catch{status=-1;}
   compatResult=checkCompat({uiVersion:VERSION,status,data});
+  if(data?.features?.includes('draft-work')&&!draftsEnabled){draftsEnabled=true;await recallDraft();}
   if(force)compatDismissed=false;
-  renderCompat();return compatResult;
+  renderCompat();renderDraftState();return compatResult;
 }
 function renderCompat() {
   if(!dialog)return;const show=(compatResult.level==='warn'||compatResult.level==='error')&&!compatDismissed;
@@ -1065,16 +1116,28 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   const snapshot={scene:clone(scene),...(isFree()?{mode:'free',freeText:$('ncs-free-text').value}:{}),...(s.retainRawExtraction===true?{rawExtraction:stripReasoningBlocks(raw)}:{})};snapshot.scene.source=scene.source?compactSource(scene.source):null;
   if(workKey()!==startKey)return;
   dropUndo();setBusy(true,ticket);startProgress('generate',ticket);notice('NAI에 생성 요청을 보내고 있어요. 창을 닫거나 채팅을 바꿔도 서버는 결과를 저장해요.');
+  rememberDraft(startKey,null,{flush:true});const generationDraft=drafts.entry(startKey);generationDraft.pinned=true;const savedDraftVersion=generationDraft.version;
   try {
     const item=await api('/generate',{method:'POST',body:{requestId:uuid(),chatKey:startKey,assembled:a,options,allowAnlas:s.allowAnlas,retainRawExtraction:s.retainRawExtraction===true,snapshot}});
-    if(ticket!==task||workKey()!==startKey){notice('생성이 끝났어요. 시작한 곳의 이력에서 확인할 수 있어요.');return;}
+    if(ticket!==task||workKey()!==startKey){
+      // A successful old-chat request must consume its old one-off options as well, never the new chat's.
+      const e=drafts.entry(startKey),same=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
+      if(draftsEnabled&&e.loaded&&e.data){const w={...e.data};
+        if(same(w.finalOverride,submittedFinal)){w.finalOverride=null;w.isRestored=false;}
+        if(same(w.optionsOverride,submittedOptions))w.optionsOverride=null;
+        if(e.version===savedDraftVersion)w.result=item;
+        drafts.put(startKey,packWork(w,{retainRaw:s.retainRawExtraction===true}));drafts.flush(startKey);
+        if(workKey()===startKey){if(same(finalOverride,submittedFinal))finalOverride=null;if(same(optionsOverride,submittedOptions))optionsOverride=null;result=w.result;renderScene({forceFinal:true});renderResult();}
+      }
+      notice('생성이 끝났어요. 시작한 곳의 이력에서 확인할 수 있어요.');return;
+    }
     // Consume only the submitted overrides; keep a newer edit made while awaiting the response.
     const resetFinal=finalOverride===submittedFinal;
     if(resetFinal)finalOverride=null;
     if(optionsOverride===submittedOptions)optionsOverride=null;
     revision++;updateFinal({force:resetFinal});
     result=item;renderResult();notice(`생성했어요 · seed ${item.seed} · 그림을 누르면 크게 볼 수 있어요.`);loadHistory().catch(()=>{});
-  }finally{stopProgress(ticket);if(busyOwner===ticket)setBusy(false);}
+  }finally{generationDraft.pinned=false;stopProgress(ticket);if(busyOwner===ticket)setBusy(false);}
 }
 const chatRows=()=>ctx().chat.map((m,i)=>({m,i})).filter(({m})=>isSceneMessage(m));
 const rowOption=({m,i},selected=false)=>`<option value="${i}" ${selected?'selected':''}>#${i} · ${esc(m.name)}${isHiddenSceneMessage(m)?' · 숨김':''} · ${esc(m.mes.replace(/\s+/g,' ').slice(0,35))}</option>`;
@@ -1100,11 +1163,12 @@ function updateAttachButtons() {
   updateHistoryTools();
 }
 let savingSelection=false;
-function downloadFile(url,filename) {const a=document.createElement('a');a.href=url;a.download=filename;a.rel='noopener';a.style.display='none';document.body.append(a);a.click();a.remove();}
+const downloadFile=downloadOriginal;
 // Saves the selected history images: one PNG as-is, several as a single ZIP (one download prompt, works on mobile).
 async function saveSelected(clean=false) {
   const items=historyItems.filter(x=>selectedIds.has(x.id)).sort((a,b)=>String(a.created).localeCompare(String(b.created)));
   if(!items.length||savingSelection)return;
+  if(!clean){savingSelection=true;updateHistoryTools();try{const choice=await choosePngDownload();if(!choice)return;clean=choice==='shared';}finally{savingSelection=false;updateHistoryTools();}}
   if(items.length===1&&clean){savingSelection=true;updateHistoryTools();try{await saveCleanImage(items[0]);notice('메타데이터를 뺀 공유용 PNG를 저장했어요.');}finally{savingSelection=false;updateHistoryTools();}return;}
   if(items.length===1){const file=imageDownload(items[0]);downloadFile(file.url,file.filename);notice('선택한 그림 1장을 PNG로 저장했어요.');return;}
   savingSelection=true;updateHistoryTools();
@@ -1229,7 +1293,7 @@ let historyPresetTarget=null;
 const historyPresetControls=item=>item.options?(historyPresetTarget===item.id?`<div class="ncs-wardrobe-save ncs-preset-form"><label>새 프리셋 이름<input id="ncs-history-preset-name" maxlength="80" placeholder="예: 이 그림 설정"></label><small>이 그림의 생성 설정·공통 태그를 저장해요. 인물·장면은 제외하고 seed는 새로 뽑아요.</small>${commonPositiveOf(item)===null?'<small>공통 Positive는 현재 설정값을 사용해요.</small>':''}<div class="ncs-row ncs-form-actions"><button type="button" class="ncs-primary" data-history-preset-save="${esc(item.id)}">저장</button><button type="button" data-history-preset-cancel>취소</button></div></div>`:''):'';
 function historyActions(item,{editable=false,attached=false}={}){
   const id=esc(item.id),menu=`ncs-history-menu-${id}`,file=imageDownload(item);
-  return `<div class="ncs-history-actions${editable?'':' ncs-history-readonly'}">${editable?`<button type="button" data-history-id="${id}" title="이 그림의 작업을 그리기창으로 불러오기">불러오기</button>${isFree()?'':`<button type="button" data-history-attach="${id}" class="ncs-primary">본문에 넣기</button>`}`:''}<button type="button" data-image-more="${menu}" aria-controls="${menu}" aria-expanded="false" aria-label="이력 그림 더 보기">⋯</button></div><div id="${menu}" class="ncs-image-popup" popover="manual" hidden role="group" aria-label="이력 그림 작업"><a href="${esc(file.url)}" download="${file.filename}">원본 PNG 저장</a><button type="button" data-clean-save="${id}">공유용 PNG 저장</button>${item.options?`<button type="button" data-history-preset="${id}">설정을 프리셋으로</button>`:''}<button type="button" data-history-free="${id}">프리샷으로 보내기</button>${editable&&attached?`<button type="button" data-history-detach="${id}">이 채팅의 첨부 모두 빼기</button>`:''}<hr><button type="button" data-history-delete="${id}" class="ncs-danger-outline">그림 삭제</button></div>${historyPresetControls(item)}`;
+  return `<div class="ncs-history-actions${editable?'':' ncs-history-readonly'}">${editable?`<button type="button" data-history-id="${id}" title="이 그림의 작업을 그리기창으로 불러오기">불러오기</button>${isFree()?'':`<button type="button" data-history-attach="${id}" class="ncs-primary">본문에 넣기</button>`}`:''}<button type="button" data-image-more="${menu}" aria-controls="${menu}" aria-expanded="false" aria-label="이력 그림 더 보기">⋯</button></div><div id="${menu}" class="ncs-image-popup" popover="manual" hidden role="group" aria-label="이력 그림 작업"><a href="${esc(file.url)}" download="${file.filename}">원본 PNG 저장<small>메타데이터가 포함될 수 있어요.</small></a><button type="button" data-clean-save="${id}">공유용 PNG 저장<small>메타데이터를 제거한 사본이에요.</small></button>${item.options?`<button type="button" data-history-preset="${id}">설정을 프리셋으로</button>`:''}<button type="button" data-history-free="${id}">프리샷으로 보내기</button>${editable&&attached?`<button type="button" data-history-detach="${id}">이 채팅의 첨부 모두 빼기</button>`:''}<hr><button type="button" data-history-delete="${id}" class="ncs-danger-outline">그림 삭제</button></div>${historyPresetControls(item)}`;
 }
 // The common Positive is merged into the base prompt. It can be recovered only when the rest of the base is
 // exactly what the scene contributed; otherwise the settings tab's current value is used (and said so).
@@ -1307,9 +1371,9 @@ async function loadHistory({append=false}={}) {
   if(request===historyRequest)renderHistory();
 }
 function restoreHistory(id) {
-  if(busy)throw new Error('진행 중인 작업이 끝난 뒤 불러와 주세요.');
+  if(busy||draftLoading)throw new Error('진행 중인 작업이 끝난 뒤 불러와 주세요.');
   const item=historyItems.find(x=>x.id===id);if(!item)return;
-  scene=clone(item.snapshot?.scene??blankScene());scene.source=null;
+  scene={...blankScene(),...clone(item.snapshot?.scene??{})};scene.source=null;
   const known=c=>c.temp||settings().profiles.some(p=>p.id===c.id);
   scene.characters=scene.characters.filter(known);
   if(Array.isArray(scene.moments)&&scene.moments.length>1){for(const m of scene.moments)m.scene.characters=(m.scene.characters??[]).filter(known);scene.momentIndex=Math.min(Math.max(0,Number(scene.momentIndex)||0),scene.moments.length-1);}
@@ -1319,20 +1383,22 @@ function restoreHistory(id) {
   dropUndo();
   raw=item.snapshot?.rawExtraction??'';finalOverride=restoredFinal=clone(item.assembled);optionsOverride=clone(item.options);
   result=item;revision++;renderScene({forceFinal:true});renderResult();showTab('scene');
+  rememberDraft();
   notice('당시 최종 프롬프트와 생성 설정(seed 포함)을 불러왔어요. 설정 탭 값과 "채팅 기본 복장"은 바뀌지 않아요.');
 }
 // 이력 → 프리샷: the image's scene (the chosen candidate only), final prompt and one-off options land in 프리샷.
 // What was in 프리샷 before can come back with 되돌리기.
-function sendToFree(id){
-  if(busy||attaching)throw new Error('진행 중인 작업이 끝난 뒤 보내 주세요.');
+async function sendToFree(id){
+  if(busy||attaching||draftLoading)throw new Error('진행 중인 작업이 끝난 뒤 보내 주세요.');
   const item=historyItems.find(x=>x.id===id);if(!item)return;
-  if(!isFree())setMode('free');
-  const before={...captureWork(),targetShown,label:'이력에서 가져왔어요. 원래 프리샷 작업은 되돌리기로 돌아와요.'};
+  if(!isFree())await setMode('free');
+  const before={...captureWork(),undoClear:null,targetShown,label:'이력에서 가져왔어요. 원래 프리샷 작업은 되돌리기로 돌아와요.'};
   const known=c=>c.temp||settings().profiles.some(p=>p.id===c.id),snap=clone(item.snapshot?.scene??blankScene());
   scene={...blankScene(),...momentPart(snap),source:null};scene.characters=scene.characters.filter(known);
   raw='';finalOverride=restoredFinal=clone(item.assembled);optionsOverride=clone(item.options);result=item;
   $('ncs-free-text').value=typeof item.snapshot?.freeText==='string'?item.snapshot.freeText:'';
   undoClear=before;revision++;renderScene({forceFinal:true});renderResult();renderUndo();showTab('scene');
+  rememberDraft();
   notice('이력의 장면·프롬프트·생성 설정을 프리샷으로 가져왔어요. 채팅과 상관없이 고쳐서 다시 그릴 수 있어요. 원래 프리샷 작업은 되돌리기로 돌아와요.');
 }
 function exportSettings() {
@@ -1427,6 +1493,7 @@ async function onAction(action,el) {
     case 'wardrobe-remove':{el.closest('.ncs-wardrobe-item')?.remove();if(!$('ncs-wardrobe-list').children.length)renderWardrobeForm([]);notice('옷을 뺐어요. 프로필 저장을 눌러야 반영돼요.');break;}
     case 'extraction-recommended':settings().extractionMaxTokens=RECOMMENDED_MAX_TOKENS;$('ncs-extraction-max-tokens').value=RECOMMENDED_MAX_TOKENS;revision++;ctx().saveSettingsDebounced();notice(`독립 추출 응답 한도를 권장값 ${RECOMMENDED_MAX_TOKENS}로 바꿨어요. 실제로 쓰는 양은 응답 길이만큼이에요.`);break;
     case 'copy-raw':await copyRaw();break;
+    case 'draft-retry':await retryDraft();break;
     case 'history':await loadHistory();break;
     case 'history-more':await loadHistory({append:true});break;
     case 'select-all-history':{
@@ -1455,8 +1522,8 @@ function bindEvents() {
       else if(el.dataset.action)await onAction(el.dataset.action,el);
       else if(el.dataset.historyScope)setHistoryScope(el.dataset.historyScope);
       else if(el.dataset.profileMode)setProfileMode(el.dataset.profileMode);
-      else if(el.dataset.mode)setMode(el.dataset.mode);
-      else if(el.dataset.historyFree)sendToFree(el.dataset.historyFree);
+      else if(el.dataset.mode)await setMode(el.dataset.mode);
+      else if(el.dataset.historyFree)await sendToFree(el.dataset.historyFree);
       else if(el.dataset.moment!==undefined)switchMoment(Number(el.dataset.moment));
       else if(el.dataset.tempFrom!==undefined)addTemp(el.dataset.tempFrom);
       else if(el.dataset.tempSave)tempToProfile(el.dataset.tempSave);
@@ -1479,7 +1546,7 @@ function bindEvents() {
       else if(el.dataset.historyAttach){const item=historyItems.find(x=>x.id===el.dataset.historyAttach),chosen=$('ncs-history-target').value;await putImageInChat(item,chosen===''?preferredTarget(item):Number(chosen));}
       else if(el.dataset.historyDelete)await deleteImages({ids:[el.dataset.historyDelete]});
       else if(el.dataset.historyDetach)await removeImageFromChat(historyItems.find(x=>x.id===el.dataset.historyDetach));
-    }).catch(e=>notice(e.message,true));
+    }).catch(e=>notice(e.message,true)).finally(()=>rememberDraft());
   });
   // Thumbnails whose PNG was removed by hand show a short note instead of a broken image.
   dialog.addEventListener('error',event=>{const img=event.target;if(img?.tagName==='IMG')img.closest('.ncs-image-open')?.classList.add('ncs-missing');},true);
@@ -1488,6 +1555,7 @@ function bindEvents() {
     const el=event.target;
     if(el.closest('#ncs-profile-form')||el.id==='ncs-import'||el.id==='ncs-raw')return;
     try {
+      if(el.closest('#ncs-work-fields'))dropUndo();
       if(el.dataset.historyPick){if(el.checked)selectedIds.add(el.dataset.historyPick);else selectedIds.delete(el.dataset.historyPick);el.closest('.ncs-history-card')?.classList.toggle('ncs-picked',el.checked);updateHistoryTools();return;}
       if(el.id==='ncs-history-target')return;
       if(el.id==='ncs-history-filter'){historyFilter=el.value;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();loadHistory().catch(e=>notice(e.message,true));return;}
@@ -1533,7 +1601,11 @@ function bindEvents() {
       for(const field of ['location','lighting','camera','interaction'])if(el.id===`ncs-${field}`){scene[field]=el.value;changed();return;}
       if(el.id==='ncs-message-button'){settings().messageButton=el.checked;ctx().saveSettingsDebounced();setMessageButtons(el.checked);notice(el.checked?'메시지의 추가 메뉴(…)에 그리기 버튼을 넣었어요.':'메시지의 그리기 버튼을 뺐어요.');return;}
       if(el.id==='ncs-image-placement'){settings().imagePlacement=el.value==='above'?'above':'below';ctx().saveSettingsDebounced();renderChatImages();notice(el.value==='above'?'채팅 속 그림을 메시지 글 위에 보여줘요.':'채팅 속 그림을 메시지 글 아래에 보여줘요.');return;}
-      const settingMap={'ncs-positive':'positive','ncs-negative':'negative','ncs-format':'format','ncs-recent':'recent','ncs-include-user':'includeUser','ncs-schema':'structuredOutput','ncs-retain-raw':'retainRawExtraction','ncs-allow-anlas':'allowAnlas'};
+      if(el.id==='ncs-retain-raw'){
+        if(el.checked&&!confirm('추출 응답을 이력에 보관할까요?\n응답에는 대화 인용이나 인물·장면 정보가 포함될 수 있어요. 앞으로 생성하는 그림의 이력과 마지막 작업에 저장되며, PNG에는 추가되지 않아요. 문제 확인·제보가 필요할 때만 켜 주세요.'))el.checked=false;
+        settings().retainRawExtraction=el.checked;ctx().saveSettingsDebounced();renderRawRetention();return;
+      }
+      const settingMap={'ncs-positive':'positive','ncs-negative':'negative','ncs-format':'format','ncs-recent':'recent','ncs-include-user':'includeUser','ncs-schema':'structuredOutput','ncs-allow-anlas':'allowAnlas'};
       const optionMap={'ncs-model':'model','ncs-steps':'steps','ncs-scale':'scale','ncs-seed':'seed','ncs-cfg':'cfgRescale','ncs-sampler':'sampler'};
       if(settingMap[el.id])settings()[settingMap[el.id]]=el.type==='checkbox'?el.checked:el.type==='number'?Number(el.value):el.value;
       if(optionMap[el.id]){optionsOverride=null;settings().options[optionMap[el.id]]=el.type==='number'?Number(el.value):el.value;if(el.id==='ncs-steps'&&Number(el.value)>FREE_STEPS){settings().options.steps=FREE_STEPS;el.value=FREE_STEPS;}}
@@ -1544,13 +1616,15 @@ function bindEvents() {
         else{revision++;if(optionMap[el.id])$('ncs-size-preset').value=sizePresetOf(settings().options);updateFinal();}
         updatePresetState();
       }
-    }catch(e){notice(e.message,true);}
+    }catch(e){notice(e.message,true);}finally{scheduleDraft();}
   });
   $('ncs-import').addEventListener('change',event=>importSettings(event.target.files[0]).catch(e=>notice(e.message,true)));
 }
 function chatChanged() {
   closeImageMenu();
   const key=keyOf();if(key===chatKey)return;
+  const oldKey=chatKey;if(oldKey){const oldWork=isFree()?spare.chat:captureWork();if(oldWork)rememberDraft(oldKey,oldWork,{flush:true});}
+  if(!isFree()){draftLoadToken++;draftLoading=false;$('ncs-work-fields').disabled=false;}
   closeMissingDialog();pendingBind=null;quickProfileName='';chatKey=key;
   if(isFree()){
     // 프리샷 work has nothing to do with the chat: keep it, and start the chat's work fresh for when 챗샷 returns.
@@ -1558,9 +1632,11 @@ function chatChanged() {
     if(dialog){renderTargets();renderMatching();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';}
     renderChatImages();return;
   }
-  cancelExtraction('');wardrobeTarget=null;pendingTempConvert=null;lastLink=null;linkTarget=null;task++;revision++;scene=blankScene();raw='';finalOverride=null;optionsOverride=null;restoredFinal=null;result=null;undoClear=null;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();
+  pauseDraftCapture=true;try{cancelExtraction('');}finally{pauseDraftCapture=false;}
+  wardrobeTarget=null;pendingTempConvert=null;lastLink=null;linkTarget=null;task++;revision++;scene=blankScene();draftSource=null;raw='';finalOverride=null;optionsOverride=null;restoredFinal=null;result=null;undoClear=null;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();
   if(dialog){targetScroll=0;targetReveal=false;targetListRendered=false;targetShown=TARGET_STEP;$('ncs-target').value='';$('ncs-moment-wish').value='';$('ncs-target-picker').open=false;renderTargets();renderMatching();renderScene({forceFinal:true});renderResult();renderUndo();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.');}
   renderChatImages();
+  recallDraft().catch(e=>notice(e.message,true));
 }
 const activeTab=()=>dialog?.querySelector('[data-tab][aria-selected="true"]')?.dataset.tab??'scene';
 async function open() {
@@ -1570,7 +1646,8 @@ async function open() {
   restoreScroll();
   // The chat may have changed while the panel was closed: reload the visible history instead of showing it empty.
   if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true));
-  checkServer().catch(()=>{});
+  const checking=!compatChecked;if(checking)$('ncs-work-fields').disabled=true;
+  try{await checkServer();}finally{if(checking&&!draftLoading)$('ncs-work-fields').disabled=false;}
 }
 // The settings-panel entry uses SillyTavern's own drawer markup (same border and toggle as other
 // extensions) and is attached immediately, before the panel file loads, so it keeps its place in the list.
@@ -1589,7 +1666,7 @@ async function initialize() {
   settings();dialog=document.createElement('dialog');dialog.id='naice-shot-dialog';
   const template=await fetch(new URL('panel.html',import.meta.url));if(!template.ok)throw new Error('NAIce Shot 패널 파일을 읽지 못했어요.');
   dialog.innerHTML=await template.text();document.body.append(dialog);
-  dialog.addEventListener('close',()=>closeMissingDialog());
+  dialog.addEventListener('close',()=>{closeMissingDialog();rememberDraft(workKey(),null,{flush:true});});
   dialog.addEventListener('cancel',event=>{if(event.target===dialog)rememberScroll();});
   dialog.querySelector('.ncs-content').addEventListener('scroll',rememberScroll,{passive:true});
   $('ncs-missing-dialog').addEventListener('cancel',()=>{missingPrompt=null;}); // Escape closes only this box
@@ -1600,7 +1677,10 @@ async function initialize() {
   // Apply the saved skin right away when it is the built-in one; file skins wait for detection.
   renderSkins();useSkin(skinById(settings().skin)?.file?DEFAULT_SKIN:settings().skin).catch(()=>{});
   detectSkins(new URL('./',import.meta.url).href).then(list=>{availableSkins=list;skinsDetected=true;return useSkin(settings().skin);}).catch(e=>console.warn('[NAIce Shot] skin detection failed',e?.message));
-  bindImageMenus();
+  bindImageMenus();bindPngDownloads((message,error=false)=>{const viewer=document.getElementById('ncs-viewer');if(viewer?.open)viewer.querySelector('.ncsv-meta').textContent=message;else say(message,error);});
+  window.addEventListener('beforeunload',event=>{if(!draftsEnabled)return;rememberDraft(workKey(),null,{flush:true});if([...drafts.entries.values()].some(e=>e.dirty||e.saving)){event.preventDefault();event.returnValue='';}});
+  window.addEventListener('pagehide',()=>rememberDraft(workKey(),null,{flush:true}));
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')rememberDraft(workKey(),null,{flush:true});});
   const c=ctx(),events=c.eventTypes??c.event_types;c.eventSource.on(events.CHAT_CHANGED,chatChanged);
   const refreshChatImages=()=>renderChatImages();
   for(const type of ['MESSAGE_RECEIVED','MESSAGE_SENT','MESSAGE_SWIPED','MESSAGE_DELETED','MESSAGE_EDITED'])if(events[type])c.eventSource.on(events[type],()=>{refreshChatImages();if(dialog.open){renderTargets();renderMatching();renderResult();renderHistory();updateFinal();}});
