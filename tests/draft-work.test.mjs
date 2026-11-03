@@ -24,11 +24,13 @@ test('drafts round-trip candidates, direct-input people, invalid JSON and one-le
  w.finalOverride={invalid:true,message:'unfinished JSON'};w.finalText='{"base":';w.undoClear=work();w.settings={apiKey:'should not be copied'};
  const out=unpackWork(packWork(w));assert.deepEqual(out.scene.moments,w.scene.moments);assert.equal(out.scene.characters[0].temp,true);assert.equal(out.finalText,'{"base":');assert.equal(out.finalOverride.invalid,true);assert.equal(out.undoClear.wish,'reading');assert.equal(out.settings,undefined);
 });
-test('forgetting a deleted work starts a fresh file and does not save an unchanged screen back',async()=>{
- const sent=[];const q=new DraftQueue({delay:100000,read:async()=>({revision:'old',work:{value:1}}),write:async(key,b)=>{sent.push(b);return {revision:'new'};}});
- await q.ensure('A');q.forget('A',{value:0});q.put('A',{value:0});assert.equal(q.entry('A').dirty,false,'same as the screen: nothing to save');
- q.put('A',{value:2});await q.flush('A');assert.deepEqual(sent.map(b=>[b.work.value,b.expectedRevision]),[[2,null]]);
- q.forget('B');assert.equal(q.entry('B').loaded,true);assert.equal(q.entry('B').data,null);
+test('after a deletion the queue reads the marker again and saves on its revision',async()=>{
+ const sent=[];let stored={revision:'old',work:{value:1}};
+ const q=new DraftQueue({delay:100000,read:async()=>stored,write:async(key,b)=>{sent.push(b);return {revision:'next'};}});
+ await q.ensure('A');stored={revision:'marker',work:null};q.reset('A');
+ q.put('A',{value:2});assert.equal(q.entry('A').dirty,false,'nothing is saved before the marker is read');
+ assert.equal(await q.ensure('A'),null);q.put('A',{value:3});await q.flush('A');
+ assert.deepEqual(sent.map(b=>[b.work.value,b.expectedRevision]),[[3,'marker']]);
 });
 test('replies sent before a deletion never change the state after it; quiesce waits for saves in flight',async()=>{
  let releaseWrite,releaseRead;const gate=new Promise(r=>releaseWrite=r),readGate=new Promise(r=>releaseRead=r);const sent=[];
@@ -37,10 +39,10 @@ test('replies sent before a deletion never change the state after it; quiesce wa
  let settled=false;const quiet=q.quiesce().then(()=>{settled=true;});await Promise.resolve();assert.equal(settled,false,'waits for the save in flight');
  releaseWrite();await first;await quiet;assert.equal(settled,true);
  q.put('A',{value:2});const pending=q.entry('A');assert.equal(pending.dirty,true);await q.quiesce(['A']);assert.equal(pending.dirty,false,'saves that have not left are dropped');assert.equal(sent.length,1);
- // A late reply after forget: ignored.
+ // A late reply after reset: ignored.
  let late;const q2=new DraftQueue({delay:100000,read:async()=>({revision:null,work:null}),write:async()=>{await new Promise(r=>late=r);return {revision:'stale'};}});
- await q2.ensure('A');q2.put('A',{value:1});const flying=q2.flush('A');q2.forget('A');late();await flying;
- assert.equal(q2.entry('A').revision,null,'the old revision is not restored');assert.equal(q2.entry('A').dirty,false);
- // A late read after forget: ignored too.
- const reading=q.ensure('B');q.forget('B');releaseRead();await reading;assert.equal(q.entry('B').data,null);assert.equal(q.entry('B').revision,null);
+ await q2.ensure('A');q2.put('A',{value:1});const flying=q2.flush('A');q2.reset('A');late();await flying;
+ assert.equal(q2.entry('A').revision,null,'the old revision is not restored');assert.equal(q2.entry('A').dirty,false);assert.equal(q2.entry('A').loaded,false);
+ // A late read after reset: ignored too.
+ const reading=q.ensure('B');q.reset('B');releaseRead();await reading;assert.equal(q.entry('B').data,null);assert.equal(q.entry('B').revision,null);assert.equal(q.entry('B').loaded,false);
 });

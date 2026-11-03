@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.44 — 2026-11-03
+
+**Update: extension + server 0.1.11.** Update the server, restart SillyTavern, then update and refresh the extension.
+
+- **Deleted work stays deleted, even with another window open.** Deleting saved work now leaves a small marker on the server with a new revision and no content. A save prepared before the deletion — in another window or on another device, including that window's first save — is refused with the usual conflict notice instead of bringing the work back. This closes the limit noted in 0.1.43.
+- After deleting, the extension reads the marker for the open work and saves on top of it; other chats read theirs when opened again. Deletion markers hold no prompts or descriptions.
+- The server asks for extension 0.1.44 or newer, and the extension asks for server 0.1.11 (`draft-tombstone`).
+- Test fix: `browser-v040` waited for an image that was already on screen and could read the previous NovelAI request; it now waits for the new request.
+
 ## 0.1.43 — 2026-11-03
 
 **Update: extension only.** Server 0.1.10 is unchanged.

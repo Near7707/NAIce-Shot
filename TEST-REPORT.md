@@ -1,3 +1,11 @@
+# v0.1.44 validation — 2026-11-03
+
+- Extension Node suite: **135 passed, 0 failed, 0 skipped**. The queue test now checks that after a deletion nothing is saved until the marker is read, and the next save uses the marker's revision.
+- Server Node suite: **22 passed**. The deletion test now checks markers: no work to read, a save prepared before the deletion (`expectedRevision:null` or an old revision) gets 409, a save on the marker revision succeeds, delete-all counts only real work and gives every marker a new revision, a chat that never had work still accepts a first save, deleting single images keeps the work.
+- **34 of 34 Chromium browser scripts passed.** `browser-v0141`'s mock follows the server's markers and enforces revisions, so the saves after deletion prove the extension reads the marker first. `browser-v040` (real server handlers) ran 3 more times after its wait fix.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: real SillyTavern, two real browsers at once, iPhone Safari.
+
 # v0.1.43 validation — 2026-11-03
 
 - Extension Node suite: **135 passed, 0 failed, 0 skipped**. New DraftQueue test: `quiesce` waits for a save in flight and drops unsent ones; a late write reply or late read after `forget` changes nothing.

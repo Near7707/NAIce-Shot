@@ -410,14 +410,16 @@ function undoClearWork(){
   rememberDraft();
 }
 // After saved work was deleted on the server: empty the drawing window (no undo) and remember that as saved.
-function forgetWork(keys){
+async function forgetWork(keys){
   const here=keys.includes(workKey());
   // Work waiting off screen (the other mode) is emptied too, so switching back cannot bring it back.
   if(isFree()&&keys.includes(chatKey))delete spare.chat;
   if(!isFree()&&keys.includes(FREE_KEY))delete spare.free;
   if(here){loadWork(blankWork());targetShown=TARGET_STEP;targetScroll=0;draftSource=null;revision++;
     renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();}
-  for(const key of keys)drafts.forget(key,key===workKey()?packWork(captureWork(),{retainRaw:settings().retainRawExtraction===true}):null);
+  for(const key of keys)drafts.reset(key);
+  // The open work reads the server's deletion marker now; other chats read it when they are opened again.
+  if(here)await drafts.ensure(workKey()).catch(()=>{});
 }
 // Deleting saved work: lock the drawing window, let saves already sent finish (later ones are dropped), delete,
 // then forget. Server requests of one user run in order, so nothing sent before can recreate the work.
@@ -426,7 +428,7 @@ async function whileDeletingWork(keys,remove,forgetKeys=()=>keys){
   try{
     await drafts.quiesce(keys);
     const response=await remove();
-    const gone=forgetKeys(response);if(gone?.length)forgetWork(gone);
+    const gone=forgetKeys(response);if(gone?.length)await forgetWork(gone);
     return response;
   }finally{pauseDraftCapture=false;fields.disabled=wasDisabled;renderDraftState();}
 }

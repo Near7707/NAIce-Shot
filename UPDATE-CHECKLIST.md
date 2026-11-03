@@ -1,5 +1,13 @@
 # Installation and update checklist
 
+## v0.1.44
+
+Update **NAIce-Shot-Server 0.1.11**, restart SillyTavern, then update the extension and refresh.
+
+1. Open the same chat in two browser tabs. In tab 1 use 설정 → **저장된 작업 모두 지우기**. In tab 2 type something: it shows a conflict notice instead of saving; **서버 작업 다시 불러오기** shows the empty work. Refresh tab 1: the old work does not come back.
+2. In one tab, delete all work and keep editing: saving works normally.
+
+
 ## v0.1.43
 
 Update the extension and refresh. No server update is needed.

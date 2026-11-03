@@ -146,7 +146,8 @@ try{
  const restored=seeded.at(-6);await pick(page,`[data-history-id="${restored.id}"]`);
  assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.options.seed),-1);
  assert.match(await page.locator('#ncs-warnings').textContent(),new RegExp(`seed ${restored.seed}`));
- await click('generate');await page.waitForFunction(()=>document.querySelector('#ncs-result img'));
+ // The restored image is already shown, so wait for the new NovelAI request itself.
+ const sentBefore=naiRequests.length;await click('generate');for(let i=0;i<100&&naiRequests.length===sentBefore;i++)await page.waitForTimeout(100);
  assert.equal(naiRequests.at(-1).parameters.seed,restored.seed);
  await page.locator('[data-tab="settings"]').click();assert.equal(await page.locator('#ncs-seed').inputValue(),'-1');
 

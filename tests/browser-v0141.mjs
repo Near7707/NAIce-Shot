@@ -31,16 +31,16 @@ try{
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>accept?d.accept():d.dismiss());
   await page.route('**/api/plugins/naice-shot/**',async route=>{
    const u=new URL(route.request().url());
-   if(u.pathname.endsWith('/status'))return route.fulfill({json:{keyConfigured:true,version:'0.1.9',features:['paged-history','delete','private-records','all-history','privacy-controls','draft-work','draft-delete'],subscription:{tier:3,perks:{unlimitedImageGeneration:true}}}});
+   if(u.pathname.endsWith('/status'))return route.fulfill({json:{keyConfigured:true,version:'0.1.11',features:['paged-history','delete','private-records','all-history','privacy-controls','draft-work','draft-delete','free-text','draft-tombstone'],subscription:{tier:3,perks:{unlimitedImageGeneration:true}}}});
    if(u.pathname.endsWith('/draft')){
     if(route.request().method()==='GET'){const key=u.searchParams.get('chatKey');if(slowRead&&key.includes('B'))await slowRead;return route.fulfill({json:entries.get(key)??{revision:null,work:null}});}
     const b=route.request().postDataJSON();if(failed)return route.fulfill({status:500,json:{error:'mock save failed'}});
-    if(b.delete&&b.all){order.push('delete-all');const n=entries.size;entries.clear();return route.fulfill({json:{deleted:n}});}
+    if(b.delete&&b.all){order.push('delete-all');let n=0;for(const [k,v] of entries){if(v.work)n++;entries.set(k,{revision:String(++revision),work:null});}return route.fulfill({json:{deleted:n}});}
     if(saveBefore){held++;await saveBefore;held--;}
     const old=entries.get(b.chatKey);if((old?.revision??null)!==b.expectedRevision)return route.fulfill({status:409,json:{error:'다른 창이나 기기에서 작업이 바뀌었어요.'}});
     const r=String(++revision);entries.set(b.chatKey,{revision:r,work:b.work});writes++;order.push('save');if(saveAfter){held++;await saveAfter;held--;}return route.fulfill({json:{revision:r}});
    }
-   if(u.pathname.endsWith('/delete')){const b=route.request().postDataJSON();const gone=history.filter(h=>h.chatKey===b.chatKey).map(h=>h.id);history.splice(0,history.length,...history.filter(h=>h.chatKey!==b.chatKey));const had=entries.delete(b.chatKey);return route.fulfill({json:{deleted:gone,skipped:[],workDeleted:had}});}
+   if(u.pathname.endsWith('/delete')){const b=route.request().postDataJSON();const gone=history.filter(h=>h.chatKey===b.chatKey).map(h=>h.id);history.splice(0,history.length,...history.filter(h=>h.chatKey!==b.chatKey));const had=!!entries.get(b.chatKey)?.work;if(entries.has(b.chatKey))entries.set(b.chatKey,{revision:String(++revision),work:null});return route.fulfill({json:{deleted:gone,skipped:[],workDeleted:had}});}
    if(u.pathname.endsWith('/history')){const all=u.searchParams.get('scope')==='all',only=u.searchParams.get('chatKey'),items=all?history.filter(h=>!only||h.chatKey===only):history; // the chat view stays unfiltered, as before
     const chats=[...new Set(history.map(h=>h.chatKey))].map(chatKey=>({chatKey,count:history.filter(h=>h.chatKey===chatKey).length,latest:''}));
     return route.fulfill({json:{items,total:items.length,hasMore:false,...(all?{scope:'all',chats,imageCount:history.length,bytes:1}:{})}});}
@@ -50,6 +50,7 @@ try{
   const open=async()=>{await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);};
   const saved=async()=>{await page.waitForFunction(()=>document.querySelector('#ncs-draft-status').textContent==='마지막 작업을 서버에 기억해요.'||/작업하던 장면을 불러왔어요/.test(document.querySelector('#ncs-draft-status').textContent));};
   const value=()=>page.locator('#ncs-location').inputValue();
+  const stored=()=>[...entries.values()].filter(v=>v.work).length,hasWork=k=>!!entries.get(k)?.work;
   await page.goto(`http://127.0.0.1:${server.address().port}/`);await open();
   assert.equal(await page.locator('[data-tab="scene"]').innerText(),'그리기');
   await page.locator('[data-action="extract"]').click();await page.locator('[data-character="leo"]').waitFor();
@@ -108,10 +109,10 @@ try{
   // Saved work can be deleted: all at once from settings, or with a chat's whole history.
   await page.locator('[data-tab="settings"]').click();await page.locator('[data-action="delete-all-work"]').click();
   await page.waitForFunction(()=>/저장된 작업 \d+개를 지웠어요/.test(document.querySelector('#ncs-notice').textContent));
-  await page.waitForTimeout(1200);assert.equal(entries.size,0,'nothing is saved straight back');await page.locator('[data-tab="scene"]').click();assert.equal(await value(),'');
-  await page.locator('#ncs-location').fill('fresh start');await saved();assert.equal(entries.size,1,'a new save after deletion is accepted');
+  await page.waitForTimeout(1200);assert.equal(stored(),0,'nothing is saved straight back');await page.locator('[data-tab="scene"]').click();assert.equal(await value(),'');
+  await page.locator('#ncs-location').fill('fresh start');await saved();assert.equal(stored(),1,'a new save on the deletion marker is accepted');
   await page.locator('[data-tab="history"]').click();await page.locator('[data-action="delete-chat-history"]').click();
-  await page.waitForFunction(()=>document.querySelector('#ncs-location').value==='');await page.waitForTimeout(1200);assert.equal(entries.size,0,'chat history deletion forgets that chat\'s work');
+  await page.waitForFunction(()=>document.querySelector('#ncs-location').value==='');await page.waitForTimeout(1200);assert.equal(stored(),0,'chat history deletion forgets that chat\'s work');
   // A save still on its way when everything is deleted: deletion waits for it, so nothing comes back.
   const waitHeld=async()=>{for(let i=0;i<60&&!held;i++)await page.waitForTimeout(100);assert.equal(held,1,'a save is on its way');};
   await page.locator('[data-tab="scene"]').click();let releaseSave;saveBefore=new Promise(r=>releaseSave=r);
@@ -119,26 +120,26 @@ try{
   await page.locator('[data-tab="settings"]').click();await page.locator('[data-action="delete-all-work"]').click();await page.waitForTimeout(400);
   assert.notEqual(order.at(-1),'delete-all','deletion waits for the save already sent');releaseSave();saveBefore=null;
   await page.waitForFunction(()=>/저장된 작업 \d+개를 지웠어요/.test(document.querySelector('#ncs-notice').textContent));
-  assert.deepEqual(order.slice(-2),['save','delete-all']);assert.equal(entries.size,0);
+  assert.deepEqual(order.slice(-2),['save','delete-all']);assert.equal(stored(),0);
   await page.reload();await open();assert.equal(await value(),'','deleted work does not come back after refresh');
   // A save whose reply arrives late: the next edit after deletion still saves without a conflict.
   saveAfter=new Promise(r=>releaseSave=r);await page.locator('#ncs-location').fill('reply comes late');await waitHeld();
   await page.locator('[data-tab="settings"]').click();await page.locator('[data-action="delete-all-work"]').click();await page.waitForTimeout(400);releaseSave();saveAfter=null;
-  await page.waitForFunction(()=>/저장된 작업 \d+개를 지웠어요/.test(document.querySelector('#ncs-notice').textContent));assert.equal(entries.size,0);
+  await page.waitForFunction(()=>/저장된 작업 \d+개를 지웠어요/.test(document.querySelector('#ncs-notice').textContent));assert.equal(stored(),0);
   await page.locator('[data-tab="scene"]').click();await page.locator('#ncs-location').fill('after delete');await saved();
   assert.ok([...entries.values()].some(v=>v.work.scene.location==='after delete'),'saved without a conflict');
   // 프리샷 work waiting off screen is emptied when its history is deleted from 챗샷.
   await page.locator('[data-mode="free"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
-  await page.locator('#ncs-free-text').fill('Leftover garden text');await page.locator('#ncs-location').fill('leftover');await saved();assert.ok(entries.has(freeKey));
+  await page.locator('#ncs-free-text').fill('Leftover garden text');await page.locator('#ncs-location').fill('leftover');await saved();assert.ok(hasWork(freeKey));
   const freeImage='33333333-3333-4333-8333-333333333333';history.push({id:freeImage,created:new Date().toISOString(),chatKey:freeKey,image:`/user/images/naice-shot/${freeImage}.png`,seed:5,assembled:{base:'x',negative:'',characters:[],warnings:[]},options:{model:'nai-diffusion-4-5-full',width:832,height:1216,steps:28,scale:5,seed:5,cfgRescale:0,sampler:'k_euler'},snapshot:{scene:{location:'x'}}});
   await page.locator('[data-mode="chat"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
   await page.locator('[data-tab="history"]').click();await page.locator('[data-history-scope="all"]').click();
   await page.waitForFunction(k=>[...document.querySelectorAll('#ncs-history-filter option')].some(o=>o.value===k),freeKey);await page.locator('#ncs-history-filter').selectOption(freeKey);
   await page.locator('[data-action="delete-filter-chat"]').click();await page.waitForFunction(()=>/삭제했어요/.test(document.querySelector('#ncs-notice').textContent));
-  assert.equal(entries.has(freeKey),false);
+  assert.equal(hasWork(freeKey),false);
   await page.locator('[data-tab="scene"]').click();await page.locator('[data-mode="free"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
   assert.equal(await page.locator('#ncs-free-text').inputValue(),'');assert.equal(await value(),'');
-  await page.waitForTimeout(1200);assert.equal(entries.has(freeKey),false,'nothing comes back and no empty work is saved');
+  await page.waitForTimeout(1200);assert.equal(hasWork(freeKey),false,'nothing comes back and no empty work is saved');
   await page.locator('[data-mode="chat"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
   // Saving uses one small menu: 공유용 / 원본 with notes, no extra warning and no "don't ask again".
   await page.locator('[data-action="close"]').click();
