@@ -109,7 +109,7 @@ try {
  const presetOptions={'ncs-steps':'18','ncs-scale':'5.5','ncs-seed':'-1','ncs-cfg':'0.2'};
  for(const [id,value] of Object.entries(presetOptions))await page.locator(`#${id}`).fill(value);
  await page.locator('#ncs-sampler').selectOption('k_euler');
- await page.locator('#ncs-common-preset-name').fill('수채화');await click('save-preset');
+ await page.locator('#ncs-common-preset-name').fill('수채화');await click('save-preset-as');
  const presetId=await page.evaluate(()=>mock.extensionSettings.naice_shot.imagePresetId);
  await page.locator('#ncs-size-preset').selectOption('square');assert.match(await page.locator('#ncs-preset-state').innerText(),/수정됐어요/);
  for(const [id,value] of Object.entries({'ncs-steps':'28','ncs-scale':'6','ncs-seed':'42','ncs-cfg':'0.4'}))await page.locator(`#${id}`).fill(value);

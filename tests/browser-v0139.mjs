@@ -34,7 +34,7 @@ try{
   await page.addInitScript(d=>document.addEventListener('DOMContentLoaded',()=>{mock.extraction=d;mock.extensionSettings.naice_shot.allowAnlas=true;mock.extensionSettings.naice_shot.positive='masterpiece';}),three);
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
-  const chatClear=page.locator('#ncs-chat-source [data-action="blank"]'),freeClear=page.locator('#ncs-free-source [data-action="blank"]');
+  const chatClear=page.locator('#ncs-chat-source .ncs-action-slot'),freeClear=page.locator('#ncs-free-source .ncs-action-slot');
   const idle=()=>page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&!document.querySelector('[data-action="generate"]').disabled);
   const extract=async()=>{await page.locator('[data-action="extract"]').click();await idle();};
   const generate=async()=>{const n=sent.length;await page.locator('[data-action="generate"]').click();await idle();assert.equal(sent.length,n+1);};
@@ -49,11 +49,11 @@ try{
   const full=await look();assert.deepEqual(full,{people:1,moment:'0',wish:'앉아 있는 순간',target:'1',badge:true,scope:'이력 설정 · 이번 생성에만',preview:true});
   await chatClear.click();
   assert.deepEqual(await look(),{people:0,moment:null,wish:'',target:'',badge:false,scope:'생성 설정',preview:false});
-  assert.match(await page.locator('#ncs-undo-clear').innerText(),/이번 작업을 비웠어요. 공통 프롬프트와 기본 설정은 유지돼요./);
+  assert.equal(await chatClear.innerText(),'↶ 비우기 취소','the clear button turns into its undo');assert.match(await page.locator('#ncs-notice').innerText(),/이번 작업을 비웠어요. 공통 프롬프트와 기본 설정은 유지돼요./);assert.equal(await page.locator('#ncs-undo-clear').isHidden(),true,'no separate banner');
   assert.match(await page.locator('#ncs-final').inputValue(),/masterpiece/,'common prompt stays');
-  await page.locator('[data-tab="settings"]').click();await page.locator('[data-tab="scene"]').click();assert.equal(await page.locator('#ncs-undo-clear').isVisible(),true,'switching tabs keeps undo');
+  await page.locator('[data-tab="settings"]').click();await page.locator('[data-tab="scene"]').click();assert.equal(await chatClear.innerText(),'↶ 비우기 취소','switching tabs keeps undo');
   await page.locator('[data-action="undo-clear"]').click();assert.deepEqual(await look(),full,'everything comes back together');
-  await chatClear.click();await page.locator('#ncs-location').fill('park');assert.equal(await page.locator('#ncs-undo-clear').isHidden(),true,'an edit ends undo');
+  await chatClear.click();await page.locator('#ncs-location').fill('park');assert.equal(await chatClear.innerText(),'그리기창 비우기','an edit ends undo');
   // Clearing is off while an extraction runs.
   await page.evaluate(()=>{mock.extractionDeferred=new Promise(r=>{mock.releaseExtraction=()=>r(JSON.stringify(mock.extraction));});});
   await page.locator('[data-action="extract"]').click();assert.equal(await chatClear.isDisabled(),true);
@@ -95,7 +95,7 @@ try{
   await page.locator('[data-tab="history"]').click();await page.locator('#ncs-history-scope').selectOption('chat');await pick(page,'[data-history-free]');
   assert.equal(await page.locator('[data-mode="free"]').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#ncs-free-text').inputValue(),'');
   assert.match(await page.locator('[data-character="leo"] [data-field="action"]').inputValue(),/sitting/);assert.equal(await page.locator('.ncs-moment').count(),0,'one moment only');
-  assert.match(await page.locator('#ncs-undo-clear').innerText(),/이력에서 가져왔어요/);
+  assert.equal(await page.locator('#ncs-free-source .ncs-import-undo').innerText(),'↶ 가져오기 취소');assert.equal(await freeClear.innerText(),'그리기창 비우기','clearing stays available after an import');
   await page.locator('[data-action="undo-clear"]').click();assert.match(await page.locator('#ncs-free-text').inputValue(),/비 오는 밤/);
   assert.ok(await page.locator('.ncs-content').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
   assert.deepEqual(errors,[]);await page.close();

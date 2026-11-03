@@ -27,14 +27,14 @@ try{
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
  await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
  await page.locator('[data-tab="settings"]').click();
- assert.equal(await page.locator('[data-action="save-preset"]').innerText(),'프리셋 저장');
+ assert.equal(await page.locator('[data-action="save-preset"]').innerText(),'덮어쓰기');assert.equal(await page.locator('[data-action="save-preset"]').isDisabled(),true,'nothing to overwrite yet');
  assert.equal(await page.locator('[data-action="save-preset-as"]').innerText(),'새 프리셋으로 저장');
  assert.equal(await page.locator('[data-action="new-preset"]').innerText(),'+ 새 프리셋 만들기');
  assert.equal(await page.locator('[data-action="update-preset"]').count(),0);
 
  // Nothing selected: 프리셋 저장 creates one and selects it.
  await page.locator('#ncs-positive').fill('watercolor');await page.locator('#ncs-steps').fill('20');
- await page.locator('#ncs-common-preset-name').fill('수채화');await click('save-preset');
+ await page.locator('#ncs-common-preset-name').fill('수채화');await click('save-preset-as');
  assert.deepEqual(await presets(),[{name:'수채화',positive:'watercolor',negative:'',steps:20}]);assert.equal(await selected(),'수채화');
  assert.match(await page.locator('#ncs-preset-save-hint').innerText(),/"수채화"에 지금 값을 덮어써요/);
 
@@ -58,13 +58,13 @@ try{
  assert.equal(await page.locator('#ncs-common-preset').inputValue(),'');assert.equal(await page.locator('#ncs-common-preset-name').inputValue(),'');
  assert.equal(await selected(),'');assert.equal((await presets()).length,2,'saved presets untouched');
  assert.notEqual(await page.evaluate(()=>document.activeElement?.id),'ncs-common-preset-name','starting a preset does not summon the keyboard');
- assert.match(await page.locator('#ncs-preset-save-hint').innerText(),/새로 저장해요/);
+ assert.match(await page.locator('#ncs-preset-save-hint').innerText(),/따로 저장해요/);
  // Empty name is refused with a clear message.
- await click('save-preset');assert.match(await page.locator('#ncs-notice').innerText(),/저장할 이름을 입력해 주세요/);
+ await click('save-preset-as');assert.match(await page.locator('#ncs-notice').innerText(),/저장할 이름을 입력해 주세요/);
  // Already blank: no confirmation needed.
  const asked=dialogs.length;await click('new-preset');assert.equal(dialogs.length,asked);
  // Then save the fresh one.
- await page.locator('#ncs-positive').fill('flat color');await page.locator('#ncs-common-preset-name').fill('플랫');await click('save-preset');
+ await page.locator('#ncs-positive').fill('flat color');await page.locator('#ncs-common-preset-name').fill('플랫');await click('save-preset-as');
  assert.equal((await presets()).length,3);assert.equal(await selected(),'플랫');
 
  await page.setViewportSize({width:375,height:760});

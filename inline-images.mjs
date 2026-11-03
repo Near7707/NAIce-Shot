@@ -103,7 +103,7 @@ export function renderInlineImages(context,root,chatKey,{placement='below'}={}) 
    const file=imageDownload(item);download.href=file.url;download.download=file.filename;download.textContent='원본 PNG 저장';const originalNote=document.createElement('small');originalNote.textContent=SAVE_NOTES.original;download.append(originalNote);
    // A deleted or missing file shows a note instead of a broken image; the remove button stays.
    img.addEventListener('error',()=>{tile.classList.add('ncs-missing');open.disabled=true;download.remove();const note=document.createElement('span');note.className='ncs-missing-note';note.textContent='삭제됐거나 찾을 수 없는 그림이에요.';open.replaceChildren(note);},{once:true});
-   remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이 메시지에서 빼기';clean.classList.add('ncs-popup-primary');actions.append(clean,download,remove);actions.insertAdjacentHTML('beforeend',SAVE_DETAILS);tile.append(open,more,actions);holder.append(tile);
+   remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이 메시지에서 빼기';clean.classList.add('ncs-popup-primary');actions.append(clean,download,remove);tile.append(open,more,actions);holder.append(tile);
   }
   const text=element.querySelector('.mes_text');
   if(text)where==='above'?text.before(holder):text.after(holder);else (element.querySelector('.mes_block')??element)[where==='above'?'prepend':'append'](holder);

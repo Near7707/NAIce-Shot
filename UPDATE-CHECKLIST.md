@@ -1,5 +1,17 @@
 # Installation and update checklist
 
+## v0.1.49
+
+Update the extension and refresh. No server update is needed.
+
+1. Drawing: [장면 추출] is wide; press [그리기창 비우기] → it becomes [↶ 비우기 취소].
+2. A person card shows **이번 그림** and **이 채팅에서**. Try 기본 복장 입기, 비우기, 자동으로 되돌리기, 지금 옷을 기본으로 → press again to clear → 해제 취소 inside the group. The window no longer turns grey while saving.
+3. History: accent 보기 범위 and 저장 ▾, small ↻, tools in the same arrangement; 저장 menu has only the two choices.
+4. Settings: 새 프리셋으로 저장 / 덮어쓰기 · 이름 / 선택 프리셋 삭제; 고급 → 추출 AI 응답 저장; PNG 저장 안내 section.
+5. Profile: 프로필 저장 / 카드 연결 · 모든 칸 비우기 / 프로필 삭제.
+6. On a PC, buttons no longer stretch across the whole panel.
+
+
 ## v0.1.46
 
 Update **NAIce-Shot-Server 0.1.12**, restart SillyTavern, then update the extension and refresh.

@@ -1,3 +1,12 @@
+# v0.1.49 validation — 2026-11-03
+
+- Extension Node suite: **137 passed, 0 failed, 0 skipped** (new `skins-lint`: themes set colours/decoration only; verified it fails when a layout rule is added).
+- Server Node suite: **25 passed** (server unchanged).
+- **38 of 38 Chromium browser scripts passed.** New `browser-v0149`: text contrast on all 17 themes across drawing, history, save and ⋯ menus, settings (advanced open) and profiles; opaque menus; at 320/375/1100px for three themes no sideways scroll, key buttons on one line and not spilling, one main action per group, history tools arrangement, small refresh, 560px action groups on PC, 비우기 ⇄ 비우기 취소. The spill check was confirmed to fail on an intermediate layout (선택 저장 overflowing at 375px). Updated older scripts for the new buttons (clear slot, 새 프리셋으로 저장 / 덮어쓰기, 고급 fold, outfit groups, card-only saving hold).
+- Visual check: phone (375px) and PC (1100px) screenshots of the drawing source buttons, outfit groups, history top, settings presets and advanced fold, profile buttons (local only).
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: real SillyTavern, iPhone Safari.
+
 # v0.1.48 validation — 2026-11-03
 
 136 Node tests passed (no skips); 37 Chromium browser scripts passed, including the new 1100/375/320px import/clothing/gallery regressions. Detailed evidence, updated expectations and untested environments are recorded once in [docs/REVIEW.md](docs/REVIEW.md#ui-v0148--서버-v0113-유지--2026-11-03). Server v0.1.13 is unchanged.

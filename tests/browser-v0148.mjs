@@ -7,7 +7,8 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import {pick} from './menu-helper.mjs';
-const {chromium}=await import(`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/playwright/index.mjs`);
+const modules=process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES; // UI-048-05: fall back to the installed package like the other scripts
+const {chromium}=await import(modules?`${modules}/playwright/index.mjs`:'playwright');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const chunk=(type,data)=>{const name=Buffer.from(type),size=Buffer.alloc(4),crc=Buffer.alloc(4);size.writeUInt32BE(data.length);crc.writeUInt32BE(crc32(Buffer.concat([name,data])));return Buffer.concat([size,name,data,crc]);};
 const header=Buffer.alloc(13);header.writeUInt32BE(832,0);header.writeUInt32BE(1216,4);header[8]=8;header[9]=2;
@@ -61,7 +62,7 @@ try{for(const width of [1100,375,320]){
  if(process.env.NAICE_SCREENSHOT_DIR){await once.scrollIntoViewIfNeeded();await page.screenshot({path:`${process.env.NAICE_SCREENSHOT_DIR}/outfit-${width}.png`});}
  // Save completion after a chat switch cannot repaint or write into the new chat.
  await page.evaluate(()=>{mock.saveMetadata=()=>new Promise(r=>mock.finishMetadata=r);});
- await card.locator('[data-undo-chat-outfit]').click();await page.waitForFunction(()=>document.querySelector('#ncs-work-fields').disabled);
+ await card.locator('[data-undo-chat-outfit]').click();await page.waitForFunction(()=>!!document.querySelector('[data-outfit-chat="leo"] .ncs-outfit-saving'));assert.equal(await page.locator('#ncs-work-fields').evaluate(f=>f.disabled),false,'only the card holds, not the whole window');
  await page.evaluate(()=>{mock.switchChat('B');mock.finishMetadata();mock.saveMetadata=mock.normalSave;});await idle();
  assert.equal(await page.evaluate(()=>mock.chatMetadata.naice_shot?.outfits?.leo),undefined);
  

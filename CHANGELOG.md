@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.49 — 2026-11-03 (extension only; server v0.1.13 unchanged)
+
+- **Drawing:** [장면 추출] / [글로 채우기] span the row; [그리기창 비우기] sits small below and turns into **[↶ 비우기 취소]** right after clearing (no separate banner). After importing from history, a small **[↶ 가져오기 취소]** appears beside it instead.
+- **Clothes on a person card** in two groups. **이번 그림:** outfit box, 옷장에서 꺼내 입기, **기본 복장 입기**, new **비우기** (no clothing tags), and **자동으로 되돌리기** only after a manual edit. These replace 이번 편집 취소 and 이번 그림 복장 초기화. **이 채팅에서:** chat default, **지금 옷을 기본으로** / ✓ 채팅 기본 복장, 옷장에 저장, 복장 잠금; 해제 취소 now appears inside this group. Saving holds only that card's controls with "저장 중…", never the whole drawing window (also fixes UI-048-06).
+- **History:** 보기 범위 and 저장 ▾ use the accent style (edge-coloured border, light tint); refresh is a small ↻ beside the count; tools keep their arrangement (모두 선택 · 선택 저장 · 선택 삭제 / 이력 전체 삭제), with "표시된 항목" hidden on phones so nothing spills.
+- **Save menus:** the long "PNG 저장 안내" moved out of every menu into Settings → PNG 저장 안내. "공유용 PNG" uses the same accent style on every theme and its note is readable. Menus are opaque on every theme (the glass theme let text behind show through).
+- **Settings:** 새 프리셋으로 저장 is the main button; **덮어쓰기 · 이름** (disabled until a preset is chosen) and 선택 프리셋 삭제 share the next row. AI response retention moved into **고급 → 추출 AI 응답 저장** with new wording.
+- **Profile:** 프로필 저장 across the row; 카드 연결 · 모든 칸 비우기; a small 프로필 삭제 apart.
+- Button groups are capped at 560px on wide screens. Contrast fixes: matcha/milk primary hover, milk header subtitle.
+- **Design rules and checks:** `docs/DESIGN.md`; `tests/skins-lint.test.mjs` (themes may set colours and decoration only); `tests/browser-v0149.mjs` (17-theme contrast with menus open, opaque menus, 320/375/1100px overflow, one-line and non-spilling buttons, one main action per group, history tools arrangement, PC width cap, clear/undo slot). `browser-v0148` falls back to the installed Playwright (UI-048-05).
+
 ## 0.1.48 — 2026-11-03 (extension only; server v0.1.13 unchanged)
 
 - History destination imports and paged gallery navigation; distinct clothing undo/reset; compact history scope selector, message-count controls and review reminder. Findings, fixes, validation and limits: [shared review log](docs/REVIEW.md#ui-v0148--서버-v0113-유지--2026-11-03).

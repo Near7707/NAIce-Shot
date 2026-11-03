@@ -245,7 +245,7 @@
 #naice-shot-dialog .ncs-history-actions {display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) 42px;gap:5px;}
 #naice-shot-dialog .ncs-history-actions button {padding:7px 3px;font-size:12px;min-height:44px;}
 #naice-shot-dialog .ncs-history-actions [data-image-more]:not(.ncs-save-toggle) {grid-column:3;font-size:22px;}
-#naice-shot-dialog .ncs-image-popup,#chat .ncs-image-popup {position:fixed;inset:auto;margin:0;width:min(230px,calc(100vw - 16px));max-height:calc(100dvh - 16px);overflow:auto;padding:6px;border:1px solid var(--ncs-border,#a6aebb);border-radius:10px;background:var(--ncs-bg,#1c2330);color:var(--ncs-fg,#f2f4f8);box-shadow:0 8px 28px #0006;z-index:2147483000;}
+#naice-shot-dialog .ncs-image-popup,#chat .ncs-image-popup {--ncs-menu-surface:var(--ncs-menu-bg,var(--ncs-bg,#1c2330));position:fixed;inset:auto;margin:0;width:min(230px,calc(100vw - 16px));max-height:calc(100dvh - 16px);overflow:auto;padding:6px;border:1px solid var(--ncs-border,#a6aebb);border-radius:10px;background:var(--ncs-bg,#1c2330);color:var(--ncs-fg,#f2f4f8);box-shadow:0 8px 28px #0006;z-index:2147483000;}
 #naice-shot-dialog .ncs-image-popup[hidden],#chat .ncs-image-popup[hidden] {display:none!important;}
 #naice-shot-dialog .ncs-image-popup button,#naice-shot-dialog .ncs-image-popup a[download],#chat .ncs-image-popup button,#chat .ncs-image-popup a {display:flex;align-items:center;width:100%;min-height:44px;margin:0;padding:9px 12px;border:0;border-radius:6px;text-align:left;text-decoration:none;font:inherit;color:inherit;background:transparent;white-space:normal;cursor:pointer;}
 #naice-shot-dialog .ncs-image-popup button:hover,#naice-shot-dialog .ncs-image-popup a:hover,#chat .ncs-image-popup button:hover,#chat .ncs-image-popup a:hover {background:var(--ncs-hover,#ffffff20);}
@@ -438,8 +438,9 @@
 .ncs-caret {display:inline-block;flex:none;width:7px;height:7px;margin-left:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s;}
 [aria-expanded="true"] > .ncs-caret {transform:translateY(2px) rotate(-135deg);}
 #naice-shot-dialog .ncs-save-toggle {display:inline-flex;align-items:center;justify-content:center;}
-#naice-shot-dialog .ncs-image-popup .ncs-popup-primary,#chat .ncs-image-popup .ncs-popup-primary,#naice-shot-dialog .ncs-image-popup .ncs-popup-primary:hover,#chat .ncs-image-popup .ncs-popup-primary:hover {font-weight:700;background:var(--ncs-tab-active-bg,#ffffff1f);color:var(--ncs-tab-active-fg,inherit);box-shadow:inset 0 0 0 1.5px var(--ncs-edge,#ffffff66);}
-#naice-shot-dialog .ncs-image-popup .ncs-popup-primary small,#chat .ncs-image-popup .ncs-popup-primary small {font-weight:400;}
+/* The first choice in a save menu uses the shared "accent" level (see docs/DESIGN.md), the same on every theme. */
+#naice-shot-dialog .ncs-image-popup .ncs-popup-primary,#chat .ncs-image-popup .ncs-popup-primary,#naice-shot-dialog .ncs-image-popup .ncs-popup-primary:hover,#chat .ncs-image-popup .ncs-popup-primary:hover {font-weight:700;color:var(--ncs-fg,inherit);background:color-mix(in srgb,var(--ncs-edge,#35969b) 12%,var(--ncs-menu-bg,var(--ncs-bg,#1c2330)));box-shadow:inset 0 0 0 2px var(--ncs-edge,#35969b);}
+#naice-shot-dialog .ncs-image-popup .ncs-popup-primary small,#chat .ncs-image-popup .ncs-popup-primary small {font-weight:400;color:inherit;opacity:.85;}
 #naice-shot-dialog .ncs-save-popup + .ncs-image-popup {margin-top:0;}
 #naice-shot-dialog .ncs-save-popup button,#naice-shot-dialog .ncs-save-popup a[download] {margin:0 0 4px;}
 #naice-shot-dialog .ncs-zip-choice {display:flex;align-items:center;gap:8px;margin:2px 0 0;padding:9px 12px 4px;border-top:1px solid var(--ncs-rule,#ffffff40);font-size:13px;}
@@ -526,3 +527,52 @@
 #ncs-viewer .ncsv-navigation[hidden] {display:none;}
 #ncs-viewer .ncsv-position {font-size:13px;min-width:70px;text-align:center;font-variant-numeric:tabular-nums;}
 #ncs-viewer .ncsv-navigation button:disabled {opacity:.4;cursor:default;}
+
+/* ==== 0.1.49 shared parts — rules in docs/DESIGN.md. Screens use these classes instead of styling one row at a time. ==== */
+/* Menus are always opaque: a see-through theme (glass) sets --ncs-menu-bg. */
+#naice-shot-dialog .ncs-image-popup,#chat .ncs-image-popup {background:var(--ncs-menu-surface);}
+/* Accent level: a tinted fill and an edge-coloured border. Weaker than a primary button, stronger than a plain one. */
+#naice-shot-dialog .ncs-accent,#naice-shot-dialog .ncs-save-toggle {background:color-mix(in srgb,var(--ncs-edge) 12%,var(--ncs-control));border:2px solid var(--ncs-edge);color:var(--ncs-fg);font-weight:700;}
+#naice-shot-dialog .ncs-accent:hover:not(:disabled),#naice-shot-dialog .ncs-save-toggle:hover:not(:disabled) {background:color-mix(in srgb,var(--ncs-edge) 22%,var(--ncs-control));}
+#naice-shot-dialog .ncs-save-toggle:disabled {border-width:1px;font-weight:400;}
+#naice-shot-dialog label.ncs-accent-label {font-weight:700;}
+/* Action group: one main action across the full width, then equal pairs; removing sits apart at the end.
+   Capped width so buttons do not stretch across a wide PC panel. */
+#naice-shot-dialog .ncs-actions {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:12px 0;max-width:560px;}
+#naice-shot-dialog .ncs-actions > button {width:100%;margin:0;min-height:44px;}
+#naice-shot-dialog .ncs-actions > .ncs-action-main {grid-column:1/-1;min-height:50px;font-size:16px;}
+#naice-shot-dialog .ncs-actions > .ncs-action-remove {grid-column:2;justify-self:end;width:auto;min-height:36px;padding:4px 14px;font-size:13px;}
+#naice-shot-dialog .ncs-actions > .ncs-action-slot {grid-column:2;justify-self:end;width:auto;min-height:38px;padding:4px 14px;font-size:13px;}
+#naice-shot-dialog .ncs-actions > .ncs-action-slot.ncs-undoing {border:2px solid var(--ncs-edge);font-weight:700;}
+/* History tools keep their arrangement: three buttons, then the whole-history delete on its own row. */
+#naice-shot-dialog .ncs-history-tools {display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;}
+#naice-shot-dialog .ncs-history-tools > button {white-space:nowrap;}
+#naice-shot-dialog .ncs-history-tools > button {width:100%;margin:0;}
+#naice-shot-dialog .ncs-history-tools > [data-action="delete-chat-history"],#naice-shot-dialog .ncs-history-tools > [data-action="delete-filter-chat"] {grid-column:1/-1;}
+#naice-shot-dialog .ncs-history-tools > [hidden] {display:none;}
+/* Small refresh next to the count. */
+#naice-shot-dialog .ncs-count-row {display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0;}
+#naice-shot-dialog .ncs-count-row > small {flex:1;}
+#naice-shot-dialog .ncs-icon-button {flex:none;width:38px;min-width:38px;height:38px;min-height:38px;margin:0;padding:0;font-size:17px;line-height:1;}
+/* Clothes on a person card: two groups. */
+#naice-shot-dialog .ncs-outfit-group {border:1px solid var(--ncs-rule);border-radius:var(--ncs-radius-control);padding:10px 12px;margin:10px 0;background:var(--ncs-surface);}
+#naice-shot-dialog .ncs-outfit-head {display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px;font-weight:800;color:var(--ncs-fg);margin-bottom:6px;}
+#naice-shot-dialog .ncs-outfit-head small {font-weight:400;font-size:12px;color:var(--ncs-muted);}
+#naice-shot-dialog .ncs-outfit-head .ncs-outfit-saving {margin-left:auto;}
+#naice-shot-dialog .ncs-outfit-now {display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;}
+#naice-shot-dialog .ncs-outfit-now .ncs-chip-button {width:auto;min-height:30px;margin:0;padding:2px 10px;font-size:12px;border-radius:999px;}
+#naice-shot-dialog .ncs-outfit-group select[data-wear-once] {width:100%;margin:8px 0 0;}
+#naice-shot-dialog .ncs-outfit-group .ncs-actions {margin:8px 0 4px;}
+#naice-shot-dialog .ncs-outfit-group .ncs-actions > button {font-size:13px;padding:6px 4px;}
+#naice-shot-dialog .ncs-outfit-undo {display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0;padding:6px 10px;border-radius:var(--ncs-radius-control);background:color-mix(in srgb,var(--ncs-edge) 12%,var(--ncs-control));color:var(--ncs-fg);font-size:13px;}
+#naice-shot-dialog .ncs-outfit-undo button {width:auto;min-height:34px;margin:0;padding:4px 12px;}
+/* Settings: advanced options fold away. */
+#naice-shot-dialog .ncs-advanced {border:1px solid var(--ncs-rule);border-radius:var(--ncs-radius-control);padding:4px 12px;margin-top:8px;}
+#naice-shot-dialog .ncs-advanced > summary {cursor:pointer;font-weight:700;padding:8px 0;color:var(--ncs-fg);}
+#naice-shot-dialog .ncs-advanced .ncs-indent {display:block;margin:0 0 6px 32px;line-height:1.55;}
+#naice-shot-dialog .ncs-advanced .ncs-privacy-note {margin:6px 0 10px 32px;}
+#naice-shot-dialog .ncs-actions > .ncs-import-undo {grid-column:1;justify-self:start;width:auto;min-height:38px;padding:4px 14px;font-size:13px;border:2px solid var(--ncs-edge);font-weight:700;}
+@media (max-width:360px) { #naice-shot-dialog .ncs-outfit-group .ncs-actions {grid-template-columns:minmax(0,1fr);} #naice-shot-dialog .ncs-outfit-group {padding:8px;} } /* very narrow phones: one button per row instead of wrapped labels */
+@media (max-width:420px) { #naice-shot-dialog .ncs-wide-only {display:none;} } /* short labels on phones */
+@media (max-width:360px) { #naice-shot-dialog .ncs-history-tools {gap:6px;} #naice-shot-dialog .ncs-history-tools > button {padding:6px 4px;font-size:13px;} }
+#naice-shot-dialog .ncs-history-actions > button,#naice-shot-dialog .ncs-save-toggle {white-space:nowrap;} @media (max-width:360px) { #naice-shot-dialog .ncs-history-actions {gap:4px;} #naice-shot-dialog .ncs-history-actions > button {padding:6px 2px;} #naice-shot-dialog .ncs-history-actions .ncs-save-toggle {gap:3px;} }

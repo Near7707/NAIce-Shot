@@ -40,7 +40,7 @@ try{
   assert.deepEqual(leo.wardrobe.map(w=>[w.name,w.outfit]),[['잠옷','pajamas, slippers'],['정장','black suit, tie']]);assert.equal(leo.defaultOutfit,'navy coat, white shirt, jeans');
   // Scene card: the four controls with their notes.
   await page.locator('[data-tab="scene"]').click();await page.locator('[data-action="extract"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&document.querySelector('[data-character="leo"]'));
-  const text=await card.innerText();for(const label of ['채팅 기본 복장','복장 잠금','이번 그림 복장','옷장에 저장'])assert.ok(text.includes(label),label);
+  const text=await card.innerText();for(const label of ['이번 그림','이 채팅에서','채팅 기본 복장','복장 잠금','옷장에 저장'])assert.ok(text.includes(label),label);
   assert.match(text,/채팅 기본 복장이 없어서 프로필 기본 복장을 기준으로 해요/);
   assert.match(text,/메시지에 복장 설명이 없으면 이 채팅에서 기본으로 입는 옷이에요./);assert.match(text,/AI가 이 채팅에서 복장을 바꾸지 못하게 해요/);assert.match(text,/AI가 찾은 새 옷/);
   // 이 채팅 기본 복장: picking 잠옷 saves it for this chat and puts it on this image, over the AI's new outfit.
