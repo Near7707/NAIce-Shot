@@ -37,11 +37,16 @@ export function confirmText(plan,profiles){
   return ['글에 나오지 않는 인물 카드가 있어요.',...lines,'','확인: 그대로 추출 · 취소: 돌아가서 글을 고치거나 📌 고정하기'].join('\n');
 }
 
-// Old work has no pin field: such cards are pinned once (and saved so), so an update never deletes them unasked.
-// A temporary person's clothes from then have no source either: they count as chosen, so a new text never empties them (UI-059-03).
+// Two separate conversions, each run on every load (so data saved by 0.1.59 with only the pin is fixed too, UI-059-03):
+//   • no pin field → pinned (cards from before 📌 are never deleted unasked);
+//   • a temporary person's clothes with no recorded source (outfitManual missing) → chosen. Clothes the AI fills in
+//     are marked automatic (outfitManual:false), so they are told apart from such old clothes.
 export function migratePins(cards){
   let changed=false;
-  for(const c of cards??[])if(c.pinned===undefined){c.pinned=true;if(c.temp&&c.outfitManual===undefined&&String(c.outfit??'').trim())c.outfitManual=true;changed=true;}
+  for(const c of cards??[]){
+    if(c.pinned===undefined){c.pinned=true;changed=true;}
+    if(c.temp&&c.outfitManual===undefined&&String(c.outfit??'').trim()){c.outfitManual=true;changed=true;}
+  }
   return changed;
 }
 
@@ -66,7 +71,7 @@ export function applyFreePeople(cards,plan,people,{makeTemp}){
       else if(!card.pinned){
         if(String(person.appearance??'').trim()){if(card.appearance!==person.appearance)refreshed.push(card);card.appearance=person.appearance;card.subject=person.subject;}
       }
-      if(!card.outfitManual)card.outfit=person.outfit??'';
+      if(!card.outfitManual){card.outfit=person.outfit??'';card.outfitManual=false;} // automatic, recorded as such
       card.needsCheck=false;
     }
     if(seen.has(card.id))continue;seen.add(card.id);

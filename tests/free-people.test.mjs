@@ -61,3 +61,10 @@ test('migration: an old temporary person\'s clothes count as chosen (UI-059-03)'
  const plan=planFreePeople(old,'Kai',[]);const out=applyFreePeople(old,plan,[{profile:null,name:'Kai',outfit:''}],{makeTemp});
  assert.equal(out.cards.find(c=>c.id==='t1').outfit,'apron');
 });
+test('migration runs its two parts separately: a card already pinned by 0.1.59 still gets its clothes marked chosen (UI-059-03)',()=>{
+ const saved=[{id:'t1',temp:true,pinned:true,name:'Kai',outfit:'old coat'},{id:'t2',temp:true,pinned:false,name:'Sam',outfit:'apron',outfitManual:false}];
+ migratePins(saved);assert.equal(saved[0].outfitManual,true);assert.equal(saved[1].outfitManual,false,'automatic clothes stay automatic');
+ const plan=planFreePeople(saved,'Kai and Sam',[]);const out=applyFreePeople(saved,plan,[{profile:null,name:'Kai',outfit:''},{profile:null,name:'Sam',outfit:''}],{makeTemp});
+ assert.equal(out.cards.find(c=>c.id==='t1').outfit,'old coat');assert.equal(out.cards.find(c=>c.id==='t2').outfit,'');
+ const fresh=applyFreePeople([],planFreePeople([],'Robin',[]),[{profile:null,name:'Robin',outfit:'scarf'}],{makeTemp}).cards[0];assert.equal(fresh.outfitManual,false,'AI clothes are recorded as automatic');
+});

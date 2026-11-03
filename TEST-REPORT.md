@@ -1,3 +1,11 @@
+# v0.1.61 validation — 2026-11-04
+
+- Extension Node suite: **149 passed, 0 failed** (migration parts run separately; AI clothes recorded as automatic).
+- Server Node suite: server unchanged.
+- **50 of 50 Chromium browser scripts passed.** New `browser-v0161` (fails on 0.1.60 code for UI-060-01): a history card saved with only the pin keeps "old coat" after a text without clothes; AI clothes go when the next text has none; cancelling [직접 만들기] then saving the edited profile links no card and no chat binding.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern or extraction model, iPhone Safari.
+
 # v0.1.60 validation — 2026-11-04
 
 - Extension Node suite: **148 passed, 0 failed** (old temporary clothes count as chosen).

@@ -1,5 +1,10 @@
 # Installation and update checklist
 
+## v0.1.61
+
+Update the extension and refresh. No server update is needed. Nothing new to try: two fixes for older 프리샷 cards and the [직접 만들기] question.
+
+
 ## v0.1.60
 
 Update the extension and refresh. No server update is needed.

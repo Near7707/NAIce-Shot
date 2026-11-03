@@ -823,7 +823,7 @@ async function missingAction(kind,name){
   const {person}=entry;
   if(kind==='link'){linkTarget=linkTarget===name?null:name;renderSceneExtras();return;}
   if(kind==='link-confirm'){linkMissing(name,person);return;}
-  openQuickProfile(name);
+  if(!openQuickProfile(name))return; // cancelled: no card link is planned for the profile being edited (UI-060-01)
   pendingBind={chatKey:keyOf(),role:person.role,avatar:person.avatar,session:profileFormSession};
   const temp=sameNameTemp(name);if(temp)pendingTempConvert={id:temp.id,session:profileFormSession,chatKey:keyOf()}; // UI-050-04: becomes that card
   if(kind==='direct'){setProfileMode('direct',{save:false});notice(`"${name}" 프로필을 만들어 주세요. 저장하면 바로 장면에 들어가요.`);return;}

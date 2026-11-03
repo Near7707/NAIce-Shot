@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.61 — 2026-11-04 (extension only; server v0.1.13 unchanged)
+
+Fixes from GPT's re-check of 0.1.60.
+
+- The two conversions for older 프리샷 cards now run separately on every load: a temporary person saved by 0.1.59 (pinned, but with no record of where its clothes came from) keeps its clothes as chosen. Clothes the AI fills in are recorded as automatic, so they are told apart (UI-059-03, rest).
+- Cancelling the "작성 중인 프로필 내용" question from [직접 만들기] for a left-out person no longer plans a card link that would be attached to the profile being edited (UI-060-01).
+- Tests: new `browser-v0161`; two migration cases in `free-people.test.mjs`.
+
 ## 0.1.60 — 2026-11-04 (extension only; server v0.1.13 unchanged)
 
 Fixes from GPT's review of 0.1.59, and a shorter PNG guide.
