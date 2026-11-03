@@ -1,3 +1,10 @@
+# v0.1.46 validation — 2026-11-03
+
+- Extension Node suite: **136 passed, 0 failed, 0 skipped**. `costGuard` wording per account: Opus V4.5 free, Opus V5 may, Tablet/Scroll uses (V4.5 and V5), unknown account, over the free limits.
+- Server Node suite: **24 passed**. New: Tablet and Scroll (tier 1, 2) blocked without consent with `anlas-consent`/428 and no NovelAI call, sent with consent, balance fields forwarded; NovelAI failures classified only from the reply (401 key; 402 with an Anlas note vs 402 "Payment required" → rejected; 403 permission vs empty; 403 "Insufficient permissions" is not an Anlas error; 429; 5xx; 400), note trimmed to 120 characters with tokens removed; the handler passes the code and never the key.
+- **35 of 35 Chromium browser scripts passed.** New `browser-v0146` at 1100/375px: Tablet balance and cost line, consent block not sending and the button only showing the switch, consent on → image → balance re-checked with a difference since the last check, Settings showing the same check, a failed balance check after a finished image, NovelAI Anlas error re-checking the balance without the consent button, the server's consent refusal for an unchecked account, Opus V5 link and Opus V4.5 free line, width fit. `browser-v0130` follows the new switch description.
+- Not exercised: real Tablet/Scroll accounts, NovelAI's actual error bodies for shortage/permission, free-trial API tokens, real SillyTavern, iPhone Safari.
+
 # v0.1.45 validation — 2026-11-03
 
 - Extension Node suite: **136 passed, 0 failed, 0 skipped**. Queue tests: nothing leaves while paused and held edits keep their data; resume sends them; resume terminates even when the state callback touches entries (a hang found and fixed during this work).

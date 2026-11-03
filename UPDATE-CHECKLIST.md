@@ -1,5 +1,16 @@
 # Installation and update checklist
 
+## v0.1.46
+
+Update **NAIce-Shot-Server 0.1.12**, restart SillyTavern, then update the extension and refresh.
+
+1. Drawing tab, above 이미지 생성: `Anlas N · 시각 확인` and ↻. Press ↻; Settings → 서버·NAI 연결 확인 shows the same balance.
+2. Opus: V4.5 says the free condition; V5 says Anlas may be deducted, with **NovelAI에서 확인**.
+3. With **Anlas 사용 가능성 허용** off and a V5 (or non-Opus) generation: nothing is sent; **Anlas 허용 설정으로 이동** highlights the switch without turning it on.
+4. After an image, the balance updates as "이전 조회보다 −N".
+5. Tablet/Scroll users: please report the exact message if NovelAI refuses a generation (the bracketed NovelAI note helps).
+
+
 ## v0.1.45
 
 Update the extension and refresh. No server update is needed.

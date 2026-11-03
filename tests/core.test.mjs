@@ -61,6 +61,14 @@ test('cost guard never promises free V5 without known consumption and allowance'
   assert.equal(costGuard(DEFAULTS.options,sub).free,false);
   assert.equal(costGuard({...DEFAULTS.options,model:'nai-diffusion-4-5-full'},sub).free,true);
   assert.equal(costGuard({...DEFAULTS.options,steps:29},sub).free,false);
+  // Worded for the account: Opus V4.5 free, Opus V5 may, lower tiers use, unknown account unknown.
+  const v45={...DEFAULTS.options,model:'nai-diffusion-4-5-full'};
+  assert.deepEqual([costGuard(v45,sub).kind,costGuard(DEFAULTS.options,sub).kind],['free','may']);
+  assert.equal(costGuard(DEFAULTS.options,sub).message,'무료 사용량에 따라 Anlas가 차감될 수 있어요.');
+  for(const tier of [1,2]){const g=costGuard(v45,{tier,perks:{unlimitedImageGeneration:false}});assert.equal(g.free,false);assert.equal(g.kind,'uses');assert.equal(g.message,'이 생성은 Anlas를 사용해요.');}
+  assert.equal(costGuard(DEFAULTS.options,{tier:1,perks:{}}).kind,'uses','a lower tier on V5 uses Anlas, never "may"');
+  assert.deepEqual([costGuard(v45,null).kind,costGuard(v45,null).message],['unknown','비용 조건을 확인하지 못했어요.']);
+  assert.equal(costGuard({...v45,steps:29},sub).kind,'uses');
 });
 test('profile validation preserves stable IDs and rejects duplicates',()=>{
   assert.equal(validateProfiles(profiles)[0].id,'leo');assert.throws(()=>validateProfiles([...profiles,profiles[0]]),/중복/);

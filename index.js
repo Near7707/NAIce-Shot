@@ -251,7 +251,7 @@ function setBusy(value,owner=0) {busy=value;busyOwner=value?owner:0;for(const b 
 async function api(route,{method='GET',body,keepalive=false,signal}={}) {
   const response=await fetch(`${API}${route}`,{method,headers:ctx().getRequestHeaders(),body:body?JSON.stringify(body):undefined,keepalive,signal});
   const text=await response.text();let data;try{data=JSON.parse(text);}catch{throw new Error(`서버 플러그인을 확인해 주세요 (${response.status}).`);}
-  if(!response.ok||data.error){const error=new Error(data.error??`요청 실패 (${response.status})`);error.status=response.status;throw error;}return data;
+  if(!response.ok||data.error){const error=new Error(data.error??`요청 실패 (${response.status})`);error.status=response.status;error.code=data.code??'';throw error;}return data;
 }
 const draftSignal=()=>globalThis.AbortSignal?.timeout?.(15000);
 const drafts=new DraftQueue({read:key=>api(`/draft?chatKey=${encodeURIComponent(key)}`,{signal:draftSignal()}),
@@ -947,7 +947,7 @@ function updateFinal({force=false}={}) {
     if(finalOverride)warnings.push('직접 고친 최종 프롬프트를 이번 생성에 써요. 되돌리려면 "조립 결과로 되돌리기"를 눌러 주세요.');
     if(optionsOverride)warnings.push(`이력에서 불러온 생성 설정(seed ${optionsOverride.seed})을 이번 생성에만 써요. 생성 성공·조립 결과로 되돌리기 시 현재 설정으로 돌아가요. 이 채팅의 마지막 작업에 함께 기억해요.`);
     $('ncs-warnings').textContent=warnings.join('\n');
-    const guard=costGuard(effectiveOptions(),subscription);$('ncs-cost').textContent=guard.message;
+    renderCost();
     updatePresetState();
   }catch(e){$('ncs-warnings').textContent=e.message;}
 }
@@ -1137,11 +1137,57 @@ function renderCompat() {
   $('ncs-compat').hidden=!show;$('ncs-compat').dataset.level=compatResult.level;$('ncs-compat-text').textContent=compatResult.message;
   $('ncs-server-version').textContent=compatResult.level==='none'?'':compatResult.message;
 }
+// --- Account and Anlas ------------------------------------------------------------------------------
+// One account check feeds both the drawing tab (balance + ↻) and Settings (NAI 연결 확인). A failed check
+// never leaves an old balance looking current. The difference shown is "since the last check", not a cost.
+let account={sub:null,at:0,failed:false,message:'',previous:null,checking:null,keyConfigured:null};
+const anlasTotal=sub=>{const a=sub?.anlas;if(!a||(a.subscription==null&&a.purchased==null))return null;return (Number(a.subscription)||0)+(Number(a.purchased)||0);};
+function refreshAccount(){
+  if(account.checking)return account.checking;
+  account.checking=(async()=>{
+    renderAccount();
+    try{
+      const data=await api('/status'),before=anlasTotal(account.sub)??account.previous;
+      subscription=data.keyConfigured?data.subscription??null:null;
+      account={...account,sub:subscription,at:Date.now(),failed:!data.keyConfigured,keyConfigured:!!data.keyConfigured,
+        message:data.keyConfigured?'':'NAI 키가 없어요. 실리태번 API 연결 화면에서 저장해 주세요.',previous:before};
+      return data;
+    }catch(e){subscription=null;account={...account,sub:null,failed:true,message:e.message};throw e;}
+    finally{account.checking=null;renderAccount();if(dialog)updateFinal();}
+  })();
+  return account.checking;
+}
+function renderAccount(){
+  if(!dialog)return;const box=$('ncs-anlas-balance'),total=anlasTotal(account.sub),button=dialog.querySelector('[data-action="refresh-anlas"]');
+  button.disabled=!!account.checking;
+  if(account.checking&&!account.at&&!account.failed)box.textContent='Anlas 확인 중…';
+  else if(account.failed)box.textContent=account.keyConfigured===false?'NAI 키가 없어요 · 설정에서 확인':'잔액 확인 실패 · 다시 확인';
+  else if(total===null)box.textContent=account.at?'Anlas 잔액을 알 수 없어요':'Anlas 확인 전';
+  else{const time=new Date(account.at).toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'}),diff=account.previous!=null?total-account.previous:0;
+    box.innerHTML=`<b>Anlas ${total.toLocaleString()}</b> <small>· ${esc(time)} 확인${diff?` · 이전 조회보다 ${diff>0?'+':'−'}${Math.abs(diff).toLocaleString()}`:''}</small>`;}
+  const tier=account.sub?.tier,s=account.sub?.anlas;
+  $('ncs-status').textContent=account.failed?(account.message||'연결을 확인하지 못했어요.'):account.sub?
+    `서버 연결됨 · ${tier===3?'Opus':`구독 등급 ${tier}`} · Anlas ${total===null?'?':total.toLocaleString()} (구독 ${s?.subscription??'?'} + 구매 ${s?.purchased??'?'})`:$('ncs-status').textContent;
+}
+// The cost line under the balance, worded for the account; with consent off, a non-free generation is not sent.
+function renderCost(){
+  // Blocked here only when the account is known; an unchecked account is left to the server, which checks it
+  // itself and answers anlas-consent if needed (then consentRefused shows the same note and button).
+  const guard=costGuard(effectiveOptions(),subscription),off=settings().allowAnlas!==true,blocked=off&&!guard.free&&guard.kind!=='unknown';
+  if(!off||guard.kind!=='unknown')consentRefused=false; // a known account decides here again
+  $('ncs-cost').textContent=guard.message;$('ncs-cost-link').hidden=guard.kind!=='may';
+  const show=blocked||(off&&consentRefused);$('ncs-consent-note').hidden=!show;dialog.querySelector('[data-action="goto-anlas"]').hidden=!show;
+  return {guard,blocked};
+}
+let consentRefused=false;
+// Shows the switch; turning it on is left to the person.
+function gotoAnlasSetting(){
+  const box=$('ncs-allow-anlas'),label=box?.closest?.('label');if(!label)return;label.scrollIntoView({block:'center',behavior:'smooth'});
+  box.focus({preventScroll:true});label.classList.remove('ncs-attention');void label.offsetWidth;label.classList.add('ncs-attention');
+}
 async function refreshStatus() {
   checkServer({force:true}).catch(()=>{});
-  const data=await api('/status');subscription=data.subscription??null;
-  $('ncs-status').textContent=data.keyConfigured?`서버 연결됨 · ${subscription?.tier===3?'Opus':'구독 등급 '+subscription?.tier} · Anlas: ${subscription?.anlas?.subscription??'?'} + ${subscription?.anlas?.purchased??'?'}`:'NAI 키가 없어요. 실리태번 API 연결 화면에서 저장해 주세요.';
-  updateFinal();return data;
+  return refreshAccount();
 }
 async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   if(busy)return;if(!isFree())assertChat();
@@ -1153,6 +1199,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   if(finalOverride?.invalid)throw new Error('최종 프롬프트 JSON이 올바르지 않아요. 고치거나 "조립 결과로 되돌리기"를 눌러 주세요.');
   const a=clone(finalData()),submittedFinal=finalOverride,submittedOptions=optionsOverride;
   const options=clone(effectiveOptions());
+  if(renderCost().blocked){gotoAnlasSetting();throw new Error(`${costGuard(options,subscription).message} Anlas 사용 허용이 꺼져 있어서 보내지 않았어요.`);}
   options.seed=seedMode==='same'&&result?result.seed:seedMode==='new'||options.seed===-1?crypto.getRandomValues(new Uint32Array(1))[0]:options.seed;
   buildPayload(a,options); // Local validation before network or billing.
   if(!a.base.trim()&&!a.characters.length)throw new Error('장면이나 프롬프트를 먼저 입력해 주세요.');
@@ -1181,6 +1228,12 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
     if(optionsOverride===submittedOptions)optionsOverride=null;
     revision++;updateFinal({force:resetFinal});
     result=item;renderResult();notice(`생성했어요 · seed ${item.seed} · 그림을 누르면 크게 볼 수 있어요.`);loadHistory().catch(()=>{});
+    refreshAccount().catch(()=>{}); // a failed balance check never turns a finished image into a failure
+  }catch(e){
+    // The server's own consent block shows the switch; NovelAI's Anlas or key errors re-check the balance.
+    if(e.code==='anlas-consent'){consentRefused=true;renderCost();gotoAnlasSetting();}
+    else if(e.code==='nai-anlas'||e.code==='nai-auth')refreshAccount().catch(()=>{});
+    throw e;
   }finally{generationDraft.pinned=false;stopProgress(ticket);if(busyOwner===ticket)setBusy(false);}
 }
 const chatRows=()=>ctx().chat.map((m,i)=>({m,i})).filter(({m})=>isSceneMessage(m));
@@ -1538,6 +1591,8 @@ async function onAction(action,el) {
     }
     case 'reset-final':changed();break;
     case 'status':await refreshStatus();break;
+    case 'refresh-anlas':await refreshAccount().catch(()=>{});break;
+    case 'goto-anlas':gotoAnlasSetting();break;
     // 프리셋 저장: overwrite the selected preset, or create one when none is selected.
     case 'save-preset':saveImagePreset(!!settings().imagePresets.find(p=>p.id===settings().imagePresetId));break;
     case 'save-preset-as':saveImagePreset(false);break;
@@ -1721,6 +1776,7 @@ async function open() {
   if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true));
   const checking=!compatChecked;if(checking)$('ncs-work-fields').disabled=true;
   try{await checkServer();}finally{if(checking&&!draftLoading)$('ncs-work-fields').disabled=false;}
+  if(!account.at&&!account.checking&&!account.failed)refreshAccount().catch(()=>{});
 }
 // The settings-panel entry uses SillyTavern's own drawer markup (same border and toggle as other
 // extensions) and is attached immediately, before the panel file loads, so it keeps its place in the list.

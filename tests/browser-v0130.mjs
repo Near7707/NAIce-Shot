@@ -29,7 +29,7 @@ try{
  assert.equal(await page.locator('#ncs-size-preset option[value="custom"]').count(),0);assert.equal(await page.locator('#ncs-steps').getAttribute('max'),'28');
  assert.match(await page.locator('[data-page="settings"]').innerText(),/세 크기 모두 Opus 무료 범위예요/);
  await page.locator('[data-tab="scene"]').click();
- assert.match(await page.locator('[data-page="scene"]').innerText(),/V5는 이 항목을 켜야 생성돼요\. 남은 무료 사용량은 확장에서 볼 수 없어서 NovelAI 홈페이지에서 확인해 주세요\./);
+ assert.match(await page.locator('[data-page="scene"]').innerText(),/Anlas가 들 수 있는 생성\(Opus가 아닌 구독, V5, 기본보다 큰 크기·많은 스텝\)은 이 항목을 켜야 보내요/);
  assert.deepEqual(errors,[]);
  console.log('PASS: three free sizes only, saved custom size and >28 steps fall back to portrait/28, size and V5 notes shown');
 }finally{await browser.close();server.close();}

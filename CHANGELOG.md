@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.46 — 2026-11-03
+
+**Update: extension + server 0.1.12.** Update the server, restart SillyTavern, then update and refresh the extension.
+
+- **Anlas balance in the drawing tab**, right above 이미지 생성: `Anlas 1,234 · 12:00 확인` with **↻**. The same check feeds Settings → 서버·NAI 연결 확인 and is refreshed after each image. Differences are shown as **이전 조회보다 −N** (since the last check), never as the price of one image. A failed check shows **잔액 확인 실패 · 다시 확인**; an image that was made stays a success even if the balance check after it fails.
+- **Cost line worded for the account:** Tablet·Scroll "이 생성은 Anlas를 사용해요."; Opus V5 "무료 사용량에 따라 Anlas가 차감될 수 있어요." with **NovelAI에서 확인**; Opus V4.5 within limits "Opus 무료 조건…"; account not checked "비용 조건을 확인하지 못했어요."
+- **Consent switch kept as is (one switch).** With it off, a known cost-bearing generation is not sent, with a note and **Anlas 허용 설정으로 이동**, which scrolls to and highlights the switch without turning it on. If the account is not checked, the server decides and its refusal (`anlas-consent`, HTTP 428) shows the same note.
+- **NovelAI errors named only when clear** (server 0.1.12): `nai-auth` "NAI 키를 확인해 주세요.", `nai-anlas` "Anlas가 부족해요.", `nai-permission` "이 모델의 사용 권한을 확인해 주세요.", `nai-busy`, `nai-down`; otherwise `nai-rejected` "NovelAI가 요청을 거절했어요. 계정 상태와 생성 설정을 확인해 주세요." A status number alone never means "not enough Anlas". NovelAI's short note is added in brackets (≤120 characters, credentials removed). Anlas or key errors re-check the balance.
+- README: any subscription can use the extension; free-trial API use is unverified.
+
 ## 0.1.45 — 2026-11-03
 
 **Update: extension only.** Server 0.1.11 is unchanged.

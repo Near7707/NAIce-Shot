@@ -51,6 +51,8 @@ Termux로 실리태번을 쓰는 경우에도 순서는 같아요. 명령은 Ter
 
 처음 사용할 때는 캐릭터와 유저의 이미지 프로필을 각각 만들고, **장면 추출 → 내용 확인·편집 → 이미지 생성** 순서로 진행해요. 별도 추출 AI 연결을 고를 수 있고, 추출 요청에도 해당 AI의 사용량·비용이 발생할 수 있어요. V5 생성은 무료 사용량을 확정할 수 없어 **Anlas 사용 가능성 허용**을 켜야 요청할 수 있어요.
 
+**Opus가 아니어도 쓸 수 있어요.** Tablet·Scroll 구독은 그림마다 Anlas를 써서, **Anlas 사용 가능성 허용**을 켜야 생성돼요. 그리기창의 생성 버튼 위에 Anlas 잔액(↻로 다시 확인)과 이번 생성의 비용 조건이 보여요. 무료 체험 계정이 이 확장(외부 API)으로 그림을 만들 수 있는지는 확인되지 않았어요.
+
 ## 개인정보·저장 데이터 안내
 
 - **API 키:** 실리태번에 저장된 NAI 키를 서버에서 읽어 NovelAI 인증에 사용해요. 이 확장의 설정 백업과 생성 이력에는 NAI 인증 헤더를 넣지 않아요.
@@ -173,7 +175,13 @@ Only selected message bodies, participant identities and relevant clothing data 
 
 `Anlas 사용 가능성 허용` means **Allow possible Anlas use**. It defaults to off and is reset to off when a settings backup is imported.
 
-The code does not calculate V5 allowance or guarantee a free request. For V5, the switch must be enabled before submission. Enabling it permits a potentially billable request; the actual charge depends on NovelAI's account rules.
+The code does not calculate V5 allowance or guarantee a free request. Enabling the switch permits a potentially billable request; the actual charge depends on NovelAI's account rules.
+
+Any subscription can use the extension. Opus gets free V4.5 images within the default sizes and 28 steps; Tablet and Scroll use Anlas for every image, so they need the switch on. Free-trial accounts with the external API are unverified.
+
+Above **이미지 생성** the drawing tab shows the Anlas balance (subscription + purchased, with **↻** to check again) and a cost line worded for the account: "Opus 무료 조건에 해당해요" (Opus V4.5 within limits), "무료 사용량에 따라 Anlas가 차감될 수 있어요" (Opus V5, with a link to NovelAI), "이 생성은 Anlas를 사용해요" (Tablet/Scroll, or over the free limits) or "비용 조건을 확인하지 못했어요" (account not checked). A failed check shows "잔액 확인 실패 · 다시 확인" instead of an old number. After an image the balance is checked again and shown as **이전 조회보다 −N** — a difference since the last check, not the price of that image. Settings → 서버·NAI 연결 확인 shows the same check.
+
+With the switch off and a cost-bearing generation, the request is not sent and **Anlas 허용 설정으로 이동** points to the switch (it never turns it on). NovelAI's own errors are named only when its reply says why: NAI key, not enough Anlas, model permission, too many requests, NovelAI trouble; otherwise "NovelAI가 요청을 거절했어요" with NovelAI's short note in brackets (at most 120 characters, credentials removed).
 
 Generation errors are not automatically retried. A timeout does not establish whether NovelAI completed or charged the request. Extraction may retry once after receiving an unparseable response.
 
