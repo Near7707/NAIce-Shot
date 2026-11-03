@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.47 — 2026-11-03 (extension + server v0.1.13)
+
+- History no longer follows the drawing mode: **이 채팅 / 모든 채팅 / 프리샷 / 전체 보기**. The server filters chat images before pagination and summaries. Restoring a free image opens 프리샷. The attach action stays in every menu, disabled with a reason for free or other-chat images.
+- Restore two-column mobile history; compact Anlas balance and generation summary; give selected drawing modes a filled background in all skins; add touch minus/plus controls for the reference-message count. Explain the supported three sizes / 28-step limit and both V5 (22) / V4.5 (6) character limits.
+- Save/⋯ menus toggle closed on a second tap and close when their anchor scrolls. Space the caret, keep menus on the available side of the button, and include the full PNG metadata/opaque-copy explanation at each save surface. Viewer delete is **삭제**; remove dialog-container focus outlines while preserving control keyboard focus rings.
+- Wardrobe outfits are compact expandable buttons, with **제거** and a confirmation. Add/reset actions no longer focus or scroll to text inputs. Notices are more visible and stay with their originating tab, including asynchronous results.
+- Rename retention settings to **AI 응답 보관**; show **개인정보 주의** for extraction responses and settings backups. Separate the last-work deletion section. Keep existing destructive confirmations and add wardrobe-removal confirmation.
+- Chat image placement gains a per-chat override of the global default, stored in chat metadata.
+- Update order: server → restart SillyTavern → extension → refresh. Tests and review notes: `TEST-REPORT.md`, `docs/REVIEW.md`. No guide screen added.
+
 ## 0.1.46 — 2026-11-03
 
 **Update: extension + server 0.1.12.** Update the server, restart SillyTavern, then update and refresh the extension.

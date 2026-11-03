@@ -42,7 +42,7 @@ try{
     const r=String(++revision);entries.set(b.chatKey,{revision:r,work:b.work});writes++;order.push('save');if(saveAfter){held++;await saveAfter;held--;}return route.fulfill({json:{revision:r}});
    }
    if(u.pathname.endsWith('/delete')){if(deleteFails)return route.fulfill({status:500,json:{error:'mock delete failed'}});const b=route.request().postDataJSON();const gone=history.filter(h=>h.chatKey===b.chatKey).map(h=>h.id);history.splice(0,history.length,...history.filter(h=>h.chatKey!==b.chatKey));const had=!!entries.get(b.chatKey)?.work;if(entries.has(b.chatKey))entries.set(b.chatKey,{revision:String(++revision),work:null});return route.fulfill({json:{deleted:gone,skipped:[],workDeleted:had}});}
-   if(u.pathname.endsWith('/history')){const all=u.searchParams.get('scope')==='all',only=u.searchParams.get('chatKey'),items=all?history.filter(h=>!only||h.chatKey===only):history; // the chat view stays unfiltered, as before
+   if(u.pathname.endsWith('/history')){const all=u.searchParams.get('scope')==='all',only=u.searchParams.get('chatKey'),items=history.filter(h=>all?(!only||h.chatKey===only):h.chatKey===only);
     const chats=[...new Set(history.map(h=>h.chatKey))].map(chatKey=>({chatKey,count:history.filter(h=>h.chatKey===chatKey).length,latest:''}));
     return route.fulfill({json:{items,total:items.length,hasMore:false,...(all?{scope:'all',chats,imageCount:history.length,bytes:1}:{})}});}
    if(u.pathname.endsWith('/generate')){if(genWait)await genWait;if(genFails)return route.fulfill({status:500,json:{error:'mock generation failed'}});const b=route.request().postDataJSON();return route.fulfill({json:{id:b.requestId,created:new Date().toISOString(),chatKey:b.chatKey,image:`/user/images/naice-shot/${b.requestId}.png`,seed:b.options.seed,options:b.options,assembled:b.assembled,snapshot:b.snapshot}});}
@@ -91,7 +91,7 @@ try{
   accept=false;await page.locator('#ncs-draft-retry').click();assert.equal(await value(),'local conflict');accept=true;await page.locator('#ncs-draft-retry').click();await page.waitForFunction(()=>document.querySelector('#ncs-location').value==='unsaved garden');
   // Restored one-off options survive failed generation, but success consumes them before refresh.
   const historyId='22222222-2222-4222-8222-222222222222';history.push({id:historyId,created:new Date().toISOString(),chatKey:freeKey,image:`/user/images/naice-shot/${historyId}.png`,seed:777,assembled:{base:'history garden',negative:'',characters:[],warnings:[]},options:{model:'nai-diffusion-4-5-full',width:832,height:1216,steps:17,scale:4,cfgRescale:0,sampler:'k_euler',scheduler:'karras',seed:777},snapshot:{scene:{characters:[],location:'history garden'}}});
-  await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-id]');
+  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-scope="free"]').click();await pick(page,'[data-history-id]');
   assert.match(await page.locator('#ncs-gen-scope').innerText(),/이력/);
   genFails=true;await page.locator('[data-action="generate"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-notice').textContent.includes('mock generation failed'));assert.match(await page.locator('#ncs-gen-scope').innerText(),/이력/);
   genFails=false;await page.locator('[data-action="generate"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-notice').textContent.startsWith('생성했어요'));assert.doesNotMatch(await page.locator('#ncs-gen-scope').innerText(),/이력/);
@@ -100,7 +100,8 @@ try{
   await page.locator('[data-mode="chat"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
   let release;slowRead=new Promise(r=>release=r);await page.evaluate(()=>mock.switchChat('B-new'));await page.evaluate(()=>mock.switchChat('A'));release();slowRead=null;await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);assert.equal(await value(),'A edited cafe');
   // Completion after leaving a chat consumes only that chat's one-off override.
-  await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-id]');
+  history.push({...history[0],id:'44444444-4444-4444-8444-444444444444',image:'/user/images/naice-shot/44444444-4444-4444-8444-444444444444.png',chatKey:JSON.stringify({group:null,card:'Leo.png',chat:'A'})});
+  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-scope="chat"]').click();await pick(page,'[data-history-id]');
   let finishGeneration;genWait=new Promise(r=>finishGeneration=r);await page.locator('[data-action="generate"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-progress').hidden);
   await page.evaluate(()=>mock.switchChat('B'));await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);assert.equal(await value(),'B river');
   finishGeneration();genWait=null;await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden);assert.equal(await value(),'B river');
@@ -136,12 +137,14 @@ try{
   await page.waitForFunction(()=>/삭제하지 못했어요\. 작업은 그대로예요/.test(document.querySelector('#ncs-notice').textContent));
   await page.waitForFunction(()=>document.querySelector('#ncs-draft-status').textContent==='마지막 작업을 서버에 기억해요.');assert.ok(savedPlace('kept edit'),'the held edit is saved after the failure');
   await page.locator('[data-tab="scene"]').click();await page.locator('#ncs-location').fill('kept history edit');
+  history.push({id:historyId,chatKey:JSON.stringify({group:null,card:'Leo.png',chat:'A'}),image:`/user/images/naice-shot/${historyId}.png`,created:new Date().toISOString()});
   await page.locator('[data-tab="history"]').click();await page.locator('[data-action="delete-chat-history"]').click();
   await page.waitForFunction(()=>/삭제하지 못했어요/.test(document.querySelector('#ncs-notice').textContent));
   await page.waitForFunction(()=>document.querySelector('#ncs-draft-status').textContent==='마지막 작업을 서버에 기억해요.');assert.ok(savedPlace('kept history edit'));deleteFails=false;
   await page.reload();await open();assert.equal(await value(),'kept history edit','nothing was lost');
   // A chat with images but no saved work yet: deleting its history still empties the drawing window.
   await page.evaluate(()=>mock.switchChat('C'));await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
+  history.push({id:historyId,chatKey:JSON.stringify({group:null,card:'Leo.png',chat:'C'}),image:`/user/images/naice-shot/${historyId}.png`,created:new Date().toISOString()});
   await page.locator('#ncs-location').fill('unsaved C');await page.locator('[data-tab="history"]').click();await page.locator('[data-action="delete-chat-history"]').click();
   await page.waitForFunction(()=>document.querySelector('#ncs-location').value==='');await page.waitForTimeout(1200);assert.equal(savedPlace('unsaved C'),false);
   await page.locator('[data-tab="scene"]').click();await page.evaluate(()=>mock.switchChat('A'));await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);

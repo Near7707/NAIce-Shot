@@ -57,7 +57,7 @@ try{
  assert.equal(await page.locator('#ncs-steps').inputValue(),String(DEFAULTS.options.steps));
  assert.equal(await page.locator('#ncs-common-preset').inputValue(),'');assert.equal(await page.locator('#ncs-common-preset-name').inputValue(),'');
  assert.equal(await selected(),'');assert.equal((await presets()).length,2,'saved presets untouched');
- assert.equal(await page.evaluate(()=>document.activeElement?.id),'ncs-common-preset-name');
+ assert.notEqual(await page.evaluate(()=>document.activeElement?.id),'ncs-common-preset-name','starting a preset does not summon the keyboard');
  assert.match(await page.locator('#ncs-preset-save-hint').innerText(),/새로 저장해요/);
  // Empty name is refused with a clear message.
  await click('save-preset');assert.match(await page.locator('#ncs-notice').innerText(),/저장할 이름을 입력해 주세요/);

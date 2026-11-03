@@ -35,7 +35,7 @@ try{
   await page.locator('[data-action="extract"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&document.querySelector('[data-character]'));
   // The box: folded, with its scope and a one-line summary; edits are the settings tab's values.
   assert.equal(await page.locator('#ncs-gen-box').evaluate(el=>el.open),false);
-  assert.match(await page.locator('#ncs-gen-scope').innerText(),/기본 생성 설정 · 다음 생성에도 유지/);assert.match(await page.locator('#ncs-gen-line').innerText(),/832×1216 · 28스텝/);
+  assert.match(await page.locator('#ncs-gen-scope').innerText(),/생성 설정/);assert.match(await page.locator('#ncs-gen-line').innerText(),/832×1216 · 28스텝/);
   await page.locator('#ncs-gen-box > summary').click();
   await gen('scale').fill('6.5');await gen('size').selectOption('landscape');await gen('steps').fill('40');
   let o=await opts();assert.deepEqual([o.scale,o.width,o.height,o.steps],[6.5,1216,832,28]);assert.equal(await gen('steps').inputValue(),'28');
@@ -55,9 +55,9 @@ try{
   assert.equal(await page.locator('#ncs-gen-presets').isHidden(),true);
   await gen('steps').fill('20');assert.equal((await opts()).steps,28,'settings untouched');
   assert.equal(await generate(),true);assert.equal(sent.at(-1).options.steps,20,'the one-off copy was used');
-  assert.match(await page.locator('#ncs-gen-scope').innerText(),/기본 생성 설정/,'back to normal after a successful generation');
+  assert.match(await page.locator('#ncs-gen-scope').innerText(),/생성 설정/,'back to normal after a successful generation');
   await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-id]');
-  await page.locator('[data-action="gen-restore-default"]').click();assert.match(await page.locator('#ncs-gen-scope').innerText(),/기본 생성 설정/);
+  await page.locator('[data-action="gen-restore-default"]').click();assert.match(await page.locator('#ncs-gen-scope').innerText(),/생성 설정/);
   // 설정을 프리셋으로: a new preset from one image; current work and the chosen preset do not change.
   const before=await page.evaluate(()=>({id:mock.extensionSettings.naice_shot.imagePresetId,options:{...mock.extensionSettings.naice_shot.options}}));
   await page.locator('[data-tab="history"]').click();await page.locator('.ncs-history-card [data-image-more]').last().click();await page.locator('[data-history-preset]').last().click();

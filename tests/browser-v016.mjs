@@ -64,7 +64,7 @@ try{
  assert.match(await page.locator('#ncs-notice').innerText(),/저장해 둔 프로필은 그대로/);
  assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.profiles.find(p=>p.id==='leo').defaultOutfit),'navy coat, white shirt, jeans');
  assert.equal(await page.locator('[data-profile="leo"].ncs-selected').count(),0);
- assert.equal(await page.evaluate(()=>document.activeElement?.id),'ncs-profile-name');
+ assert.notEqual(await page.evaluate(()=>document.activeElement?.id),'ncs-profile-name','clearing does not summon the keyboard');
  // The top button does the same.
  await page.locator('#ncs-profile-name').fill('Temp');await page.locator('#ncs-profile-appearance').fill('red hair');
  await page.locator('[data-action="new-profile"]').click();

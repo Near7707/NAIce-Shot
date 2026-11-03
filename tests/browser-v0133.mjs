@@ -33,8 +33,8 @@ try{
   await page.locator('[data-tab="profiles"]').click();await page.locator('[data-profile="leo"]').click();
   assert.match(await page.locator('#ncs-wardrobe-list').innerText(),/비어 있어요/);
   await page.locator('[data-action="wardrobe-add"]').click();
-  const row=page.locator('.ncs-wardrobe-item').last();await row.locator('[data-w="name"]').fill('잠옷');await row.locator('[data-w="outfit"]').fill('pajamas, slippers');
-  await page.locator('[data-action="wardrobe-add"]').click();await page.locator('.ncs-wardrobe-item').last().locator('[data-w="name"]').fill('정장');await page.locator('.ncs-wardrobe-item').last().locator('[data-w="outfit"]').fill('black suit, tie');
+  const row=page.locator('.ncs-wardrobe-item').last();await row.locator('summary').click();await row.locator('[data-w="name"]').fill('잠옷');await row.locator('[data-w="outfit"]').fill('pajamas, slippers');
+  await page.locator('[data-action="wardrobe-add"]').click();await page.locator('.ncs-wardrobe-item').last().locator('summary').click();await page.locator('.ncs-wardrobe-item').last().locator('[data-w="name"]').fill('정장');await page.locator('.ncs-wardrobe-item').last().locator('[data-w="outfit"]').fill('black suit, tie');
   await page.locator('#ncs-profile-submit').click();
   let leo=(await settings()).profiles.find(p=>p.id==='leo');
   assert.deepEqual(leo.wardrobe.map(w=>[w.name,w.outfit]),[['잠옷','pajamas, slippers'],['정장','black suit, tie']]);assert.equal(leo.defaultOutfit,'navy coat, white shirt, jeans');
@@ -69,7 +69,7 @@ try{
   leo=(await settings()).profiles.find(p=>p.id==='leo');assert.deepEqual(leo.wardrobe.map(w=>w.name),['잠옷','정장','비 오는 날']);assert.equal(leo.wardrobe[2].outfit,'raincoat, boots');
   assert.equal(await page.locator('#ncs-wardrobe-list .ncs-wardrobe-item').count(),3,'open form updated');
   // Editing a wardrobe item later never rewrites what the chat already saved.
-  await page.locator('[data-tab="profiles"]').click();await page.locator('.ncs-wardrobe-item').first().locator('[data-w="outfit"]').fill('striped pajamas');await page.locator('#ncs-profile-submit').click();
+  await page.locator('[data-tab="profiles"]').click();await page.locator('.ncs-wardrobe-item').first().locator('summary').click();await page.locator('.ncs-wardrobe-item').first().locator('[data-w="outfit"]').fill('striped pajamas');await page.locator('#ncs-profile-submit').click();
   assert.equal((await settings()).profiles.find(p=>p.id==='leo').wardrobe.length,3,'saving the form keeps the item added from the scene');
   assert.equal(await page.evaluate(()=>mock.chatMetadata.naice_shot.outfits.leo.value),'pajamas, slippers');
   await page.locator('[data-tab="scene"]').click();assert.equal(await card.locator('[data-chat-outfit]').inputValue(),'custom','no longer matches the edited item');

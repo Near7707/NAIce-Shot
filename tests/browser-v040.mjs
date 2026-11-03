@@ -154,7 +154,7 @@ try{
  // 9) Delete the whole chat history: only chat A, chat B untouched.
  await page.locator('[data-tab="history"]').click();await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length>0);
  await click('delete-chat-history');assert.match(dialogs.at(-1),/모두 삭제/);
- await page.waitForFunction(()=>/아직 생성 이력이 없어요/.test(document.querySelector('#ncs-history').textContent));
+ await page.waitForFunction(()=>/이 범위에 저장된 그림이 없어요/.test(document.querySelector('#ncs-history').textContent));
  assert.equal(await total(),0);assert.deepEqual((await fs.readdir(path.join(directories.userImages,'naice-shot'))),[`${otherChat.id}.png`]);
  assert.equal((await call('history',{query:{chatKey:chatB}})).body.total,1);
  assert.equal(await page.evaluate(()=>JSON.stringify(mock.chat.map(m=>m.extra?.naice_shot_images??null))),'[null,null]','all attachments cleaned');

@@ -59,11 +59,11 @@ try{
  // 1) All chats: every image, per-chat filter, storage, no chat-only controls.
  await page.locator('[data-history-scope="all"]').click();
  await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===6);
- assert.match(await page.locator('#ncs-history-storage').textContent(),/저장된 그림 전체 6장 · \d+ KB/);
+ assert.match(await page.locator('#ncs-history-storage').textContent(),/이 범위의 그림 6장 · \d+ KB/);
  assert.equal(await page.locator('#ncs-history-filter option').count(),4);
  assert.match(await page.locator('#ncs-history-filter').textContent(),/A · 지금 채팅 · 3장/);assert.match(await page.locator('#ncs-history-filter').textContent(),/Leo - old chat · 2장/);
- assert.equal(await page.locator('#ncs-history [data-history-attach],#ncs-history [data-history-id]').count(),0,'no attach or restore in the all-chats view');
- assert.equal(await page.locator('#ncs-history-target-row').isHidden(),true);assert.equal(await page.locator('[data-action="delete-chat-history"]').isHidden(),true);
+ assert.equal(await page.locator('#ncs-history [data-history-attach]').count(),6,'attachment action stays in every menu');assert.equal(await page.locator('#ncs-history [data-history-attach]:disabled').count(),3,'other chats explain why attachment is unavailable');assert.equal(await page.locator('#ncs-history [data-history-id]').count(),3,'the open chat can be restored from any scope');
+ assert.equal(await page.locator('#ncs-history-target-row').isVisible(),true);assert.equal(await page.locator('[data-action="delete-chat-history"]').isHidden(),true);
  assert.equal(await page.locator('#ncs-history .ncs-chat-name').first().textContent(),'Leo - another chat');
 
  // 2) Filter to a chat that no longer exists and clear it entirely.
@@ -90,18 +90,18 @@ try{
  await page.locator(`[data-view-history="${a[1].id}"]`).click();await page.locator('#ncs-viewer[open]').waitFor();
  await page.locator('#ncs-viewer [data-v="delete"]').click();await page.locator('#ncs-viewer').waitFor({state:'hidden'});
  await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===1);
- assert.match(await page.locator('#ncs-history-storage').textContent(),/전체 1장/);
+ assert.match(await page.locator('#ncs-history-storage').textContent(),/이 범위의 그림 1장/);
 
  // 5) Works without an open chat; the per-chat view explains why it is empty.
  await page.evaluate(()=>{mock.chatId=null;mock.emit('chat');});
  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-scope="all"]').click();
  await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===1);
  await page.locator('[data-history-scope="chat"]').click();
- await page.waitForFunction(()=>/모든 채팅 보기에서는 채팅을 열지 않아도/.test(document.querySelector('#ncs-history').textContent));
+ await page.waitForFunction(()=>/다른 보기에서는 채팅 없이도/.test(document.querySelector('#ncs-history').textContent));
 
  // 6) An older server plugin gets a clear update message.
  legacy=true;await page.locator('[data-history-scope="all"]').click();
- await page.waitForFunction(()=>/서버 플러그인 v0\.1\.0이 필요해요/.test(document.querySelector('#ncs-history').textContent));
+ await page.waitForFunction(()=>/서버 플러그인 v0\.1\.13 이상이 필요해요/.test(document.querySelector('#ncs-history').textContent));
  legacy=false;
 
  // 7) Mobile fit.

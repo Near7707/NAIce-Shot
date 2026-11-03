@@ -48,7 +48,7 @@ try{
    scope:document.querySelector('#ncs-gen-scope').textContent,preview:!!document.querySelector('#ncs-result img')}));
   const full=await look();assert.deepEqual(full,{people:1,moment:'0',wish:'앉아 있는 순간',target:'1',badge:true,scope:'이력 설정 · 이번 생성에만',preview:true});
   await chatClear.click();
-  assert.deepEqual(await look(),{people:0,moment:null,wish:'',target:'',badge:false,scope:'기본 생성 설정 · 다음 생성에도 유지',preview:false});
+  assert.deepEqual(await look(),{people:0,moment:null,wish:'',target:'',badge:false,scope:'생성 설정',preview:false});
   assert.match(await page.locator('#ncs-undo-clear').innerText(),/이번 작업을 비웠어요. 공통 프롬프트와 기본 설정은 유지돼요./);
   assert.match(await page.locator('#ncs-final').inputValue(),/masterpiece/,'common prompt stays');
   await page.locator('[data-tab="settings"]').click();await page.locator('[data-tab="scene"]').click();assert.equal(await page.locator('#ncs-undo-clear').isVisible(),true,'switching tabs keeps undo');
@@ -84,15 +84,15 @@ try{
   await generate();const last=sent.at(-1);assert.equal(last.chatKey,'{"free":true}');assert.match(last.snapshot.freeText,/비 오는 밤/);
   assert.match(last.assembled.characters.find(c=>c.name==='Leo').prompt,/raincoat/);assert.equal(await page.evaluate(()=>JSON.stringify(mock.chatMetadata.naice_shot?.outfits??{})),'{}');
   assert.equal(await page.locator('#ncs-result [data-action="attach"]').count(),0,'nothing to attach to in 프리샷');
-  await page.locator('[data-tab="history"]').click();assert.equal(await page.locator('[data-history-scope="chat"]').innerText(),'프리샷');
-  await page.locator('[data-history-id]').first().waitFor({state:'attached'});assert.equal(await page.locator('[data-history-attach]').count(),0);
+  await page.locator('[data-tab="history"]').click();assert.equal(await page.locator('[data-history-scope="chat"]').innerText(),'이 채팅');await page.locator('[data-history-scope="free"]').click();
+  await page.locator('[data-history-id]').first().waitFor({state:'attached'});assert.equal(await page.locator('[data-history-attach]').first().isDisabled(),true);
   // Clearing 프리샷 clears only 프리샷; history restore brings the text back.
   await page.locator('[data-tab="scene"]').click();await freeClear.click();assert.equal(await page.locator('#ncs-free-text').inputValue(),'');
   await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-id]');assert.match(await page.locator('#ncs-free-text').inputValue(),/비 오는 밤/);
   // 이력 → 프리샷으로 보내기 from 챗샷, with the old 프리샷 work one 되돌리기 away.
   await page.evaluate(()=>{mock.chatId='A';mock.emit('chat');});
   await page.locator('[data-tab="scene"]').click();await page.locator('[data-mode="chat"]').click();
-  await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-free]');
+  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-scope="chat"]').click();await pick(page,'[data-history-free]');
   assert.equal(await page.locator('[data-mode="free"]').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#ncs-free-text').inputValue(),'');
   assert.match(await page.locator('[data-character="leo"] [data-field="action"]').inputValue(),/sitting/);assert.equal(await page.locator('.ncs-moment').count(),0,'one moment only');
   assert.match(await page.locator('#ncs-undo-clear').innerText(),/이력에서 가져왔어요/);

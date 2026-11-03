@@ -1,6 +1,6 @@
 // Full-screen image viewer: fit / original size / zoom / pan / pinch / PNG save.
 // Pure view math is exported separately so it can be unit tested without a DOM.
-import { imageDownload, SAVE_NOTES } from './inline-images.mjs';
+import { imageDownload, SAVE_NOTES, SAVE_DETAILS } from './inline-images.mjs';
 import { saveCleanImage } from './downloads.mjs';
 import { currentSkin } from './skins.mjs';
 import { copyText } from './clipboard.mjs';
@@ -42,7 +42,7 @@ function build() {
   dialog.innerHTML = `<div class="ncsv-bar">
     <div class="ncsv-group ncsv-modes"><button type="button" data-v="fit" aria-pressed="true">화면 맞춤</button><button type="button" data-v="original" aria-pressed="false">원본 크기</button></div>
     <div class="ncsv-group ncsv-zooms"><button type="button" data-v="out" aria-label="축소" title="축소 (-)">−</button><output class="ncsv-zoom" aria-live="polite">100%</output><button type="button" data-v="in" aria-label="확대" title="확대 (+)">+</button></div>
-    <div class="ncsv-group ncsv-save-group"><div class="ncsv-save-wrap"><button type="button" class="ncs-save-toggle" data-v="save-menu" aria-expanded="false" aria-haspopup="true">저장<span class="ncs-caret" aria-hidden="true"></span></button><div class="ncsv-save-menu" role="group" aria-label="저장 방식" hidden><button type="button" class="ncs-popup-primary" data-v="clean">공유용 PNG<small>${SAVE_NOTES.shared}</small></button><a class="ncsv-save" download>원본 PNG<small>${SAVE_NOTES.original}</small></a></div></div><button type="button" data-v="detach" hidden>이 메시지에서 빼기</button><button type="button" data-v="delete" class="ncsv-delete" hidden>그림 삭제</button></div>
+    <div class="ncsv-group ncsv-save-group"><div class="ncsv-save-wrap"><button type="button" class="ncs-save-toggle" data-v="save-menu" aria-expanded="false" aria-haspopup="true">저장<span class="ncs-caret" aria-hidden="true"></span></button><div class="ncsv-save-menu" role="group" aria-label="저장 방식" hidden><button type="button" class="ncs-popup-primary" data-v="clean">공유용 PNG<small>${SAVE_NOTES.shared}</small></button><a class="ncsv-save" download>원본 PNG<small>${SAVE_NOTES.original}</small></a>${SAVE_DETAILS}</div></div><button type="button" data-v="detach" hidden>이 메시지에서 빼기</button><button type="button" data-v="delete" class="ncsv-delete" hidden>삭제</button></div>
     <div class="ncsv-group ncsv-close-group"><button type="button" data-v="close" aria-label="닫기" title="닫기 (Esc)">✕</button></div>
   </div>
   <div class="ncsv-stage"><img alt="생성된 장면 크게 보기" draggable="false"></div>
@@ -57,6 +57,7 @@ function build() {
   // The menu closes on its own button, on a choice, on Escape and on any click outside it.
   dialog.addEventListener('click',event=>{if(!saveMenu.hidden&&!event.target.closest('.ncsv-save-wrap'))showSaveMenu(false);},true);
   saveMenu.addEventListener('click',event=>{if(event.target.closest('button,a'))showSaveMenu(false);});
+  dialog.addEventListener('scroll',event=>{if(!saveMenu.hidden&&!saveMenu.contains(event.target))showSaveMenu(false);},true);
   dialog.addEventListener('cancel',event=>{if(!saveMenu.hidden){event.preventDefault();showSaveMenu(false);saveToggle.focus({preventScroll:true});}});
   const seedLabel=()=>`seed ${state.seed} 복사`;
   async function copySeed(){const epoch=state.epoch;try{await copyText(String(state.seed),dialog);if(epoch===state.epoch)seedButton.textContent='seed 복사됨';}catch(e){if(epoch===state.epoch)meta.textContent=e.message;}}

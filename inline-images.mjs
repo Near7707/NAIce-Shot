@@ -3,6 +3,7 @@ import {isSceneMessage} from './scene-messages.mjs';
 import {textSignature,clone} from './core.mjs';
 // Shown under each save choice wherever a PNG can be saved.
 export const SAVE_NOTES={shared:'프롬프트·생성 설정 메타데이터를 제거한 사본',original:'프롬프트·seed 등 생성 메타데이터가 포함될 수 있어요.'};
+export const SAVE_DETAILS=`<details class="ncs-save-info"><summary>PNG 저장 안내</summary><p>PNG 저장은 원본을 유지해요. 공유용 PNG는 프롬프트 메타데이터와 알파 채널 정보를 제거한 불투명 사본을 만들어요. 원본과 이력은 그대로예요. 그림 안에 보이는 이름·글자는 제거하지 않아요.</p></details>`;
 export const IMAGE_KEY='naice_shot_images';
 export function imageDownload(item) {
  buildImageMessage(item);return {url:item.image,filename:`naice-shot-${item.id}.png`};
@@ -102,7 +103,7 @@ export function renderInlineImages(context,root,chatKey,{placement='below'}={}) 
    const file=imageDownload(item);download.href=file.url;download.download=file.filename;download.textContent='원본 PNG 저장';const originalNote=document.createElement('small');originalNote.textContent=SAVE_NOTES.original;download.append(originalNote);
    // A deleted or missing file shows a note instead of a broken image; the remove button stays.
    img.addEventListener('error',()=>{tile.classList.add('ncs-missing');open.disabled=true;download.remove();const note=document.createElement('span');note.className='ncs-missing-note';note.textContent='삭제됐거나 찾을 수 없는 그림이에요.';open.replaceChildren(note);},{once:true});
-   remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이 메시지에서 빼기';clean.classList.add('ncs-popup-primary');actions.append(clean,download,remove);tile.append(open,more,actions);holder.append(tile);
+   remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이 메시지에서 빼기';clean.classList.add('ncs-popup-primary');actions.append(clean,download,remove);actions.insertAdjacentHTML('beforeend',SAVE_DETAILS);tile.append(open,more,actions);holder.append(tile);
   }
   const text=element.querySelector('.mes_text');
   if(text)where==='above'?text.before(holder):text.after(holder);else (element.querySelector('.mes_block')??element)[where==='above'?'prepend':'append'](holder);

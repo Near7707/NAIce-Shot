@@ -1,3 +1,13 @@
+# v0.1.47 validation — 2026-11-03
+
+- Extension Node suite: **136 passed, 0 failed, 0 skipped** against server v0.1.13.
+- Server Node suite: **25 passed**. New: interleaved chat/free history filtered before pagination; chat counts, storage totals, page boundaries and summaries exclude free shots; full history and free-only queries still work.
+- **36 of 36 Chromium browser scripts passed.** New `browser-v0147` at 1100/375/320px: two-column mobile cards; second-tap and scroll dismissal for save/more/selection menus; viewer save toggle; deletion cancellation; profile/wardrobe no autofocus; collapsed wardrobe and removal confirmation; tab-scoped notices; touch message-count ±; per-chat placement without changing the global default; four history scopes, paging and persistent scope across drawing-mode changes; disabled attach reasons; PNG explanation at save controls; all 17 skins' active mode fill and horizontal fit.
+- Existing browser expectations updated for deliberate behavior changes: no preset/profile autofocus, explicit history scopes, collapsed wardrobe editors, compact generation title, corrected supported-size/Anlas notes, persistent attach action and new empty/legacy-server wording. History mocks now filter by owner; chat-switch tests use chat images, not free images.
+- Manually inspected mock mobile screenshots with Korean fonts: history two columns, save menu placement/caret, compact generation and Anlas controls.
+- Destructive-action audit: profile/wardrobe/preset/image/work deletes have confirmations; reversible clear retains undo; detaching preserves originals. Publication files and diff checked for secrets/private paths/private chat or screenshot data; none found beyond an intentional old fake-path privacy test.
+- Not exercised: real SillyTavern, iPhone Safari/WebKit, actual extraction/NovelAI calls, real lower-tier accounts or cross-device races. See `docs/REVIEW.md` for linked findings and limits.
+
 # v0.1.46 validation — 2026-11-03
 
 - Extension Node suite: **136 passed, 0 failed, 0 skipped**. `costGuard` wording per account: Opus V4.5 free, Opus V5 may, Tablet/Scroll uses (V4.5 and V5), unknown account, over the free limits.
