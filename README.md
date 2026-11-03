@@ -212,9 +212,6 @@ This preview starts a new version sequence at **0.1.0**.
 
 Keep a backup of your user data. Update the extension from SillyTavern's **Manage extensions**; a git-installed server plugin updates itself when SillyTavern restarts. Settings and image data are stored outside these code folders.
 
-For maintainers: when a release changes the server plugin in a way the UI depends on, raise `MIN_SERVER_VERSION` (and add any new feature flag to `REQUIRED_SERVER_FEATURES`) in `compat.mjs`. When a server change needs a newer UI, raise `MIN_CLIENT_VERSION` in the server repository's `handlers.mjs`.
-
-
 ## Troubleshooting
 
 - **Yellow banner at the top of the panel:** the extension and server plugin versions do not match. Restart SillyTavern (a git-installed server updates itself) or update the extension from Manage extensions, then refresh. The banner can be closed; Settings → "서버·NAI 연결 확인" checks again.
@@ -224,15 +221,9 @@ For maintainers: when a release changes the server plugin in a way the UI depend
 - **New appearance or outfit looks wrong:** inspect the final prompt and verify that clothing is not mixed into fixed appearance.
 - **History prompt restored:** its settings temporarily override the Settings tab. Extract a new scene successfully or select a preset to use current settings again.
 
-## Development checks
+## Development and review records
 
-```bash
-git clone https://github.com/Near7707/NAIce-Shot
-git clone https://github.com/Near7707/NAIce-Shot-Server
-cd NAIce-Shot && npm test
-```
-
-This runs Node unit tests with mocked providers. Tests that drive the real server handlers look for `NAIce-Shot-Server` next to this folder (or `NAICE_SERVER_DIR`) and are skipped when it is missing. Browser scripts are separate and require Playwright plus Chromium. See `TEST-REPORT.md` for what was actually run.
+Development notes, UI/server review findings, fixes and test references are maintained in [docs/REVIEW.md](docs/REVIEW.md). Installation and usage instructions remain in this README.
 
 ## License
 
