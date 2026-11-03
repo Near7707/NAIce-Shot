@@ -182,12 +182,36 @@ async function promptForImage(item) {
 }
 // 2026. 10. 27. 오후 12:27 — minutes, no seconds.
 function shortDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?'':d.toLocaleString('ko-KR',{year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'});}
-function viewImage(item,{attachment=null}={}) {
-  if(!item)return;
-  const caption=item.created?shortDate(item.created):'';
-  openImageViewer(item,{caption,seed:item.seed,loadPrompt:()=>promptForImage(item),
+// A viewer owns its range and page cursor; background refreshes cannot mix in another range.
+function historyGallery(){
+  const scope=historyScope,filter=historyFilter,key=scope==='free'?FREE_KEY:keyOf(),all=['chats','all'].includes(scope);
+  let offset=historyItems.length,pending=null;
+  const gallery={items:[...historyItems],total:historyTotal,hasMore:historyHasMore,
+    describe:item=>imageViewerOptions(item),
+    waitForPage:()=>pending??Promise.resolve(),
+    loadMore(){
+      if(pending)return pending;if(!gallery.hasMore)return Promise.resolve();
+      const query=all?`scope=all${scope==='chats'?'&kind=chat':''}${filter?`&chatKey=${encodeURIComponent(filter)}`:''}`:`chatKey=${encodeURIComponent(key)}`;
+      pending=(async()=>{
+        const data=await api(`/history?${query}&offset=${offset}&limit=${HISTORY_PAGE}`);
+        if(all&&(data.scope!=='all'||scope==='chats'&&data.kind!=='chat'))throw new Error('이력 범위를 확인하지 못했어요. 다시 열어 주세요.');
+        const items=Array.isArray(data.items)?data.items:[];offset+=items.length;
+        gallery.items.push(...items.filter(x=>!gallery.items.some(y=>y.id===x.id)));
+        gallery.total=Number.isInteger(data.total)?data.total:gallery.total;gallery.hasMore=data.hasMore===true&&items.length>0;
+      })().finally(()=>pending=null);return pending;
+    },
+    removed(id){const at=gallery.items.findIndex(x=>x.id===id);if(at>=0){gallery.items.splice(at,1);gallery.total=Math.max(0,gallery.total-1);offset=Math.max(0,offset-1);}}
+  };return gallery;
+}
+function imageViewerOptions(item,{attachment=null}={}){
+  return {caption:item.created?shortDate(item.created):'',seed:item.seed,loadPrompt:()=>promptForImage(item),
     onDetach:attachment?()=>removeMessageImage(item,attachment):null,
-    onDelete:attachment?null:()=>deleteImages({ids:[item.id],owners:item.chatKey?{[item.id]:item.chatKey}:null}).then(r=>!!r?.deleted?.includes(item.id),e=>{say(e.message,true);return false;})});
+    onDelete:attachment?null:()=>deleteImages({ids:[item.id],owners:item.chatKey?{[item.id]:item.chatKey}:null}).then(r=>!!r?.deleted?.includes(item.id),e=>{say(e.message,true);return false;})};
+}
+function viewImage(item,{attachment=null,gallery=false}={}) {
+  if(!item)return;
+  const group=gallery?historyGallery():null;
+  openImageViewer(item,{...imageViewerOptions(item,{attachment}),gallery:group,index:group?group.items.findIndex(x=>x.id===item.id):0});
 }
 // Shared compact menus: top-layer popovers stay visible inside dialogs and near the chat viewport edge.
 let imageMenu=null;
@@ -256,7 +280,7 @@ function say(message,error=false,tab=activeTab()) {
   if(dialog?.open||!globalThis.toastr)notice(message,error,tab);
   else globalThis.toastr[error?'error':'success'](message,brand());
 }
-function changed(){revision++;finalOverride=null;optionsOverride=null;dropUndo();updateFinal({force:true});scheduleDraft();}
+function changed(){undoChatOutfit=null;dialog?.querySelectorAll('.ncs-outfit-undo').forEach(e=>e.remove());revision++;finalOverride=null;optionsOverride=null;dropUndo();updateFinal({force:true});scheduleDraft();}
 // History restore uses the stored options for the next generation only; the settings tab keeps the user's own values.
 function effectiveOptions(){return optionsOverride?freeOptions(optionsOverride):settings().options;}
 function setBusy(value,owner=0) {busy=value;busyOwner=value?owner:0;for(const b of dialog.querySelectorAll('[data-action="extract"],[data-action="free-fill"],[data-mode],[data-history-free],[data-action="generate"],[data-action="blank"],[data-action="same-seed"],[data-action="new-seed"],[data-action="convert-profile"]'))b.disabled=value;updateAttachButtons();if(!value)rememberDraft();}
@@ -378,6 +402,7 @@ let undoClear=null;
 const blankWork=()=>({scene:blankScene(),raw:'',finalOverride:null,optionsOverride:null,restoredFinal:null,result:null,undoClear:null,target:'',wish:'',freeText:''});
 function captureWork(){return {scene,raw,finalOverride,optionsOverride,restoredFinal,result,undoClear,target:$('ncs-target').value,wish:$('ncs-moment-wish').value,freeText:$('ncs-free-text').value,targetSource:draftSource,targetShown,finalText:$('ncs-final').value};}
 function loadWork(w){
+  undoChatOutfit=null;
   ({scene,raw,finalOverride,optionsOverride,restoredFinal,result,undoClear}=w);
   $('ncs-target').value=w.target??'';$('ncs-moment-wish').value=w.wish??'';$('ncs-free-text').value=w.freeText??'';
   draftSource=w.targetSource??null;targetShown=w.targetShown??TARGET_STEP;if(w.finalOverride?.invalid)$('ncs-final').value=w.finalText??'';
@@ -391,7 +416,7 @@ function renderModeUI(){
   dialog.dataset.workMode=mode;renderUndo();
 }
 async function setMode(next){
-  if(next===mode)return;if(busy||attaching||draftLoading)throw new Error('진행 중인 작업이 끝난 뒤 바꿔 주세요.');
+  if(next===mode)return;if(busy||attaching||draftLoading||outfitSaving)throw new Error('진행 중인 작업이 끝난 뒤 바꿔 주세요.');
   rememberDraft(workKey(),null,{flush:true});rememberScroll();spare[mode]=captureWork();mode=next;loadWork(spare[mode]??blankWork());delete spare[mode];
   historyPresetTarget=null;
   revision++;renderModeUI();renderTargets();renderScene({forceFinal:true});renderResult();renderPlacement();if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true));
@@ -788,7 +813,7 @@ function renderMoments(){
   box.innerHTML=`<strong class="ncs-moments-title">장면 후보 · 그릴 순간을 골라 주세요</strong><div class="ncs-moment-list" role="group" aria-label="장면 후보">${list.map((m,i)=>`<button type="button" class="ncs-moment" data-moment="${i}" aria-pressed="${i===scene.momentIndex}"><span class="ncs-moment-step">${i+1}</span><span class="ncs-moment-name">${esc(m.title||`후보 ${i+1}`)}</span>${i===list.length-1&&!scene.momentsPartial?'<small>마지막 순간</small>':''}</button>`).join('')}</div>`;
 }
 // --- Clothes on a scene card: 채팅 기본 복장 (this chat) · 복장 잠금 (lock) · 이번 그림 복장 (this image) · 옷장 -------
-let wardrobeTarget=null;
+let wardrobeTarget=null,undoChatOutfit=null,outfitSaving=false;
 const ORIGIN_TEXT={'이번 편집':'직접 고르거나 고친 옷','잠금':'잠긴 복장','AI 후보':'AI가 찾은 새 옷 · 이번 그림에만 입혀요. 확인해 주세요','채팅 복장':'채팅 기본 복장','기본 복장':'프로필 기본 복장'};
 function chatOutfitChoice(p,state){
   const value=state?.value;if(value===undefined)return 'default';
@@ -809,22 +834,35 @@ function outfitControls(c,p,o,state,stale){
   const chatSelect=`<label>채팅 기본 복장<select data-chat-outfit${state?.value!==undefined?' class="ncs-on"':''}><option value="default" ${choice==='default'?'selected':''}>정하지 않음 · 프로필 기본 복장</option>${wardrobe.map(w=>`<option value="w:${esc(w.id)}" ${choice===`w:${w.id}`?'selected':''}>${esc(w.name)}</option>`).join('')}${choice==='custom'?'<option value="custom" selected>지정한 복장 · 옷장에 없음</option>':''}</select></label><small>메시지에 복장 설명이 없으면 이 채팅에서 기본으로 입는 옷이에요.</small>${savedNote(c,state)}`;
   const lock=`<label class="ncs-check${state?.locked?' ncs-on':''}"><input type="checkbox" data-lock ${state?.locked?'checked':''}>🔒 복장 잠금</label><small>AI가 이 채팅에서 복장을 바꾸지 못하게 해요. 직접 고른 옷은 적용돼요.</small>${state?.locked&&c.outfitMode==='replace'?`<small>AI가 찾은 새 옷: ${esc(c.outfit)} · 잠긴 복장을 유지해요.</small>`:''}`;
   const once=`<label>이번 그림 복장<textarea data-field="manualOutfit" rows="3">${esc(o.value)}</textarea></label><small>이번 그림에만 적용돼요. 지금: ${esc(ORIGIN_TEXT[o.origin]??o.origin)}${stale?' · 근거 메시지가 바뀌었어요. 옷을 확인해 주세요.':''}</small>`;
-  const tools=`<div class="ncs-row">${wardrobe.length?`<select data-wear-once aria-label="옷장에서 이번 그림에만 꺼내 입기"><option value="">옷장에서 꺼내 입기</option>${wardrobe.map(w=>`<option value="${esc(w.id)}">${esc(w.name)}</option>`).join('')}</select>`:''}${isDefault?`<button data-save-outfit="${id}" class="ncs-on" aria-pressed="true" title="다시 누르면 채팅 기본 복장을 해제해요">✓ 채팅 기본 복장</button>`:`<button data-save-outfit="${id}" aria-pressed="false">기본 복장 지정</button>`}<button data-to-wardrobe="${id}">옷장에 저장</button><button data-reset-outfit="${id}">되돌리기</button></div><small>✓ 채팅 기본 복장을 다시 누르면 해제돼요. 옷장에 저장한 옷은 다른 채팅에서도 꺼내 입을 수 있어요.</small>`;
+  const tools=`<div class="ncs-row">${wardrobe.length?`<select data-wear-once aria-label="옷장에서 이번 그림에만 꺼내 입기"><option value="">옷장에서 꺼내 입기</option>${wardrobe.map(w=>`<option value="${esc(w.id)}">${esc(w.name)}</option>`).join('')}</select>`:''}${isDefault?`<button data-save-outfit="${id}" class="ncs-on" aria-pressed="true" title="다시 누르면 채팅 기본 복장을 해제해요">✓ 채팅 기본 복장</button>`:`<button data-save-outfit="${id}" aria-pressed="false">기본 복장 지정</button>`}<button data-to-wardrobe="${id}">옷장에 저장</button><button data-reset-outfit="${id}">이번 편집 취소</button><button data-default-outfit="${id}" title="${isFree()?'프로필 기본 복장을 이번 그림에 적용해요':'AI 후보 대신 채팅 기본 복장 또는 프로필 기본 복장을 이번 그림에 적용해요'}">이번 그림 복장 초기화</button></div><small>✓ 채팅 기본 복장을 다시 누르면 해제돼요. 옷장에 저장한 옷은 다른 채팅에서도 꺼내 입을 수 있어요.</small>`;
   const naming=wardrobeTarget===c.id?`<div class="ncs-wardrobe-save"><label>옷장에 저장할 이름<input id="ncs-wardrobe-name" maxlength="80" placeholder="예: 비 오는 날 외출복"></label><div class="ncs-row"><button type="button" class="ncs-primary" data-wardrobe-confirm="${id}">저장</button><button type="button" data-wardrobe-cancel>취소</button></div></div>`:'';
   if(isFree()){
     // 프리샷 has no chat: only this image's clothes and the wardrobe.
-    const freeTools=`<div class="ncs-row">${wardrobe.length?`<select data-wear-once aria-label="옷장에서 꺼내 입기"><option value="">옷장에서 꺼내 입기</option>${wardrobe.map(w=>`<option value="${esc(w.id)}">${esc(w.name)}</option>`).join('')}</select>`:''}<button data-to-wardrobe="${id}">옷장에 저장</button><button data-reset-outfit="${id}">되돌리기</button></div>`;
+    const freeTools=`<div class="ncs-row">${wardrobe.length?`<select data-wear-once aria-label="옷장에서 꺼내 입기"><option value="">옷장에서 꺼내 입기</option>${wardrobe.map(w=>`<option value="${esc(w.id)}">${esc(w.name)}</option>`).join('')}</select>`:''}<button data-to-wardrobe="${id}">옷장에 저장</button><button data-reset-outfit="${id}">이번 편집 취소</button><button data-default-outfit="${id}" title="${isFree()?'프로필 기본 복장을 이번 그림에 적용해요':'AI 후보 대신 채팅 기본 복장 또는 프로필 기본 복장을 이번 그림에 적용해요'}">이번 그림 복장 초기화</button></div>`;
     return `<label>이번 그림 복장<textarea data-field="manualOutfit" rows="3">${esc(o.value)}</textarea></label><small>프리샷은 프로필 기본 복장에서 시작해요. 채팅에 저장된 옷은 쓰지도 바꾸지도 않아요.</small>`+freeTools+naming;
   }
-  return chatSelect+lock+once+tools+naming;
+  const undo=undoChatOutfit?.key===keyOf()&&undoChatOutfit.scene===scene&&undoChatOutfit.id===c.id?`<div class="ncs-outfit-undo" role="status">채팅 기본 복장을 해제했어요. <button type="button" data-undo-chat-outfit="${id}">해제 취소</button></div>`:'';
+  return chatSelect+undo+lock+once+tools+naming;
+}
+// Metadata changes are serialized. Failure rolls back the captured chat, never the current chat.
+async function writeChatOutfit(id,entry,manual){
+  assertChat();if(isFree()||outfitSaving)throw new Error('복장 저장이 끝난 뒤 다시 선택해 주세요.');
+  const context=ctx(),key=keyOf(),startScene=scene;
+  context.chatMetadata[KEY]??={};const outfits=context.chatMetadata[KEY].outfits??={};
+  const old=outfits[id],c=scene.characters.find(c=>c.id===id),oldManual=c?.manualOutfit;
+  if(entry===undefined)delete outfits[id];else outfits[id]=entry;
+  if(c)c.manualOutfit=manual;
+  outfitSaving=true;$('ncs-work-fields').disabled=true;
+  try{await context.saveMetadata();}
+  catch(e){if(old===undefined)delete outfits[id];else outfits[id]=old;if(c)c.manualOutfit=oldManual;if(keyOf()===key&&scene===startScene)renderScene();throw new Error('복장을 저장하지 못했어요. 바꾸기 전 상태를 유지했어요.');}
+  finally{outfitSaving=false;if(keyOf()===key&&!draftLoading)$('ncs-work-fields').disabled=false;}
+  if(keyOf()!==key||scene!==startScene||isFree())return false;
+  justSavedOutfit=id;changed();return true;
 }
 async function setChatOutfit(id,value,{note}={}){
-  assertChat();const startKey=keyOf(),context=ctx();context.chatMetadata[KEY]??={outfits:{}};context.chatMetadata[KEY].outfits??={};
-  const old=context.chatMetadata[KEY].outfits[id];
-  context.chatMetadata[KEY].outfits[id]={value,locked:old?.locked??false,source:scene.source?compactSource(scene.source):null,updated:new Date().toISOString()};justSavedOutfit=id;
-  // The picked clothes also go on this image, even over a locked or AI-found outfit: the user chose them.
-  const c=scene.characters.find(c=>c.id===id);if(c)c.manualOutfit=value;
-  await context.saveMetadata();if(keyOf()!==startKey)return;changed();renderScene();if(note)notice(note);
+  const old=outfitState()[id],entry={value,locked:old?.locked??false,source:scene.source?compactSource(scene.source):null,updated:new Date().toISOString()};
+  if(!await writeChatOutfit(id,entry,value))return;
+  renderScene();if(note)notice(note);
 }
 // Back to "not set": the chat follows the profile's default outfit again. A lock stays on if it was on.
 // True when this image wears exactly the chat's default outfit (the button shows "✓ 채팅 기본 복장").
@@ -838,11 +876,23 @@ function refreshDefaultButton(card,id){
   b.setAttribute('aria-pressed',String(on));b.classList.toggle('ncs-on',on);b.textContent=on?'✓ 채팅 기본 복장':'기본 복장 지정';
 }
 async function clearChatOutfit(id){
-  assertChat();const startKey=keyOf(),context=ctx(),outfits=context.chatMetadata[KEY]?.outfits;if(!outfits?.[id])return;
-  if(outfits[id].locked)outfits[id]={locked:true,source:outfits[id].source??null,updated:new Date().toISOString()};else delete outfits[id];
-  const c=scene.characters.find(c=>c.id===id);if(c)c.manualOutfit=null;justSavedOutfit=id;
-  await context.saveMetadata();if(keyOf()!==startKey)return;changed();renderScene();
-  notice(`채팅 기본 복장을 해제했어요. 프로필 기본 복장을 기준으로 해요.${outfits[id]?.locked?' 복장 잠금은 켜져 있어요.':''}`);
+  assertChat();const old=outfitState()[id];if(old?.value===undefined)return;
+  const before={id,key:keyOf(),scene,entry:clone(old),manual:scene.characters.find(c=>c.id===id)?.manualOutfit};
+  const entry=old.locked?{locked:true,source:old.source??null,updated:new Date().toISOString()}:undefined;
+  if(!await writeChatOutfit(id,entry,null))return;
+  undoChatOutfit={...before,after:JSON.stringify(entry)};renderScene();
+  notice(`채팅 기본 복장을 해제했어요. 되돌리려면 인물 카드의 "해제 취소"를 눌러 주세요.${entry?.locked?' 복장 잠금은 켜져 있어요.':''}`);
+}
+async function undoChatOutfitClear(id){
+  const u=undoChatOutfit;
+  if(!u||u.id!==id||u.key!==keyOf()||u.scene!==scene||isFree()||JSON.stringify(outfitState()[id])!==u.after)throw new Error('복장 상태가 바뀌어서 해제 취소를 적용하지 않았어요.');
+  if(!await writeChatOutfit(id,clone(u.entry),u.manual))return;
+  renderScene();notice('채팅 기본 복장과 잠금·이번 그림 편집을 해제 전으로 되돌렸어요.');
+}
+function resetImageOutfit(id,{defaultOnly=false}={}){
+  const c=scene.characters.find(c=>c.id===id),p=settings().profiles.find(p=>p.id===id);if(!c||!p)return;
+  c.manualOutfit=defaultOnly?(outfitState()[id]?.value??p.defaultOutfit):null;
+  changed();renderScene();notice(defaultOnly?'이번 그림 복장을 기본 복장으로 초기화했어요. 채팅·프로필에 저장한 복장은 유지돼요.':'이번 그림의 수동 편집을 취소했어요. AI 후보·잠금·기본 복장 규칙을 다시 적용해요.');
 }
 function wearOnce(id,wardrobeId){
   const c=scene.characters.find(c=>c.id===id),p=settings().profiles.find(p=>p.id===id),w=p?.wardrobe?.find(w=>w.id===wardrobeId);if(!c||!w)return;
@@ -1115,17 +1165,12 @@ async function extract() {
   }
 }
 async function saveOutfit(id,lockOnly=null) {
-  assertChat();const startKey=keyOf(),c=scene.characters.find(c=>c.id===id),p=settings().profiles.find(p=>p.id===id);
-  const context=ctx();context.chatMetadata[KEY]??={outfits:{}};context.chatMetadata[KEY].outfits??={};
-  const old=context.chatMetadata[KEY].outfits[id];
-  // Locking alone never sets a chat default outfit; it only freezes what is there (or the profile default).
+  assertChat();const c=scene.characters.find(c=>c.id===id),p=settings().profiles.find(p=>p.id===id),old=outfitState()[id];
   const value=lockOnly!==null?old?.value:resolveOutfit(c,p,old).value;
-  // Store compact hashes instead of RP text in persisted clothing provenance.
   const source=lockOnly!==null?old?.source:(scene.source?compactSource(scene.source):null);
-  if(keyOf()!==startKey)return;
   const entry={locked:lockOnly??old?.locked??false,source,updated:new Date().toISOString()};if(value!==undefined)entry.value=value;
-  if(entry.value===undefined&&!entry.locked)delete ctx().chatMetadata[KEY].outfits[id];else ctx().chatMetadata[KEY].outfits[id]=entry;justSavedOutfit=id;
-  await ctx().saveMetadata();changed();renderScene();notice(lockOnly!==null?(lockOnly?'복장을 잠갔어요. AI가 이 채팅에서 복장을 바꾸지 못해요.':'복장 잠금을 풀었어요. AI가 장면 속 복장 변경을 반영할 수 있어요.'):'채팅 기본 복장으로 지정했어요. 다음 그림에도 이어져요.');
+  if(!await writeChatOutfit(id,entry.value===undefined&&!entry.locked?undefined:entry,c?.manualOutfit))return;
+  renderScene();notice(lockOnly!==null?(lockOnly?'복장을 잠갔어요. AI가 이 채팅에서 복장을 바꾸지 못해요.':'복장 잠금을 풀었어요. AI가 장면 속 복장 변경을 반영할 수 있어요.'):'채팅 기본 복장으로 지정했어요. 다음 그림에도 이어져요.');
 }
 function compactSource(source) {
   return {...source,fingerprints:source.fingerprints.map(f=>({index:f.index,swipeId:f.swipeId,signature:f.signature??textSignature(f.text)}))};
@@ -1337,7 +1382,7 @@ function updateHistoryTools() {
   $('ncs-history-target-row').hidden=!keyOf();$('ncs-history-all-tools').hidden=!allScope;
   const help={chat:'지금 열린 채팅에서 만든 그림이에요.',chats:'모든 채팅에서 만든 그림이에요. 프리샷은 제외해요.',free:'채팅과 상관없이 프리샷에서 만든 그림이에요.',all:'모든 채팅과 프리샷의 그림을 함께 봐요.'};
   $('ncs-history-help').textContent=help[historyScope]+' 본문에 넣기는 지금 열린 채팅에서 만든 그림에만 사용할 수 있어요.';
-  for(const b of dialog.querySelectorAll('[data-history-scope]'))b.setAttribute('aria-pressed',String(b.dataset.historyScope===historyScope));
+  $('ncs-history-scope').value=historyScope;
   $('ncs-history-storage').textContent=allScope?`이 범위의 그림 ${historyImageCount}장 · ${formatBytes(historyBytes)}`:'';
   const more=dialog.querySelector('[data-action="history-more"]');more.hidden=!historyHasMore;more.disabled=historyLoading;
   more.textContent=historyLoading?'불러오는 중…':`더 보기 (${historyItems.length} / ${historyTotal})`;
@@ -1433,7 +1478,7 @@ let historyPresetTarget=null;
 const historyPresetControls=item=>item.options?(historyPresetTarget===item.id?`<div class="ncs-wardrobe-save ncs-preset-form"><label>새 프리셋 이름<input id="ncs-history-preset-name" maxlength="80" placeholder="예: 이 그림 설정"></label><small>이 그림의 생성 설정·공통 태그를 저장해요. 인물·장면은 제외하고 seed는 새로 뽑아요.</small>${commonPositiveOf(item)===null?'<small>공통 Positive는 현재 설정값을 사용해요.</small>':''}<div class="ncs-row ncs-form-actions"><button type="button" class="ncs-primary" data-history-preset-save="${esc(item.id)}">저장</button><button type="button" data-history-preset-cancel>취소</button></div></div>`:''):'';
 function historyActions(item,{editable=false,attached=false}={}){
   const id=esc(item.id),menu=`ncs-history-menu-${id}`,save=saveMenu(item,`ncs-history-save-${item.id}`);
-  const more=[editable?`<button type="button" data-history-id="${id}">불러오기<small>이 그림의 작업을 그리기창으로 가져와요.</small></button>`:'',`<button type="button" data-history-attach="${id}" ${item.chatKey===keyOf()?'':'disabled data-unavailable="true"'}>본문에 넣기${item.chatKey===keyOf()?'':`<small>${item.chatKey===FREE_KEY?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.'}</small>`}</button>`,
+  const more=[`<button type="button" data-history-id="${id}" ${keyOf()?'':'disabled'}>챗샷으로 보내기<small>${keyOf()?'지금 열린 채팅의 그리기창으로 가져와요.':'채팅을 먼저 열어 주세요.'}</small></button>`,`<button type="button" data-history-attach="${id}" ${item.chatKey===keyOf()?'':'disabled data-unavailable="true"'}>본문에 넣기${item.chatKey===keyOf()?'':`<small>${item.chatKey===FREE_KEY?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.'}</small>`}</button>`,
     item.options?`<button type="button" data-history-preset="${id}">설정을 프리셋으로</button>`:'',`<button type="button" data-history-free="${id}">프리샷으로 보내기</button>`,
     editable&&attached?`<button type="button" data-history-detach="${id}">이 채팅의 첨부 모두 빼기</button>`:''].join('');
   return `<div class="ncs-history-actions">${save.button}<button type="button" data-history-delete="${id}" class="ncs-danger-outline">삭제</button><button type="button" data-image-more="${menu}" aria-controls="${menu}" aria-expanded="false" aria-haspopup="true" aria-label="이력 그림 더 보기">⋯</button></div>${save.menu}<div id="${menu}" class="ncs-image-popup" popover="manual" hidden role="group" aria-label="이력 그림 작업">${more}</div>${historyPresetControls(item)}`;
@@ -1501,38 +1546,33 @@ async function loadHistory({append=false}={}) {
   }finally{if(request===historyRequest){historyLoading=false;updateHistoryTools();}}
   if(request===historyRequest)renderHistory();
 }
-async function restoreHistory(id) {
-  if(busy||draftLoading)throw new Error('진행 중인 작업이 끝난 뒤 불러와 주세요.');
+let historyImportToken=0;
+async function restoreHistory(id){return importHistory(id,'chat');}
+async function sendToFree(id){return importHistory(id,'free');}
+async function importHistory(id,nextMode){
+  if(busy||attaching||draftLoading||outfitSaving)throw new Error('진행 중인 작업이 끝난 뒤 보내 주세요.');
   const item=historyItems.find(x=>x.id===id);if(!item)return;
-  const nextMode=item.chatKey===FREE_KEY?'free':'chat';if(nextMode!==mode)await setMode(nextMode);
-  if(mode!==nextMode||nextMode==='chat'&&item.chatKey!==keyOf())throw new Error('채팅이 바뀌어서 이 그림을 불러오지 않았어요. 다시 선택해 주세요.');
-  scene={...blankScene(),...clone(item.snapshot?.scene??{})};scene.source=null;
-  const known=c=>c.temp||settings().profiles.some(p=>p.id===c.id);
+  const startChat=keyOf(),startTask=task,startRevision=revision,switched=mode!==nextMode,token=++historyImportToken;
+  if(nextMode==='chat'&&!startChat)throw new Error('채팅을 먼저 열어 주세요.');
+  if(switched)await setMode(nextMode);
+  if(token!==historyImportToken||mode!==nextMode||keyOf()!==startChat||task!==startTask||revision!==startRevision+(switched?1:0))throw new Error('채팅이나 작업이 바뀌어서 가져오지 않았어요. 다시 선택해 주세요.');
+  const name=nextMode==='free'?'프리샷':'챗샷';
+  const before={...captureWork(),undoClear:null,targetShown,label:`이력에서 가져왔어요. 원래 ${name} 작업은 되돌리기로 돌아와요.`};
+  const sameChat=nextMode==='chat'&&item.chatKey===startChat,known=c=>c.temp||settings().profiles.some(p=>p.id===c.id);
+  const snap=clone(item.snapshot?.scene??blankScene());
+  scene={...blankScene(),...(sameChat?snap:momentPart(snap)),source:null};
   scene.characters=scene.characters.filter(known);
-  if(Array.isArray(scene.moments)&&scene.moments.length>1){for(const m of scene.moments)m.scene.characters=(m.scene.characters??[]).filter(known);scene.momentIndex=Math.min(Math.max(0,Number(scene.momentIndex)||0),scene.moments.length-1);}
-  else{scene.moments=[];scene.momentIndex=0;}
-  $('ncs-moment-wish').value=typeof scene.momentWish==='string'?scene.momentWish:'';lastLink=null;linkTarget=null;
-  if(isFree())$('ncs-free-text').value=typeof item.snapshot?.freeText==='string'?item.snapshot.freeText:'';
-  dropUndo();
-  raw=item.snapshot?.rawExtraction??'';finalOverride=restoredFinal=clone(item.assembled);optionsOverride=clone(item.options);
-  result=item;revision++;renderScene({forceFinal:true});renderResult();showTab('scene');
-  rememberDraft();
-  notice('당시 최종 프롬프트와 생성 설정(seed 포함)을 불러왔어요. 설정 탭 값과 "채팅 기본 복장"은 바뀌지 않아요.');
-}
-// 이력 → 프리샷: the image's scene (the chosen candidate only), final prompt and one-off options land in 프리샷.
-// What was in 프리샷 before can come back with 되돌리기.
-async function sendToFree(id){
-  if(busy||attaching||draftLoading)throw new Error('진행 중인 작업이 끝난 뒤 보내 주세요.');
-  const item=historyItems.find(x=>x.id===id);if(!item)return;
-  if(!isFree())await setMode('free');
-  const before={...captureWork(),undoClear:null,targetShown,label:'이력에서 가져왔어요. 원래 프리샷 작업은 되돌리기로 돌아와요.'};
-  const known=c=>c.temp||settings().profiles.some(p=>p.id===c.id),snap=clone(item.snapshot?.scene??blankScene());
-  scene={...blankScene(),...momentPart(snap),source:null};scene.characters=scene.characters.filter(known);
-  raw='';finalOverride=restoredFinal=clone(item.assembled);optionsOverride=clone(item.options);result=item;
-  $('ncs-free-text').value=typeof item.snapshot?.freeText==='string'?item.snapshot.freeText:'';
-  undoClear=before;revision++;renderScene({forceFinal:true});renderResult();renderUndo();showTab('scene');
-  rememberDraft();
-  notice('이력의 장면·프롬프트·생성 설정을 프리샷으로 가져왔어요. 채팅과 상관없이 고쳐서 다시 그릴 수 있어요. 원래 프리샷 작업은 되돌리기로 돌아와요.');
+  // Source messages from another chat must never be interpreted as messages in this chat.
+  for(const m of scene.moments??[]){m.scene.source=null;m.scene.characters=(m.scene.characters??[]).filter(known);}
+  if(!sameChat){scene.moments=[];scene.momentIndex=0;scene.momentWish='';$('ncs-target').value='';draftSource=null;targetShown=TARGET_STEP;targetScroll=0;$('ncs-target-picker').open=false;}
+  else if(!Array.isArray(scene.moments)||scene.moments.length<2){scene.moments=[];scene.momentIndex=0;}
+  else scene.momentIndex=Math.min(Math.max(0,Number(scene.momentIndex)||0),scene.moments.length-1);
+  $('ncs-moment-wish').value=sameChat&&typeof scene.momentWish==='string'?scene.momentWish:'';
+  $('ncs-free-text').value=nextMode==='free'&&typeof item.snapshot?.freeText==='string'?item.snapshot.freeText:'';
+  raw=item.snapshot?.rawExtraction??'';finalOverride=restoredFinal=clone(item.assembled??null);optionsOverride=item.options?freeOptions({...DEFAULTS.options,...clone(item.options)}):null;result=item;
+  undoChatOutfit=null;undoClear=before;revision++;renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();showTab('scene');rememberDraft();
+  const foreign=item.chatKey!==FREE_KEY&&item.chatKey!==startChat;
+  notice(`${foreign?'다른 채팅의 그림이에요. ':''}장면·최종 프롬프트·생성 설정(seed 포함)을 ${name}으로 가져왔어요.${!sameChat&&nextMode==='chat'?' 대상 메시지는 최신 메시지로 초기화했어요. 생성 전에 다시 확인해 주세요.':''} 원본 출처·채팅 기본 복장·설정 탭 값은 유지돼요. 원래 작업은 되돌리기로 돌아와요.`);
 }
 function exportSettings() {
   const blob=new Blob([JSON.stringify(settings(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob);
@@ -1676,13 +1716,15 @@ function bindEvents() {
       else if(el.dataset.toWardrobe){wardrobeTarget=wardrobeTarget===el.dataset.toWardrobe?null:el.dataset.toWardrobe;renderScene();}
       else if(el.dataset.wardrobeConfirm)saveToWardrobe(el.dataset.wardrobeConfirm);
       else if(el.dataset.wardrobeCancel!==undefined){wardrobeTarget=null;renderScene();}
-      else if(el.dataset.resetOutfit){scene.characters.find(c=>c.id===el.dataset.resetOutfit).manualOutfit=null;changed();renderScene();}
+      else if(el.dataset.resetOutfit)resetImageOutfit(el.dataset.resetOutfit);
+      else if(el.dataset.defaultOutfit)resetImageOutfit(el.dataset.defaultOutfit,{defaultOnly:true});
+      else if(el.dataset.undoChatOutfit)await undoChatOutfitClear(el.dataset.undoChatOutfit);
       else if(el.dataset.historyId)await restoreHistory(el.dataset.historyId);
       else if(el.dataset.historyPreset){historyPresetTarget=el.dataset.historyPreset;renderHistory();}
       else if(el.dataset.historyPresetSave)saveHistoryPreset(el.dataset.historyPresetSave);
       else if(el.dataset.historyPresetCancel!==undefined){historyPresetTarget=null;renderHistory();}
       else if(el.dataset.viewResult!==undefined)viewImage(result);
-      else if(el.dataset.viewHistory)viewImage(historyItems.find(x=>x.id===el.dataset.viewHistory));
+      else if(el.dataset.viewHistory)viewImage(historyItems.find(x=>x.id===el.dataset.viewHistory),{gallery:true});
       else if(el.dataset.historyAttach){const item=historyItems.find(x=>x.id===el.dataset.historyAttach),chosen=$('ncs-history-target').value;await putImageInChat(item,chosen===''?preferredTarget(item):Number(chosen));}
       else if(el.dataset.historyDelete)await deleteImages({ids:[el.dataset.historyDelete]});
       else if(el.dataset.historyDetach)await removeImageFromChat(historyItems.find(x=>x.id===el.dataset.historyDetach));
@@ -1699,6 +1741,7 @@ function bindEvents() {
       if(el.closest('#ncs-work-fields'))dropUndo();
       if(el.dataset.historyPick){if(el.checked)selectedIds.add(el.dataset.historyPick);else selectedIds.delete(el.dataset.historyPick);el.closest('.ncs-history-card')?.classList.toggle('ncs-picked',el.checked);updateHistoryTools();return;}
       if(el.id==='ncs-history-target')return;
+      if(el.id==='ncs-history-scope'){setHistoryScope(el.value);return;}
       if(el.id==='ncs-history-filter'){historyFilter=el.value;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();loadHistory().catch(e=>notice(e.message,true));return;}
       if(el.name==='ncs-skin'){useSkin(el.value,{save:true}).catch(e=>notice(e.message,true));return;}
       if(el.id==='ncs-character-binding'||el.id==='ncs-user-binding'){
@@ -1765,7 +1808,7 @@ function bindEvents() {
 }
 function chatChanged() {
   closeImageMenu();
-  const key=keyOf();if(key===chatKey)return;
+  const key=keyOf();if(key===chatKey)return;undoChatOutfit=null;historyImportToken++;
   const oldKey=chatKey;if(oldKey){const oldWork=isFree()?spare.chat:captureWork();if(oldWork)rememberDraft(oldKey,oldWork,{flush:true});}
   if(!isFree()){draftLoadToken++;draftLoading=false;$('ncs-work-fields').disabled=false;}
   closeMissingDialog();pendingBind=null;quickProfileName='';chatKey=key;renderPlacement();

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.48 — 2026-11-03 (extension only; server v0.1.13 unchanged)
+
+- History destination imports and paged gallery navigation; distinct clothing undo/reset; compact history scope selector, message-count controls and review reminder. Findings, fixes, validation and limits: [shared review log](docs/REVIEW.md#ui-v0148--서버-v0113-유지--2026-11-03).
+
 ## 0.1.47 — 2026-11-03 (extension + server v0.1.13)
 
 - History no longer follows the drawing mode: **이 채팅 / 모든 채팅 / 프리샷 / 전체 보기**. The server filters chat images before pagination and summaries. Restoring a free image opens 프리샷. The attach action stays in every menu, disabled with a reason for free or other-chat images.

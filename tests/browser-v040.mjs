@@ -100,7 +100,7 @@ try{
  await page.waitForFunction(()=>/총 20장/.test(document.querySelector('#ncs-history-count').textContent));assert.equal(await total(),20);
  const fourth=seeded.at(-4);await page.locator(`[data-view-history="${fourth.id}"]`).click();await page.locator('#ncs-viewer[open]').waitFor();
  assert.equal(await page.locator('#ncs-viewer [data-v="delete"]').isVisible(),true);
- await page.locator('#ncs-viewer [data-v="delete"]').click();await page.locator('#ncs-viewer').waitFor({state:'hidden'});
+ await page.locator('#ncs-viewer [data-v="delete"]').click();await page.waitForFunction(()=>document.querySelector('.ncsv-position').textContent.endsWith('/ 19'));assert.equal(await page.locator('#ncs-viewer').isVisible(),true);await page.locator('#ncs-viewer [data-v="close"]').click();
  await page.waitForFunction(()=>/총 19장/.test(document.querySelector('#ncs-history-count').textContent));assert.equal(await total(),19);
 
  // 4) Missing PNG (removed by hand) shows a note in chat instead of a broken image; viewer from chat can still delete.

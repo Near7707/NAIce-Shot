@@ -45,13 +45,14 @@ function build() {
     <div class="ncsv-group ncsv-save-group"><div class="ncsv-save-wrap"><button type="button" class="ncs-save-toggle" data-v="save-menu" aria-expanded="false" aria-haspopup="true">저장<span class="ncs-caret" aria-hidden="true"></span></button><div class="ncsv-save-menu" role="group" aria-label="저장 방식" hidden><button type="button" class="ncs-popup-primary" data-v="clean">공유용 PNG<small>${SAVE_NOTES.shared}</small></button><a class="ncsv-save" download>원본 PNG<small>${SAVE_NOTES.original}</small></a>${SAVE_DETAILS}</div></div><button type="button" data-v="detach" hidden>이 메시지에서 빼기</button><button type="button" data-v="delete" class="ncsv-delete" hidden>삭제</button></div>
     <div class="ncsv-group ncsv-close-group"><button type="button" data-v="close" aria-label="닫기" title="닫기 (Esc)">✕</button></div>
   </div>
+  <div class="ncsv-navigation" hidden aria-label="이력 그림 이동"><button type="button" data-v="previous" aria-label="이전 그림">‹ 이전</button><output class="ncsv-position" aria-live="polite"></output><button type="button" data-v="next" aria-label="다음 그림">다음 ›</button></div>
   <div class="ncsv-stage"><img alt="생성된 장면 크게 보기" draggable="false"></div>
   <details class="ncsv-prompt" hidden><summary>프롬프트 보기</summary><div class="ncsv-prompt-body"><button type="button" class="ncsv-copy" data-v="copy" disabled>프롬프트 복사</button><span class="ncsv-copy-status" role="status"></span><pre class="ncsv-prompt-text"></pre></div></details><div class="ncsv-info"><span class="ncsv-meta"></span><button type="button" class="ncsv-seed" data-v="seed" hidden></button></div>`;
   document.body.append(dialog);
 
   const stage = dialog.querySelector('.ncsv-stage'), img = stage.querySelector('img');
   const zoomLabel = dialog.querySelector('.ncsv-zoom'), meta = dialog.querySelector('.ncsv-meta'), save = dialog.querySelector('.ncsv-save');
-  const state = { nat: { w: 0, h: 0 }, view: { scale: 1, x: 0, y: 0 }, mode: 'fit', caption: '', seed: null, onDelete: null, onDetach:null, loadPrompt:null, promptText:'', epoch:0, item: null };
+  const state = { nat: { w: 0, h: 0 }, view: { scale: 1, x: 0, y: 0 }, mode: 'fit', caption: '', seed: null, onDelete: null, onDetach:null, loadPrompt:null, promptText:'', epoch:0, item: null, gallery:null, index:0, navBusy:false, actionBusy:false };
   const saveToggle=dialog.querySelector('[data-v="save-menu"]'),saveMenu=dialog.querySelector('.ncsv-save-menu'),seedButton=dialog.querySelector('[data-v="seed"]');
   const showSaveMenu=open=>{saveMenu.hidden=!open;saveToggle.setAttribute('aria-expanded',String(open));if(open)saveMenu.querySelector('button')?.focus({preventScroll:true});};
   // The menu closes on its own button, on a choice, on Escape and on any click outside it.
@@ -80,11 +81,52 @@ function build() {
     catch(e){if(epoch===state.epoch)meta.textContent=e.message;}
     finally{if(epoch===state.epoch)detachButton.disabled=false;}
   }
-  async function cleanSave(){const button=dialog.querySelector('[data-v="clean"]');button.disabled=true;try{await saveCleanImage(state.item);meta.textContent='메타데이터를 뺀 공유용 PNG를 저장했어요.';}catch{meta.textContent='공유용 PNG를 저장하지 못했어요. 원본으로 대체 저장하지 않았어요.';}finally{button.disabled=false;}}
+  async function cleanSave(){
+    const epoch=state.epoch,item=state.item,button=dialog.querySelector('[data-v="clean"]');button.disabled=true;
+    try{await saveCleanImage(item);if(epoch===state.epoch)meta.textContent='메타데이터를 뺀 공유용 PNG를 저장했어요.';}
+    catch{if(epoch===state.epoch)meta.textContent='공유용 PNG를 저장하지 못했어요. 원본으로 대체 저장하지 않았어요.';}
+    finally{if(epoch===state.epoch)button.disabled=false;}
+  }
+  const navigation=dialog.querySelector('.ncsv-navigation'),position=dialog.querySelector('.ncsv-position');
+  function updateNavigation(){
+    const g=state.gallery;navigation.hidden=!g;if(!g)return;
+    position.textContent=`${state.index+1} / ${g.total}${state.navBusy?' · 불러오는 중…':''}`;
+    dialog.querySelector('[data-v="previous"]').disabled=state.navBusy||state.actionBusy||state.index<=0;
+    dialog.querySelector('[data-v="next"]').disabled=state.navBusy||state.actionBusy||(!g.hasMore&&state.index>=g.items.length-1);
+    if(dialog.open&&!dialog.contains(document.activeElement))dialog.querySelector('[data-v="close"]').focus({preventScroll:true});
+  }
+  function prefetch(){
+    const g=state.gallery,epoch=state.epoch;
+    if(!g?.hasMore||state.index<g.items.length-2)return;
+    g.loadMore().then(()=>{if(epoch===state.epoch)updateNavigation();}).catch(()=>{}); // explicit Next can retry
+  }
+  async function navigate(delta){
+    const g=state.gallery;if(!g||state.navBusy||state.actionBusy)return;
+    const epoch=state.epoch,next=state.index+delta;if(next<0)return;
+    state.navBusy=true;updateNavigation();
+    try{
+      while(next>=g.items.length&&g.hasMore)await g.loadMore();
+      if(epoch!==state.epoch||!dialog.open)return;
+      if(g.items[next])show(g.items[next],{...g.describe(g.items[next]),gallery:g,index:next,focus:false});
+    }catch(e){if(epoch===state.epoch)meta.textContent=e.message;}
+    finally{if(epoch===state.epoch){state.navBusy=false;updateNavigation();}}
+  }
   async function remove() {
-    if (!state.onDelete) return;
-    deleteButton.disabled = true;
-    try { if (await state.onDelete()) dialog.close(); } finally { deleteButton.disabled = false; }
+    if(!state.onDelete||state.actionBusy||state.navBusy)return;
+    const epoch=state.epoch,id=state.item.id,g=state.gallery,index=state.index;
+    state.actionBusy=true;deleteButton.disabled=true;updateNavigation();
+    try{
+      if(g)await g.waitForPage().catch(()=>{});
+      if(epoch!==state.epoch||!dialog.open)return;
+      if(!await state.onDelete()||epoch!==state.epoch||!dialog.open)return;
+      if(!g){dialog.close();return;}
+      g.removed(id);
+      if(index>=g.items.length&&g.hasMore)await g.loadMore();
+      if(epoch!==state.epoch||!dialog.open)return;
+      const next=Math.min(index,g.items.length-1);
+      if(next<0)dialog.close();else show(g.items[next],{...g.describe(g.items[next]),gallery:g,index:next,focus:false});
+    }catch(e){if(epoch===state.epoch)meta.textContent=e.message;}
+    finally{if(epoch===state.epoch){state.actionBusy=false;deleteButton.disabled=false;updateNavigation();}}
   }
   const stageSize = () => { const r = stage.getBoundingClientRect(); return { w: r.width, h: r.height }; };
   const local = event => { const r = stage.getBoundingClientRect(); return { x: event.clientX - r.left, y: event.clientY - r.top }; };
@@ -114,10 +156,12 @@ function build() {
 
   dialog.addEventListener('click', event => {
     const button = event.target.closest('[data-v]'); if (!button) return;
-    ({ fit, original: () => original(), in: () => zoomBy(ZOOM_STEP), out: () => zoomBy(1 / ZOOM_STEP), close: () => dialog.close(), delete: remove, detach, copy:copyPrompt, clean: cleanSave, 'save-menu':()=>showSaveMenu(saveMenu.hidden), seed:copySeed })[button.dataset.v]?.();
+    ({ previous:()=>navigate(-1),next:()=>navigate(1),fit, original: () => original(), in: () => zoomBy(ZOOM_STEP), out: () => zoomBy(1 / ZOOM_STEP), close: () => dialog.close(), delete: remove, detach, copy:copyPrompt, clean: cleanSave, 'save-menu':()=>showSaveMenu(saveMenu.hidden), seed:copySeed })[button.dataset.v]?.();
   });
   dialog.addEventListener('keydown', event => {
     if (event.target.closest?.('a,button') && (event.key === 'Enter' || event.key === ' ')) return;
+    if(event.target.closest?.('input,textarea,select,[contenteditable=true]'))return;
+    if(state.gallery&&['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();navigate(event.key==='ArrowRight'?1:-1);return;}
     const action = { '+': () => zoomBy(ZOOM_STEP), '=': () => zoomBy(ZOOM_STEP), '-': () => zoomBy(1 / ZOOM_STEP), '0': fit, '1': () => original() }[event.key];
     if (action) { event.preventDefault(); action(); }
   });
@@ -130,7 +174,7 @@ function build() {
     try { stage.setPointerCapture?.(event.pointerId); } catch { /* capture is optional; some browsers reject it */ }
     pointers.set(event.pointerId, local(event));
     const points = [...pointers.values()];
-    if (points.length === 1) gesture = { type: 'pan', start: points[0], view: { ...state.view }, moved: false, onImage: event.target === img, pointerType: event.pointerType };
+    if (points.length === 1) gesture = { type: 'pan', start: points[0], view: { ...state.view }, moved: false, onImage: event.target === img, pointerType: event.pointerType, swipe: state.mode==='fit'&&!!state.gallery };
     else if (points.length === 2) {
       const [a, b] = points;
       gesture = { type: 'pinch', distance: Math.hypot(a.x - b.x, a.y - b.y) || 1, view: { ...state.view }, mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, moved: true };
@@ -155,6 +199,10 @@ function build() {
     if (!pointers.has(event.pointerId)) return;
     const point = pointers.get(event.pointerId); pointers.delete(event.pointerId);
     stage.classList.remove('ncsv-dragging');
+    if(event.type==='pointerup'&&gesture?.type==='pan'&&gesture.swipe&&gesture.pointerType!=='mouse'){
+      const dx=local(event).x-gesture.start.x,dy=local(event).y-gesture.start.y;
+      if(Math.abs(dx)>=60&&Math.abs(dx)>Math.abs(dy)*1.5){lastTap=null;gesture=null;navigate(dx<0?1:-1);}
+    }
     if (event.type === 'pointerup' && gesture?.type === 'pan' && !gesture.moved) {
       const now = Date.now();
       if (gesture.pointerType !== 'mouse' && lastTap && now - lastTap.time < 320 && Math.hypot(point.x - lastTap.point.x, point.y - lastTap.point.y) < 30) { lastTap = null; toggle(point); }
@@ -168,27 +216,27 @@ function build() {
   stage.addEventListener('dblclick', event => { if (event.target === img) toggle(local(event)); });
 
   new ResizeObserver(() => { if (!dialog.open || !state.nat.w) return; if (state.mode === 'fit') fit(); else set(clampPan(state.view, state.nat, stageSize())); }).observe(stage);
-  dialog.addEventListener('close', () => { pointers.clear(); gesture = null; });
+  dialog.addEventListener('close', () => { state.epoch++;state.gallery=null;state.navBusy=false;pointers.clear();gesture=null;lastTap=null; });
 
-  return {
-    dialog,
-    open(item, { caption = '', seed = null, onDelete = null, onDetach=null, loadPrompt=null } = {}) {
+  function show(item,{caption='',seed=null,onDelete=null,onDetach=null,loadPrompt=null,gallery=null,index=0,focus=true}={}){
       const file = imageDownload(item); // validates the same-origin generated PNG path
-      state.epoch++;state.item = item;state.caption = caption;showSaveMenu(false);
+      state.epoch++;pointers.clear();gesture=null;lastTap=null;state.gallery=gallery;state.index=index;state.navBusy=false;state.actionBusy=false;state.item = item;state.caption = caption;showSaveMenu(false);
       state.seed=seed===null||seed===undefined||seed===''?null:seed;seedButton.hidden=state.seed===null;if(state.seed!==null)seedButton.textContent=seedLabel();
       state.loadPrompt=typeof loadPrompt==='function'?loadPrompt:null;state.promptText='';
       promptBox.open=false;promptBox.hidden=!state.loadPrompt;delete promptBox.dataset.loaded;promptContent.textContent='';copyButton.disabled=true;copyButton.textContent='프롬프트 복사';copyStatus.textContent='';
       state.onDetach=typeof onDetach==='function'?onDetach:null;detachButton.hidden=!state.onDetach;detachButton.disabled=false; state.nat = { w: 0, h: 0 }; state.mode = 'fit';
       state.onDelete = typeof onDelete === 'function' ? onDelete : null; deleteButton.hidden = !state.onDelete; deleteButton.disabled = false;
+      dialog.querySelector('[data-v="clean"]').disabled=false;updateNavigation();
       save.href = file.url; save.download = file.filename;
       meta.textContent = '불러오는 중…'; img.style.transform = ''; img.removeAttribute('style');
       dialog.dataset.skin = currentSkin();
       if (!dialog.open) dialog.showModal();
       if (img.getAttribute('src') === file.url && img.complete && img.naturalWidth) img.dispatchEvent(new Event('load'));
       else img.src = file.url;
-      dialog.querySelector('[data-v="close"]').focus({ preventScroll: true });
-    },
-  };
+      if(focus||!dialog.contains(document.activeElement))dialog.querySelector('[data-v="close"]').focus({ preventScroll: true });
+      prefetch();
+  }
+  return {dialog,open:show};
 }
 
 export function openImageViewer(item, options) {

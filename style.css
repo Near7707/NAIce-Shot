@@ -514,3 +514,15 @@
 #naice-shot-dialog #ncs-anlas-balance small {display:inline;}
 #naice-shot-dialog .ncs-consent-row {display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;}
 #naice-shot-dialog .ncs-consent-row [data-action="goto-anlas"] {min-height:32px;padding:4px 8px;margin:0;font-size:12px;}
+
+/* Momentary controls: no wrapping label or sticky touch hover shared by the two buttons. */
+#naice-shot-dialog .ncs-number-stepper button:hover {background-color:var(--ncs-control);border-color:var(--ncs-border);}
+@media (hover:hover) and (pointer:fine) {
+ #naice-shot-dialog .ncs-number-stepper button:hover {background-color:var(--ncs-hover);border-color:var(--ncs-edge);}
+}
+#naice-shot-dialog .ncs-number-stepper button:active {background-color:var(--ncs-hover);border-color:var(--ncs-edge);}
+#naice-shot-dialog .ncs-outfit-undo {margin:8px 0;}
+#ncs-viewer .ncsv-navigation {display:flex;align-items:center;justify-content:center;gap:12px;padding:5px 12px;background:#15181fee;}
+#ncs-viewer .ncsv-navigation[hidden] {display:none;}
+#ncs-viewer .ncsv-position {font-size:13px;min-width:70px;text-align:center;font-variant-numeric:tabular-nums;}
+#ncs-viewer .ncsv-navigation button:disabled {opacity:.4;cursor:default;}

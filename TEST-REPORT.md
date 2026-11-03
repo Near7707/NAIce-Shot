@@ -1,3 +1,7 @@
+# v0.1.48 validation — 2026-11-03
+
+136 Node tests passed (no skips); 37 Chromium browser scripts passed, including the new 1100/375/320px import/clothing/gallery regressions. Detailed evidence, updated expectations and untested environments are recorded once in [docs/REVIEW.md](docs/REVIEW.md#ui-v0148--서버-v0113-유지--2026-11-03). Server v0.1.13 is unchanged.
+
 # v0.1.47 validation — 2026-11-03
 
 - Extension Node suite: **136 passed, 0 failed, 0 skipped** against server v0.1.13.

@@ -91,7 +91,7 @@ try{
   accept=false;await page.locator('#ncs-draft-retry').click();assert.equal(await value(),'local conflict');accept=true;await page.locator('#ncs-draft-retry').click();await page.waitForFunction(()=>document.querySelector('#ncs-location').value==='unsaved garden');
   // Restored one-off options survive failed generation, but success consumes them before refresh.
   const historyId='22222222-2222-4222-8222-222222222222';history.push({id:historyId,created:new Date().toISOString(),chatKey:freeKey,image:`/user/images/naice-shot/${historyId}.png`,seed:777,assembled:{base:'history garden',negative:'',characters:[],warnings:[]},options:{model:'nai-diffusion-4-5-full',width:832,height:1216,steps:17,scale:4,cfgRescale:0,sampler:'k_euler',scheduler:'karras',seed:777},snapshot:{scene:{characters:[],location:'history garden'}}});
-  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-scope="free"]').click();await pick(page,'[data-history-id]');
+  await page.locator('[data-tab="history"]').click();await page.locator('#ncs-history-scope').selectOption('free');await pick(page,'[data-history-free]');
   assert.match(await page.locator('#ncs-gen-scope').innerText(),/이력/);
   genFails=true;await page.locator('[data-action="generate"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-notice').textContent.includes('mock generation failed'));assert.match(await page.locator('#ncs-gen-scope').innerText(),/이력/);
   genFails=false;await page.locator('[data-action="generate"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-notice').textContent.startsWith('생성했어요'));assert.doesNotMatch(await page.locator('#ncs-gen-scope').innerText(),/이력/);
@@ -101,7 +101,7 @@ try{
   let release;slowRead=new Promise(r=>release=r);await page.evaluate(()=>mock.switchChat('B-new'));await page.evaluate(()=>mock.switchChat('A'));release();slowRead=null;await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);assert.equal(await value(),'A edited cafe');
   // Completion after leaving a chat consumes only that chat's one-off override.
   history.push({...history[0],id:'44444444-4444-4444-8444-444444444444',image:'/user/images/naice-shot/44444444-4444-4444-8444-444444444444.png',chatKey:JSON.stringify({group:null,card:'Leo.png',chat:'A'})});
-  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-scope="chat"]').click();await pick(page,'[data-history-id]');
+  await page.locator('[data-tab="history"]').click();await page.locator('#ncs-history-scope').selectOption('chat');await pick(page,'[data-history-id]');
   let finishGeneration;genWait=new Promise(r=>finishGeneration=r);await page.locator('[data-action="generate"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-progress').hidden);
   await page.evaluate(()=>mock.switchChat('B'));await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);assert.equal(await value(),'B river');
   finishGeneration();genWait=null;await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden);assert.equal(await value(),'B river');
@@ -153,7 +153,7 @@ try{
   await page.locator('#ncs-free-text').fill('Leftover garden text');await page.locator('#ncs-location').fill('leftover');await saved();assert.ok(hasWork(freeKey));
   const freeImage='33333333-3333-4333-8333-333333333333';history.push({id:freeImage,created:new Date().toISOString(),chatKey:freeKey,image:`/user/images/naice-shot/${freeImage}.png`,seed:5,assembled:{base:'x',negative:'',characters:[],warnings:[]},options:{model:'nai-diffusion-4-5-full',width:832,height:1216,steps:28,scale:5,seed:5,cfgRescale:0,sampler:'k_euler'},snapshot:{scene:{location:'x'}}});
   await page.locator('[data-mode="chat"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
-  await page.locator('[data-tab="history"]').click();await page.locator('[data-history-scope="all"]').click();
+  await page.locator('[data-tab="history"]').click();await page.locator('#ncs-history-scope').selectOption('all');
   await page.waitForFunction(k=>[...document.querySelectorAll('#ncs-history-filter option')].some(o=>o.value===k),freeKey);await page.locator('#ncs-history-filter').selectOption(freeKey);
   await page.locator('[data-action="delete-filter-chat"]').click();await page.waitForFunction(()=>/삭제했어요/.test(document.querySelector('#ncs-notice').textContent));
   assert.equal(hasWork(freeKey),false);
