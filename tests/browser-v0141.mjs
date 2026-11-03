@@ -73,8 +73,8 @@ try{
   // One clear undo is stored with the empty draft and survives a different chat and refresh.
   await page.locator('[data-action="blank"]').first().click();await page.evaluate(()=>mock.switchChat('B'));await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
   await page.evaluate(()=>mock.switchChat('A'));await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
-  assert.equal(await value(),'');assert.equal(await page.locator('#ncs-chat-source .ncs-action-slot').innerText(),'↶ 비우기 취소');
-  await page.reload();await open();assert.equal(await page.locator('#ncs-chat-source .ncs-action-slot').innerText(),'↶ 비우기 취소');await page.locator('[data-action="undo-clear"]').click();assert.equal(await value(),'A edited cafe');
+  assert.equal(await value(),'');assert.equal(await page.locator('.ncs-clear-slot .ncs-action-slot').innerText(),'↶ 비우기 취소');
+  await page.reload();await open();assert.equal(await page.locator('.ncs-clear-slot .ncs-action-slot').innerText(),'↶ 비우기 취소');await page.locator('[data-action="undo-clear"]').click();assert.equal(await value(),'A edited cafe');
   // Free work has a separate bucket and does not follow the chat.
   await page.locator('[data-mode="free"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
   await page.locator('#ncs-free-text').fill('A quiet garden');await page.locator('#ncs-location').fill('free garden');

@@ -93,10 +93,10 @@ try{
   const fits=async(where,sel)=>{for(const b of await page.$$eval(sel,els=>els.filter(e=>e.offsetParent).map(e=>({t:e.textContent.trim(),over:e.scrollWidth-e.clientWidth}))))assert.ok(b.over<=1,`${tag} ${where}: "${b.t}" spills out of its button by ${b.over}px`);};
   const oneMain=async where=>assert.deepEqual(await page.$$eval('.ncs-actions',els=>els.filter(e=>e.offsetParent).map(e=>e.querySelectorAll(':scope > .ncs-primary').length).filter(n=>n>1)),[],`${tag} ${where}: one main action per group`);
   const capped=async where=>{if(width<1000)return;for(const w of await page.$$eval('.ncs-actions',els=>els.filter(e=>e.offsetParent).map(e=>e.getBoundingClientRect().width)))assert.ok(w<=561,`${tag} ${where}: action group ${w}px wide`);};
-  await noOverflow('그리기');await oneLine('그리기','.ncs-source-actions > button, [data-character] .ncs-actions > button');await fits('그리기','.ncs-source-actions > button, [data-character] .ncs-actions > button');await oneMain('그리기');await capped('그리기');
-  assert.equal(await page.locator('#ncs-chat-source .ncs-action-slot').innerText(),'그리기창 비우기');
-  await page.locator('#ncs-chat-source .ncs-action-slot').click();assert.equal(await page.locator('#ncs-chat-source .ncs-action-slot').innerText(),'↶ 비우기 취소');
-  await oneLine('비우기 취소','.ncs-source-actions > button');await page.locator('#ncs-chat-source .ncs-action-slot').click();
+  await noOverflow('그리기');await oneLine('그리기','.ncs-source-actions > button, .ncs-clear-slot > button, [data-character] .ncs-actions > button');await fits('그리기','.ncs-source-actions > button, .ncs-clear-slot > button, [data-character] .ncs-actions > button');await oneMain('그리기');await capped('그리기');
+  assert.equal(await page.locator('.ncs-clear-slot .ncs-action-slot').innerText(),'그리기창 비우기');
+  await page.locator('.ncs-clear-slot .ncs-action-slot').click();assert.equal(await page.locator('.ncs-clear-slot .ncs-action-slot').innerText(),'↶ 비우기 취소');
+  await oneLine('비우기 취소','.ncs-clear-slot > button');await page.locator('.ncs-clear-slot .ncs-action-slot').click();
   await page.locator('[data-tab="history"]').click();await page.locator('.ncs-history-card').first().waitFor();await noOverflow('이력');
   await oneLine('이력','.ncs-history-actions > button, .ncs-history-tools > button:not([hidden])');await fits('이력','.ncs-history-actions > button, .ncs-history-tools > button:not([hidden])');
   // Arrangement kept: three tools on one row, the whole-history delete under them.

@@ -140,18 +140,19 @@ function renderMatching() {
 const tabNotices=new Map();
 function renderNotice(){if(!dialog)return;const n=tabNotices.get(activeTab()),box=$('ncs-notice');box.hidden=!n?.message;box.textContent=n?.message??'';box.classList.toggle('ncs-error',n?.error===true);}
 function notice(message,error=false,tab=activeTab()){tabNotices.set(tab,{message,error});renderNotice();}
-const BUTTON_LABELS={extract:['extract','장면 추출'],generate:['generate','이미지 생성'],profile:['convert-profile','태그로 변환'],free:['free-fill','글로 채우기']};
+// One main button per action; 장면 추출 serves both modes (챗샷 reads the chat, 프리샷 the written situation).
+const BUTTON_LABELS={extract:['extract','장면 추출',['extract','free']],generate:['generate','이미지 생성',['generate']],profile:['convert-profile','태그로 변환',['profile']]};
 function renderProgress() {
   if(!dialog)return;
   const box=$('ncs-progress');box.hidden=!progress;
-  for(const [kind,[action,label]] of Object.entries(BUTTON_LABELS)){const b=dialog.querySelector(`[data-action="${action}"]`);if(b)b.textContent=progress?.kind===kind?`${label} 중…`:label;}
+  for(const [action,label,kinds] of Object.values(BUTTON_LABELS)){const b=dialog.querySelector(`[data-action="${action}"].ncs-action-main`)??dialog.querySelector(`[data-action="${action}"]`);if(b)b.textContent=kinds.includes(progress?.kind)?`${label} 중…`:label;}
   if(!progress)return;
   const sec=Math.max(0,Math.floor((Date.now()-progress.started)/1000)),time=sec<60?`${sec}초`:`${Math.floor(sec/60)}분 ${sec%60}초`;
   box.dataset.kind=progress.kind;
   const retry=progress.attempt>1?' · 다시 요청 (2/2)':'';
-  $('ncs-progress-title').textContent=progress.kind==='extract'?`장면 추출 중${retry}`:progress.kind==='free'?`글로 채우는 중${retry}`:progress.kind==='profile'?`프로필 태그 변환 중${retry}`:'NAI 이미지 생성 중';
+  $('ncs-progress-title').textContent=progress.kind==='extract'?`장면 추출 중${retry}`:progress.kind==='free'?`장면 추출 중${retry}`:progress.kind==='profile'?`프로필 태그 변환 중${retry}`:'NAI 이미지 생성 중';
   $('ncs-progress-detail').textContent=progress.kind==='generate'?`${time} 경과 · 이미 보낸 생성 요청은 중단할 수 없어요. 창을 닫거나 채팅을 바꿔도 서버가 결과를 저장해요.`:`${time} 경과 · 추출 AI 응답을 기다리고 있어요.`;
-  $('ncs-progress-cancel').hidden=progress.kind==='generate';$('ncs-progress-cancel').textContent=progress.kind==='profile'?'변환 중단':progress.kind==='free'?'채우기 중단':'추출 중단';
+  $('ncs-progress-cancel').hidden=progress.kind==='generate';$('ncs-progress-cancel').textContent=progress.kind==='profile'?'변환 중단':'추출 중단';
 }
 function startProgress(kind,owner) {
   clearInterval(progress?.timer);progress={kind,owner,started:Date.now(),attempt:1,timer:setInterval(renderProgress,1000)};renderProgress();
@@ -287,7 +288,7 @@ function say(message,error=false,tab=activeTab()) {
 function changed(){undoChatOutfit=null;dialog?.querySelectorAll('.ncs-outfit-undo').forEach(e=>e.remove());revision++;finalOverride=null;optionsOverride=null;dropUndo();updateFinal({force:true});scheduleDraft();}
 // History restore uses the stored options for the next generation only; the settings tab keeps the user's own values.
 function effectiveOptions(){return optionsOverride?freeOptions(optionsOverride):settings().options;}
-function setBusy(value,owner=0) {busy=value;busyOwner=value?owner:0;for(const b of dialog.querySelectorAll('[data-action="extract"],[data-action="free-fill"],[data-mode],[data-history-free],[data-action="generate"],[data-action="blank"],[data-action="undo-clear"],[data-action="same-seed"],[data-action="new-seed"],[data-action="convert-profile"]'))b.disabled=value;updateAttachButtons();if(!value)rememberDraft();}
+function setBusy(value,owner=0) {busy=value;busyOwner=value?owner:0;for(const b of dialog.querySelectorAll('[data-action="extract"],[data-action="extract-again"],[data-action="free-fill"],[data-mode],[data-history-free],[data-action="generate"],[data-action="blank"],[data-action="undo-clear"],[data-action="same-seed"],[data-action="new-seed"],[data-action="convert-profile"]'))b.disabled=value;updateAttachButtons();if(!value)rememberDraft();}
 async function api(route,{method='GET',body,keepalive=false,signal}={}) {
   const response=await fetch(`${API}${route}`,{method,headers:ctx().getRequestHeaders(),body:body?JSON.stringify(body):undefined,keepalive,signal});
   const text=await response.text();let data;try{data=JSON.parse(text);}catch{throw new Error(`서버 플러그인을 확인해 주세요 (${response.status}).`);}
@@ -415,8 +416,9 @@ function loadWork(w){
 function renderModeUI(){
   if(!dialog)return;const free=isFree();
   for(const b of dialog.querySelectorAll('[data-mode]'))b.setAttribute('aria-pressed',String(b.dataset.mode===mode));
-  $('ncs-chat-source').hidden=free;$('ncs-free-source').hidden=!free;
+  $('ncs-chat-source').hidden=free;$('ncs-free-source').hidden=!free;$('ncs-request').hidden=free; // 프리샷: the situation itself is the request
   $('ncs-source-title').textContent=free?'1 · 그릴 장면':'1 · 그릴 순간';
+  placeRequest();
   dialog.dataset.workMode=mode;renderUndo();
 }
 async function setMode(next){
@@ -431,16 +433,23 @@ async function setMode(next){
 // the clear button stays, and a second small [↶ 가져오기 취소] appears beside it (both are useful then).
 function renderUndo(){
   if(!dialog)return;$('ncs-undo-clear').hidden=true;
-  for(const row of dialog.querySelectorAll('.ncs-source-actions')){
-    const here=!!undoClear&&row.closest(isFree()?'#ncs-free-source':'#ncs-chat-source')!==null; // only the open mode's buttons
-    const clearUndo=here&&!undoClear.label,importUndo=here&&!!undoClear.label,b=row.querySelector('.ncs-action-slot');
-    b.dataset.action=clearUndo?'undo-clear':'blank';b.classList.toggle('ncs-undoing',clearUndo);
-    b.textContent=clearUndo?'↶ 비우기 취소':'그리기창 비우기';
-    b.title=clearUndo?'비우기 전으로 되돌려요. 다음에 고치거나 추출·생성하면 사라져요.':'인물·장면·후보·최종 프롬프트를 비워요. 공통 프롬프트와 설정은 그대로예요.';
-    let u=row.querySelector('.ncs-import-undo');
-    if(importUndo&&!u){u=document.createElement('button');u.type='button';u.className='ncs-import-undo';u.dataset.action='undo-clear';u.textContent='↶ 가져오기 취소';b.before(u);}
-    if(u){u.hidden=!importUndo;u.title=undoClear?.label??'';if(!importUndo)u.remove();}
-  }
+  const row=dialog.querySelector('.ncs-clear-slot');if(typeof row?.querySelector!=='function')return; // one slot for both modes (each mode keeps its own undo)
+  const clearUndo=!!undoClear&&!undoClear.label,importUndo=!!undoClear&&!!undoClear.label,b=row.querySelector('.ncs-action-slot');if(!b)return;
+  b.dataset.action=clearUndo?'undo-clear':'blank';b.classList.toggle('ncs-undoing',clearUndo);
+  b.textContent=clearUndo?'↶ 비우기 취소':'그리기창 비우기';
+  b.title=clearUndo?'비우기 전으로 되돌려요. 다음에 고치거나 추출·생성하면 사라져요.':'인물·장면·후보·최종 프롬프트를 비워요. 공통 프롬프트와 설정은 그대로예요.';
+  let u=row.querySelector('.ncs-import-undo');
+  if(importUndo&&!u){u=document.createElement('button');u.type='button';u.className='ncs-import-undo';u.dataset.action='undo-clear';u.textContent='↶ 가져오기 취소';b.before(u);}
+  if(u){u.hidden=!importUndo;u.title=undoClear?.label??'';if(!importUndo)u.remove();}
+}
+// 추가 요청 sits under the candidates once there are some (it re-picks or changes them), else above 장면 추출.
+function placeRequest(){
+  if(!dialog)return;const box=$('ncs-request'),near=!isFree()&&(scene.moments?.length??0)>1;
+  const home=near?$('ncs-request-near'):$('ncs-request-home');if(!box||typeof home?.append!=='function')return;
+  if(box.parentElement!==home)home.append(box);
+  const again=box.querySelector?.('.ncs-request-again');if(again)again.hidden=!near;box.classList?.toggle?.('ncs-request-near',near);
+  const applied=$('ncs-request-applied'),r=scene.request;if(!applied)return;applied.hidden=!r||(!r.applied?.length&&!r.ignored?.length);
+  applied.textContent=r?[r.applied?.length?`추가 요청 반영: ${r.applied.join(' · ')}`:'',r.ignored?.length?`반영하지 않음: ${r.ignored.join(' · ')}`:''].filter(Boolean).join(' / '):'';
 }
 // One undo belongs to the saved work; edits, extraction and generation end it, while chat/tab switches keep it.
 function dropUndo(){if(undoClear){undoClear=null;renderUndo();}}
@@ -794,7 +803,7 @@ function renderSceneExtras() {
   const {main,others,absent}=missingState(),names=others;
   renderMissingMain(main,absent);renderLeftOut(main,others);
   const profiles=settings().profiles;
-  $('ncs-unregistered').innerHTML=names.length?`<small>장면에 보이지만 프로필이 없는 인물이에요. 그냥 두면 그림에서 빠져요. 이번 장면에만 그리려면 캐릭터 프롬프트로 추가하고, 다음에도 쓰려면 프로필을 만들거나 연결하세요. 추출해 둔 표정·행동·복장을 함께 불러와요.</small>${names.map(n=>`<div class="ncs-unregistered-person"><div class="ncs-row"><button type="button" class="ncs-chip-add" data-quick-profile-name="${esc(n)}">＋ ${esc(n)} 프로필 만들기</button><button type="button" data-temp-from="${esc(n)}">${esc(n)} · 캐릭터 프롬프트로 추가</button>${profiles.length?`<button type="button" data-missing-do="link" data-missing-name="${esc(n)}" aria-expanded="${linkTarget===n}">${esc(n)} · 기존 프로필 연결</button>`:''}</div>${renderMissingLink(n,{role:'other'},profiles)}</div>`).join('')}`:'';
+  $('ncs-unregistered').innerHTML=names.length?`<small>장면에 보이지만 프로필이 없는 인물이에요. 그냥 두면 그림에서 빠져요. 이번 장면에만 그리려면 인물 칸으로 추가하고, 다음에도 쓰려면 프로필을 만들거나 연결하세요. 추출해 둔 표정·행동·복장을 함께 불러와요.</small>${names.map(n=>`<div class="ncs-unregistered-person"><div class="ncs-row"><button type="button" class="ncs-chip-add" data-quick-profile-name="${esc(n)}">＋ ${esc(n)} 프로필 만들기</button><button type="button" data-temp-from="${esc(n)}">${esc(n)} · 인물 칸으로 추가</button>${profiles.length?`<button type="button" data-missing-do="link" data-missing-name="${esc(n)}" aria-expanded="${linkTarget===n}">${esc(n)} · 기존 프로필 연결</button>`:''}</div>${renderMissingLink(n,{role:'other'},profiles)}</div>`).join('')}`:'';
 }
 async function convertProfile({source='',truncated=false}={}) {
   const originTab=profileContext,report=(message,error=false)=>notice(message,error,originTab);
@@ -847,7 +856,7 @@ function switchMoment(index){
   notice(`"${list[index].title||`후보 ${index+1}`}" 순간으로 바꿨어요. 후보마다 고친 내용은 따로 남아 있어요.`);
 }
 function renderMoments(){
-  const list=scene.moments??[],box=$('ncs-moments');box.hidden=list.length<2;if(list.length<2){box.innerHTML='';return;}
+  const list=scene.moments??[],box=$('ncs-moments');box.hidden=list.length<2;placeRequest();if(list.length<2){box.innerHTML='';return;}
   box.innerHTML=`<strong class="ncs-moments-title">장면 후보 · 그릴 순간을 골라 주세요</strong><div class="ncs-moment-list" role="group" aria-label="장면 후보">${list.map((m,i)=>`<button type="button" class="ncs-moment" data-moment="${i}" aria-pressed="${i===scene.momentIndex}"><span class="ncs-moment-step">${i+1}</span><span class="ncs-moment-name">${esc(m.title||`후보 ${i+1}`)}</span>${i===list.length-1&&!scene.momentsPartial?'<small>마지막 순간</small>':''}</button>`).join('')}</div>`;
 }
 // --- Clothes on a scene card: 채팅 기본 복장 (this chat) · 복장 잠금 (lock) · 이번 그림 복장 (this image) · 옷장 -------
@@ -1111,7 +1120,7 @@ function limitHint(){
   return settings().extractionProfileId?`설정 → 추출 AI의 "독립 추출 응답 한도"(지금 ${settings().extractionMaxTokens})를 올려 주세요.`
     :'본편 연결로 추출하면 본편 프리셋의 응답 길이가 그대로 적용돼요. 설정 → 추출 AI에서 별도 연결 프로필을 고르고 응답 한도를 넉넉히(8192부터) 잡아 주세요.';
 }
-// --- 프리샷: 글로 채우기 -------------------------------------------------------------------------------
+// --- 프리샷: 적은 상황으로 장면 추출 -------------------------------------------------------------------------------
 const FOREIGN_TEXT=/[\u1100-\u11FF\u3040-\u30FF\u3130-\u318F\u3400-\u9FFF\uAC00-\uD7A3]/;
 async function freeFill() {
   const originTab='scene',report=(message,error=false)=>notice(message,error,originTab);
@@ -1138,7 +1147,7 @@ async function freeFill() {
         raw=response;applyFree(parsed,foreign);return;
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}
     }
-    if(ticket===task&&isFree()){raw=response;renderScene();report(`글로 채우기 실패: ${failure?.message}.${looksCut(response)?` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
+    if(ticket===task&&isFree()){raw=response;renderScene();report(`장면 추출 실패: ${failure?.message}.${looksCut(response)?` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
   }finally{
     if(extraction?.ticket===ticket)extraction=null;
     stopProgress(ticket);if(busyOwner===ticket)setBusy(false);
@@ -1219,11 +1228,15 @@ async function extract() {
           return {title:m.title,scene:part};
         });
         raw=response;
-        scene={...blankScene(),...clone(moments[parsed.defaultIndex].scene),source:selection.source,moments:moments.length>1?moments:[],momentIndex:moments.length>1?parsed.defaultIndex:0,momentWish:wish,momentsPartial:parsed.partial};
+        // 추가 요청: clothing the user asked for is their own choice for this picture (like 이번 그림 복장), so a lock does not hide it.
+        const request=wish&&parsed.request?parsed.request:null;
+        if(request)for(const o of request.outfits){for(const c of moments[parsed.defaultIndex].scene.characters??[])if((o.id&&c.id===o.id)||(!o.id&&identityKey(c.entityName??'')===identityKey(o.name)))c.manualOutfit=o.outfit;}
+        scene={...blankScene(),...clone(moments[parsed.defaultIndex].scene),source:selection.source,moments:moments.length>1?moments:[],momentIndex:moments.length>1?parsed.defaultIndex:0,momentWish:wish,momentsPartial:parsed.partial,request:request?{applied:request.applied,ignored:request.ignored}:null};
         finalOverride=null;optionsOverride=null;lastLink=null;linkTarget=null;revision++;renderScene();
         if(removed.size)warnings.push(`장면 설명에 들어간 이름(${[...removed].join(', ')})을 빼고 일반 표현으로 정리했어요.`);
-        const lead=parsed.partial?`응답이 불완전해요. 온전히 받은 후보 ${moments.length}개만 보여줘요. 메시지의 마지막 순간이 빠졌을 수 있어요. ${limitHint()} `:wish&&!parsed.requestMatched?'적어 주신 순간을 이 메시지에서 찾지 못해서 마지막 순간을 골랐어요. ':moments.length>1?`장면 후보 ${moments.length}개를 찾았어요. 위에서 그릴 순간을 고를 수 있어요. `:'';
-        report(lead+(warnings.length?warnings.join(' / '):'추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.'));return;
+        const lead=parsed.partial?`응답이 불완전해요. 온전히 받은 후보 ${moments.length}개만 보여줘요. 메시지의 마지막 순간이 빠졌을 수 있어요. ${limitHint()} `:wish&&!parsed.requestMatched?'요청한 순간을 이 메시지에서 찾지 못해서 마지막 순간으로 골랐어요. ':moments.length>1?`장면 후보 ${moments.length}개를 찾았어요. 위에서 그릴 순간을 고를 수 있어요. `:'';
+        const asked=request?[request.applied.length?`추가 요청 반영: ${request.applied.join(' · ')}.`:'',request.ignored.length?`반영하지 않음: ${request.ignored.join(' · ')}.`:''].filter(Boolean).join(' ')+' ':'';
+        report(lead+asked+(warnings.length?warnings.join(' / '):'추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.'));return;
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}
     }
     if(ticket===task&&keyOf()===startKey){raw=response;renderScene();report(`추출 실패: ${failure?.message}.${looksCut(response)?` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
@@ -1333,7 +1346,9 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   if(busy)return;if(!isFree())assertChat();
   // Nothing extracted or entered yet: the image would be the common prompt alone. Ask first.
   const emptyScene=!scene.characters.some(c=>c.included!==false)&&!['location','lighting','camera','interaction'].some(k=>(scene[k]??'').trim());
-  if(!skipMissingCheck&&emptyScene&&!finalOverride&&!confirm(isFree()?'장면 칸이 비어 있어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "글로 채우기"나 인물 추가하기':'장면을 아직 추출하지 않았어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "장면 추출" 누르기')){report(isFree()?'생성하지 않았어요. 상황을 적고 "글로 채우기"를 누르거나 인물을 추가해 주세요.':'생성하지 않았어요. "장면 추출"을 먼저 눌러 주세요.');return;}
+  if(!skipMissingCheck&&emptyScene&&!finalOverride&&!confirm(isFree()?'장면 칸이 비어 있어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 상황을 적고 "장면 추출"을 누르거나 인물 추가하기':'장면을 아직 추출하지 않았어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "장면 추출" 누르기')){report(isFree()?'생성하지 않았어요. 상황을 적고 "글로 채우기"를 누르거나 인물을 추가해 주세요.':'생성하지 않았어요. "장면 추출"을 먼저 눌러 주세요.');return;}
+  // No 공통 이미지 프리셋 chosen (and no history settings in use): say which settings will be used, every time.
+  if(!skipMissingCheck&&!settings().imagePresetId&&!optionsOverride&&!confirm('공통 이미지 프리셋을 고르지 않았어요.\n설정 탭의 기본 생성 설정(모델·크기·스텝 등)과 공통 프롬프트로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "3 · 생성"에서 프리셋 고르기')){report('생성하지 않았어요. "3 · 생성"에서 공통 이미지 프리셋을 고를 수 있어요.');return;}
   if(!skipMissingCheck){const {main}=missingState();if(main.length&&!skipMissingWarning()){openMissingDialog(main,seedMode);return;}}
   const s=settings(),startKey=workKey(),ticket=++task;
   if(finalOverride?.invalid)throw new Error('최종 프롬프트 JSON이 올바르지 않아요. 고치거나 "조립 결과로 되돌리기"를 눌러 주세요.');
@@ -1796,7 +1811,8 @@ async function onAction(action,el) {
     case 'target-more':targetShown+=TARGET_STEP;renderTargets();break;
     case 'target-latest':targetShown=TARGET_STEP;chooseTarget('');break;
     case 'target-message':chooseTarget(el.dataset.messageIndex);break;
-    case 'extract':await extract();break;
+    case 'extract':if(isFree())await freeFill();else await extract();break; // one button for both modes
+    case 'extract-again':await extract();break; // 추가 요청 box under the candidates (챗샷 only)
     case 'blank':clearWork();break;
     case 'recent-less':case 'recent-more':{const input=$('ncs-recent');input.value=Math.max(1,Math.min(30,(Number(input.value)||1)+(action==='recent-more'?1:-1)));input.dispatchEvent(new Event('input',{bubbles:true}));break;}
     case 'undo-clear':undoClearWork();break;

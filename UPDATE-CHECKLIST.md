@@ -1,5 +1,15 @@
 # Installation and update checklist
 
+## v0.1.55
+
+Update the extension and refresh. No server update is needed.
+
+1. Drawing tab: 챗샷/프리샷 stays at the top while scrolling; 프리샷 shows 추출 표현 and the same [장면 추출].
+2. Type "비 오는 밤으로" in 추가 요청 and extract: the line under the box says what was applied.
+3. 그리기창 비우기 is next to "2 · 장면 편집" and turns into ↶ 비우기 취소.
+4. With no 공통 이미지 프리셋 selected, 이미지 생성 asks first.
+
+
 ## v0.1.54
 
 Update the extension and refresh. No server update is needed.

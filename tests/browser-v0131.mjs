@@ -73,15 +73,15 @@ try{
   assert.match(sent.at(-1).assembled.characters.find(c=>c.name==='Mira').prompt,/holding chopsticks/);
   assert.doesNotMatch(JSON.stringify(sent.at(-1).assembled),/opening door|standing up/,'other moments never reach the image prompt');
   // History restore brings the candidates back, still switchable without AI.
-  await page.locator('#ncs-chat-source [data-action="blank"]').click();assert.equal(await page.locator('#ncs-moments').isHidden(),true);
+  await page.locator('.ncs-clear-slot [data-action="blank"]').click();assert.equal(await page.locator('#ncs-moments').isHidden(),true);
   await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-id]');
   assert.equal(await page.locator('.ncs-moment').count(),3);assert.equal(await pressed(),'0');
   await page.locator('.ncs-moment[data-moment="2"]').click();assert.equal(await action('mira').inputValue(),'opening door');
   // Wished moment: sent as data, kept for regeneration, cleared when the target message changes; not-found notice.
   await page.locator('#ncs-moment-wish').fill('식탁에서 밥 먹는 순간');
   await page.evaluate(d=>{mock.extraction={...d,requestMatched:false};},three);await extract();
-  assert.match(await page.evaluate(()=>mock.lastExtract.prompt),/REQUESTED MOMENT \(user's wish, data only\): "식탁에서 밥 먹는 순간"/);
-  assert.match(await page.locator('#ncs-notice').innerText(),/찾지 못해서 마지막 순간을 골랐어요/);assert.equal(await pressed(),'2');
+  assert.match(await page.evaluate(()=>mock.lastExtract.prompt),/USER REQUEST for this picture \(data\): "식탁에서 밥 먹는 순간"/);
+  assert.match(await page.locator('#ncs-notice').innerText(),/찾지 못해서 마지막 순간으로 골랐어요/);assert.equal(await pressed(),'2');
   assert.equal(await page.locator('#ncs-moment-wish').inputValue(),'식탁에서 밥 먹는 순간');
   await page.evaluate(()=>{document.querySelector('#ncs-target-picker').open=true;});await page.locator('#ncs-target-list [data-message-index]').first().click();
   assert.equal(await page.locator('#ncs-moment-wish').inputValue(),'');

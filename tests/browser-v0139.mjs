@@ -34,7 +34,7 @@ try{
   await page.addInitScript(d=>document.addEventListener('DOMContentLoaded',()=>{mock.extraction=d;mock.extensionSettings.naice_shot.allowAnlas=true;mock.extensionSettings.naice_shot.positive='masterpiece';}),three);
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
-  const chatClear=page.locator('#ncs-chat-source .ncs-action-slot'),freeClear=page.locator('#ncs-free-source .ncs-action-slot');
+  const chatClear=page.locator('.ncs-clear-slot .ncs-action-slot'),freeClear=page.locator('.ncs-clear-slot .ncs-action-slot');
   const idle=()=>page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&!document.querySelector('[data-action="generate"]').disabled);
   const extract=async()=>{await page.locator('[data-action="extract"]').click();await idle();};
   const generate=async()=>{const n=sent.length;await page.locator('[data-action="generate"]').click();await idle();assert.equal(sent.length,n+1);};
@@ -63,13 +63,13 @@ try{
   await page.locator('[data-mode="free"]').click();
   assert.equal(await page.locator('#ncs-source-title').innerText(),'1 · 그릴 장면');assert.equal(await page.locator('#ncs-chat-source').isHidden(),true);
   assert.equal(await page.locator('[data-character]').count(),0,'프리샷 has its own work');
-  await page.locator('[data-action="free-fill"]').click();assert.match(await page.locator('#ncs-notice').innerText(),/그릴 상황을 적어/);
+  await page.locator('[data-action="extract"]').click();assert.match(await page.locator('#ncs-notice').innerText(),/그릴 상황을 적어/);
   await page.locator('#ncs-add-profile').selectOption('leo');await page.locator('[data-action="add-character"]').click();
   assert.equal(await page.locator('[data-chat-outfit]').count(),0,'no chat clothes in 프리샷');
   await page.locator('#ncs-free-text').fill('비 오는 밤 편의점 앞, 레오가 우산을 들고 웃고 빨간 머리 점원이 음료를 따른다');
   const ko={...free,characters:[{...free.characters[0],action:'우산을 든다'},free.characters[1]]};
   await page.evaluate(([bad,good])=>{let n=0;mock.generateRaw=async function(o){this.extractCalls=(this.extractCalls??0)+1;this.lastExtract=o;return JSON.stringify(n++===0?bad:good);};},[ko,free]);
-  await page.locator('[data-action="free-fill"]').click();await idle();
+  await page.locator('[data-action="extract"]').click();await idle();
   const prompt=await page.evaluate(()=>mock.lastExtract.prompt);
   assert.match(prompt,/SELECTED \(already in the picture\):\n\[\{"id":"leo","name":"Leo"\}\]/);assert.match(prompt,/SITUATION:\n"비 오는 밤/);assert.match(prompt,/Your previous reply wrote descriptive fields in a language other than English/);
   assert.equal(await page.locator('[data-character]').count(),2,'Leo was not doubled');
@@ -95,7 +95,7 @@ try{
   await page.locator('[data-tab="history"]').click();await page.locator('#ncs-history-scope').selectOption('chat');await pick(page,'[data-history-free]');
   assert.equal(await page.locator('[data-mode="free"]').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#ncs-free-text').inputValue(),'');
   assert.match(await page.locator('[data-character="leo"] [data-field="action"]').inputValue(),/sitting/);assert.equal(await page.locator('.ncs-moment').count(),0,'one moment only');
-  assert.equal(await page.locator('#ncs-free-source .ncs-import-undo').innerText(),'↶ 가져오기 취소');assert.equal(await freeClear.innerText(),'그리기창 비우기','clearing stays available after an import');
+  assert.equal(await page.locator('.ncs-clear-slot .ncs-import-undo').innerText(),'↶ 가져오기 취소');assert.equal(await freeClear.innerText(),'그리기창 비우기','clearing stays available after an import');
   await page.locator('[data-action="undo-clear"]').click();assert.match(await page.locator('#ncs-free-text').inputValue(),/비 오는 밤/);
   assert.ok(await page.locator('.ncs-content').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
   assert.deepEqual(errors,[]);await page.close();

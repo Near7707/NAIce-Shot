@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.55 — 2026-11-04 (extension only; server v0.1.13 unchanged)
+
+그리기 탭 정리 (draft reviewed with mock-ups).
+
+- **One screen for 챗샷 and 프리샷.** Shared parts are built once and only the mode-specific parts change: 추출 표현 (tags / natural) now also shows in 프리샷, where it was hidden although used. 챗샷 only: target message, messages sent, include user, profile links, candidates, 추가 요청. 프리샷 only: the situation box. Each mode still keeps its own work, undo and scroll position.
+- **One [장면 추출] button for both modes** (프리샷's 글로 채우기 is gone; the same button sends the written situation).
+- **추가 요청 · 선택** replaces "그리고 싶은 순간". It can pick an instant ("밥 먹는 순간"), change the chosen one ("비 오는 밤으로", "혼자", "앉은 자세", "코트 입혀줘"), or both. What you state wins for this picture; everything else follows the message; fixed appearance follows the profile; the chat, profiles and chat clothes are not changed. "혼자" also removes the others' actions and interaction. Requested clothing counts as this picture's own choice, so it shows even with a clothes lock. After extraction a line says what was applied and what was not ("추가 요청 반영: 밤 · 앉은 자세 / 반영하지 않음: 머리색 · 프로필 고정 외형"). The box sits above [장면 추출], and under the candidates once there are some, with [이 요청으로 다시 추출].
+- **그리기창 비우기** moved next to the "2 · 장면 편집" heading (one slot for both modes; ↶ 비우기 취소 / ↶ 가져오기 취소 as before).
+- The **챗샷/프리샷 switch stays at the top** of the drawing tab while it scrolls.
+- **프리샷 guide** explains that names or aliases of saved profiles are recognised without adding the person first, and others become temporary people.
+- **[인물 추가]** uses the accent style; **[+ 캐릭터 프롬프트] → [+ 인물 칸 추가]** ("프로필 없이 이번 그림에만 쓰는 인물 칸이에요"); "캐릭터 프롬프트로 추가" → "인물 칸으로 추가".
+- **Generating without a 공통 이미지 프리셋 asks first** (unless history settings are in use); 취소 sends nothing.
+- Tests: new `browser-v0155` (both modes); the test fixture answers the new preset question 'yes' for older scripts.
+
 ## 0.1.54 — 2026-11-04 (extension only; server v0.1.13 unchanged)
 
 - **The same words in another message are no longer taken for an image's source (UI-053-01, rest of UI-052-03).** When the drawn message's send time is recorded, only the message with that time counts — at its old number, moved, or with another swipe showing (SillyTavern moves `send_date` with the shown swipe, so each swipe's own time also counts). A repeated greeting or short reply elsewhere, at the old number or in another message's swipe, is reported as not found, and 본문에 넣기 (자동) asks. Images without a recorded time keep matching by text and swipe.

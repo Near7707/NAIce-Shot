@@ -1,3 +1,12 @@
+# v0.1.55 validation — 2026-11-04
+
+- Extension Node suite: **140 passed, 0 failed** (`moments.test.mjs` checks the 추가 요청 rules: pick, change, both, "alone", fixed appearance, requested clothing).
+- Server Node suite: **25 passed** (server unchanged).
+- **44 of 44 Chromium browser scripts passed.** New `browser-v0155` at 375 and 1100px: one [장면 추출] (no 글로 채우기), 추출 표현 in both modes, 추가 요청 above 장면 추출 then under the candidates with [이 요청으로 다시 추출], applied/ignored line, requested clothing over a lock, clear slot by the 2 · 장면 편집 heading with per-mode undo, 프리샷 request free of chat messages and chat clothes, the 챗샷/프리샷 switch staying in view, 인물 추가 emphasis and + 인물 칸 추가, and the question before generating without a preset (취소 sends nothing). Older scripts updated for the moved clear button, the single extract button, wording, and the fixture answering the preset question.
+- Visual check: phone and PC drawing tab in both modes (local screenshots only).
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a real extraction model's handling of 추가 요청, a live SillyTavern, iPhone Safari.
+
 # v0.1.54 validation — 2026-11-04
 
 - Extension Node suite: **140 passed, 0 failed** (`message-jump.test.mjs`: same words at the old number, elsewhere and in another message's swipe are not the source; the dated message is chosen over a nearer twin; moved; found through `swipe_info` after a swipe).

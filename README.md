@@ -84,10 +84,10 @@ This repository contains the browser extension. The UI is in Korean. The compani
 - Match story participants to profiles by name, alias, card binding or explicit chat binding.
 - Keep outfits per chat, with manual editing and outfit locks.
 - Edit assembled prompts through individual fields or advanced JSON.
-- When a message holds several scenes, one extraction offers up to three moments to choose from (the last one by default), each with its own people, poses and place; an optional "그리고 싶은 순간" field asks for a specific moment.
+- When a message holds several scenes, one extraction offers up to three moments to choose from (the last one by default), each with its own people, poses and place; an optional **추가 요청** field picks a moment and/or changes it for this picture (time, weather, camera, who is visible, a pose or clothing); fixed appearance stays with the profile, and the chat, profiles and chat clothes are not changed. What was applied is shown after extraction.
 - Keep a wardrobe per profile and dress people per scene: 채팅 기본 복장 (this chat's default), 복장 잠금 (the AI cannot change it), 이번 그림 복장 (this image only) and 옷장에 저장 (keep it for later). History cards show the prompt that was sent.
 - Adjust model, size, steps, Guidance and seed right in the drawing tab (그리기) (생성 설정), save or overwrite presets there, and turn a history image's settings into a new preset.
-- 프리샷: draw with no chat at all — write a situation and 글로 채우기 fills the scene (saved profiles keep their look; anyone else becomes a temporary person); history images can be sent to 프리샷. 그리기창 비우기 empties the current work with a lasting 되돌리기.
+- 프리샷: draw with no chat at all — write a situation and the same **장면 추출** button fills the scene (names or aliases of saved profiles are recognised without adding them first and keep their look; anyone else becomes a temporary person); history images can be sent to 프리샷. 그리기창 비우기 (next to the 2 · 장면 편집 heading) empties the current work with a lasting 되돌리기. Generating without a 공통 이미지 프리셋 asks first.
 - Save shared prompt and generation presets, including model, size, steps, Guidance, seed, CFG Rescale and sampler. (Noise Schedule is fixed to the default, karras.)
 - Image size is one of three free sizes (832×1216, 1024×1024, 1216×832) and steps are capped at 28, so generations stay inside NovelAI's Opus free conditions for size and steps. V5 still needs "Anlas 사용 가능성 허용"; check its remaining free usage on the NovelAI site.
 - Generate one image at a time, inspect it in a zoomable viewer and download the original PNG.

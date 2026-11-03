@@ -28,6 +28,9 @@ mock.ConnectionManagerRequestService={
 };
 mock.renderChat();
 window.SillyTavern={getContext:()=>mock};
+// v0.1.55 asks before generating without a 공통 이미지 프리셋. Older scripts predate that question, so the fixture answers
+// it 'yes' unless a script sets window.realPresetConfirm (browser-v0155 does) to see the real dialog.
+{const ask=window.confirm.bind(window);window.confirm=m=>String(m).startsWith('공통 이미지 프리셋을 고르지 않았어요')&&!window.realPresetConfirm?true:ask(m);}
 // Same as SillyTavern's global drawer handler: a header click toggles the next content block.
 document.addEventListener('click',e=>{const t=e.target.closest('.inline-drawer-toggle');if(!t)return;const c=t.closest('.inline-drawer').querySelector('.inline-drawer-content');c.style.display=c.style.display==='block'?'none':'block';});
 </script><script type="module" src="/index.js"></script></body></html>
