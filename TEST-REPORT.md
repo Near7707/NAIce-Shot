@@ -1,3 +1,11 @@
+# v0.1.50 validation — 2026-11-03
+
+- Extension Node suite: **138 passed, 0 failed** (skins-lint now also checks itself with upper-case property names).
+- Server Node suite: **25 passed** (server unchanged).
+- **39 of 39 Chromium browser scripts passed.** New `browser-v0150`: failed outfit save keeps a later edit and rolls back only its own value; card rebuild keeps the saving hold; typing shows 자동으로 되돌리기; long preset name keeps 덮어쓰기 on one line at 320/375/1100px; card character without a profile gets the make/link box; ⋯ order; 클린 PNG notes; PNG guide in history; one focus ring. `browser-v0149` now blends opacity and checks hovered menu items: before the fix 7 of 17 themes failed (3.1–3.6:1), after it all pass. Older scripts updated for 클린 PNG names and the new ⋯ order.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: real SillyTavern, iPhone Safari.
+
 # v0.1.49 validation — 2026-11-03
 
 - Extension Node suite: **137 passed, 0 failed, 0 skipped** (new `skins-lint`: themes set colours/decoration only; verified it fails when a layout rule is added).

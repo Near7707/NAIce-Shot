@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.50 — 2026-11-03 (extension only; server v0.1.13 unchanged)
+
+- **Clothes saving (GPT review):** a failed chat-outfit save no longer wipes what you typed in the meantime (UI-049-03); a card rebuilt while saving keeps its "저장 중…" hold (UI-049-04); typing in the outfit box shows **자동으로 되돌리기** and the "지금" line at once (UI-049-05).
+- **Card character without a profile:** the notice named them but no buttons appeared when the extraction did not list them. The drawing tab now shows the make/link box ("연결된 프로필이 없어요 · 이번 장면에서는 AI가 찾지 못했어요") with 직접 만들기 / 카드에서 만들기 / 연결. They are not counted as left out of the picture.
+- **클린 PNG** replaces "공유용 PNG" everywhere (also 클린 ZIP, `-clean.png`, `naice-shot-clean-….zip`). Notes: 클린 "프롬프트·seed 등 메타데이터를 제거한 사본이에요." / 원본 "프롬프트·seed 등 메타데이터를 제거하지 않고 그대로 저장해요."
+- **PNG 저장 안내** moved from Settings to the history tab, always shown in the 개인정보 주의 style, and explains that EXIF is one kind of metadata.
+- **⋯ menu order:** 챗샷으로 보내기 · 프리샷으로 보내기 · 설정을 프리셋으로 · 본문에 넣기.
+- A focused menu item keeps one ring (the save menu sometimes showed a double border). Menu notes use the theme's muted colour instead of transparency, so they stay readable on light themes.
+- **덮어쓰기 · 이름** stays on one line; long names end with "…" and show whole on hover (UI-049-06).
+- History: "채팅으로 좁히기" → **채팅방 선택**.
+- Checks: the contrast scan blends text alpha and element opacity and checks hovered menu items (UI-049-07); the theme check reads property names in any letter case (UI-049-08). New `tests/browser-v0150.mjs`. New `docs/ROADMAP.md` (decisions and hand-off rules for the next versions).
+
 ## 0.1.49 — 2026-11-03 (extension only; server v0.1.13 unchanged)
 
 - **Drawing:** [장면 추출] / [글로 채우기] span the row; [그리기창 비우기] sits small below and turns into **[↶ 비우기 취소]** right after clearing (no separate banner). After importing from history, a small **[↶ 가져오기 취소]** appears beside it instead.

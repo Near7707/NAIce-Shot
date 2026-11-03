@@ -1,5 +1,16 @@
 # Installation and update checklist
 
+## v0.1.50
+
+Update the extension and refresh. No server update is needed.
+
+1. Save menus say **클린 PNG / 원본 PNG**; the history tab shows **PNG 저장 안내** under the tools.
+2. History ⋯: 챗샷으로 보내기 · 프리샷으로 보내기 · 설정을 프리셋으로 · 본문에 넣기.
+3. Open a chat whose card character has no profile, extract: the make/link box appears even if the character is not in the scene.
+4. Type in a person's outfit box: 자동으로 되돌리기 appears right away.
+5. Select a preset with a long name: 덮어쓰기 stays on one line.
+
+
 ## v0.1.49
 
 Update the extension and refresh. No server update is needed.

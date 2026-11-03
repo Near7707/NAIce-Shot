@@ -428,7 +428,7 @@
 #naice-shot-dialog .ncs-draft-bar {display:flex;align-items:center;gap:8px;margin:0 0 8px;}
 #naice-shot-dialog .ncs-draft-bar button {font-size:12px;padding:6px 10px;}
 #naice-shot-dialog .ncs-image-popup a[download],#naice-shot-dialog .ncs-image-popup button,#chat .ncs-image-popup a,#chat .ncs-image-popup button {flex-direction:column;align-items:flex-start;}
-#naice-shot-dialog .ncs-image-popup small,#chat .ncs-image-popup small {display:block;font-size:11px;line-height:1.5;opacity:.75;}
+#naice-shot-dialog .ncs-image-popup small,#chat .ncs-image-popup small {display:block;font-size:11px;line-height:1.5;color:var(--ncs-muted,inherit);}
 @media(max-width:360px){#ncs-privacy-dialog .ncs-privacy-actions{display:grid;grid-template-columns:1fr 1fr;}#ncs-privacy-dialog [data-choice="shared"]{grid-column:1/-1;}}
 
 /* 0.1.42 — SillyTavern brightens every link on hover (a:hover{filter:brightness(1.25)}), which washed out
@@ -440,7 +440,7 @@
 #naice-shot-dialog .ncs-save-toggle {display:inline-flex;align-items:center;justify-content:center;}
 /* The first choice in a save menu uses the shared "accent" level (see docs/DESIGN.md), the same on every theme. */
 #naice-shot-dialog .ncs-image-popup .ncs-popup-primary,#chat .ncs-image-popup .ncs-popup-primary,#naice-shot-dialog .ncs-image-popup .ncs-popup-primary:hover,#chat .ncs-image-popup .ncs-popup-primary:hover {font-weight:700;color:var(--ncs-fg,inherit);background:color-mix(in srgb,var(--ncs-edge,#35969b) 12%,var(--ncs-menu-bg,var(--ncs-bg,#1c2330)));box-shadow:inset 0 0 0 2px var(--ncs-edge,#35969b);}
-#naice-shot-dialog .ncs-image-popup .ncs-popup-primary small,#chat .ncs-image-popup .ncs-popup-primary small {font-weight:400;color:inherit;opacity:.85;}
+#naice-shot-dialog .ncs-image-popup .ncs-popup-primary small,#chat .ncs-image-popup .ncs-popup-primary small {font-weight:400;color:inherit;opacity:1;}
 #naice-shot-dialog .ncs-save-popup + .ncs-image-popup {margin-top:0;}
 #naice-shot-dialog .ncs-save-popup button,#naice-shot-dialog .ncs-save-popup a[download] {margin:0 0 4px;}
 #naice-shot-dialog .ncs-zip-choice {display:flex;align-items:center;gap:8px;margin:2px 0 0;padding:9px 12px 4px;border-top:1px solid var(--ncs-rule,#ffffff40);font-size:13px;}
@@ -576,3 +576,14 @@
 @media (max-width:420px) { #naice-shot-dialog .ncs-wide-only {display:none;} } /* short labels on phones */
 @media (max-width:360px) { #naice-shot-dialog .ncs-history-tools {gap:6px;} #naice-shot-dialog .ncs-history-tools > button {padding:6px 4px;font-size:13px;} }
 #naice-shot-dialog .ncs-history-actions > button,#naice-shot-dialog .ncs-save-toggle {white-space:nowrap;} @media (max-width:360px) { #naice-shot-dialog .ncs-history-actions {gap:4px;} #naice-shot-dialog .ncs-history-actions > button {padding:6px 2px;} #naice-shot-dialog .ncs-history-actions .ncs-save-toggle {gap:3px;} }
+/* 0.1.50: a focused menu item keeps one ring. The focus ring sits inside the item; the accented first item
+   thickens its own ring instead of getting a second one outside it. */
+#naice-shot-dialog .ncs-image-popup button:focus-visible,#chat .ncs-image-popup button:focus-visible,#chat .ncs-image-popup a:focus-visible {outline:2px solid var(--ncs-focus,currentColor);outline-offset:-2px;}
+#naice-shot-dialog .ncs-image-popup .ncs-popup-primary:focus-visible,#chat .ncs-image-popup .ncs-popup-primary:focus-visible {outline:none;box-shadow:inset 0 0 0 3px var(--ncs-edge,#35969b);}
+/* A preset name never makes 덮어쓰기 wrap: it is cut with … and shown whole in the button's title (UI-049-06). */
+#naice-shot-dialog [data-action="save-preset"] {white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#ncs-viewer .ncsv-save-menu button:focus-visible {outline-offset:-2px;}
+#ncs-viewer .ncsv-save-menu .ncs-popup-primary:focus-visible {outline:none;box-shadow:inset 0 0 0 3px var(--ncsv-accent);}
+/* PNG 저장 안내 in the history tab: always shown, in the same emphasis as the 개인정보 주의 notes. */
+#naice-shot-dialog .ncs-png-info {margin:10px 0;}
+#naice-shot-dialog .ncs-png-info p {margin:4px 0 0;}

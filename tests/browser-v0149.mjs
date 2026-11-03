@@ -19,9 +19,11 @@ const server=http.createServer(async(req,res)=>{try{
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const browser=await chromium.launch({headless:true,executablePath:process.env.NAICE_SHOT_CHROMIUM||undefined,args:['--no-sandbox','--disable-gpu','--disable-dev-shm-usage']});
 const features=['paged-history','delete','private-records','all-history','history-kinds','privacy-controls','draft-work','draft-delete','free-text','draft-tombstone','nai-error-codes'];
-const skins=['classic',...(await fs.readdir(path.join(root,'skins'))).filter(f=>f.endsWith('.css')).map(f=>f.slice(0,-4)).sort()];
+const skins=['classic',...(await fs.readdir(path.join(root,'skins'))).filter(f=>f.endsWith('.css')).map(f=>f.slice(0,-4)).sort()].filter(k=>!process.env.NCS_SKINS||process.env.NCS_SKINS.split(',').includes(k));
+const quick=process.env.NCS_QUICK==='1';
 // In the page: every visible text leaf against the first solid background behind it. Gradients count by their
-// worst stop; text over a picture is skipped (its contrast cannot be computed reliably).
+// worst stop; text over a picture is skipped (its contrast cannot be computed reliably). Text colour alpha and the
+// opacity of the element and its ancestors are blended over that background (UI-049-07).
 const SCAN=()=>{
  const parse=c=>{if(!c)return null;const srgb=c.startsWith('color(');const m=c.replace(/^color\(srgb/,'').match(/[\d.]+/g);if(!m)return null;let [r,g,b,a=1]=m.map(Number);if(srgb){r*=255;g*=255;b*=255;a=c.includes('/')?Number(c.split('/')[1].replace(')','')):1;}return {r,g,b,a};};
  const lum=({r,g,b})=>{const f=v=>{v/=255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4;};return .2126*f(r)+.7152*f(g)+.0722*f(b);};
@@ -34,9 +36,11 @@ const SCAN=()=>{
   if(![...el.childNodes].some(n=>n.nodeType===3&&n.textContent.trim()))continue;
   const s=getComputedStyle(el),box=el.getBoundingClientRect();if(!box.width||!box.height||s.visibility==='hidden'||el.closest('[hidden],:disabled,[aria-disabled="true"]'))continue;
   if(box.bottom<0||box.top>innerHeight)continue;if(!rootEl.matches('.ncs-image-popup')&&document.querySelector('.ncs-image-popup:popover-open')?.contains(el))continue;
-  const fg=parse(s.color),bgs=behind(el);if(!fg||!bgs)continue;
+  const fg0=parse(s.color),bgs=behind(el);if(!fg0||!bgs)continue;
+  let alpha=fg0.a;for(let e=el;e&&e!==rootEl.parentElement;e=e.parentElement)alpha*=Number(getComputedStyle(e).opacity);
+  const blend=b=>({r:fg0.r*alpha+b.r*(1-alpha),g:fg0.g*alpha+b.g*(1-alpha),b:fg0.b*alpha+b.b*(1-alpha)});
   const size=parseFloat(s.fontSize),bold=Number(s.fontWeight)>=700,large=size>=24||(bold&&size>=18.66),need=large?3:4.5;
-  const worst=Math.min(...bgs.map(b=>ratio(fg,b)));
+  const worst=Math.min(...bgs.map(b=>ratio(blend(b),b)));
   if(worst<need)out.push(`${worst.toFixed(2)} "${[...el.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent.trim()).join(' ').slice(0,30)}"`);
  }
  return out;
@@ -68,10 +72,12 @@ try{
   await scroll(page,()=>check('그리기'));
   await page.locator('[data-tab="history"]').click();await page.locator('.ncs-history-card').first().waitFor();await scroll(page,()=>check('이력'));
   await page.locator('.ncs-history-card .ncs-save-toggle').first().click();await check('저장 메뉴');
+  // Hovered menu items too.
+  for(const item of await page.locator('.ncs-image-popup:popover-open button').all()){await item.hover();await check('저장 메뉴 hover');}
   // Menus are opaque on every theme.
   assert.equal(await page.locator('.ncs-image-popup:popover-open').evaluate(el=>{const c=getComputedStyle(el).backgroundColor;const m=c.match(/[\d.]+/g);return m.length<4||Number(m[3])===1;}),true,`${skin}: menu is opaque`);
   await page.locator('.ncs-history-card .ncs-save-toggle').first().click();
-  await page.locator('.ncs-history-card [data-image-more]:not(.ncs-save-toggle)').first().click();await check('⋯ 메뉴');await page.keyboard.press('Escape');
+  await page.locator('.ncs-history-card [data-image-more]:not(.ncs-save-toggle)').first().click();await check('⋯ 메뉴');for(const item of await page.locator('.ncs-image-popup:popover-open button:not(:disabled)').all()){await item.hover();await check('⋯ 메뉴 hover');}await page.keyboard.press('Escape');
   await page.locator('[data-tab="settings"]').click();await page.locator('.ncs-advanced > summary').click();await scroll(page,()=>check('설정'));
   await page.locator('[data-tab="profiles"]').click();await scroll(page,()=>check('프로필'));
   for(const f of new Set(found))problems.push(`${skin} ${f}`);
@@ -79,6 +85,7 @@ try{
  }
  assert.deepEqual(problems,[],'text below 4.5:1 (3:1 for large text)');
  // Layout at phone, narrow phone and PC widths.
+ if(quick){console.log('contrast only');process.exit(0);}
  for(const width of [320,375,1100])for(const skin of ['classic','candycane','glass']){
   const {page,errors}=await open(skin,width);const tag=`${skin} ${width}px`;
   const noOverflow=async where=>assert.ok(await page.locator('.ncs-content').evaluate(el=>el.scrollWidth<=el.clientWidth+1),`${tag} ${where}: no sideways scroll`);

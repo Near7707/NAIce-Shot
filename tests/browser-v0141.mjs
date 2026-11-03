@@ -161,20 +161,20 @@ try{
   assert.equal(await page.locator('#ncs-free-text').inputValue(),'');assert.equal(await value(),'');
   await page.waitForTimeout(1200);assert.equal(hasWork(freeKey),false,'nothing comes back and no empty work is saved');
   await page.locator('[data-mode="chat"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
-  // Saving uses one small menu: 공유용 / 원본 with notes, no extra warning and no "don't ask again".
+  // Saving uses one small menu: 클린 / 원본 with notes, no extra warning and no "don't ask again".
   await page.locator('[data-action="close"]').click();
   const id='11111111-1111-4111-8111-111111111111';
   // Use a genuine result-shaped image viewer through the inline UI; attachment signatures are required.
   await page.evaluate(async id=>{const {attachInlineImage}=await import('/inline-images.mjs');await attachInlineImage(mock,{id,chatKey:JSON.stringify({group:null,card:'Leo.png',chat:'A'}),image:`/user/images/naice-shot/${id}.png`},{targetIndex:0});mock.emit('received');},id);
   await page.locator('#chat .ncs-inline-open').first().click();const toggle=page.locator('#ncs-viewer [data-v="save-menu"]');
   assert.equal(await toggle.getAttribute('aria-expanded'),'false');await toggle.click();assert.equal(await toggle.getAttribute('aria-expanded'),'true');
-  const menu=page.locator('.ncsv-save-menu');assert.deepEqual((await menu.locator('button,a').allInnerTexts()).map(t=>t.split('\n')[0]),['공유용 PNG','원본 PNG']);
+  const menu=page.locator('.ncsv-save-menu');assert.deepEqual((await menu.locator('button,a').allInnerTexts()).map(t=>t.split('\n')[0]),['클린 PNG','원본 PNG']);
   assert.equal(await menu.locator('text=다시 묻지').count(),0);assert.equal(await menu.locator('text=취소').count(),0);
   await page.keyboard.press('Escape');assert.equal(await menu.isHidden(),true);assert.equal(await page.locator('#ncs-viewer').isVisible(),true,'Escape closes only the menu');
   await toggle.click();await page.locator('#ncs-viewer .ncsv-meta').click();assert.equal(await menu.isHidden(),true,'a click outside closes it');
   await toggle.click();await toggle.click();assert.equal(await menu.isHidden(),true,'the button folds it again');
   if(fontRoot){await page.addStyleTag({content:'@import url("/test-font/400.css"); body {font-family:"Noto Sans KR",sans-serif}'});await page.evaluate(()=>document.fonts.ready);await toggle.click();await page.screenshot({path:`/tmp/naice-save-menu-${width}.png`});await toggle.click();}
-  await toggle.click();const cleanDownload=page.waitForEvent('download');await menu.locator('[data-v="clean"]').click();assert.match((await cleanDownload).suggestedFilename(),/-shared\.png$/);assert.equal(await menu.isHidden(),true);
+  await toggle.click();const cleanDownload=page.waitForEvent('download');await menu.locator('[data-v="clean"]').click();assert.match((await cleanDownload).suggestedFilename(),/-clean\.png$/);assert.equal(await menu.isHidden(),true);
   await toggle.click();const download=page.waitForEvent('download');await menu.locator('.ncsv-save').click();assert.match((await download).suggestedFilename(),/\.png$/);
   assert.equal(await page.locator('#ncs-privacy-dialog').count(),0,'no extra warning for 원본');
   await page.locator('#ncs-viewer [data-v="close"]').click();

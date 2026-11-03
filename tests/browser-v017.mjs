@@ -51,7 +51,7 @@ try{
  await click('generate');await page.locator('#ncs-result img').waitFor();
  assert.equal('rawExtraction' in sent[0].snapshot,false);assert.equal(sent[0].retainRawExtraction,false);
  const original=await downloadBy(page.locator('#ncs-result a[download]'));assert.deepEqual(original.bytes,png);
- const clean=await downloadBy(page.locator('#ncs-result [data-clean-save]'));assert.match(clean.name,/-shared\.png$/);checkClean(clean.bytes);
+ const clean=await downloadBy(page.locator('#ncs-result [data-clean-save]'));assert.match(clean.name,/-clean\.png$/);checkClean(clean.bytes);
  // Decode the actual cleaned PNG again: its alpha channel must be completely opaque.
  const pixels=await page.evaluate(async bytes=>{
   const img=await createImageBitmap(new Blob([new Uint8Array(bytes)],{type:'image/png'}));
@@ -69,7 +69,7 @@ try{
  await click('attach');await click('close');
  await page.locator('#chat .ncs-inline-more').first().click();checkClean((await downloadBy(page.locator('[data-ncs-inline-clean]').first())).bytes);
  await page.locator('.ncs-launch-button').click();await page.locator('[data-tab="history"]').click();await click('select-all-history');
- await reveal(page,'[data-action="save-selected-clean"]');await page.locator('#ncs-save-zip').check();assert.match(await page.locator('[data-action="save-selected-clean"]').innerText(),/공유용 ZIP/);const zip=await downloadBy(page.locator('[data-action="save-selected-clean"]'));assert.match(zip.name,/shared-.*-2\.zip$/);
+ await reveal(page,'[data-action="save-selected-clean"]');await page.locator('#ncs-save-zip').check();assert.match(await page.locator('[data-action="save-selected-clean"]').innerText(),/클린 ZIP/);const zip=await downloadBy(page.locator('[data-action="save-selected-clean"]'));assert.match(zip.name,/clean-.*-2\.zip$/);
  const entries=JSON.parse(execFileSync('python3',['-c','import sys,zipfile,io,json\nz=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read()))\nprint(json.dumps([list(z.read(n)) for n in z.namelist()]))'],{input:zip.bytes}).toString());
  assert.equal(entries.length,2);entries.forEach(x=>checkClean(Buffer.from(x)));
  await page.locator('[data-tab="settings"]').click();const backup=await page.evaluate(()=>JSON.stringify(mock.extensionSettings.naice_shot));

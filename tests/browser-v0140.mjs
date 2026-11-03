@@ -54,9 +54,9 @@ try{
   await card.scrollIntoViewIfNeeded();
   if(fontRoot)await page.screenshot({path:`/tmp/naice-stage1/history-${width}.png`});
   const more=card.locator('[data-image-more]:not(.ncs-save-toggle)');await more.click();const popup=card.locator('.ncs-image-popup:not(.ncs-save-popup)');
-  assert.deepEqual((await popup.locator('button').allInnerTexts()).map(t=>t.split('\n')[0]),['챗샷으로 보내기','본문에 넣기','설정을 프리셋으로','프리샷으로 보내기']);await page.keyboard.press('Escape');
+  assert.deepEqual((await popup.locator('button').allInnerTexts()).map(t=>t.split('\n')[0]),['챗샷으로 보내기','프리샷으로 보내기','설정을 프리셋으로','본문에 넣기']);await page.keyboard.press('Escape');
   const saveToggle=card.locator('.ncs-save-toggle'),savePopup=card.locator('.ncs-save-popup');await saveToggle.click();assert.equal(await saveToggle.getAttribute('aria-expanded'),'true');
-  assert.deepEqual((await savePopup.locator('button,a').allInnerTexts()).map(t=>t.split('\n')[0]),['공유용 PNG','원본 PNG']);await saveToggle.click();assert.equal(await savePopup.isHidden(),true,'the button folds it again');
+  assert.deepEqual((await savePopup.locator('button,a').allInnerTexts()).map(t=>t.split('\n')[0]),['클린 PNG','원본 PNG']);await saveToggle.click();assert.equal(await savePopup.isHidden(),true,'the button folds it again');
   await saveToggle.click();await page.mouse.click(2,2);assert.equal(await savePopup.isHidden(),true,'a click elsewhere closes it');
   await more.click();await popup.waitFor({state:'visible'});
   let bounds=await popup.boundingBox();assert.ok(bounds.x>=0&&bounds.x+bounds.width<=width+1&&bounds.y>=0);

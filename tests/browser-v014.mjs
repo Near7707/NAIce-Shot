@@ -45,7 +45,7 @@ try{
  await page.locator(`[data-history-pick="${ids[0]}"]`).check();
  assert.equal(await save.textContent(),'선택 저장 (1)');
  await save.click();assert.equal(await page.locator('.ncs-zip-choice').isHidden(),true,'one image: no ZIP choice');assert.equal(await page.locator('.ncs-zip-note').isHidden(),true);
- assert.match(await shared.innerText(),/^공유용 PNG\n프롬프트·생성 설정 메타데이터를 제거한 사본/);assert.match(await original.innerText(),/^원본 PNG\n프롬프트·seed 등/);
+ assert.match(await shared.innerText(),/^클린 PNG\n프롬프트·seed 등 메타데이터를 제거한 사본이에요/);assert.match(await original.innerText(),/^원본 PNG\n프롬프트·seed 등/);
  let [download]=await Promise.all([page.waitForEvent('download'),original.click()]);assert.equal(await page.locator('#ncs-privacy-dialog').count(),0,'no extra warning');
  assert.equal(download.suggestedFilename(),`naice-shot-${ids[0]}.png`);
 
