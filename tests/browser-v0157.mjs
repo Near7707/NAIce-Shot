@@ -1,5 +1,5 @@
 // v0.1.57 다듬기: preset save box with selection-based buttons, "이 복장을" row and folded lock help, editable fixed
-// look with [프로필 업데이트] (asks, one undo), 「추출 AI 응답 원문 추가 보관」 wording, the 640px PC column,
+// look with [프로필 업데이트] (asks, one undo), 「추출 AI 응답 원문 추가 보관」 wording, (the 640px PC column became full width in 0.1.58),
 // [모두 선택] ↔ [모두 해제], chat menus in the theme's colours, folded history notes and "↻ 새로고침".
 import http from 'node:http';
 import fs from 'node:fs/promises';
@@ -55,8 +55,7 @@ try{
   assert.equal(await as.evaluate(b=>b.classList.contains('ncs-primary')),true);
   assert.match(await page.locator('.ncs-advanced > summary').innerText(),/추출 AI 응답 원문 추가 보관/);
   assert.match(await page.locator('.ncs-advanced').evaluate(e=>e.textContent),/이 옵션을 꺼도 생성 기록\(JSON\)은 실리태번 폴더에 저장돼요[\s\S]*개인정보 주의[\s\S]*이름·대화 인용[\s\S]*AI가 인용한 내용은/);
-  if(width>=1000){const sec=await page.locator('[data-page="settings"]').boundingBox();assert.ok(sec.width<=641,`${tag}: 640px column`);
-   const field=await page.locator('#ncs-common-preset-name').boundingBox(),acts=await page.locator('.ncs-preset-savebox .ncs-actions').boundingBox();assert.ok(Math.abs((field.x+field.width)-(acts.x+acts.width))<=2,`${tag}: field and buttons end together`);}
+  if(width>=1000){const field=await page.locator('#ncs-common-preset-name').boundingBox(),acts=await page.locator('.ncs-preset-savebox .ncs-actions').boundingBox();assert.ok(Math.abs((field.x+field.width)-(acts.x+acts.width))<=2,`${tag}: field and buttons end together`);}
   // ---- Drawing: clothes and fixed look
   await page.locator('[data-tab="scene"]').click();const card=page.locator('[data-character="leo"]');
   assert.match(await card.locator('.ncs-outfit-image').innerText(),/이번 그림 복장[\s\S]*이 복장을/);
@@ -99,5 +98,5 @@ try{
   assert.equal(menuBg,panelBg,'menu uses the theme colour');
   assert.deepEqual(errors,[]);await page.close();
  }
- console.log('PASS: preset save box follows the selection (asks before overwriting), two-per-row fields, retention wording, 640px PC column, "이 복장을" row held while saving, folded lock help, fixed look update with confirm and undo, select all ↔ clear all, folded history notes, chat menus in theme colours');
+ console.log('PASS: preset save box follows the selection (asks before overwriting), two-per-row fields, retention wording, fields and buttons end together on PC, "이 복장을" row held while saving, folded lock help, fixed look update with confirm and undo, select all ↔ clear all, folded history notes, chat menus in theme colours');
 }finally{await browser.close();server.close();}

@@ -69,3 +69,13 @@ test('adding a saved profile with no recorded appearance in the scene does not i
  assert.equal(added.restored,false);assert.equal(added.character.action,'');assert.equal(added.character.expression,'');
  assert.equal(added.character.outfitMode,'unchanged');
 });
+
+test('request outfits: natural-language hair/eye/skin pieces are dropped, hair accessories stay (UI-056-01)',async()=>{
+ const {dropLookWords}=await import('../scene-extraction.mjs');
+ assert.deepEqual(dropLookWords('blue hair tied back'),{kept:[],dropped:true});
+ assert.deepEqual(dropLookWords('white dress, blue hair tied back'),{kept:['white dress'],dropped:true});
+ assert.deepEqual(dropLookWords('black jacket and long silver hair'),{kept:['black jacket'],dropped:true});
+ assert.deepEqual(dropLookWords('school uniform with red hair ribbon'),{kept:['school uniform','red hair ribbon'],dropped:false});
+ assert.deepEqual(dropLookWords('hair tie; green eyes'),{kept:['hair tie'],dropped:true});
+ assert.deepEqual(dropLookWords('raincoat'),{kept:['raincoat'],dropped:false});
+});

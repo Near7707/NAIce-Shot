@@ -1,3 +1,11 @@
+# v0.1.58 validation — 2026-11-04
+
+- Extension Node suite: **141 passed, 0 failed** (new look-word filter test: "blue hair tied back" dropped, hair ribbon kept).
+- Server Node suite: server unchanged.
+- **47 of 47 Chromium browser scripts passed** (`browser-v040` timed out once on the first full run and passed on rerun). New `browser-v0158` at 375/1100px: a stale profile form keeps the card's [프로필 업데이트]; the card's undo disappears after a form save and does not wipe a later change; request outfit "blue hair tied back" is not clothing, "red coat with blue hair tied back" → "red coat" matched by alias, no wrong lock note; 프리샷 name beats a wrong roster id, the same alias on two profiles gives a temporary person with its look, a changed situation text discards the old result; empty wardrobe hint; PNG guide one sentence per line; full-width PC page with fields and buttons ending together.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern or extraction model, iPhone Safari.
+
 # v0.1.57 validation — 2026-11-04
 
 - Extension Node suite: **140 passed, 0 failed**.

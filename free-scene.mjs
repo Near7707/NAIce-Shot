@@ -50,7 +50,9 @@ export function parseFreeScene(raw,profiles) {
    if(value.characters.length>22)throw new Error('인물이 너무 많아요.');
    const people=value.characters.map(c=>{
     const id=str(c,'id',80);
-    return {id:known.has(id)?id:'',name:str(c,'name',200),subject:['boy','girl','other'].includes(c?.subject)?c.subject:'other',appearance:known.has(id)?'':str(c,'appearance'),
+    // The appearance is kept here: the app checks who the person really is first (UI-054-02), and only drops the
+    // look once a saved profile is confirmed.
+    return {id:known.has(id)?id:'',name:str(c,'name',200),subject:['boy','girl','other'].includes(c?.subject)?c.subject:'other',appearance:str(c,'appearance'),
      outfit:str(c,'outfit'),expression:str(c,'expression'),action:str(c,'action'),position:['auto','left','center','right'].includes(c?.position)?c.position:'auto'};
    });
    return {characters:people,interaction:str(value,'interaction'),location:str(value,'location'),lighting:str(value,'lighting'),camera:str(value,'camera')};

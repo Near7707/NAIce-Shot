@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.58 — 2026-11-04 (extension only; server v0.1.13 unchanged)
+
+Fixes from GPT's reviews of 0.1.54, 0.1.56 and 0.1.57, plus two small requests.
+
+- A profile form opened before a card's [프로필 업데이트] no longer overwrites it: on save, a field the form did not change keeps what was saved meanwhile (UI-057-01).
+- [↶ 업데이트 취소] puts back only fields still exactly as the update left them; a later change is kept (with a notice), and saving the profile in the form removes the undo (UI-057-02).
+- Requested clothing: phrases are split into pieces (comma, semicolon, "and", "with") and pieces about hair, eyes or skin are dropped, natural ones like "blue hair tied back" included; hair accessories (ribbon, clip, band, tie…) stay. When nothing is left, the raw phrase is not used again. The "잠긴 복장을 입혀요" note no longer appears when this picture's own clothes are drawn (UI-056-01).
+- The person a requested outfit belongs to is found by the profile's name and aliases too (UI-056-02).
+- 프리샷: the returned id is checked against names and aliases; a unique name match wins (with a notice), several profiles with the same name or alias give a temporary person that keeps its look, and the look is dropped only after the profile is confirmed (UI-054-02).
+- 프리샷: if the situation text changes while extracting, the old result is not applied (UI-054-04).
+- 프리샷 with an empty wardrobe shows: "옷장이 비어 있어요. 챗샷에서 [옷장에 저장]하면 프리샷에서도 꺼내 입을 수 있어요."
+- The PNG guide has one sentence per line. PC: the page uses the whole panel width again; button groups are as wide as the fields.
+- Tests: new `browser-v0158`, a unit test for the look-word filter; older scripts updated for the full-width PC layout.
+
 ## 0.1.57 — 2026-11-04 (extension only; server v0.1.13 unchanged, its README updated)
 
 다듬기 (from the mock-ups).

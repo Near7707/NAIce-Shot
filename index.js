@@ -6,7 +6,7 @@ import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } fr
 import { attachInlineImage, detachInlineImage, detachInlineImages, detachMessageImage, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, SAVE_NOTES } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
 import { freeScenePrompt, freeSceneSchema, parseFreeScene } from './free-scene.mjs';
-import { momentExtractionPrompt, momentExtractionSchema, parseMoments, looksCut, foreignFields } from './scene-extraction.mjs';
+import { momentExtractionPrompt, momentExtractionSchema, parseMoments, looksCut, foreignFields, dropLookWords } from './scene-extraction.mjs';
 import { isSceneMessage, isHiddenSceneMessage, chooseSceneMessages } from './scene-messages.mjs';
 import { captureImagePreset, applyImagePreset, imagePresetModified, validateImagePresets } from './presets.mjs';
 import { listExtractionProfiles, requestExtraction } from './extractor.mjs';
@@ -618,9 +618,13 @@ function renderProfiles() {
   renderMatching();
 }
 let profileFormSession=0,quickProfileName='';
+// The stored profile as the form was filled, so saving can tell what changed elsewhere meanwhile (UI-057-01).
+let profileFormBase=null;
+const PROFILE_KEYS=['name','aliases','subject','appearance','defaultOutfit','positive','negative','cardKey','wardrobe'];
 function editProfile(id='') {
   profileFormSession++;quickProfileName='';
   const p=settings().profiles.find(p=>p.id===id)??{id:'',name:'',aliases:[],subject:'boy',appearance:'',defaultOutfit:'',positive:'',negative:'',cardKey:''};
+  profileFormBase=p.id?clone(p):null;
   for(const [key,field] of [['id','id'],['name','name'],['subject','subject'],['appearance','appearance'],['outfit','defaultOutfit'],['positive','positive'],['negative','negative']])$(`ncs-profile-${key}`).value=p[field];
   $('ncs-profile-aliases').value=p.aliases.join(', ');$('ncs-binding').textContent=p.cardKey?`연결된 카드: ${p.cardKey}`:'연결된 카드 없음';$('ncs-binding').dataset.cardKey=p.cardKey;
   $('ncs-profile-editing').textContent=p.id?`${p.name} 프로필 편집 중`:'새 프로필 작성 중';$('ncs-profile-describe').value='';
@@ -643,6 +647,11 @@ function saveProfile() {
   const p={id,name:$('ncs-profile-name').value,aliases:$('ncs-profile-aliases').value.split(',').map(x=>x.trim()).filter(Boolean),
     subject:$('ncs-profile-subject').value,appearance:$('ncs-profile-appearance').value,defaultOutfit:$('ncs-profile-outfit').value,
     positive:$('ncs-profile-positive').value,negative:$('ncs-profile-negative').value,cardKey:$('ncs-binding').dataset.cardKey??'',wardrobe:readWardrobeForm()};
+  // A field the form did not touch keeps what was saved elsewhere since the form opened (e.g. 프로필 업데이트 from a card).
+  const stored=s.profiles.find(x=>x.id===id),merged=[];
+  if(stored&&profileFormBase?.id===id)for(const k of PROFILE_KEYS){const was=JSON.stringify(profileFormBase[k]??null),now=JSON.stringify(stored[k]??null),form=JSON.stringify(p[k]??null);
+    if(now!==was&&form===was){p[k]=clone(stored[k]);merged.push(k);}}
+  if(lookUndo?.id===id)lookUndo=null; // the profile changed another way: the card's one-time undo no longer applies (UI-057-02)
   const bind=pendingBind&&pendingBind.session===profileFormSession&&pendingBind.chatKey===keyOf()?pendingBind:null;
   const fromTemp=pendingTempConvert&&pendingTempConvert.session===profileFormSession&&pendingTempConvert.chatKey===keyOf();
   if(bind&&(bind.role==='character'||bind.role==='member')&&bind.avatar&&!p.cardKey&&!s.profiles.some(x=>x.id!==id&&x.cardKey===bind.avatar))p.cardKey=bind.avatar;
@@ -898,7 +907,8 @@ function outfitNow(c,o,stale){
 // Two groups (docs/DESIGN.md): 이번 그림 (this image only) and 이 채팅에서 (carries on to later images).
 function outfitControls(c,p,o,state,stale){
   const id=esc(c.id),wardrobe=p.wardrobe??[],choice=chatOutfitChoice(p,state),isDefault=state?.value!==undefined&&o.value===state.value,edited=o.origin==='이번 편집';
-  const wear=wardrobe.length?`<select data-wear-once aria-label="옷장에서 이번 그림에만 꺼내 입기"><option value="">옷장에서 꺼내 입기</option>${wardrobe.map(w=>`<option value="${esc(w.id)}">${esc(w.name)}</option>`).join('')}</select>`:'';
+  const wear=wardrobe.length?`<select data-wear-once aria-label="옷장에서 이번 그림에만 꺼내 입기"><option value="">옷장에서 꺼내 입기</option>${wardrobe.map(w=>`<option value="${esc(w.id)}">${esc(w.name)}</option>`).join('')}</select>`
+    :isFree()?'<small class="ncs-wardrobe-empty">옷장이 비어 있어요. 챗샷에서 [옷장에 저장]하면 프리샷에서도 꺼내 입을 수 있어요.</small>':'';
   const now=outfitNow(c,o,stale);
   const defaultTitle=isFree()?'프로필 기본 복장을 이번 그림에 입혀요':'채팅 기본 복장(없으면 프로필 기본 복장)을 이번 그림에 입혀요. AI가 찾은 옷 대신 쓸 때 눌러요';
   const naming=wardrobeTarget===c.id?`<div class="ncs-wardrobe-save"><label>옷장에 저장할 이름<input id="ncs-wardrobe-name" maxlength="80" placeholder="예: 비 오는 날 외출복"></label><div class="ncs-row ncs-form-actions"><button type="button" class="ncs-primary" data-wardrobe-confirm="${id}">저장</button><button type="button" data-wardrobe-cancel>취소</button></div></div>`:'';
@@ -1090,13 +1100,17 @@ function saveLook(id){
   if(!confirm(`"${p.name}" 프로필의 고정 외형과 전용 태그를 지금 내용으로 바꿔요.\n이 프로필은 모든 채팅에서 함께 쓰여서, 다른 채팅에서 만드는 그림에도 바뀐 외형이 적용돼요.\n\n계속할까요?`))return;
   const before=Object.fromEntries(LOOK_FIELDS.map(([k])=>[k,p[k]??'']));
   s.profiles=validateProfiles(s.profiles.map(x=>x.id===id?{...x,...Object.fromEntries(LOOK_FIELDS.map(([k])=>[k,d[k]??x[k]??'']))}:x));ctx().saveSettingsDebounced();
-  lookDraft.delete(id);lookUndo={id,before,scene};lookOpen.add(id);
+  lookDraft.delete(id);lookUndo={id,before,after:Object.fromEntries(LOOK_FIELDS.map(([k])=>[k,d[k]??p[k]??''])),scene};lookOpen.add(id);
   renderProfiles();changed();renderScene();notice(`"${p.name}" 프로필의 외형을 바꿨어요. 잘못 바꿨다면 [↶ 업데이트 취소]를 눌러 주세요.`);
 }
 function undoLook(id){
   const u=lookUndo;if(!u||u.id!==id)return;const s=settings(),p=s.profiles.find(p=>p.id===id);lookUndo=null;if(!p){renderScene();return;}
-  s.profiles=validateProfiles(s.profiles.map(x=>x.id===id?{...x,...u.before}:x));ctx().saveSettingsDebounced();
-  renderProfiles();changed();renderScene();notice(`"${p.name}" 프로필의 외형을 업데이트 전으로 되돌렸어요.`);
+  // Only fields still exactly as this update left them go back; a later edit made elsewhere is kept (UI-057-02).
+  const touched=LOOK_FIELDS.map(([k])=>k).filter(k=>(u.before[k]??'')!==u.after?.[k]),back=touched.filter(k=>(p[k]??'')===u.after[k]);
+  if(!back.length){renderScene();notice(`"${p.name}" 프로필이 그 뒤에 다시 바뀌어서 되돌리지 않았어요.`);return;}
+  const kept=touched.length-back.length;
+  s.profiles=validateProfiles(s.profiles.map(x=>x.id===id?{...x,...Object.fromEntries(back.map(k=>[k,u.before[k]]))}:x));ctx().saveSettingsDebounced();
+  renderProfiles();changed();renderScene();notice(`"${p.name}" 프로필의 외형을 업데이트 전으로 되돌렸어요.${kept?' 그 뒤에 바뀐 칸은 그대로 뒀어요.':''}`);
 }
 // --- Temporary people (임시 인물): drawn in this scene only, never saved as a profile -----------------
 // For assembly each one becomes a throwaway profile whose outfit is its own field.
@@ -1117,7 +1131,9 @@ function updateFinal({force=false}={}) {
     const lengths=[`공통 ${a.base.length}자`,...a.characters.map(c=>`${c.name}: ${c.prompt.length}자`)];
     $('ncs-length').textContent=`${lengths.join(' · ')} · 글자 수예요. NAI 토큰 수와 달라요.`;
     // The shared core still words this one the old way; show it in the clothes vocabulary of the scene card.
-    const warnings=[...(a.warnings??[])].filter(w=>!w.startsWith('미등록 인물은 자동 생성하지 않아요')).map(w=>w.replace(/: 새 복장 후보가 있지만 잠금을 유지해요\.$/,': AI가 찾은 새 옷이 있지만 잠긴 복장을 입혀요.'));
+    // The core's lock note is wrong when this picture's own clothes win (이번 편집, 추가 요청): those are drawn, not the lock (UI-056-01).
+    const ownClothes=new Set(scene.characters.filter(c=>c.included!==false&&c.manualOutfit!==null&&c.manualOutfit!==undefined).map(c=>settings().profiles.find(p=>p.id===c.id)?.name).filter(Boolean));
+    const warnings=[...(a.warnings??[])].filter(w=>!w.startsWith('미등록 인물은 자동 생성하지 않아요')&&![...ownClothes].some(n=>w===`${n}: 새 복장 후보가 있지만 잠금을 유지해요.`)).map(w=>w.replace(/: 새 복장 후보가 있지만 잠금을 유지해요\.$/,': AI가 찾은 새 옷이 있지만 잠긴 복장을 입혀요.'));
     for(const t of scene.characters.filter(c=>c.temp&&c.included!==false&&!(c.appearance??'').trim()))warnings.push(`임시 인물 ${t.name||'(이름 없음)'}의 외형이 비어 있어요. 외형을 채우면 더 잘 그려져요.`);
     if(scene.source?.historical)warnings.push('지난 메시지를 그리고 있어요. 여기서 고른 옷은 "채팅 기본 복장"을 자동으로 바꾸지 않아요.');
     if(scene.moments?.length>1&&scene.momentIndex<scene.moments.length-1)warnings.push('앞쪽 순간을 골랐어요. 메시지 끝에서는 옷이 달라졌을 수 있어요. "기본 복장 지정"은 마지막 순간에서 누르는 걸 추천해요.');
@@ -1167,7 +1183,7 @@ async function freeFill() {
   const originTab='scene',report=(message,error=false)=>notice(message,error,originTab);
   if(busy||!isFree())return;
   const s=settings(),selected=scene.characters.filter(c=>!c.temp&&c.included!==false).map(c=>s.profiles.find(p=>p.id===c.id)).filter(Boolean);
-  const prompt=freeScenePrompt($('ncs-free-text').value,s.profiles,selected,s.format);
+  const asked=$('ncs-free-text').value,prompt=freeScenePrompt(asked,s.profiles,selected,s.format);
   const ticket=++task,rev=revision,controller=new AbortController();extraction={ticket,controller,kind:'free'};
   dropUndo();setBusy(true,ticket);startProgress('free',ticket);report('적은 상황으로 장면 칸을 채우고 있어요.');
   let response='',failure,retryForLanguage=false;
@@ -1185,6 +1201,7 @@ async function freeFill() {
         const foreign=[...['interaction','location','lighting','camera'].filter(k=>FOREIGN_TEXT.test(parsed[k])),...new Set(parsed.characters.flatMap(c=>['appearance','outfit','expression','action'].filter(k=>FOREIGN_TEXT.test(c[k]))))];
         if(foreign.length&&attempt===0){retryForLanguage=true;report('결과가 영어가 아니어서 영어로 다시 요청하고 있어요.');continue;}
         if(ticket!==task||!isFree()||revision!==rev){report('작업 내용이 바뀌어서 채운 결과를 적용하지 않았어요.');return;}
+        if($('ncs-free-text').value!==asked){report('추출하는 동안 상황 글이 바뀌어서 결과를 적용하지 않았어요. 바꾼 글로 다시 눌러 주세요.');return;} // UI-054-04
         raw=response;applyFree(parsed,foreign);return;
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}
     }
@@ -1195,15 +1212,32 @@ async function freeFill() {
   }
 }
 // Fills the scene from the text: saved profiles keep their stored look; anyone else becomes (or updates) a temporary person.
+// Who a 프리샷 person is. A unique name/alias match wins over the returned id; a shared one stays a temporary person
+// (look kept) rather than guessing. An id whose profile does not carry that name is trusted only for a person the
+// user already put in the picture and described without a new look (e.g. "the girl" for a chosen profile).
+function freeIdentity(c,appearance,profiles,selectedIds){
+  const key=identityKey(c.name??''),byName=key?profiles.filter(p=>[p.name,...(p.aliases??[])].some(n=>identityKey(n)===key)):[];
+  if(byName.length===1)return {profile:byName[0],corrected:!!c.id&&c.id!==byName[0].id};
+  if(byName.length>1){const p=byName.find(p=>p.id===c.id);return p?{profile:p}:{ambiguous:true};}
+  const p=c.id?profiles.find(p=>p.id===c.id):null;if(!p)return {};
+  if(!key)return {profile:p};
+  if(selectedIds.has(p.id)&&!String(appearance??'').trim())return {profile:p};
+  return {};
+}
 function applyFree(parsed,foreign=[]){
   const s=settings(),names=[...s.profiles.flatMap(p=>[p.name,...p.aliases]),...parsed.characters.map(c=>c.name)];
   const generic=genericizeScene({...parsed,unregistered:[],characters:parsed.characters.map(c=>({...c,outfitMode:c.outfit?'replace':'unchanged'}))},names,s.format).scene;
   for(const k of ['location','lighting','camera','interaction'])scene[k]=generic[k]??'';
-  let profilesUsed=0,temps=0,emptyLooks=0;
+  let profilesUsed=0,temps=0,emptyLooks=0;const fixed=[],unsure=[];
+  const selectedIds=new Set(scene.characters.filter(x=>!x.temp&&x.included!==false).map(x=>x.id));
   generic.characters.forEach((c,i)=>{
     const appearance=parsed.characters[i]?.appearance??'';
+    // UI-054-02: the returned id is checked against the name (names and aliases of saved profiles).
+    const who=freeIdentity(c,appearance,s.profiles,selectedIds);
+    if(who.corrected)fixed.push(c.name);if(who.ambiguous)unsure.push(c.name);
+    c.id=who.profile?.id??'';
     if(c.id){
-      const p=s.profiles.find(p=>p.id===c.id);if(!p)return;profilesUsed++;
+      const p=who.profile;profilesUsed++;
       let card=scene.characters.find(x=>x.id===c.id&&!x.temp);
       if(!card){card={id:c.id,entityName:c.name||p.name,included:true,expression:'',action:'',position:'auto',outfitMode:'unchanged',outfit:'',manualOutfit:null};scene.characters.push(card);}
       card.expression=c.expression;card.action=c.action;if(!card.positionManual)card.position=c.position;if(c.outfitMode==='replace'&&c.outfit)card.manualOutfit=c.outfit;
@@ -1218,7 +1252,7 @@ function applyFree(parsed,foreign=[]){
   });
   scene.unregistered=[];scene.unregisteredDetails=[];scene.source=null;
   finalOverride=null;optionsOverride=null;restoredFinal=null;revision++;renderScene({forceFinal:true});
-  notice(`장면 칸을 채웠어요. 프로필 인물 ${profilesUsed}명${temps?`, 임시 인물 ${temps}명`:''}. 확인한 뒤 생성해 주세요.${emptyLooks?' 외형이 비어 있는 임시 인물은 직접 채워 주세요.':''}${foreign.length?` 영어로 바뀌지 않은 칸이 있어요(${foreign.join(', ')}).`:''}`);
+  notice(`장면 칸을 채웠어요. 프로필 인물 ${profilesUsed}명${temps?`, 임시 인물 ${temps}명`:''}. 확인한 뒤 생성해 주세요.${fixed.length?` 이름에 맞는 프로필로 바로잡았어요: ${fixed.join(', ')}.`:''}${unsure.length?` 같은 이름·별칭의 프로필이 여러 개라 임시 인물로 넣었어요: ${unsure.join(', ')}. 맞는 프로필로 바꿔 주세요.`:''}${emptyLooks?' 외형이 비어 있는 임시 인물은 직접 채워 주세요.':''}${foreign.length?` 영어로 바뀌지 않은 칸이 있어요(${foreign.join(', ')}).`:''}`);
 }
 async function extract() {
   const originTab='scene',report=(message,error=false)=>notice(message,error,originTab);
@@ -1291,16 +1325,28 @@ async function extract() {
 // Clothing asked for in 추가 요청 is this picture's own choice (like 이번 그림 복장, so a lock does not hide it). It is
 // taken from the matched and cleaned scene, never from the raw list (UI-055-03): the person is found by name after
 // identity matching, and hair/eye/skin words are dropped because fixed appearance follows the profile.
-const LOOK_WORD=/\b(?:hair|eyes?|skin|pupils?|eyebrows?)$/i;
+// A clothing phrase is split into pieces (comma, semicolon, "and", "with"), and a piece that talks about hair, eyes or
+// skin is dropped, natural phrases like "blue hair tied back" included; hair accessories (ribbon, clip, band…) stay (UI-056-01).
+function requestPerson(part,o){
+  // Matched like the rest of the app: the scene name, or the profile's name and aliases (UI-056-02).
+  const key=identityKey(o.name??''),profiles=settings().profiles;
+  return (part.characters??[]).find(c=>{
+    if(!o.name)return c.id===o.id;
+    if(identityKey(c.entityName??'')===key||identityKey(c.name??'')===key)return true;
+    const p=profiles.find(p=>p.id===c.id);return !!p&&[p.name,...(p.aliases??[])].some(n=>identityKey(n)===key);
+  });
+}
 function applyRequestOutfits(part,outfits,request){
   let lookDropped=false;
   for(const o of outfits??[]){
-    const c=(part.characters??[]).find(c=>o.name?identityKey(c.entityName??'')===identityKey(o.name):c.id===o.id);
+    const c=requestPerson(part,o);
     if(!c||c.outfitMode!=='replace'||!String(c.outfit??'').trim()){request.ignored.push(`${o.name||'인물'} 복장 · 장면에서 찾지 못함`);continue;}
-    const kept=String(c.outfit).split(',').map(x=>x.trim()).filter(Boolean).filter(x=>!LOOK_WORD.test(x));
-    if(kept.length!==String(c.outfit).split(',').map(x=>x.trim()).filter(Boolean).length)lookDropped=true;
-    if(!kept.length){request.ignored.push(`${o.name||'인물'} 복장 · 장면에서 찾지 못함`);continue;}
-    c.manualOutfit=kept.join(', ');
+    const {kept,dropped}=dropLookWords(c.outfit);if(dropped)lookDropped=true;
+    if(!kept.length){
+      // Nothing left but looks: the cleaned scene must not quietly fall back to the raw phrase.
+      c.outfit='';c.outfitMode='unchanged';request.ignored.push(`${o.name||'인물'} 복장 · 장면에서 찾지 못함`);continue;
+    }
+    c.outfit=kept.join(', ');c.manualOutfit=c.outfit;
   }
   if(lookDropped)request.ignored.push('복장 속 머리·눈 등 · 프로필 고정 외형');
   request.ignored=[...new Set(request.ignored)];

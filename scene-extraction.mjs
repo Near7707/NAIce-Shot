@@ -130,3 +130,11 @@ export function parseMoments(raw,profiles) {
  if(loose.length){const moments=loose.slice(0,MOMENT_LIMIT);return {moments,defaultIndex:moments.length-1,requestMatched:true,partial:true,warnings:[]};}
  throw new Error(`JSON을 읽지 못했어요: ${firstError?.message??'빈 응답'}`);
 }
+
+const LOOK_WORD=/\b(?:hair|hairstyle|eyes?|skin|pupils?|eyebrows?|bangs|ponytails?|twintails?|braids?|irises?)\b/i;
+const LOOK_KEEP=/\b(?:ribbons?|clips?|hairclips?|bands?|hairbands?|headbands?|pins?|hairpins?|bows?|scrunchies?|ornaments?|accessor\w*|ties?|hats?|caps?|glasses|goggles|veils?|tiaras?|crowns?)\b/i;
+export function outfitPieces(text){return String(text??'').split(/\s*(?:[,;]|\band\b|\bwith\b)\s*/i).map(x=>x.trim()).filter(Boolean);}
+export function dropLookWords(text){
+  const all=outfitPieces(text),kept=all.filter(x=>!LOOK_WORD.test(x)||LOOK_KEEP.test(x.replace(/\bhair\s+ties?\b/i,'tie')));
+  return {kept,dropped:kept.length!==all.length};
+}

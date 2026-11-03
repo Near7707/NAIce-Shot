@@ -92,7 +92,8 @@ try{
   const oneLine=async(where,sel)=>{for(const b of await lines(page,sel))assert.equal(b.n,1,`${tag} ${where}: "${b.t}" wraps`);};
   const fits=async(where,sel)=>{for(const b of await page.$$eval(sel,els=>els.filter(e=>e.offsetParent).map(e=>({t:e.textContent.trim(),over:e.scrollWidth-e.clientWidth}))))assert.ok(b.over<=1,`${tag} ${where}: "${b.t}" spills out of its button by ${b.over}px`);};
   const oneMain=async where=>assert.deepEqual(await page.$$eval('.ncs-actions',els=>els.filter(e=>e.offsetParent).map(e=>e.querySelectorAll(':scope > .ncs-primary').length).filter(n=>n>1)),[],`${tag} ${where}: one main action per group`);
-  const capped=async where=>{if(width<1000)return;for(const w of await page.$$eval('.ncs-actions',els=>els.filter(e=>e.offsetParent).map(e=>e.getBoundingClientRect().width)))assert.ok(w<=641,`${tag} ${where}: action group ${w}px wide`);};
+  const capped=async where=>{if(width<1000)return;// 0.1.58 (가): groups span the panel like the fields, but never past it.
+   const max=await page.$eval('#naice-shot-dialog .ncs-content',e=>e.clientWidth);for(const w of await page.$$eval('.ncs-actions',els=>els.filter(e=>e.offsetParent).map(e=>e.getBoundingClientRect().width)))assert.ok(w<=max,`${tag} ${where}: action group ${w}px wide`);};
   await noOverflow('그리기');await oneLine('그리기','.ncs-source-actions > button, .ncs-clear-slot > button, [data-character] .ncs-actions > button');await fits('그리기','.ncs-source-actions > button, .ncs-clear-slot > button, [data-character] .ncs-actions > button');await oneMain('그리기');await capped('그리기');
   assert.equal(await page.locator('.ncs-clear-slot .ncs-action-slot').innerText(),'그리기창 비우기');
   await page.locator('.ncs-clear-slot .ncs-action-slot').click();assert.equal(await page.locator('.ncs-clear-slot .ncs-action-slot').innerText(),'↶ 비우기 취소');

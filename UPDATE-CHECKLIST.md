@@ -1,5 +1,15 @@
 # Installation and update checklist
 
+## v0.1.58
+
+Update the extension and refresh. No server update is needed.
+
+1. Profiles tab: open a profile, then press [프로필 업데이트] on its card, come back and save the form → the card's update is still there.
+2. 추가 요청 "파란 머리 묶기" style requests no longer put hair into the clothes.
+3. 프리샷: a person with no wardrobe shows the "옷장이 비어 있어요…" line.
+4. PC: the panel content is full width; the PNG guide is one sentence per line.
+
+
 ## v0.1.57
 
 Update the extension and refresh. No server update is needed.

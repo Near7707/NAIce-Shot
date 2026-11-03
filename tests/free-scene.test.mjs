@@ -13,10 +13,10 @@ test('prompt: one instant, selected people kept, others described only as writte
  assert.throws(()=>freeScenePrompt('x'.repeat(FREE_TEXT_LIMIT+1),profiles,[],'tags'),/까지/);
  assert.deepEqual(freeSceneSchema(profiles).properties.characters.items.properties.id.enum,['leo','mira','']);
 });
-test('parse: roster people never carry an appearance; unknown ids become temporary people; bad fields fall back',()=>{
+test('parse: the appearance is kept until the app confirms the person (UI-054-02); unknown ids become temporary people; bad fields fall back',()=>{
  const r=parseFreeScene(JSON.stringify({characters:[{id:'leo',name:'Leo',subject:'boy',appearance:'blue hair',outfit:'raincoat',expression:'smile',action:'walking',position:'left'},
   {id:'ghost',name:'bartender',subject:'robot',appearance:'long red hair',outfit:'',expression:'',action:'pouring drink',position:'middle'}],interaction:'',location:'bar',lighting:'',camera:''}),profiles);
- assert.equal(r.characters[0].id,'leo');assert.equal(r.characters[0].appearance,'');assert.equal(r.characters[0].position,'left');
+ assert.equal(r.characters[0].id,'leo');assert.equal(r.characters[0].appearance,'blue hair');assert.equal(r.characters[0].position,'left');
  assert.equal(r.characters[1].id,'');assert.equal(r.characters[1].appearance,'long red hair');assert.equal(r.characters[1].subject,'other');assert.equal(r.characters[1].position,'auto');
  assert.equal(r.location,'bar');
  assert.throws(()=>parseFreeScene('not json',profiles),/JSON/);
