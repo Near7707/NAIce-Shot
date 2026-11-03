@@ -38,7 +38,12 @@ export function confirmText(plan,profiles){
 }
 
 // Old work has no pin field: such cards are pinned once (and saved so), so an update never deletes them unasked.
-export function migratePins(cards){let changed=false;for(const c of cards??[])if(c.pinned===undefined){c.pinned=true;changed=true;}return changed;}
+// A temporary person's clothes from then have no source either: they count as chosen, so a new text never empties them (UI-059-03).
+export function migratePins(cards){
+  let changed=false;
+  for(const c of cards??[])if(c.pinned===undefined){c.pinned=true;if(c.temp&&c.outfitManual===undefined&&String(c.outfit??'').trim())c.outfitManual=true;changed=true;}
+  return changed;
+}
 
 // After a valid response. people: [{profile|null, name, subject, appearance, outfit, expression, action, position}]
 // (identity already checked). Returns the new card list and what to tell the user.

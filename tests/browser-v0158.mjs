@@ -51,9 +51,9 @@ try{
    const p=await page.evaluate(()=>mock.extensionSettings.naice_shot.profiles.find(p=>p.id==='leo'));
    assert.equal(p.appearance,'brown hair, green eyes, freckles',`${tag}: the change made meanwhile is kept`);assert.equal(p.positive,'round glasses, scarf',`${tag}: the form's own edit is saved`);
    assert.equal(await page.locator('#ncs-profile-appearance').inputValue(),'brown hair, green eyes, freckles','the form shows the merged profile');
-   // PNG guide: one sentence per line.
+   // PNG guide: split into lines (0.1.60 made it three).
    await page.locator('[data-tab="history"]').click();
-   const lines=await page.locator('.ncs-png-info p').allInnerTexts();assert.ok(lines.length>=8);for(const l of lines)assert.equal(l.trim().split(/(?<=요\.)\s+/).length,1,`one sentence: ${l}`);
+   const lines=await page.locator('.ncs-png-info p').allInnerTexts();assert.equal(lines.length,3,'0.1.60: three lines (see browser-v0160)');
    // PC (가): the page uses the whole panel width, button groups as wide as the fields.
    if(width>=1000){await page.locator('[data-tab="settings"]').click();const sec=await page.locator('[data-page="settings"]').boundingBox();assert.ok(sec.width>700,`${tag}: no 640px column (${sec.width})`);
     const field=await page.locator('#ncs-common-preset-name').boundingBox(),acts=await page.locator('.ncs-preset-savebox .ncs-actions').boundingBox();assert.ok(Math.abs((field.x+field.width)-(acts.x+acts.width))<=2,`${tag}: field and buttons end together`);}
@@ -83,6 +83,10 @@ try{
   assert.match(await page.locator('[data-character="leo"] .ncs-wardrobe-empty').innerText(),/옷장이 비어 있어요\. 챗샷에서 \[옷장에 저장\]하면 프리샷에서도 꺼내 입을 수 있어요\./);
   // Two profiles answer to the same name: a temporary person that keeps its look.
   await page.evaluate(()=>{const s=mock.extensionSettings.naice_shot;s.profiles.push({id:'leo2',name:'Leo B',aliases:['Robin'],subject:'boy',appearance:'',defaultOutfit:'',positive:'',negative:'',cardKey:''});s.profiles[0].aliases=['레오','Robin'];});
+  // 0.1.60 (UI-059-05): Leo's card is already in this work, so that card decides; with no such card see browser-v0160.
+  await freeRun(page,'Robin',freeOne({id:'',name:'Robin',appearance:'short black hair'}));
+  assert.equal(await page.locator('[data-character="leo"] [data-field="included"]').isChecked(),true);assert.equal(await page.locator('[data-character="leo2"]').count(),0);
+  await page.locator('[data-remove="leo"]').click();
   await freeRun(page,'Robin',freeOne({id:'',name:'Robin',appearance:'short black hair'}));
   assert.match(await page.locator('#ncs-notice').innerText(),/여러 개라 임시 인물로 넣었어요/);
   assert.equal(await page.locator('[data-temp="appearance"]').last().inputValue(),'short black hair');

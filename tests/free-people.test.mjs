@@ -55,3 +55,9 @@ test('saved work keeps 📌 and clothes state inside cards (the shared draft for
  assert.equal(back.scene.characters[1].pinned,false);assert.equal(back.scene.characters[1].outfitManual,true);
  assert.match(back.undoClear.label,/^추출 전/,'the undo kind is read back from its label');
 });
+test('migration: an old temporary person\'s clothes count as chosen (UI-059-03)',()=>{
+ const old=[{id:'t1',temp:true,name:'Kai',outfit:'apron'},{id:'t2',temp:true,name:'Sam',outfit:''}];
+ migratePins(old);assert.equal(old[0].outfitManual,true);assert.equal(old[1].outfitManual,undefined);
+ const plan=planFreePeople(old,'Kai',[]);const out=applyFreePeople(old,plan,[{profile:null,name:'Kai',outfit:''}],{makeTemp});
+ assert.equal(out.cards.find(c=>c.id==='t1').outfit,'apron');
+});

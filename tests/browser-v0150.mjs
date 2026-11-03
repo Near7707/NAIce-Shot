@@ -62,7 +62,7 @@ try{
   // ⋯ order, 클린 PNG wording, the PNG guide in the history tab, one focus ring.
   await page.locator('[data-action="generate"]').click();await page.locator('#ncs-result img').waitFor();
   await page.locator('[data-tab="history"]').click();await page.locator('.ncs-history-card').first().waitFor();
-  assert.match(await page.locator('.ncs-png-info').innerText(),/클린 PNG[\s\S]*메타데이터[\s\S]*EXIF는 메타데이터의 한 종류/);
+  assert.match(await page.locator('.ncs-png-info').innerText(),/클린 PNG[\s\S]*메타데이터\(EXIF 포함\)[\s\S]*공유하기 전에 다시 한번 확인하세요/);
   assert.equal(await page.locator('#ncs-history-filter').locator('xpath=..').evaluate(l=>l.firstChild.textContent.trim()),'채팅방 선택');
   assert.equal(await page.locator('#tab-settings .ncs-png-info, [data-panel="settings"] .ncs-png-info').count(),0);
   const more=page.locator('.ncs-history-card [data-image-more]:not(.ncs-save-toggle)').first();await more.click();

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.60 — 2026-11-04 (extension only; server v0.1.13 unchanged)
+
+Fixes from GPT's review of 0.1.59, and a shorter PNG guide.
+
+- Cancelling the "작성 중인 프로필 내용" question from a temporary person's [프로필로 저장] now leaves the profile being edited untouched (it was filled with the temporary person's look, and saving overwrote the profile) (UI-059-01).
+- A description typed in "외형·복장 설명" but not turned into tags yet counts as unsaved typing and is protected (UI-059-02).
+- Old work and history: a temporary person's clothes count as chosen, so a new text without clothes no longer empties them (UI-059-03).
+- A temporary person's chosen empty outfit stays chosen after [프로필로 저장] (UI-059-04).
+- 프리샷: when several profiles share a name or alias, the AI's id no longer decides; only a card already in the work does, otherwise a temporary person keeps the look, with a notice (UI-059-05).
+- Profile switch on a card resets the clothes to the new profile (as the card says); ROADMAP updated to match (UI-059-06). ROADMAP also states that generating ends [↶ 추출 취소], like the other undos.
+- PNG guide: three lines — 클린 PNG (EXIF included, transparency), 원본 PNG, and "공유하기 전에 다시 한번 확인하세요." in the warning colour.
+- Tests: new `browser-v0160`; a migration case in `free-people.test.mjs`.
+
 ## 0.1.59 — 2026-11-04 (extension only; server v0.1.13 unchanged)
 
 프리샷 인물 처리 개편 (docs/ROADMAP.md 0.1.59, reviewed with GPT before building).

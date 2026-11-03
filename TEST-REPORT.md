@@ -1,3 +1,11 @@
+# v0.1.60 validation — 2026-11-04
+
+- Extension Node suite: **148 passed, 0 failed** (old temporary clothes count as chosen).
+- Server Node suite: server unchanged.
+- **49 of 49 Chromium browser scripts passed** (`browser-v0150` and `browser-v0158` updated for the new PNG wording and the shared-alias rule: a card already in the work decides). New `browser-v0160`: a cancelled switch from [프로필로 저장] keeps the edited profile (id, name, typed look); an unsaved description is kept; an old history temp keeps "apron" after a text without clothes; a shared alias with a valid AI id stays a temporary person with its look and a notice; an empty chosen outfit survives [프로필로 저장] when the AI returns clothes; PNG guide three lines, the last in its own colour.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern or extraction model, iPhone Safari.
+
 # v0.1.59 validation — 2026-11-04
 
 - Extension Node suite: **147 passed, 0 failed**. New `free-people.test.mjs`: the text decides who stays (pinned unticked, unpinned removed even if unticked), questions only when something is lost, wide name check only keeps cards, ticks follow the AI, pinned temp keeps look and subject, automatic clothes reset, typed clothes kept, inputs untouched (for the undo), migration pins old cards once, 📌 and clothes state survive the shared draft format.

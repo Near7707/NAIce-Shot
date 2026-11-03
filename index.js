@@ -697,7 +697,8 @@ function profileFormDirty(){
     wardrobe:JSON.stringify(readWardrobeForm().map(w=>({name:w.name,outfit:w.outfit})))};
   const base={name:b.name??'',aliases:(b.aliases??[]).join(','),subject:b.subject??'boy',appearance:b.appearance??'',defaultOutfit:b.defaultOutfit??'',positive:b.positive??'',negative:b.negative??'',
     wardrobe:JSON.stringify((b.wardrobe??[]).filter(w=>w.name.trim()||w.outfit.trim()).map(w=>({name:w.name,outfit:w.outfit})))};
-  return Object.keys(form).some(k=>form[k]!==base[k]);
+  // A description not turned into tags yet is typing too (UI-059-02).
+  return Object.keys(form).some(k=>form[k]!==base[k])||!!$('ncs-profile-describe').value.trim();
 }
 // Opening another profile never silently drops what is being typed; the same profile keeps its typing.
 function leaveProfileForm(nextName){
@@ -712,9 +713,10 @@ function openProfileEditor(id,where){
   else if(profileContext!=='profiles')placeProfileForm('profiles');
 }
 function openQuickProfile(name='') {
-  if(!leaveProfileForm('새 프로필 만들기'))return;
+  if(!leaveProfileForm('새 프로필 만들기'))return false; // the caller stops too (UI-059-01)
   editProfile();quickProfileName=name;if(name)$('ncs-profile-name').value=name;
   placeProfileForm('scene');if(dialog.querySelector('[data-tab="scene"]').getAttribute('aria-selected')!=='true')showTab('scene');
+  return true;
 }
 // --- People left out of the image (no profile) -------------------------------------------------
 let pendingBind=null,linkTarget=null,missingPrompt=null,lastLink=null;
@@ -1086,7 +1088,8 @@ function carryTemps(temps,part){
 let pendingTempConvert=null;
 function tempToProfile(id){
   const t=scene.characters.find(c=>c.id===id&&c.temp);if(!t)return;
-  openQuickProfile(t.name);setProfileMode('direct',{save:false});
+  if(!openQuickProfile(t.name))return; // kept the typing: nothing else is filled in (UI-059-01)
+  setProfileMode('direct',{save:false});
   $('ncs-profile-name').value=t.name;$('ncs-profile-subject').value=['boy','girl','other'].includes(t.subject)?t.subject:'other';
   $('ncs-profile-appearance').value=t.appearance??'';$('ncs-profile-outfit').value=t.outfit??'';
   pendingTempConvert={id,session:profileFormSession,chatKey:keyOf()};
@@ -1096,7 +1099,8 @@ function tempToProfile(id){
 function convertTemp(profile){
   // 0.1.59: 📌 carries over; clothes the user typed stay their choice, clothes the AI found stay automatic.
   const convert=c=>c.id===pendingTempConvert.id&&c.temp?{id:profile.id,entityName:c.name||profile.name,included:c.included!==false,expression:c.expression,action:c.action,position:c.position,positionManual:c.positionManual,
-    ...(c.pinned!==undefined?{pinned:c.pinned}:{}),...(c.outfit&&!c.outfitManual&&isFree()?{outfitMode:'replace',outfit:c.outfit,manualOutfit:null}:{outfitMode:'unchanged',outfit:'',manualOutfit:c.outfit?c.outfit:null})}:c;
+    ...(c.pinned!==undefined?{pinned:c.pinned}:{}),...(c.outfitManual?{outfitMode:'unchanged',outfit:'',manualOutfit:c.outfit??''} // a chosen outfit stays chosen, empty too (UI-059-04)
+      :c.outfit&&isFree()?{outfitMode:'replace',outfit:c.outfit,manualOutfit:null}:{outfitMode:'unchanged',outfit:'',manualOutfit:c.outfit?c.outfit:null})}:c;
   scene.characters=scene.characters.map(convert);
   for(const m of scene.moments??[])m.scene.characters=m.scene.characters.map(convert);
   pendingTempConvert=null;
@@ -1243,7 +1247,8 @@ async function freeFill() {
 function freeIdentity(c,appearance,profiles,selectedIds){
   const key=identityKey(c.name??''),byName=key?profiles.filter(p=>[p.name,...(p.aliases??[])].some(n=>identityKey(n)===key)):[];
   if(byName.length===1)return {profile:byName[0],corrected:!!c.id&&c.id!==byName[0].id};
-  if(byName.length>1){const p=byName.find(p=>p.id===c.id);return p?{profile:p}:{ambiguous:true};}
+  // Several profiles answer to this name: the AI's id is not proof. Only a card the user already has in this work decides (UI-059-05).
+  if(byName.length>1){const mine=byName.filter(p=>selectedIds.has(p.id));return mine.length===1?{profile:mine[0]}:{ambiguous:true};}
   const p=c.id?profiles.find(p=>p.id===c.id):null;if(!p)return {};
   if(!key)return {profile:p};
   if(selectedIds.has(p.id)&&!String(appearance??'').trim())return {profile:p};

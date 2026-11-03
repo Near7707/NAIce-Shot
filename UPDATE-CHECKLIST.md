@@ -1,5 +1,13 @@
 # Installation and update checklist
 
+## v0.1.60
+
+Update the extension and refresh. No server update is needed.
+
+1. History tab: the PNG guide is three lines, the last one in the warning colour.
+2. 프리샷: a temporary person from an older picture keeps its clothes after a new extraction.
+
+
 ## v0.1.59
 
 Update the extension and refresh. No server update is needed.

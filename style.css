@@ -630,6 +630,7 @@
 /* 0.1.58 PC (가): the page uses the whole panel width, and button groups stretch to the same width as the fields. */
 #naice-shot-dialog .ncs-actions,#naice-shot-dialog .ncs-look-actions {max-width:none;}
 #naice-shot-dialog .ncs-png-info p {margin:0 0 2px;}
+#naice-shot-dialog .ncs-png-info .ncs-png-check {color:var(--ncs-warning);font-weight:600;}
 #naice-shot-dialog .ncs-history-more {margin:4px 0 8px;}
 #naice-shot-dialog .ncs-history-more > summary {cursor:pointer;font-size:13px;color:var(--ncs-accent-text,var(--ncs-fg));}
 #naice-shot-dialog .ncs-history-more ul {margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.55;}
