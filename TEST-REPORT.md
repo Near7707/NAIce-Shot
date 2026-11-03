@@ -1,3 +1,12 @@
+# v0.1.62 validation — 2026-11-04
+
+- Extension Node suite: **149 passed, 0 failed**.
+- Server Node suite: server unchanged.
+- **51 of 51 Chromium browser scripts passed.** New `browser-v0162` at 375px: no 스텝 left in the panel, "28 Steps"; [↓ 생성] leaves the generate button within 40px of the bottom edge; the notice is hidden while the progress box shows and back afterwards; a short success notice folds, an error stays; enlarged view with one top row and one tools row (under 62px each, no sideways overflow), upward save menu; "채팅에서 이 그림 빼기".
+- Visual check: drawing tab after [↓ 생성] and the enlarged view at 375px (local screenshots only).
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern, iPhone Safari (the user's own check came from iPhone).
+
 # v0.1.61 validation — 2026-11-04
 
 - Extension Node suite: **149 passed, 0 failed** (migration parts run separately; AI clothes recorded as automatic).

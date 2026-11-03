@@ -1,5 +1,16 @@
 # Installation and update checklist
 
+## v0.1.62
+
+Update the extension and refresh. No server update is needed.
+
+1. Settings: Steps (not 스텝).
+2. Drawing tab, scrolled up: [↓ 생성] → the [이미지 생성] button sits at the bottom of the screen.
+3. During generation only the progress box shows; a success message folds after a few seconds.
+4. Open a picture large: one row on top, ‹ n/m › with 저장 ▾ · 삭제 under the picture.
+5. History ⋯ on an attached picture: "채팅에서 이 그림 빼기".
+
+
 ## v0.1.61
 
 Update the extension and refresh. No server update is needed. Nothing new to try: two fixes for older 프리샷 cards and the [직접 만들기] question.

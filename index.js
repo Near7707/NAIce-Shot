@@ -141,13 +141,23 @@ function renderMatching() {
   $('ncs-matching-state').textContent=matched.warnings.length?matched.warnings.join(' / '):'현재 채팅의 이름·카드 연결을 기준으로 자동 대응해요. 프로필 탭의 선택은 편집용이에요.';
 }
 const tabNotices=new Map();
-function renderNotice(){if(!dialog)return;const n=tabNotices.get(activeTab()),box=$('ncs-notice');box.hidden=!n?.message;box.textContent=n?.message??'';box.classList.toggle('ncs-error',n?.error===true);}
-function notice(message,error=false,tab=activeTab()){tabNotices.set(tab,{message,error});renderNotice();}
+// 0.1.62: while something runs, its progress box says it (no second banner); a success notice folds away after a while
+// (longer messages stay longer); errors stay until the next notice.
+let noticeTimer=null;
+function renderNotice(){if(!dialog)return;const n=tabNotices.get(activeTab()),box=$('ncs-notice');
+  box.hidden=!n?.message||(!n.error&&(!!progress||(n.until&&Date.now()>=n.until)));box.textContent=n?.message??'';box.classList.toggle('ncs-error',n?.error===true);}
+// The shared core (also on the server) still says 스텝; the panel calls it Steps like Guidance and Seed (0.1.62).
+const stepsWord=text=>String(text??'').replace(/(\d+)스텝/g,'$1 Steps').replace(/스텝은/g,'Steps는').replace(/스텝/g,'Steps');
+function notice(message,error=false,tab=activeTab()){
+  const text=stepsWord(message),until=error?0:Date.now()+Math.min(15000,5000+text.length*60);
+  tabNotices.set(tab,{message:text,error,until});renderNotice();
+  clearTimeout(noticeTimer);if(until)noticeTimer=setTimeout(renderNotice,until-Date.now()+50);
+}
 // One main button per action; 장면 추출 serves both modes (챗샷 reads the chat, 프리샷 the written situation).
 const BUTTON_LABELS={extract:['extract','장면 추출',['extract','free']],generate:['generate','이미지 생성',['generate']],profile:['convert-profile','태그로 변환',['profile']]};
 function renderProgress() {
   if(!dialog)return;
-  const box=$('ncs-progress');box.hidden=!progress;
+  const box=$('ncs-progress');box.hidden=!progress;renderNotice();
   for(const [action,label,kinds] of Object.values(BUTTON_LABELS)){const b=dialog.querySelector(`[data-action="${action}"].ncs-action-main`)??dialog.querySelector(`[data-action="${action}"]`);if(b)b.textContent=kinds.includes(progress?.kind)?`${label} 중…`:label;}
   if(!progress)return;
   const sec=Math.max(0,Math.floor((Date.now()-progress.started)/1000)),time=sec<60?`${sec}초`:`${Math.floor(sec/60)}분 ${sec%60}초`;
@@ -561,7 +571,7 @@ function renderGenBox() {
   const size=sizePresetOf(o);dialog.querySelector('[data-gen="size"]').value=size==='custom'?'portrait':size;
   $('ncs-gen-scope').textContent=history?'이력 설정 · 이번 생성에만':'생성 설정';
   $('ncs-gen-scope').classList.toggle('ncs-gen-history',history);$('ncs-gen-override').hidden=!history;$('ncs-gen-note').hidden=history;
-  const parts=[MODELS[o.model]?.label??o.model,`${SIZE_PRESETS[size]?.label.split(' · ')[0]??'세로'} ${o.width}×${o.height}`,`${o.steps}스텝`,`Guidance ${o.scale}`,o.seed===-1?'새 seed':`seed ${o.seed}`];
+  const parts=[MODELS[o.model]?.label??o.model,`${SIZE_PRESETS[size]?.label.split(' · ')[0]??'세로'} ${o.width}×${o.height}`,`${o.steps} Steps`,`Guidance ${o.scale}`,o.seed===-1?'새 seed':`seed ${o.seed}`];
   $('ncs-gen-line').innerHTML=parts.map(part=>`<span>${esc(part)}</span>`).join(' · ');
   const p=s.imagePresets.find(p=>p.id===s.imagePresetId),over=dialog.querySelector('[data-action="gen-preset-overwrite"]');
   $('ncs-gen-presets').hidden=history;
@@ -1465,7 +1475,7 @@ function renderCost(){
   // itself and answers anlas-consent if needed (then consentRefused shows the same note and button).
   const guard=costGuard(effectiveOptions(),subscription),off=settings().allowAnlas!==true,blocked=off&&!guard.free&&guard.kind!=='unknown';
   if(!off||guard.kind!=='unknown')consentRefused=false; // a known account decides here again
-  $('ncs-cost').textContent=guard.message;$('ncs-cost-link').hidden=guard.kind!=='may';
+  $('ncs-cost').textContent=stepsWord(guard.message);$('ncs-cost-link').hidden=guard.kind!=='may';
   const show=blocked||(off&&consentRefused);$('ncs-consent-note').hidden=!show;dialog.querySelector('[data-action="goto-anlas"]').hidden=!show;
   return {guard,blocked};
 }
@@ -1486,7 +1496,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   const emptyScene=!scene.characters.some(c=>c.included!==false)&&!['location','lighting','camera','interaction'].some(k=>(scene[k]??'').trim());
   if(!skipMissingCheck&&emptyScene&&!finalOverride&&!confirm(isFree()?'장면 칸이 비어 있어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 상황을 적고 "장면 추출"을 누르거나 인물 추가하기':'장면을 아직 추출하지 않았어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "장면 추출" 누르기')){report(isFree()?'생성하지 않았어요. 상황을 적고 "장면 추출"을 누르거나 인물을 추가해 주세요.':'생성하지 않았어요. "장면 추출"을 먼저 눌러 주세요.');return;}
   // No 공통 이미지 프리셋 chosen (and no history settings in use): say which settings will be used, every time.
-  if(!skipMissingCheck&&!settings().imagePresetId&&!optionsOverride&&!confirm('공통 이미지 프리셋을 고르지 않았어요.\n설정 탭의 기본 생성 설정(모델·크기·스텝 등)과 공통 프롬프트로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "3 · 생성"에서 프리셋 고르기')){report('생성하지 않았어요. "3 · 생성"에서 공통 이미지 프리셋을 고를 수 있어요.');return;}
+  if(!skipMissingCheck&&!settings().imagePresetId&&!optionsOverride&&!confirm('공통 이미지 프리셋을 고르지 않았어요.\n설정 탭의 기본 생성 설정(모델·크기·Steps 등)과 공통 프롬프트로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "3 · 생성"에서 프리셋 고르기')){report('생성하지 않았어요. "3 · 생성"에서 공통 이미지 프리셋을 고를 수 있어요.');return;}
   if(!skipMissingCheck){const {main}=missingState();if(main.length&&!skipMissingWarning()){openMissingDialog(main,seedMode);return;}}
   const s=settings(),startKey=workKey(),ticket=++task;
   if(finalOverride?.invalid)throw new Error('최종 프롬프트 JSON이 올바르지 않아요. 고치거나 "조립 결과로 되돌리기"를 눌러 주세요.');
@@ -1715,7 +1725,7 @@ function historyActions(item,{editable=false,attached=false}={}){
   // Order (docs/DESIGN.md): 챗샷으로 보내기 · 프리샷으로 보내기 · 설정을 프리셋으로 · 본문에 넣기.
   const more=[`<button type="button" data-history-id="${id}" ${keyOf()?'':'disabled'}>챗샷으로 보내기<small>${keyOf()?'지금 열린 채팅의 그리기창으로 가져와요.':'채팅을 먼저 열어 주세요.'}</small></button>`,`<button type="button" data-history-free="${id}">프리샷으로 보내기</button>`,
     item.options?`<button type="button" data-history-preset="${id}">설정을 프리셋으로</button>`:'',`<button type="button" data-history-attach="${id}" ${item.chatKey===keyOf()?'':'disabled data-unavailable="true"'}>본문에 넣기${item.chatKey===keyOf()?'':`<small>${item.chatKey===FREE_KEY?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.'}</small>`}</button>`,
-    editable&&attached?`<button type="button" data-history-detach="${id}">이 채팅의 첨부 모두 빼기</button>`:'',
+    editable&&attached?`<button type="button" data-history-detach="${id}">채팅에서 이 그림 빼기${attachedCount(item.id)>1?` (${attachedCount(item.id)}곳)`:''}</button>`:'',
     `<hr><div class="ncs-jump-slot" data-jump-slot="${id}"></div>`].join('');
   return `<div class="ncs-history-actions">${save.button}<button type="button" data-history-delete="${id}" class="ncs-danger-outline">삭제</button><button type="button" data-image-more="${menu}" aria-controls="${menu}" aria-expanded="false" aria-haspopup="true" aria-label="이력 그림 더 보기">⋯</button></div>${save.menu}<div id="${menu}" class="ncs-image-popup" popover="manual" hidden role="group" aria-label="이력 그림 작업">${more}</div>${historyPresetControls(item)}`;
 }
@@ -1849,7 +1859,7 @@ function saveHistoryPreset(id){
 // What was actually sent for a history image. Built only when opened, from data the list already has.
 
 function promptText(item){
-  const a=item.assembled??{},o=item.options??{},lines=[`모델: ${MODELS[o.model]?.label??o.model??''} · ${o.width??'?'}×${o.height??'?'} · 스텝 ${o.steps??'?'} · seed ${item.seed??o.seed??''}`,'',`[공통 Positive]\n${a.base??''}`,`[공통 Negative]\n${a.negative??''}`];
+  const a=item.assembled??{},o=item.options??{},lines=[`모델: ${MODELS[o.model]?.label??o.model??''} · ${o.width??'?'}×${o.height??'?'} · Steps ${o.steps??'?'} · seed ${item.seed??o.seed??''}`,'',`[공통 Positive]\n${a.base??''}`,`[공통 Negative]\n${a.negative??''}`];
   (a.characters??[]).forEach((c,i)=>lines.push(`[인물 ${i+1}${c.name?` · ${c.name}`:''}${c.position&&c.position!=='auto'?` · ${c.position}`:''}]\n${c.prompt??''}${c.negative?`\nNegative: ${c.negative}`:''}`));
   return lines.join('\n\n');
 }
@@ -1858,6 +1868,8 @@ async function copyRaw(){
   $('ncs-raw-copy').textContent='응답 복사';
   await copyText(raw,dialog);$('ncs-raw-copy').textContent='복사됨';notice('추출 응답을 복사했어요.');
 }
+// How many messages of the open chat hold this picture.
+const attachedCount=id=>(ctx().chat??[]).filter(m=>m?.extra?.naice_shot_images?.some?.(x=>x.id===id)).length;
 function renderHistory() {
   closeImageMenu();rememberScroll();renderHistoryTarget();
   const chat=ctx().chat??[],current=keyOf(),multi=['chats','all'].includes(historyScope);
@@ -1953,7 +1965,9 @@ async function onAction(action,el) {
     case 'extract':if(isFree())await freeFill();else await extract();break; // one button for both modes
     case 'extract-again':await extract();break; // 추가 요청 box under the candidates (챗샷 only)
     case 'blank':clearWork();break;
-    case 'jump-generate':$('ncs-generate-section').scrollIntoView({block:'start',behavior:'smooth'});break;
+    case 'jump-generate':{ // the real [이미지 생성] lands at the bottom edge, with its warnings and Anlas right above it
+      const box=dialog.querySelector('.ncs-content'),go=dialog.querySelector('[data-action="generate"].ncs-action-main')??dialog.querySelector('[data-action="generate"]');
+      if(box&&go)box.scrollBy({top:go.getBoundingClientRect().bottom-box.getBoundingClientRect().bottom+12,behavior:'smooth'});break;}
     case 'recent-less':case 'recent-more':{const input=$('ncs-recent');input.value=Math.max(1,Math.min(30,(Number(input.value)||1)+(action==='recent-more'?1:-1)));input.dispatchEvent(new Event('input',{bubbles:true}));break;}
     case 'undo-clear':undoClearWork();break;
     case 'free-fill':await freeFill();break;

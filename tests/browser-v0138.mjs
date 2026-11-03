@@ -35,7 +35,7 @@ try{
   await page.locator('[data-action="extract"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&document.querySelector('[data-character]'));
   // The box: folded, with its scope and a one-line summary; edits are the settings tab's values.
   assert.equal(await page.locator('#ncs-gen-box').evaluate(el=>el.open),false);
-  assert.match(await page.locator('#ncs-gen-scope').innerText(),/생성 설정/);assert.match(await page.locator('#ncs-gen-line').innerText(),/832×1216 · 28스텝/);
+  assert.match(await page.locator('#ncs-gen-scope').innerText(),/생성 설정/);assert.match(await page.locator('#ncs-gen-line').innerText(),/832×1216 · 28 Steps/);
   await page.locator('#ncs-gen-box > summary').click();
   await gen('scale').fill('6.5');await gen('size').selectOption('landscape');await gen('steps').fill('40');
   let o=await opts();assert.deepEqual([o.scale,o.width,o.height,o.steps],[6.5,1216,832,28]);assert.equal(await gen('steps').inputValue(),'28');

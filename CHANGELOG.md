@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.62 — 2026-11-04 (extension only; server v0.1.13 unchanged)
+
+Phone polish from the user's iPhone check of 0.1.60.
+
+- **Steps** instead of 스텝 everywhere in the panel (labels, the 생성 설정 line, Anlas notes, preset and history text), like Guidance and Seed. The shared core (also on the server) still words two messages with 스텝; the panel shows them as Steps until the next server release.
+- **[↓ 생성]** now stops with the real [이미지 생성] button at the bottom edge of the screen (Anlas and warnings right above it).
+- **One banner at a time:** while extraction or generation runs, only the progress box shows. A success notice folds away after a few seconds (longer ones stay longer); errors stay.
+- **Enlarged view:** one row on top (화면 맞춤 · 원본 크기 · − % + · ✕); moving and saving share one row under the picture (‹ n/m › … 저장 ▾ · 삭제), the save menu opens upward; the prompt fold and info line are slimmer.
+- History ⋯: **"채팅에서 이 그림 빼기"** (with "(N곳)" when the picture is in several messages) instead of "이 채팅의 첨부 모두 빼기", which read as if every picture would go.
+- Tests: new `browser-v0162`; `browser-v0138` reads "28 Steps".
+
 ## 0.1.61 — 2026-11-04 (extension only; server v0.1.13 unchanged)
 
 Fixes from GPT's re-check of 0.1.60.

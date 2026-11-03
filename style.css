@@ -278,29 +278,29 @@
 #ncs-viewer .ncsv-stage {position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;}
 #ncs-viewer .ncsv-stage.ncsv-dragging {cursor:grabbing;}
 #ncs-viewer .ncsv-stage img {position:absolute;left:0;top:0;max-width:none;max-height:none;transform-origin:0 0;-webkit-user-drag:none;user-select:none;}
-#ncs-viewer .ncsv-info {display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:6px 12px;padding-bottom:max(6px,env(safe-area-inset-bottom));background:#15181fee;border-top:1px solid #ffffff1f;}
+#ncs-viewer .ncsv-info {display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:4px 12px;padding-bottom:max(6px,env(safe-area-inset-bottom));background:#15181fee;border-top:1px solid #ffffff1f;}
 #ncs-viewer .ncsv-meta {font-size:12px;color:#c9ced6;overflow-wrap:anywhere;}
 #ncs-viewer .ncsv-seed {min-height:32px;min-width:0;padding:4px 10px;font-size:12px;}
 #ncs-viewer [hidden] {display:none!important;}
-#ncs-viewer .ncsv-prompt {flex:none;min-height:0;max-height:44dvh;overflow:auto;padding:8px 12px;background:#1b202b;color:#f1f3f6;border-top:1px solid #ffffff40;}
-#ncs-viewer .ncsv-prompt summary {cursor:pointer;font-weight:600;padding:5px 0;}
+#ncs-viewer .ncsv-prompt {flex:none;min-height:0;max-height:44dvh;overflow:auto;padding:4px 12px;background:#1b202b;color:#f1f3f6;border-top:1px solid #ffffff40;}
+#ncs-viewer .ncsv-prompt summary {cursor:pointer;font-weight:600;font-size:13px;padding:2px 0;}
 #ncs-viewer .ncsv-prompt-body {padding-top:8px;}
 #ncs-viewer .ncsv-prompt-text {max-height:28dvh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 monospace;user-select:text;-webkit-user-select:text;}
 #ncs-viewer .ncsv-copy {background:var(--ncsv-accent);color:var(--ncsv-accent-fg);border-color:var(--ncsv-accent);font-weight:650;}
 #ncs-viewer .ncsv-copy:hover {background:var(--ncsv-accent-hover);color:var(--ncsv-accent-fg);}
 #ncs-viewer .ncsv-copy-status {display:inline-block;margin-left:8px;font-size:12px;}
 @media(max-width:520px) {
- /* Two rows on phones: view controls and close on top, download tools below, leaving room for the image. */
- #ncs-viewer .ncsv-bar {display:grid;grid-template-columns:auto auto 1fr;grid-template-areas:'modes zooms close' 'save save save';gap:6px;padding:8px;padding-top:max(8px,env(safe-area-inset-top));}
+ /* 0.1.62: one row on top (view controls and close); moving and saving share one row under the picture. */
+ #ncs-viewer .ncsv-bar {display:grid;grid-template-columns:auto auto 1fr;grid-template-areas:'modes zooms close';gap:6px;padding:6px 8px;padding-top:max(6px,env(safe-area-inset-top));}
  #ncs-viewer .ncsv-group {flex-wrap:nowrap;}
  #ncs-viewer .ncsv-modes {grid-area:modes;} #ncs-viewer .ncsv-zooms {grid-area:zooms;}
- #ncs-viewer .ncsv-save-group {grid-area:save;margin-left:0;justify-content:flex-end;} #ncs-viewer .ncsv-close-group {grid-area:close;justify-content:flex-end;}
+ #ncs-viewer .ncsv-close-group {grid-area:close;justify-content:flex-end;}
  #ncs-viewer button,#ncs-viewer .ncsv-save {min-height:40px;padding:6px 9px;font-size:13px;}
  #ncs-viewer .ncsv-zoom {min-width:46px;font-size:13px;}
 }
 @media(max-width:360px) {
  /* Very narrow phones: zoom tools get their own row so nothing runs off the screen. */
- #ncs-viewer .ncsv-bar {grid-template-columns:1fr auto;grid-template-areas:'modes close' 'zooms zooms' 'save save';}
+ #ncs-viewer .ncsv-bar {grid-template-columns:1fr auto;grid-template-areas:'modes close' 'zooms zooms';}
 }
 /* People left out of the image: a strong box for the chat's own characters and the user, a plain line above 이미지 생성. */
 #naice-shot-dialog .ncs-missing-main {margin:10px 0 14px;padding:14px 16px;border:2px solid var(--ncs-warning);border-radius:var(--ncs-radius-card);
@@ -523,9 +523,13 @@
 }
 #naice-shot-dialog .ncs-number-stepper button:active {background-color:var(--ncs-hover);border-color:var(--ncs-edge);}
 #naice-shot-dialog .ncs-outfit-undo {margin:8px 0;}
-#ncs-viewer .ncsv-navigation {display:flex;align-items:center;justify-content:center;gap:12px;padding:5px 12px;background:#15181fee;}
+#ncs-viewer .ncsv-tools {display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:6px 12px;background:#15181fee;border-top:1px solid #ffffff1f;}
+#ncs-viewer .ncsv-navigation {display:flex;align-items:center;gap:6px;}
+#ncs-viewer .ncsv-navigation button {min-width:40px;font-size:18px;padding:4px 10px;}
+#ncs-viewer .ncsv-tools .ncsv-save-group {margin-left:auto;}
+#ncs-viewer .ncsv-tools .ncsv-save-menu {top:auto;bottom:calc(100% + 6px);}
 #ncs-viewer .ncsv-navigation[hidden] {display:none;}
-#ncs-viewer .ncsv-position {font-size:13px;min-width:70px;text-align:center;font-variant-numeric:tabular-nums;}
+#ncs-viewer .ncsv-position {font-size:13px;min-width:56px;text-align:center;font-variant-numeric:tabular-nums;}
 #ncs-viewer .ncsv-navigation button:disabled {opacity:.4;cursor:default;}
 
 /* ==== 0.1.49 shared parts — rules in docs/DESIGN.md. Screens use these classes instead of styling one row at a time. ==== */
