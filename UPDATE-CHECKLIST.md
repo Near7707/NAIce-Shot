@@ -1,5 +1,13 @@
 # Installation and update checklist
 
+## v0.1.45
+
+Update the extension and refresh. No server update is needed.
+
+1. Type something and, before it saves, try a deletion while SillyTavern is unreachable (or stop it briefly): the notice says the deletion failed, and your edit is saved once the server answers again.
+2. In a chat that has images but where you have not drawn since updating, type a place and delete the chat's whole history: the drawing window empties.
+
+
 ## v0.1.44
 
 Update **NAIce-Shot-Server 0.1.11**, restart SillyTavern, then update the extension and refresh.

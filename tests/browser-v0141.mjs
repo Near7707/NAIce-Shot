@@ -27,7 +27,7 @@ const browser=await chromium.launch({headless:true,executablePath:process.env.NA
 try{
  for(const width of [1100,375]){
   const page=await browser.newPage({viewport:{width,height:900}});page.setDefaultTimeout(9000);
-  const entries=new Map(),errors=[],history=[];let writes=0,saveBefore=null,saveAfter=null,held=0,order=[],failed=false,revision=0,accept=true,slowRead=null,genFails=false,genWait=null;
+  const entries=new Map(),errors=[],history=[];let writes=0,deleteFails=false,saveBefore=null,saveAfter=null,held=0,order=[],failed=false,revision=0,accept=true,slowRead=null,genFails=false,genWait=null;
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>accept?d.accept():d.dismiss());
   await page.route('**/api/plugins/naice-shot/**',async route=>{
    const u=new URL(route.request().url());
@@ -35,12 +35,13 @@ try{
    if(u.pathname.endsWith('/draft')){
     if(route.request().method()==='GET'){const key=u.searchParams.get('chatKey');if(slowRead&&key.includes('B'))await slowRead;return route.fulfill({json:entries.get(key)??{revision:null,work:null}});}
     const b=route.request().postDataJSON();if(failed)return route.fulfill({status:500,json:{error:'mock save failed'}});
+    if(b.delete&&deleteFails)return route.fulfill({status:500,json:{error:'mock delete failed'}});
     if(b.delete&&b.all){order.push('delete-all');let n=0;for(const [k,v] of entries){if(v.work)n++;entries.set(k,{revision:String(++revision),work:null});}return route.fulfill({json:{deleted:n}});}
     if(saveBefore){held++;await saveBefore;held--;}
     const old=entries.get(b.chatKey);if((old?.revision??null)!==b.expectedRevision)return route.fulfill({status:409,json:{error:'다른 창이나 기기에서 작업이 바뀌었어요.'}});
     const r=String(++revision);entries.set(b.chatKey,{revision:r,work:b.work});writes++;order.push('save');if(saveAfter){held++;await saveAfter;held--;}return route.fulfill({json:{revision:r}});
    }
-   if(u.pathname.endsWith('/delete')){const b=route.request().postDataJSON();const gone=history.filter(h=>h.chatKey===b.chatKey).map(h=>h.id);history.splice(0,history.length,...history.filter(h=>h.chatKey!==b.chatKey));const had=!!entries.get(b.chatKey)?.work;if(entries.has(b.chatKey))entries.set(b.chatKey,{revision:String(++revision),work:null});return route.fulfill({json:{deleted:gone,skipped:[],workDeleted:had}});}
+   if(u.pathname.endsWith('/delete')){if(deleteFails)return route.fulfill({status:500,json:{error:'mock delete failed'}});const b=route.request().postDataJSON();const gone=history.filter(h=>h.chatKey===b.chatKey).map(h=>h.id);history.splice(0,history.length,...history.filter(h=>h.chatKey!==b.chatKey));const had=!!entries.get(b.chatKey)?.work;if(entries.has(b.chatKey))entries.set(b.chatKey,{revision:String(++revision),work:null});return route.fulfill({json:{deleted:gone,skipped:[],workDeleted:had}});}
    if(u.pathname.endsWith('/history')){const all=u.searchParams.get('scope')==='all',only=u.searchParams.get('chatKey'),items=all?history.filter(h=>!only||h.chatKey===only):history; // the chat view stays unfiltered, as before
     const chats=[...new Set(history.map(h=>h.chatKey))].map(chatKey=>({chatKey,count:history.filter(h=>h.chatKey===chatKey).length,latest:''}));
     return route.fulfill({json:{items,total:items.length,hasMore:false,...(all?{scope:'all',chats,imageCount:history.length,bytes:1}:{})}});}
@@ -127,7 +128,23 @@ try{
   await page.locator('[data-tab="settings"]').click();await page.locator('[data-action="delete-all-work"]').click();await page.waitForTimeout(400);releaseSave();saveAfter=null;
   await page.waitForFunction(()=>/저장된 작업 \d+개를 지웠어요/.test(document.querySelector('#ncs-notice').textContent));assert.equal(stored(),0);
   await page.locator('[data-tab="scene"]').click();await page.locator('#ncs-location').fill('after delete');await saved();
-  assert.ok([...entries.values()].some(v=>v.work.scene.location==='after delete'),'saved without a conflict');
+  assert.ok([...entries.values()].some(v=>v.work?.scene.location==='after delete'),'saved without a conflict');
+  // A deletion that fails keeps the edit that was waiting to be saved, and saves it afterwards.
+  const savedPlace=p=>[...entries.values()].some(v=>v.work?.scene.location===p);
+  deleteFails=true;await page.locator('#ncs-location').fill('kept edit');
+  await page.locator('[data-tab="settings"]').click();await page.locator('[data-action="delete-all-work"]').click();
+  await page.waitForFunction(()=>/삭제하지 못했어요\. 작업은 그대로예요/.test(document.querySelector('#ncs-notice').textContent));
+  await page.waitForFunction(()=>document.querySelector('#ncs-draft-status').textContent==='마지막 작업을 서버에 기억해요.');assert.ok(savedPlace('kept edit'),'the held edit is saved after the failure');
+  await page.locator('[data-tab="scene"]').click();await page.locator('#ncs-location').fill('kept history edit');
+  await page.locator('[data-tab="history"]').click();await page.locator('[data-action="delete-chat-history"]').click();
+  await page.waitForFunction(()=>/삭제하지 못했어요/.test(document.querySelector('#ncs-notice').textContent));
+  await page.waitForFunction(()=>document.querySelector('#ncs-draft-status').textContent==='마지막 작업을 서버에 기억해요.');assert.ok(savedPlace('kept history edit'));deleteFails=false;
+  await page.reload();await open();assert.equal(await value(),'kept history edit','nothing was lost');
+  // A chat with images but no saved work yet: deleting its history still empties the drawing window.
+  await page.evaluate(()=>mock.switchChat('C'));await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
+  await page.locator('#ncs-location').fill('unsaved C');await page.locator('[data-tab="history"]').click();await page.locator('[data-action="delete-chat-history"]').click();
+  await page.waitForFunction(()=>document.querySelector('#ncs-location').value==='');await page.waitForTimeout(1200);assert.equal(savedPlace('unsaved C'),false);
+  await page.locator('[data-tab="scene"]').click();await page.evaluate(()=>mock.switchChat('A'));await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
   // 프리샷 work waiting off screen is emptied when its history is deleted from 챗샷.
   await page.locator('[data-mode="free"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
   await page.locator('#ncs-free-text').fill('Leftover garden text');await page.locator('#ncs-location').fill('leftover');await saved();assert.ok(hasWork(freeKey));

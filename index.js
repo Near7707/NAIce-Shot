@@ -426,11 +426,13 @@ async function forgetWork(keys){
 async function whileDeletingWork(keys,remove,forgetKeys=()=>keys){
   pauseDraftCapture=true;clearTimeout(captureTimer);captureTimer=null;const fields=$('ncs-work-fields'),wasDisabled=fields.disabled;fields.disabled=true;
   try{
-    await drafts.quiesce(keys);
-    const response=await remove();
+    await drafts.pause(keys);
+    let response;
+    // A failed deletion changes nothing: held edits are sent again below and the work stays on screen.
+    try{response=await remove();}catch(e){e.message=`삭제하지 못했어요. 작업은 그대로예요. (${e.message})`;throw e;}
     const gone=forgetKeys(response);if(gone?.length)await forgetWork(gone);
     return response;
-  }finally{pauseDraftCapture=false;fields.disabled=wasDisabled;renderDraftState();}
+  }finally{pauseDraftCapture=false;fields.disabled=wasDisabled;drafts.resume();renderDraftState();}
 }
 async function deleteAllWork(){
   if(busy||attaching||draftLoading)throw new Error('진행 중인 작업이 끝난 뒤 지워 주세요.');
@@ -1224,7 +1226,8 @@ async function saveSelected(clean=false) {
         try{if(clean)await saveCleanImage(item);else{const file=imageDownload(item),check=await fetch(file.url,{method:'HEAD',cache:'no-store'});if(!check.ok)throw new Error(String(check.status));downloadFile(file.url,file.filename);}saved++;}catch{missing++;}
         if(i<items.length-1)await wait(400);
       }
-      notice(`${clean?'공유용':'원본'} PNG ${saved}장을 하나씩 저장했어요.${missing?` ${missing}장은 불러오지 못했어요. ZIP으로 받아 보세요.`:''}`);
+      // The browser does not report finished downloads, so this says what was started.
+      notice(`${clean?'공유용':'원본'} PNG ${saved}장 저장을 시작했어요. 다운로드 목록에서 확인해 주세요.${missing?` ${missing}장은 불러오지 못했어요. ZIP으로 받아 보세요.`:''}`);
       return;
     }
     const files=[];let missing=0;
@@ -1303,7 +1306,7 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
     for(const [key,list] of groups){
       let response;
       try{response=list==='all'&&serverFeatures.includes('draft-delete')
-        ?await whileDeletingWork([key],()=>api('/delete',{method:'POST',body:{chatKey:key,all:true}}),r=>r.workDeleted?[key]:[])
+        ?await whileDeletingWork([key],()=>api('/delete',{method:'POST',body:{chatKey:key,all:true}}),()=>[key]) // the chat's work goes too, saved yet or not
         :await api('/delete',{method:'POST',body:list==='all'?{chatKey:key,all:true}:{chatKey:key,ids:list}});}
       catch(e){if(/\(404\)|\(405\)/.test(e.message))throw new Error('서버 플러그인이 이전 버전이에요. 최신 server 파일로 바꾸고 실리태번을 재시작해 주세요.');throw e;}
       for(const id of response.deleted??[])deleted.add(id);skipped.push(...(response.skipped??[]));

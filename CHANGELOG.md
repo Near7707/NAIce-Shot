@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.45 — 2026-11-03
+
+**Update: extension only.** Server 0.1.11 is unchanged.
+
+- **A failed deletion loses nothing (UI-043-01, P1).** Before deleting saved work, saves are now held instead of dropped. If the deletion succeeds, the deleted chats' held edits are discarded as before; if it fails, the held edits are sent again and the notice says "삭제하지 못했어요. 작업은 그대로예요." Applies to 저장된 작업 모두 지우기 and 이 채팅 이력 전체 삭제.
+- **History deletion always empties the drawing window (UI-043-02, P2),** even when the chat had no saved work file yet (an edit typed just before deleting).
+- Saving several images one at a time now says "N장 저장을 시작했어요. 다운로드 목록에서 확인해 주세요." — the browser does not report finished downloads.
+- docs/REVIEW.md now includes the GPT re-check from the review branch.
+
 ## 0.1.44 — 2026-11-03
 
 **Update: extension + server 0.1.11.** Update the server, restart SillyTavern, then update and refresh the extension.

@@ -32,17 +32,23 @@ test('after a deletion the queue reads the marker again and saves on its revisio
  assert.equal(await q.ensure('A'),null);q.put('A',{value:3});await q.flush('A');
  assert.deepEqual(sent.map(b=>[b.work.value,b.expectedRevision]),[[3,'marker']]);
 });
-test('replies sent before a deletion never change the state after it; quiesce waits for saves in flight',async()=>{
+test('replies sent before a deletion never change the state after it; pause waits for saves in flight',async()=>{
  let releaseWrite,releaseRead;const gate=new Promise(r=>releaseWrite=r),readGate=new Promise(r=>releaseRead=r);const sent=[];
  const q=new DraftQueue({delay:100000,read:async key=>{if(key==='B'){await readGate;return {revision:'old',work:{value:'old'}};}return {revision:null,work:null};},write:async(key,b)=>{sent.push(b);if(sent.length===1)await gate;return {revision:`r${sent.length}`};}});
  await q.ensure('A');q.put('A',{value:1});const first=q.flush('A');
- let settled=false;const quiet=q.quiesce().then(()=>{settled=true;});await Promise.resolve();assert.equal(settled,false,'waits for the save in flight');
+ let settled=false;const quiet=q.pause().then(()=>{settled=true;});await Promise.resolve();assert.equal(settled,false,'waits for the save in flight');
  releaseWrite();await first;await quiet;assert.equal(settled,true);
- q.put('A',{value:2});const pending=q.entry('A');assert.equal(pending.dirty,true);await q.quiesce(['A']);assert.equal(pending.dirty,false,'saves that have not left are dropped');assert.equal(sent.length,1);
+ q.put('A',{value:2});const pending=q.entry('A');assert.equal(pending.dirty,true);await q.flush('A');assert.equal(sent.length,1,'nothing leaves while paused');assert.equal(pending.dirty,true,'held edits keep their data');
+ q.resume();q.resume();await q.flush('A');assert.equal(sent.length,2,'a failed deletion sends the held edit');assert.equal(sent[1].work.value,2);assert.equal(pending.dirty,false);
  // A late reply after reset: ignored.
  let late;const q2=new DraftQueue({delay:100000,read:async()=>({revision:null,work:null}),write:async()=>{await new Promise(r=>late=r);return {revision:'stale'};}});
  await q2.ensure('A');q2.put('A',{value:1});const flying=q2.flush('A');q2.reset('A');late();await flying;
  assert.equal(q2.entry('A').revision,null,'the old revision is not restored');assert.equal(q2.entry('A').dirty,false);assert.equal(q2.entry('A').loaded,false);
  // A late read after reset: ignored too.
  const reading=q.ensure('B');q.reset('B');releaseRead();await reading;assert.equal(q.entry('B').data,null);assert.equal(q.entry('B').revision,null);assert.equal(q.entry('B').loaded,false);
+});
+test('resume survives an onState callback that touches entries (no endless loop)',async()=>{
+ let q;q=new DraftQueue({delay:100000,read:async()=>({revision:null,work:null}),write:async()=>({revision:'r'}),onState:()=>{q.entry('A');}});
+ await q.ensure('A');await q.ensure('B');await q.pause();q.put('A',{value:1});q.put('B',{value:2});q.resume();
+ assert.equal(q.entry('A').dirty,true);assert.equal(q.entry('B').dirty,true);await q.flush('A');await q.flush('B');assert.equal(q.entry('A').dirty,false);
 });

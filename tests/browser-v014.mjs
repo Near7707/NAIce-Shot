@@ -64,7 +64,7 @@ try{
  // 2b) One file at a time: each PNG downloads separately, and the choice is remembered.
  await save.click();assert.equal(await page.locator('#ncs-save-zip').isChecked(),true,'remembers ZIP');await page.locator('#ncs-save-zip').uncheck();
  const singles=[];page.on('download',d=>singles.push(d.suggestedFilename()));await original.click();
- await page.waitForFunction(()=>/원본 PNG 3장을 하나씩 저장했어요/.test(document.querySelector('#ncs-notice').textContent));
+ await page.waitForFunction(()=>/원본 PNG 3장 저장을 시작했어요\. 다운로드 목록에서 확인해 주세요\./.test(document.querySelector('#ncs-notice').textContent));
  await page.waitForTimeout(300);assert.equal(singles.length,3,'the missing file is skipped');assert.match(await page.locator('#ncs-notice').textContent(),/1장은 불러오지 못했어요\. ZIP으로 받아 보세요\.$/);assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.saveAsZip),false);
 
  // 3) Checkboxes stay readable on every skin despite the hostile theme.

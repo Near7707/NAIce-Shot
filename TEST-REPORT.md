@@ -1,3 +1,11 @@
+# v0.1.45 validation — 2026-11-03
+
+- Extension Node suite: **136 passed, 0 failed, 0 skipped**. Queue tests: nothing leaves while paused and held edits keep their data; resume sends them; resume terminates even when the state callback touches entries (a hang found and fixed during this work).
+- Server Node suite: **22 passed** (server unchanged apart from the shared `draft-work.mjs` copy).
+- **34 of 34 Chromium browser scripts passed.** `browser-v0141` adds: delete-all failing with an unsaved edit → notice, edit saved afterwards; chat-history deletion failing → same; refresh keeps the edit; a chat with images but no saved work → history deletion empties the window and nothing is saved. Both new checks fail on the v0.1.44 code. `browser-v014` checks the new separate-save wording.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: real SillyTavern, two real browsers, iPhone Safari.
+
 # v0.1.44 validation — 2026-11-03
 
 - Extension Node suite: **135 passed, 0 failed, 0 skipped**. The queue test now checks that after a deletion nothing is saved until the marker is read, and the next save uses the marker's revision.
