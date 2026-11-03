@@ -45,23 +45,12 @@ try{
   {// UI-057-01: a stale profile form keeps what the card's [프로필 업데이트] saved meanwhile.
    const {page,errors}=await open(width);
    await page.locator('[data-tab="profiles"]').click();await page.locator('[data-profile="leo"]').click();
-   await page.locator('[data-tab="scene"]').click();const card=page.locator('[data-character="leo"]'),look=card.locator('.ncs-fixed-look');
-   await look.locator('summary').click();await look.locator('[data-look="appearance"]').fill('brown hair, green eyes, freckles');await look.locator('[data-look-save]').click();
-   await page.waitForFunction(()=>mock.extensionSettings.naice_shot.profiles[0].appearance.endsWith('freckles'));
-   await page.locator('[data-tab="profiles"]').click();await page.locator('#ncs-profile-positive').fill('round glasses, scarf');await page.locator('#ncs-profile-submit').click();
-   const p=await page.evaluate(()=>mock.extensionSettings.naice_shot.profiles[0]);
-   assert.equal(p.appearance,'brown hair, green eyes, freckles',`${tag}: the update from the card is kept`);assert.equal(p.positive,'round glasses, scarf',`${tag}: the form's own edit is saved`);
+   // Saved elsewhere meanwhile (0.1.59 has one editor; another tab or a wardrobe save can still change the profile).
+   await page.evaluate(()=>{mock.extensionSettings.naice_shot.profiles[0].appearance='brown hair, green eyes, freckles';});
+   await page.locator('#ncs-profile-positive').fill('round glasses, scarf');await page.locator('#ncs-profile-submit').click();
+   const p=await page.evaluate(()=>mock.extensionSettings.naice_shot.profiles.find(p=>p.id==='leo'));
+   assert.equal(p.appearance,'brown hair, green eyes, freckles',`${tag}: the change made meanwhile is kept`);assert.equal(p.positive,'round glasses, scarf',`${tag}: the form's own edit is saved`);
    assert.equal(await page.locator('#ncs-profile-appearance').inputValue(),'brown hair, green eyes, freckles','the form shows the merged profile');
-   // UI-057-02: the profile changed another way, so the card's undo is gone.
-   await page.locator('[data-tab="scene"]').click();assert.equal(await card.locator('[data-look-undo]').count(),0,`${tag}: undo dropped after a form save`);
-   // An undo only puts back fields still as the update left them.
-   await card.locator('.ncs-fixed-look').evaluate(d=>d.open=true);
-   await card.locator('[data-look="appearance"]').fill('brown hair, green eyes, freckles, tall');await card.locator('[data-look-save]').click();
-   await page.waitForFunction(()=>mock.extensionSettings.naice_shot.profiles[0].appearance.endsWith('tall'));
-   await page.evaluate(()=>{mock.extensionSettings.naice_shot.profiles[0].appearance='silver hair';});
-   await card.locator('[data-look-undo]').click();
-   assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.profiles[0].appearance),'silver hair','a later change is not wiped');
-   assert.match(await page.locator('#ncs-notice').innerText(),/그 뒤에 다시 바뀌어서 되돌리지 않았어요/);
    // PNG guide: one sentence per line.
    await page.locator('[data-tab="history"]').click();
    const lines=await page.locator('.ncs-png-info p').allInnerTexts();assert.ok(lines.length>=8);for(const l of lines)assert.equal(l.trim().split(/(?<=요\.)\s+/).length,1,`one sentence: ${l}`);
@@ -105,5 +94,5 @@ try{
   assert.doesNotMatch(await page.locator('#ncs-final').inputValue(),/swimming/);
   assert.deepEqual(errors,[]);await page.close();
  }
- console.log('PASS: stale profile form keeps the card update, safe look undo, look words dropped from request outfits (natural phrases) with alias matching, 프리샷 identity check and stale-text guard, empty wardrobe hint, PNG guide one sentence per line, full-width PC layout');
+ console.log('PASS: stale profile form keeps a change saved meanwhile, look words dropped from request outfits (natural phrases) with alias matching, 프리샷 identity check and stale-text guard, empty wardrobe hint, PNG guide one sentence per line, full-width PC layout');
 }finally{await browser.close();server.close();}

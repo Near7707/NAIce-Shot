@@ -66,14 +66,7 @@ try{
   assert.equal(await card.locator('.ncs-outfit-to [data-to-wardrobe]').isDisabled(),true,'"이 복장을" is held while saving');
   await page.evaluate(()=>mock.finishMetadata());await page.waitForFunction(()=>!document.querySelector('.ncs-outfit-saving'));await page.evaluate(()=>{mock.saveMetadata=mock.normalSave;});
   assert.match(await card.locator('[data-save-outfit]').innerText(),/✓ 이 채팅 기본 복장/);
-  const look=card.locator('.ncs-fixed-look');await look.locator('summary').click();
-  const save=look.locator('[data-look-save]');assert.equal(await save.isDisabled(),true);
-  await look.locator('[data-look="appearance"]').fill('brown hair, green eyes, freckles');assert.equal(await save.isDisabled(),false);
-  answer=false;await save.click();assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.profiles[0].appearance),'brown hair, green eyes');
-  answer=true;await save.click();await page.waitForFunction(()=>mock.extensionSettings.naice_shot.profiles[0].appearance==='brown hair, green eyes, freckles');
-  assert.equal(await card.locator('.ncs-fixed-look').evaluate(d=>d.open),true,'stays open');
-  await card.locator('[data-look-undo]').click();await page.waitForFunction(()=>mock.extensionSettings.naice_shot.profiles[0].appearance==='brown hair, green eyes');
-  assert.equal(await card.locator('[data-look-undo]').count(),0);
+  // 0.1.59: the card no longer edits the fixed look itself ([프로필 편집] opens the one editor; see browser-v0159).
   // ---- History: two images, select all ↔ clear all
   for(let i=0;i<2;i++){await page.locator('[data-action="generate"]').click();await idle(page);}
   await page.locator('[data-tab="history"]').click();await page.waitForFunction(()=>document.querySelectorAll('.ncs-history-card').length>=2);
@@ -98,5 +91,5 @@ try{
   assert.equal(menuBg,panelBg,'menu uses the theme colour');
   assert.deepEqual(errors,[]);await page.close();
  }
- console.log('PASS: preset save box follows the selection (asks before overwriting), two-per-row fields, retention wording, fields and buttons end together on PC, "이 복장을" row held while saving, folded lock help, fixed look update with confirm and undo, select all ↔ clear all, folded history notes, chat menus in theme colours');
+ console.log('PASS: preset save box follows the selection (asks before overwriting), two-per-row fields, retention wording, fields and buttons end together on PC, "이 복장을" row held while saving, folded lock help, select all ↔ clear all, folded history notes, chat menus in theme colours');
 }finally{await browser.close();server.close();}

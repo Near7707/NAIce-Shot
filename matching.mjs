@@ -8,7 +8,7 @@ const unique=values=>[...new Set(values.filter(Boolean))];
 function namedProfiles(profiles,name) {
  const normalized=identityKey(name);return normalized?profiles.filter(p=>namesOf(p).includes(normalized)):[];
 }
-function mentioned(text,name) {
+export function mentioned(text,name) {
  const needle=normalize(name);if(!needle)return false;
  if(hangul.test(needle)){
   const pattern=Array.from(needle.replace(/ /g,'')).map(c=>c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('\\s*');

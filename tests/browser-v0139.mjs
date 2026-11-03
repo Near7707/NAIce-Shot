@@ -71,7 +71,7 @@ try{
   await page.evaluate(([bad,good])=>{let n=0;mock.generateRaw=async function(o){this.extractCalls=(this.extractCalls??0)+1;this.lastExtract=o;return JSON.stringify(n++===0?bad:good);};},[ko,free]);
   await page.locator('[data-action="extract"]').click();await idle();
   const prompt=await page.evaluate(()=>mock.lastExtract.prompt);
-  assert.match(prompt,/SELECTED \(already in the picture\):\n\[\{"id":"leo","name":"Leo"\}\]/);assert.match(prompt,/SITUATION:\n"비 오는 밤/);assert.match(prompt,/Your previous reply wrote descriptive fields in a language other than English/);
+  assert.match(prompt,/EXISTING \(have a card; visible only if the text shows them\):\n\[\{"id":"leo","name":"Leo"\}\]/);assert.match(prompt,/SITUATION:\n"비 오는 밤/);assert.match(prompt,/Your previous reply wrote descriptive fields in a language other than English/);
   assert.equal(await page.locator('[data-character]').count(),2,'Leo was not doubled');
   assert.equal(await page.locator('[data-character="leo"] [data-field="action"]').inputValue(),'holding umbrella');assert.equal(await page.locator('[data-character="leo"] [data-field="manualOutfit"]').inputValue(),'raincoat');
   assert.equal(await page.locator('.ncs-temp [data-temp="appearance"]').inputValue(),'long red hair');assert.equal(await page.locator('#ncs-location').inputValue(),'convenience store');

@@ -1,5 +1,16 @@
 # Installation and update checklist
 
+## v0.1.59
+
+Update the extension and refresh. No server update is needed.
+
+1. 프리샷: write a text naming one person and press [장면 추출]. A card not named in the text is removed after a question; press [📌 고정] on a card to keep it (it is only unticked). Try [↶ 추출 취소].
+2. 프리샷 clothes: type clothes, extract again → they stay. [자동으로 되돌리기] / [기본 복장 입기] / [비우기].
+3. Person card: open "고정 외형 · 전용 태그" → [프로필 편집] opens the profile editor.
+4. Scroll up on the drawing tab → [↓ 생성] at the bottom right.
+5. In 프리샷, press a chat message's NAIce Shot button → 챗샷 opens with that message.
+
+
 ## v0.1.58
 
 Update the extension and refresh. No server update is needed.

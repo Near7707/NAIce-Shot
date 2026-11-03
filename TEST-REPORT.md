@@ -1,3 +1,13 @@
+# v0.1.59 validation — 2026-11-04
+
+- Extension Node suite: **147 passed, 0 failed**. New `free-people.test.mjs`: the text decides who stays (pinned unticked, unpinned removed even if unticked), questions only when something is lost, wide name check only keeps cards, ticks follow the AI, pinned temp keeps look and subject, automatic clothes reset, typed clothes kept, inputs untouched (for the undo), migration pins old cards once, 📌 and clothes state survive the shared draft format.
+- Server Node suite: server unchanged (`draft-work.mjs` identical; card fields round-trip).
+- **48 of 48 Chromium browser scripts passed.** New `browser-v0159`: 프리샷 question lists removed and unticked cards, [취소] sends no request, [↶ 추출 취소] brings cards and typed looks back, a failed extraction keeps work and undo, a re-named pinned card is ticked again and keeps its look, "X는 없다" unticks without a question; clothes: AI → automatic, typed kept, 자동으로 되돌리기 vs 기본 복장 입기 vs 비우기, no 프리샷 lock; [프로필 편집] opens the one editor (cancel saves nothing, unsaved typing kept when another profile is opened); [↓ 생성] at 375px; the message button opens 챗샷 from 프리샷.
+- Visual check: 프리샷 card with 📌 and [↓ 생성] at 320/375px (local screenshots only).
+- AI responses are fixed test replies; how well a real model follows "visible only" was not measured.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern or extraction model, iPhone Safari.
+
 # v0.1.58 validation — 2026-11-04
 
 - Extension Node suite: **141 passed, 0 failed** (new look-word filter test: "blue hair tied back" dropped, hair ribbon kept).

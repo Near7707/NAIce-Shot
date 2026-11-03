@@ -635,3 +635,13 @@
 #naice-shot-dialog .ncs-history-more ul {margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.55;}
 #naice-shot-dialog .ncs-history-more code {font-size:12px;overflow-wrap:anywhere;}
 #naice-shot-dialog .ncs-refresh-button {width:auto;min-height:34px;margin:0;padding:4px 12px;font-size:13px;white-space:nowrap;}
+
+/* 0.1.59 (나): a small floating [↓ 생성] that takes you to the real generate area (warnings and Anlas stay in view there). */
+#naice-shot-dialog .ncs-jump-wrap {position:sticky;bottom:12px;height:0;display:flex;justify-content:flex-end;pointer-events:none;z-index:5;}
+#naice-shot-dialog .ncs-jump {pointer-events:auto;transform:translateY(-100%);width:auto;min-height:40px;margin:0;padding:6px 14px;border-radius:999px;font-size:14px;font-weight:600;
+ background:var(--ncs-primary-bg);color:var(--ncs-primary-fg);border:1px solid var(--ncs-primary-border,var(--ncs-border));box-shadow:0 2px 10px rgba(0,0,0,.35);}
+#naice-shot-dialog .ncs-jump[hidden] {display:none;}
+#naice-shot-dialog .ncs-head-buttons {display:flex;gap:6px;align-items:center;flex-shrink:0;}
+#naice-shot-dialog .ncs-pin {width:auto;margin:0;padding:4px 10px;font-size:13px;white-space:nowrap;}
+#naice-shot-dialog .ncs-look-line {font-size:13px;margin:4px 0;overflow-wrap:anywhere;}
+#naice-shot-dialog .ncs-look-line > b {display:block;font-size:12px;opacity:.8;}

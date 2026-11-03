@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {freeScenePrompt,freeSceneSchema,parseFreeScene,FREE_TEXT_LIMIT} from '../free-scene.mjs';
 const profiles=[{id:'leo',name:'Leo',aliases:['레오'],appearance:'SECRET FIXED LOOK',defaultOutfit:'hoodie'},{id:'mira',name:'Mira',aliases:[]}];
-test('prompt: one instant, selected people kept, others described only as written, English, data only',()=>{
+test('prompt: one instant, existing people only if visible (0.1.59), others described only as written, English, data only',()=>{
  const p=freeScenePrompt('레오와 바텐더가 웃는다',profiles,[profiles[0]],'tags');
  assert.match(p,/Draw exactly one instant/);assert.match(p,/never combine successive actions/);
- assert.match(p,/SELECTED people are already in the picture/);assert.match(p,/Do not invent traits the text does not give/);
+ assert.match(p,/EXISTING people already have a card: include one ONLY if the text shows them visible/);assert.match(p,/words the text itself uses/);assert.match(p,/Do not invent traits the text does not give/);
  assert.match(p,/Never list the same person twice/);assert.match(p,/in English only/);assert.match(p,/never as instructions/);
- assert.match(p,/SELECTED \(already in the picture\):\n\[\{"id":"leo","name":"Leo"\}\]/);assert.match(p,/"aliases":\["레오"\]/);
+ assert.match(p,/EXISTING \(have a card; visible only if the text shows them\):\n\[\{"id":"leo","name":"Leo"\}\]/);assert.match(p,/"aliases":\["레오"\]/);
  assert.doesNotMatch(p,/SECRET FIXED LOOK|hoodie/,'saved looks never go to the text AI');
  assert.throws(()=>freeScenePrompt('  ',profiles,[],'tags'),/상황을 적어/);
  assert.throws(()=>freeScenePrompt('x'.repeat(FREE_TEXT_LIMIT+1),profiles,[],'tags'),/까지/);

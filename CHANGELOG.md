@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.59 — 2026-11-04 (extension only; server v0.1.13 unchanged)
+
+프리샷 인물 처리 개편 (docs/ROADMAP.md 0.1.59, reviewed with GPT before building).
+
+- **📌 고정** on 프리샷 person cards (beside [제거]). [장면 추출] now follows the written text: a card whose name or alias is not in the text is removed, or kept and unticked when pinned. A pinned temporary person keeps its look and 인원 태그.
+- Before anything is lost (a card removed, or a ticked pinned card unticked) the app asks first, and also lists temporary people whose look will be filled again. [취소] sends nothing and changes nothing; cards are only removed once the response is valid.
+- The inclusion tick follows each successful extraction (named and visible → ticked; named but not shown, e.g. "X는 없다" → unticked, kept). The AI is told to include existing people only when the text shows them visible. New temporary people are named with the text's own words.
+- **[↶ 추출 취소]** (beside 그리기창 비우기, like 가져오기 취소) puts the 프리샷 work back as it was before the extraction. A failed or stopped extraction keeps the work and the previous undo. Editing, generating, clearing or importing ends it.
+- 프리샷 clothes: what the AI found is automatic, what you choose wins (an empty choice too). [자동으로 되돌리기] → the AI's clothes (or the default); [기본 복장 입기] → the profile default as your choice; [비우기] stays empty. No 프리샷 lock. Typed clothes of a temporary person are kept.
+- Work and history from before 0.1.59: cards without the new mark start pinned, so nothing is deleted unasked.
+- **One profile editor (챗샷·프리샷):** the card shows 고정 외형 · 전용 태그 and **[프로필 편집]** opens the same editor as the profile tab in the drawing tab (asks before saving, as the profile is shared). The in-card editing, [프로필 업데이트] and [↶ 업데이트 취소] are gone. Typing that is not saved is never dropped silently when another profile is opened.
+- **[↓ 생성]:** a small button at the bottom right of the drawing tab, shown while "3 · 생성" is out of sight; it takes you to the real generate area (warnings and Anlas stay visible there).
+- The message's NAIce Shot button now opens 챗샷 even when 프리샷 was in use (the 프리샷 work waits as it was).
+- Tests: new `free-people.test.mjs` and `browser-v0159`; older scripts updated (no in-card look editing, new prompt wording).
+
 ## 0.1.58 — 2026-11-04 (extension only; server v0.1.13 unchanged)
 
 Fixes from GPT's reviews of 0.1.54, 0.1.56 and 0.1.57, plus two small requests.
