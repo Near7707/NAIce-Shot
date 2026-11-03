@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.54 — 2026-11-04 (extension only; server v0.1.13 unchanged)
+
+- **The same words in another message are no longer taken for an image's source (UI-053-01, rest of UI-052-03).** When the drawn message's send time is recorded, only the message with that time counts — at its old number, moved, or with another swipe showing (SillyTavern moves `send_date` with the shown swipe, so each swipe's own time also counts). A repeated greeting or short reply elsewhere, at the old number or in another message's swipe, is reported as not found, and 본문에 넣기 (자동) asks. Images without a recorded time keep matching by text and swipe.
+- Tests: `message-jump.test.mjs` cases for twins and swipes; new `tests/browser-v0154.mjs`.
+
 ## 0.1.53 — 2026-11-04 (extension only; server v0.1.13 unchanged)
 
 Fixes from GPT's review of 0.1.52 (checked against SillyTavern 1.19.0 staging).

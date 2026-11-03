@@ -79,7 +79,7 @@ try{
   await page.waitForFunction(()=>/넣을 메시지를 골라 주세요/.test(document.querySelector('#ncs-notice')?.innerText??''));
   assert.equal(await page.evaluate(()=>mock.chat.some(m=>m.extra?.naice_shot_images?.length)),false,'nothing attached silently');
   // Another chat: asks, opens it, then goes to the message.
-  await page.evaluate(()=>{mock.chat.push({name:'Leo',mes:'Leo sits by the window. Scene Info: sunny afternoon.'});mock.savedChats={A:structuredClone(mock.chat)};mock.switchChat('B');});
+  await page.evaluate(()=>{mock.chat.push({name:'Leo',mes:'Leo sits by the window. Scene Info: sunny afternoon.',send_date:'2026-01-01 1'});mock.savedChats={A:structuredClone(mock.chat)};mock.switchChat('B');});
   await page.locator('#ncs-history-scope').selectOption('all');await page.waitForFunction(()=>document.querySelectorAll('.ncs-history-card').length>=2);
   const cards=page.locator('.ncs-history-card');let made=-1,freeCard=-1;
   for(let i=0;i<await cards.count();i++){const t=await cards.nth(i).innerText();if(/프리샷/.test(t))freeCard=i;else made=i;}

@@ -1,5 +1,12 @@
 # Installation and update checklist
 
+## v0.1.54
+
+Update the extension and refresh. No server update is needed.
+
+1. Make an image from a short message, delete that message and leave another with the same words: 메시지로 가기 is greyed and 본문에 넣기 (자동) asks.
+
+
 ## v0.1.53
 
 Update the extension and refresh. No server update is needed.

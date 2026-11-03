@@ -13,28 +13,32 @@ export function targetFingerprint(source) {
 
 // Finds the message an image was made from.
 // state: 'same' (found unchanged), 'swipe' (another swipe is showing; the drawn one still exists),
-// 'moved' (same text at another position, e.g. after earlier messages were deleted),
-// 'edited' (the same message by its send time, with changed text), 'missing' (cannot be confirmed: never guessed).
+// 'moved' (the same message at another position, e.g. after earlier messages were deleted),
+// 'edited' (the same message, with changed text), 'missing' (cannot be confirmed: never guessed).
+// With a recorded send time, only the message with that time can be the source: the same words elsewhere
+// (a repeated greeting, a short reply) are another message (UI-053-01). Older images without one fall back to
+// the drawn text and swipe.
 export function locateSource(source, chat) {
   const f = targetFingerprint(source);
   if (!f || !Array.isArray(chat)) return { index: null, state: 'missing' };
-  const usable = i => !!chat[i]; // hidden (system) messages can be drawn too
-  const here = chat[f.index];
-  if (usable(f.index) && sameText(f, here.mes) && (here.swipe_id ?? 0) === f.swipeId) return { index: f.index, state: 'same' };
-  if (usable(f.index) && Array.isArray(here.swipes) && sameText(f, here.swipes[f.swipeId])) return { index: f.index, state: 'swipe' };
-  // Deleting earlier messages shifts indexes: look for the same text elsewhere, nearest first.
-  const order = chat.map((_, i) => i).filter(i => i !== f.index && usable(i)).sort((a, b) => Math.abs(a - f.index) - Math.abs(b - f.index));
+  const order = chat.map((_, i) => i).filter(i => chat[i]).sort((a, b) => Math.abs(a - f.index) - Math.abs(b - f.index)); // nearest first
+  const drawnOn = m => sameText(f, m.mes) && (m.swipe_id ?? 0) === f.swipeId;
+  const drawnSwipe = m => Array.isArray(m.swipes) && sameText(f, m.swipes[f.swipeId]);
+  const where = i => i === f.index ? 'same' : 'moved';
+  if (f.sendDate) {
+    // SillyTavern moves send_date with the shown swipe, so a swipe's own time counts too.
+    const sameMessage = m => m.send_date === f.sendDate || (Array.isArray(m.swipe_info) && m.swipe_info.some(x => x?.send_date === f.sendDate));
+    const i = order.find(i => sameMessage(chat[i]));
+    if (i === undefined) return { index: null, state: 'missing' };
+    const m = chat[i];
+    if (drawnOn(m)) return { index: i, state: where(i) };
+    if (drawnSwipe(m)) return { index: i, state: 'swipe' };
+    return { index: i, state: 'edited' };
+  }
   for (const i of order) {
     const m = chat[i];
-    if (sameText(f, m.mes)) return { index: i, state: 'moved' };
-    if (Array.isArray(m.swipes) && sameText(f, m.swipes[f.swipeId])) return { index: i, state: 'swipe' };
-  }
-  // Edited: only when the message is provably the same one (its send time), wherever it is now. A message that
-  // merely sits at the old number is not guessed to be it (UI-052-03).
-  if (f.sendDate) {
-    if (chat[f.index]?.send_date === f.sendDate) return { index: f.index, state: 'edited' };
-    const i = order.find(i => chat[i].send_date === f.sendDate);
-    if (i !== undefined) return { index: i, state: 'edited' };
+    if (drawnOn(m)) return { index: i, state: where(i) };
+    if (drawnSwipe(m)) return { index: i, state: 'swipe' };
   }
   return { index: null, state: 'missing' };
 }

@@ -1,3 +1,11 @@
+# v0.1.54 validation — 2026-11-04
+
+- Extension Node suite: **140 passed, 0 failed** (`message-jump.test.mjs`: same words at the old number, elsewhere and in another message's swipe are not the source; the dated message is chosen over a nearer twin; moved; found through `swipe_info` after a swipe).
+- Server Node suite: **25 passed** (server unchanged).
+- **43 of 43 Chromium browser scripts passed.** New `browser-v0154` (fails on 0.1.53 code): the three twin cases grey the line and 자동 넣기 attaches nothing; the real message is still found after moving and swiping. `browser-v0151` now restores the drawn message with its own send time in the other-chat case.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern, iPhone Safari.
+
 # v0.1.53 validation — 2026-11-04
 
 - Extension Node suite: **140 passed, 0 failed** (`message-jump.test.mjs` now covers: edited only for the same send time, a slid-in message is not the source, no send time is never guessed, edited and moved).
