@@ -9,7 +9,12 @@ test('finds the made message unchanged, on another swipe, moved, edited or missi
   const swiped=chat();swiped[2].swipe_id=1;swiped[2].mes='Leo waves.';
   assert.deepEqual(locateSource(src(2,'Leo pours tea.'),swiped),{index:2,state:'swipe'});
   const moved=chat().slice(1);assert.deepEqual(locateSource(src(2,'Leo pours tea.'),moved),{index:1,state:'moved'});
-  const edited=chat();edited[2]={mes:'Leo pours coffee.'};assert.deepEqual(locateSource(src(2,'Leo pours tea.'),edited),{index:2,state:'edited'});
+  // Edited is only claimed for the same message (send time); a message that slid into the number is not it.
+  const dated=(i,t,d)=>{const x=src(i,t);x.fingerprints[1].sendDate=d;return x;};
+  const edited=chat();edited[2]={mes:'Leo pours coffee.',send_date:'d2'};assert.deepEqual(locateSource(dated(2,'Leo pours tea.','d2'),edited),{index:2,state:'edited'});
+  const slid=chat();slid[2]={mes:'A later message.',send_date:'d3'};assert.deepEqual(locateSource(dated(2,'Leo pours tea.','d2'),slid),{index:null,state:'missing'});
+  assert.deepEqual(locateSource(src(2,'Leo pours tea.'),slid),{index:null,state:'missing'},'no send time: never guessed by number');
+  const both=[{mes:'hello'},{mes:'Leo pours coffee.',send_date:'d2'},{mes:'after'}];assert.deepEqual(locateSource(dated(2,'Leo pours tea.','d2'),both),{index:1,state:'edited'},'edited and moved');
   assert.deepEqual(locateSource(src(9,'gone'),chat()),{index:null,state:'missing'});
   assert.deepEqual(locateSource(null,chat()),{index:null,state:'missing'});
   const hidden=chat();hidden[2].is_system=true;assert.deepEqual(locateSource(src(2,'Leo pours tea.'),hidden),{index:2,state:'same'});

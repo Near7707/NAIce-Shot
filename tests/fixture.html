@@ -15,6 +15,8 @@ window.mock={
  extraction:{characters:[{id:'leo',name:'Leo',expression:'smile',action:'sitting on a chair',position:'auto',outfitMode:'replace',outfit:'white shirt, jeans'}],unregistered:[],location:'cafe',lighting:'sunlight',camera:'medium shot',interaction:''},
  emit(type){for(const fn of listeners[type]??[])fn();},
  switchChat(id){this.chatId=id;this.characters[0].chat=id;this.chatMetadata={};this.chat=[{name:'Leo',mes:'Walking along the river.'}];this.renderChat();this.emit('chat');},
+ // SillyTavern's character selection: tests can make it refuse (mock.refuseSelect), as SillyTavern does while saving or generating.
+ selectCharacterById(id){this.selected=(this.selected??[]).concat(id);if(this.refuseSelect)return Promise.resolve();this.characterId=Number(id);this.name2=this.characters[this.characterId]?.name??'';return Promise.resolve();},
  // SillyTavern's chat switch (used by 메시지로 가기); savedChats lets a test give a chat its own messages.
  openCharacterChat(id){this.opened=(this.opened??[]).concat(id);this.switchChat(id);const keep=this.savedChats?.[id];if(keep){this.chat=structuredClone(keep);this.renderChat();this.emit('chat');}return Promise.resolve();},
 };

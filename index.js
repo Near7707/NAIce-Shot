@@ -718,9 +718,15 @@ function linkMissing(name,person){
   }
   if(field)setChatBinding(field,p.id);
   const beforeNames=[...(scene.unregistered??[])],beforeDetails=clone(scene.unregisteredDetails??[]);
-  const temp=sameNameTemp(name);
-  if(temp){undo.temp={card:clone(temp),at:scene.characters.indexOf(temp)};undo.addedToScene=true;pendingTempConvert={id:temp.id,session:profileFormSession,chatKey:keyOf()};convertTemp(p);}
+  const temp=sameNameTemp(name),before=new Set(scene.characters);
+  if(temp){
+    undo.temp={card:clone(temp),at:scene.characters.indexOf(temp)};
+    // The profile is already drawn here: the temporary card was the same person, so it goes (no second card).
+    if(scene.characters.some(c=>!c.temp&&c.id===p.id))scene.characters=scene.characters.filter(c=>c!==temp);
+    else{pendingTempConvert={id:temp.id,session:profileFormSession,chatKey:keyOf()};convertTemp(p);}
+  }
   const {restored}=attachSceneProfile(scene,p,[name,...profileSceneNames(p)]);
+  undo.addedCards=scene.characters.filter(c=>!before.has(c));undo.addedToScene=undo.addedCards.length>0;
   undo.removedNames=beforeNames.filter(n=>!scene.unregistered.includes(n));
   undo.removedDetails=beforeDetails.filter(c=>!scene.unregisteredDetails.some(d=>identityKey(d.entityName)===identityKey(c.entityName)));
   lastLink=undo;linkTarget=null;changed();renderScene();renderProfiles();renderMatching();
@@ -734,7 +740,7 @@ function undoLink(){
   }
   if(u.field)setChatBinding(u.field,u.previousBinding);
   if(scene===u.sceneRef){
-    if(u.addedToScene)scene.characters=scene.characters.filter(c=>c.id!==u.profileId);
+    if(u.addedToScene)scene.characters=scene.characters.filter(c=>u.addedCards?!u.addedCards.includes(c):c.id!==u.profileId); // only cards this link added
     if(u.temp)scene.characters.splice(Math.min(u.temp.at,scene.characters.length),0,clone(u.temp.card));
     scene.unregistered=[...new Set([...(scene.unregistered??[]),...(u.removedNames??[u.name])])];
     scene.unregisteredDetails??=[];
@@ -891,7 +897,7 @@ function holdOutfitCard(id,on){
 // Metadata changes are serialized. Failure rolls back the captured chat, never the current chat.
 async function writeChatOutfit(id,entry,manual){
   assertChat();if(isFree()||outfitSaving)throw new Error('복장 저장이 끝난 뒤 다시 선택해 주세요.');
-  const context=ctx(),key=keyOf(),startScene=scene,startFinal=finalOverride,startOptions=optionsOverride;
+  const context=ctx(),key=keyOf(),startScene=scene,startFinal=JSON.stringify(finalOverride),startOptions=JSON.stringify(optionsOverride);
   context.chatMetadata[KEY]??={};const outfits=context.chatMetadata[KEY].outfits??={};
   const old=outfits[id],c=scene.characters.find(c=>c.id===id),oldManual=c?.manualOutfit;
   if(entry===undefined)delete outfits[id];else outfits[id]=entry;
@@ -903,7 +909,7 @@ async function writeChatOutfit(id,entry,manual){
   if(keyOf()!==key||scene!==startScene||isFree())return false;
   // changed() rebuilds the final prompt from the new clothes; a final prompt or options edited while the save
   // was waiting are the user's newer work and stay (UI-050-03).
-  const keptFinal=finalOverride!==startFinal?finalOverride:null,keptOptions=optionsOverride!==startOptions?optionsOverride:null;
+  const keptFinal=JSON.stringify(finalOverride)!==startFinal?finalOverride:null,keptOptions=JSON.stringify(optionsOverride)!==startOptions?optionsOverride:null; // values, not references (UI-052-04)
   justSavedOutfit=id;changed();
   if(keptFinal||keptOptions){if(keptFinal)finalOverride=keptFinal;if(keptOptions)optionsOverride=keptOptions;updateFinal({force:true});scheduleDraft();}
   return true;
@@ -1170,6 +1176,7 @@ async function extract() {
   const s=settings();if(!s.profiles.length){openQuickProfile();report('등록된 프로필이 없어요. 아래에서 첫 프로필을 만들면 바로 추출할 수 있어요.');return;}
   if(ctx().streamingProcessor && !ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 추출해 주세요.');
   const selection=chooseSceneMessages(ctx().chat,{target:$('ncs-target').value===''?null:Number($('ncs-target').value),recent:Number($('ncs-recent').value),includeUser:$('ncs-include-user').checked});
+  stampSource(selection.source,ctx().chat);
   const startKey=keyOf(),rev=revision,ticket=++task,profiles=clone(s.profiles),outfits=clone(outfitState());
   const matching=matchChatProfiles(ctx(),profiles,selection.messages,chatBindings(),scene.characters.filter(c=>c.included!==false).map(c=>c.id));
   const wish=$('ncs-moment-wish').value.trim();
@@ -1234,7 +1241,19 @@ async function saveOutfit(id,lockOnly=null) {
   renderScene();notice(lockOnly!==null?(lockOnly?'복장을 잠갔어요. AI가 이 채팅에서 복장을 바꾸지 못해요.':'복장 잠금을 풀었어요. AI가 장면 속 복장 변경을 반영할 수 있어요.'):'채팅 기본 복장으로 지정했어요. 다음 그림에도 이어져요.');
 }
 function compactSource(source) {
-  return {...source,fingerprints:source.fingerprints.map(f=>({index:f.index,swipeId:f.swipeId,signature:f.signature??textSignature(f.text)}))};
+  return {...source,fingerprints:source.fingerprints.map(f=>({index:f.index,swipeId:f.swipeId,signature:f.signature??textSignature(f.text),...(f.sendDate?{sendDate:f.sendDate}:{})}))};
+}
+// The drawn message's send time: with it 메시지로 가기 can tell "this message, edited" from "another message
+// that moved into its place" (UI-052-03). Older images and restored drafts have none and are never guessed.
+// At generation the work may come from a restored draft (which keeps no send time): stamp it only when the
+// message at that number still matches the drawn text and swipe.
+function stampSource(source,chat,{check=false}={}){
+  for(const f of source?.fingerprints??[]){
+    const m=chat[f.index];if(f.index!==source.target||f.sendDate||typeof m?.send_date!=='string'||!m.send_date)continue;
+    if(check&&!(sourceValid({fingerprints:[f]},chat)))continue;
+    f.sendDate=m.send_date;
+  }
+  return source;
 }
 let compatChecked=false,compatDismissed=false,compatResult={level:'none',message:''};
 // Asks the server plugin for its version (no NovelAI call) and warns when the UI and server folders do not match.
@@ -1325,7 +1344,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   buildPayload(a,options); // Local validation before network or billing.
   if(!a.base.trim()&&!a.characters.length)throw new Error('장면이나 프롬프트를 먼저 입력해 주세요.');
   syncMoment();
-  const snapshot={scene:clone(scene),...(isFree()?{mode:'free',freeText:$('ncs-free-text').value}:{}),...(s.retainRawExtraction===true?{rawExtraction:stripReasoningBlocks(raw)}:{})};snapshot.scene.source=scene.source?compactSource(scene.source):null;
+  const snapshot={scene:clone(scene),...(isFree()?{mode:'free',freeText:$('ncs-free-text').value}:{}),...(s.retainRawExtraction===true?{rawExtraction:stripReasoningBlocks(raw)}:{})};snapshot.scene.source=scene.source?compactSource(stampSource(clone(scene.source),ctx().chat,{check:true})):null;
   if(workKey()!==startKey)return;
   dropUndo();setBusy(true,ticket);startProgress('generate',ticket);report('NAI에 생성 요청을 보내고 있어요. 창을 닫거나 채팅을 바꿔도 서버는 결과를 저장해요.');
   rememberDraft(startKey,null,{flush:true});const generationDraft=drafts.entry(startKey);generationDraft.pinned=true;const savedDraftVersion=generationDraft.version;
@@ -1573,25 +1592,60 @@ function fillJumpSlot(menu){
   slot.innerHTML=Array.isArray(c)?c.map(j=>`<button type="button" data-history-jump="${esc(item.id)}"${j.index===null?'':` data-jump-index="${j.index}"`} data-jump-kind="${j.kind}">${esc(j.label)}<small>${esc(j.note)}</small></button>`).join('')
     :`<button type="button" disabled data-unavailable="true">메시지로 가기<small>${esc(c.disabled)}</small></button>`;
 }
-// Opens the chat a history key points to (character or group), with SillyTavern's own chat switching.
+// True while SillyTavern is writing a reply (its stop button shows) or streaming one.
+function mainGenerating(){
+  const stop=document.getElementById('mes_stop'),c=ctx();
+  return !!(stop&&getComputedStyle(stop).display!=='none')||!!(c.streamingProcessor&&!c.streamingProcessor.isFinished);
+}
+// Opens the chat a history key points to with SillyTavern's own chat switching, checking every step before the
+// next one (UI-052-01/02): openCharacterChat renames the *selected* character's chat, and openGroupChat does not
+// select a group, so a refused or skipped selection must stop here rather than open the chat on the wrong card.
 async function openChatByKey(key){
   let o;try{o=JSON.parse(key);}catch{throw new Error('이 그림의 채팅을 알 수 없어요.');}
   const c=ctx(),unable='이 실리태번 버전에서는 다른 채팅으로 이동할 수 없어요. 그 채팅을 직접 연 뒤 다시 눌러 주세요.';
-  if(o.group){if(typeof c.openGroupChat!=='function')throw new Error(unable);await c.openGroupChat(o.group,o.chat);}
-  else{
+  if(mainGenerating())throw new Error('본편 답변을 만드는 중이에요. 끝난 뒤 다시 눌러 주세요.');
+  const inGroup=c.groupId!==null&&c.groupId!==undefined;
+  if(o.group){
+    // SillyTavern exposes no way to select another group, so only chats of the group already open are reachable.
+    if(!inGroup||String(c.groupId)!==String(o.group))throw new Error('다른 그룹의 채팅으로는 바로 이동할 수 없어요. 그 그룹을 먼저 연 뒤 다시 눌러 주세요.');
+    const group=(c.groups??[]).find(g=>String(g.id)===String(o.group));
+    if(!group?.chats?.includes?.(o.chat))throw new Error('그 그룹 채팅을 찾지 못했어요. 지워졌거나 이름이 바뀌었을 수 있어요.');
+    if(typeof c.openGroupChat!=='function')throw new Error(unable);
+    await c.openGroupChat(o.group,o.chat);
+  }else{
     const chid=(c.characters??[]).findIndex(x=>x.avatar===o.card);if(chid<0)throw new Error('그 채팅의 캐릭터 카드를 찾지 못했어요. 지워졌거나 이름이 바뀌었을 수 있어요.');
-    if(typeof c.openCharacterChat!=='function'||(String(c.characterId)!==String(chid)&&typeof c.selectCharacterById!=='function'))throw new Error(unable);
-    if(String(c.characterId)!==String(chid))await c.selectCharacterById(String(chid));
+    if(typeof c.openCharacterChat!=='function'||typeof c.selectCharacterById!=='function')throw new Error(unable);
+    // The chat must exist: openCharacterChat would otherwise start an empty chat under that name.
+    let names=null;
+    try{const r=await fetch('/api/characters/chats',{method:'POST',headers:c.getRequestHeaders(),body:JSON.stringify({avatar_url:o.card})});
+      const data=r.ok?await r.json():null;if(data&&typeof data==='object'&&data.error!==true)names=Object.values(data).map(x=>String(x?.file_name??'').replace(/\.jsonl$/,''));}catch{}
+    if(!names)throw new Error('그 캐릭터의 채팅 목록을 확인하지 못했어요. 잠시 뒤 다시 눌러 주세요.');
+    if(!names.includes(String(o.chat)))throw new Error('그 채팅을 찾지 못했어요. 지워졌거나 이름이 바뀌었을 수 있어요.');
+    const right=()=>{const n=ctx();return (n.groupId===null||n.groupId===undefined)&&String(n.characterId)===String(chid)&&n.characters?.[chid]?.avatar===o.card;};
+    if(!right()){
+      await c.selectCharacterById(String(chid));
+      if(!right())throw new Error('캐릭터를 바꾸지 못했어요. 채팅 저장이나 본편 답변이 끝난 뒤 다시 눌러 주세요.');
+    }
+    if(mainGenerating())throw new Error('본편 답변을 만드는 중이에요. 끝난 뒤 다시 눌러 주세요.');
+    if(!right())throw new Error('캐릭터가 바뀌어서 이동을 멈췄어요. 다시 눌러 주세요.');
     if(keyOf()!==key)await ctx().openCharacterChat(o.chat);
   }
   for(let i=0;i<150&&keyOf()!==key;i++)await new Promise(r=>setTimeout(r,100));
   if(keyOf()!==key)throw new Error('채팅을 열지 못했어요. 그 채팅을 직접 연 뒤 다시 눌러 주세요.');
 }
-// Scrolls the chat to one message, loading older messages when it is not shown yet, and lights it for 2 s.
+// Scrolls the chat to one message, loading older messages while each press still adds some (no fixed count,
+// UI-052-06), and lights it for 2 s. Stops when the chat changes or nothing more loads.
 async function scrollToMessage(index){
-  const find=()=>document.querySelector(`#chat .mes[mesid="${index}"]`);
-  for(let i=0;i<60&&!find();i++){const more=document.getElementById('show_more_messages');if(!more)break;more.click();await new Promise(r=>setTimeout(r,250));}
-  const el=find();if(!el)return false;
+  const key=keyOf(),find=()=>document.querySelector(`#chat .mes[mesid="${index}"]`),count=()=>document.querySelectorAll('#chat .mes').length;
+  let shown=0;
+  while(!find()&&keyOf()===key){
+    const more=document.getElementById('show_more_messages');if(!more)break;
+    const before=count();more.click();
+    let grew=false;for(let t=0;t<40&&keyOf()===key;t++){await new Promise(r=>setTimeout(r,100));if(count()>before||find()){grew=true;break;}}
+    if(!grew)break;
+    if(++shown%10===0)toast(`이전 메시지를 불러오는 중이에요… (${count()}개)`);
+  }
+  const el=find();if(!el||keyOf()!==key)return false;
   el.scrollIntoView({block:'center',behavior:'smooth'});
   el.classList.remove('ncs-jump-flash');void el.offsetWidth;el.classList.add('ncs-jump-flash');
   setTimeout(()=>el.classList.remove('ncs-jump-flash'),2000);return true;

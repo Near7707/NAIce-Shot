@@ -26,7 +26,9 @@ async function open(width,{cardName,extra=[]}={}){
   if(u.pathname.endsWith('/history'))return r.fulfill({json:{items,total:items.length,hasMore:false,scope:u.searchParams.get('scope')||'chat',kind:u.searchParams.get('kind')||'all',chats:[],imageCount:items.length,bytes:1}});
   if(u.pathname.endsWith('/draft'))return r.fulfill({json:r.request().method()==='GET'?{revision:null,work:null}:{revision:'r'}});
   return r.fulfill({json:{keyConfigured:true,version:'0.1.13',features,minClient:'0.1.44',subscription:{tier:3,perks:{unlimitedImageGeneration:true},anlas:{subscription:1000,purchased:0}}}});});
- await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{mock.extensionSettings.naice_shot.allowAnlas=true;}));
+ await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{mock.extensionSettings.naice_shot.allowAnlas=true;mock.chat.forEach((m,i)=>m.send_date=`2026-01-01 ${i}`);}));
+ // SillyTavern's chat list for a card (checked before switching, so a missing chat is never created).
+ await page.route('**/api/characters/chats',r=>r.fulfill({json:{0:{file_name:'A.jsonl'},1:{file_name:'B.jsonl'}}}));
  if(cardName)await page.addInitScript(n=>document.addEventListener('DOMContentLoaded',()=>{mock.characters[0].name=n;mock.name2=n;}),cardName);
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
  await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();

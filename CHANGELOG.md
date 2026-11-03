@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.53 — 2026-11-04 (extension only; server v0.1.13 unchanged)
+
+Fixes from GPT's review of 0.1.52 (checked against SillyTavern 1.19.0 staging).
+
+- **메시지로 가기 to another chat checks each step before the next (UI-052-01/02).** SillyTavern's `openCharacterChat` renames the *selected* character's chat and `openGroupChat` does not select a group, so:
+  - while SillyTavern is writing a reply, nothing moves;
+  - the chat must be in that character's chat list first (a missing chat is never created);
+  - after `selectCharacterById` the selected character is checked again; if SillyTavern refused (saving, replying), it stops with a message;
+  - another group's chat is not opened (SillyTavern offers no way to select a group); chats of the group already open still work.
+- **A message that slid into the old number is no longer taken for the source (UI-052-03).** New images remember the drawn message's send time (taken at extraction, or at generation when the message still matches); "edited" is claimed only for that same message. Without it (older images, restored drafts) a changed number is reported as not found, and 본문에 넣기 (자동) asks.
+- One-off generation options edited while an outfit save waits are kept (compared by value, UI-052-04).
+- Linking a temporary person to a profile already in the scene merges them instead of making a second card; undoing a link removes only the cards that link added (UI-052-05).
+- Older messages keep loading while each press of SillyTavern's "show more" adds some; no fixed limit, with a progress toast (UI-052-06).
+- Tests: `browser-v0153`; `browser-v0151` mocks the chat list; `browser-v0118` also checks that the chat link does not follow to another chat and that group members still cannot take a shared name.
+
 ## 0.1.52 — 2026-11-04 (extension only; server v0.1.13 unchanged)
 
 Fixes from GPT's review of 0.1.50, applied on top of 0.1.51.

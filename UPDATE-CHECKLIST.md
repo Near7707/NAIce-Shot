@@ -1,5 +1,15 @@
 # Installation and update checklist
 
+## v0.1.53
+
+Update the extension and refresh. No server update is needed.
+
+1. 메시지로 가기 on an image from another character's chat while a reply is being written: it says to wait and stays put.
+2. On an image from another group's chat: it asks you to open that group first.
+3. Delete the message an image was made from in a chat with later messages: the line is greyed (not the next message).
+4. In a long chat (hundreds of messages), 메시지로 가기 on an early image still reaches it.
+
+
 ## v0.1.52
 
 Update the extension and refresh. No server update is needed.

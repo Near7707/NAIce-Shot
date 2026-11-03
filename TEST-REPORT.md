@@ -1,3 +1,11 @@
+# v0.1.53 validation — 2026-11-04
+
+- Extension Node suite: **140 passed, 0 failed** (`message-jump.test.mjs` now covers: edited only for the same send time, a slid-in message is not the source, no send time is never guessed, edited and moved).
+- Server Node suite: **25 passed** (server unchanged).
+- **42 of 42 Chromium browser scripts passed.** New `browser-v0153` (fails on 0.1.52 code): another group, refused character selection, a reply being written and a missing chat each stop before anything is opened; a slid-in message is not taken for the source and 자동 넣기 asks; one-off Guidance edited during an outfit save is kept; a temporary person linked to a profile already in the scene merges and undo keeps that profile; 700 messages at 10 per press still reach #0. `browser-v0118` adds other-chat isolation and the group-member refusal.
+- SillyTavern 1.19.0 staging source (`selectCharacterById`, `openCharacterChat`, `openGroupChat`, `openGroupById`, `getContext`) read to shape the checks; not run against a live SillyTavern here.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+
 # v0.1.52 validation — 2026-11-04
 
 - Extension Node suite: **140 passed, 0 failed**.

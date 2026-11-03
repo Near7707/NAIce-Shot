@@ -14,7 +14,7 @@ export function targetFingerprint(source) {
 // Finds the message an image was made from.
 // state: 'same' (found unchanged), 'swipe' (another swipe is showing; the drawn one still exists),
 // 'moved' (same text at another position, e.g. after earlier messages were deleted),
-// 'edited' (the position still holds a message, but its text changed), 'missing' (nothing to go to).
+// 'edited' (the same message by its send time, with changed text), 'missing' (cannot be confirmed: never guessed).
 export function locateSource(source, chat) {
   const f = targetFingerprint(source);
   if (!f || !Array.isArray(chat)) return { index: null, state: 'missing' };
@@ -29,7 +29,13 @@ export function locateSource(source, chat) {
     if (sameText(f, m.mes)) return { index: i, state: 'moved' };
     if (Array.isArray(m.swipes) && sameText(f, m.swipes[f.swipeId])) return { index: i, state: 'swipe' };
   }
-  if (usable(f.index)) return { index: f.index, state: 'edited' };
+  // Edited: only when the message is provably the same one (its send time), wherever it is now. A message that
+  // merely sits at the old number is not guessed to be it (UI-052-03).
+  if (f.sendDate) {
+    if (chat[f.index]?.send_date === f.sendDate) return { index: f.index, state: 'edited' };
+    const i = order.find(i => chat[i].send_date === f.sendDate);
+    if (i !== undefined) return { index: i, state: 'edited' };
+  }
   return { index: null, state: 'missing' };
 }
 

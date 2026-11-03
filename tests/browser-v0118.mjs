@@ -2,7 +2,7 @@
 // the generate warning and the pending profile link never cross into another chat; the warning is a
 // real modal (Tab stays inside, Escape closes only it); "don't ask again" is saved only by 그래도 그리기
 // and can be turned back on; a failed save keeps the planned link; linking adds the exact alias,
-// refuses a name another profile already uses, links group members' cards, and can be undone;
+// links the card character through this chat when names clash (group members are still refused), links group members' cards, and can be undone;
 // group member descriptions get {{char}}/{{user}} filled.
 import http from 'node:http';
 import fs from 'node:fs/promises';
@@ -103,6 +103,8 @@ try{
  await page.locator('#ncs-missing-main [data-missing-do="link-confirm"]').click();
  await page.waitForFunction(()=>mock.chatMetadata.naice_shot?.bindings?.characterProfileId==='lp');
  assert.deepEqual(await page.evaluate(()=>mock.extensionSettings.naice_shot.profiles.find(p=>p.id==='lp').aliases),[]);
+ // The choice belongs to this chat only: another chat does not inherit it.
+ await page.evaluate(()=>mock.switchChat('B'));assert.equal(await page.evaluate(()=>mock.chatMetadata.naice_shot?.bindings?.characterProfileId),undefined);
  await page.close();
  t=await setup({profiles:[profile('mira','Mira'),profile('lp','Leo Park',{subject:'boy'})],extraction:sceneOf([mira],['Leo'])});page=t.page;
  await page.locator('#ncs-missing-main [data-missing-do="link"]').click();await page.locator('#ncs-link-profile').selectOption('lp');
@@ -131,5 +133,12 @@ try{
  await page.waitForFunction(()=>mock.extensionSettings.naice_shot.profiles.find(p=>p.id==='kd').cardKey==='Kai.png');
  assert.ok(await page.evaluate(()=>mock.extensionSettings.naice_shot.profiles.find(p=>p.id==='kd').aliases.includes('Kai')));
  assert.deepEqual(t.errors,[]);await page.close();
- console.log('PASS: warning is a real modal (Tab/Escape), closes on chat switch and panel close without generating or saving, cancel never saves "don\'t ask", re-enable works; pending link stays in its chat and survives a failed save; exact alias added despite partial name match, name owned by another profile refused, undo restores alias/link/scene; group member card link and filled {{char}}/{{user}}');
+ // A group member has no chat link to settle a shared name, so taking a name another profile owns is still refused.
+ t=await setup({profiles:[profile('mira','Mira'),profile('k1','Kai'),profile('k2','Kai'),profile('kd','Kade',{subject:'boy'})],extraction:sceneOf([mira],['Kai']),init:groupInit});page=t.page;
+ await page.locator('#ncs-missing-main [data-missing-do="link"]').click();await page.locator('#ncs-link-profile').selectOption('kd');
+ await page.locator('#ncs-missing-main [data-missing-do="link-confirm"]').click();
+ await page.waitForFunction(()=>/이미 Kai, Kai 프로필의 이름·별칭이에요/.test(document.querySelector('#ncs-notice').textContent));
+ assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.profiles.find(p=>p.id==='kd').aliases.includes('Kai')),false);
+ assert.deepEqual(t.errors,[]);await page.close();
+ console.log('PASS: warning is a real modal (Tab/Escape), closes on chat switch and panel close without generating or saving, cancel never saves "don\'t ask", re-enable works; pending link stays in its chat and survives a failed save; exact alias added despite partial name match, card character linked through this chat only (no alias stolen), group member name owned by other profiles refused, undo restores alias/link/scene; group member card link and filled {{char}}/{{user}}');
 }finally{await browser.close();server.close();}
