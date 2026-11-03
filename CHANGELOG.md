@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.57 — 2026-11-04 (extension only; server v0.1.13 unchanged, its README updated)
+
+다듬기 (from the mock-ups).
+
+- **Settings → 공통 이미지 프리셋:** [불러오기] and [+ 새 프리셋 만들기] stay on top; the name and save buttons moved to a **"프리셋으로 저장" box at the end of NAI 생성 설정**. Buttons follow the selection: a chosen preset → **[변경 저장 · 이름]** is the main button and asks before overwriting, with [새 프리셋으로 저장] and [선택 프리셋 삭제]; none → only [새 프리셋으로 저장]. Short fields sit two per row on phones too (모델·크기, 스텝·Guidance, Seed·CFG Rescale).
+- **Person card clothes:** the box is called **이번 그림 복장**; a **"이 복장을"** row holds [이 채팅 기본으로] / [옷장에 저장] (moved out of "이 채팅에서", which keeps the default outfit choice and the lock). The lock explanation is folded under **"ⓘ 잠금이 뭐예요?"** with the agreed wording. Saving holds both places.
+- **고정 외형 · 전용 태그** can be edited in the card; a small **[프로필 업데이트]** asks first ("…다른 채팅에서 만드는 그림에도 바뀐 외형이 적용돼요") and offers one **[↶ 업데이트 취소]**.
+- **「추출 AI 응답 원문 추가 보관」** replaces "추출 AI 응답 저장", with the agreed text: generation records (JSON) are saved either way; the option only adds the raw response; privacy note; a "자세히" fold (no chat message text is copied, but what the AI quoted can remain).
+- **PC:** everything sits in one 640px column in the middle, so fields and button groups end together.
+- **History:** [모두 선택] ↔ **[모두 해제]** (clears whenever anything is picked); **"↻ 새로고침"** with words; the scope explanation folded under "ⓘ 이 보기 설명"; a folded **"ⓘ 그림과 기록은 어디에 저장되나요?"** with the checked paths and what deleting does. The PNG warning stays open.
+- **Chat message ⋯ menus** use the theme's colours (they were always the default dark).
+- Server README: what the JSON record holds and what deleting removes.
+- Tests: new `browser-v0157`; older scripts updated for the new preset buttons, 모두 해제, ↻ 새로고침, the 640px column and the moved outfit buttons.
+
 ## 0.1.56 — 2026-11-04 (extension only; server v0.1.13 unchanged)
 
 Fixes from GPT's review of 0.1.55.

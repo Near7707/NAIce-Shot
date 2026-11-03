@@ -614,3 +614,26 @@
 #naice-shot-dialog .ncs-request-again {margin-top:8px;}
 #naice-shot-dialog .ncs-request-again > button {width:100%;}
 #naice-shot-dialog .ncs-source-actions {margin-top:10px;}
+/* 0.1.57 설정: short fields two per row even on phones; the preset save box closes the NAI 생성 설정 section. */
+#naice-shot-dialog .ncs-pair {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 10px;}
+#naice-shot-dialog .ncs-pair > label {min-width:0;}
+#naice-shot-dialog .ncs-preset-savebox {margin:14px 0 12px;padding:12px;border:2px solid var(--ncs-edge);border-radius:var(--ncs-radius-card);background:color-mix(in srgb,var(--ncs-edge) 8%,var(--ncs-surface));}
+#naice-shot-dialog .ncs-preset-savebox h4 {margin:0 0 6px;font-size:15px;}
+#naice-shot-dialog .ncs-outfit-to {margin-top:10px;padding-top:8px;border-top:1px dashed var(--ncs-rule);}
+#naice-shot-dialog .ncs-outfit-to > small {display:block;margin-bottom:4px;font-weight:700;color:var(--ncs-fg);}
+#naice-shot-dialog .ncs-lock-help {margin:2px 0 6px 32px;}
+#naice-shot-dialog .ncs-lock-help > summary {cursor:pointer;font-size:13px;color:var(--ncs-accent-text,var(--ncs-fg));text-decoration:underline dotted;}
+#naice-shot-dialog .ncs-lock-help > small {display:block;margin-top:4px;}
+#naice-shot-dialog .ncs-fixed-look textarea {width:100%;}
+#naice-shot-dialog .ncs-look-actions {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;max-width:560px;margin-top:6px;}
+#naice-shot-dialog .ncs-look-actions > button {min-height:38px;margin:0;font-size:13px;}
+/* 0.1.57 PC: everything in one 640px column in the middle, so fields and button groups end on the same line. */
+@media (min-width:700px){
+ #naice-shot-dialog .ncs-content > [data-page] {max-width:640px;margin-left:auto;margin-right:auto;}
+ #naice-shot-dialog .ncs-actions,#naice-shot-dialog .ncs-look-actions {max-width:none;}
+}
+#naice-shot-dialog .ncs-history-more {margin:4px 0 8px;}
+#naice-shot-dialog .ncs-history-more > summary {cursor:pointer;font-size:13px;color:var(--ncs-accent-text,var(--ncs-fg));}
+#naice-shot-dialog .ncs-history-more ul {margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.55;}
+#naice-shot-dialog .ncs-history-more code {font-size:12px;overflow-wrap:anywhere;}
+#naice-shot-dialog .ncs-refresh-button {width:auto;min-height:34px;margin:0;padding:4px 12px;font-size:13px;white-space:nowrap;}

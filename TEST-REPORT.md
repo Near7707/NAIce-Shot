@@ -1,3 +1,12 @@
+# v0.1.57 validation — 2026-11-04
+
+- Extension Node suite: **140 passed, 0 failed**.
+- Server Node suite: **25 passed** (server code unchanged; README only).
+- **46 of 46 Chromium browser scripts passed.** New `browser-v0157` at 320/375/1100px: preset buttons follow the selection and [변경 저장] asks first (취소 keeps the saved values), two-per-row fields, retention wording and fold, 640px PC column with fields and buttons ending together, "이 복장을" row held while saving, folded lock help, fixed look update with confirm and undo, [모두 선택] ↔ [모두 해제], "↻ 새로고침", folded history notes with the storage paths, PNG warning open; chat message menus take the milk theme's colours.
+- Visual check: phone and PC person card, settings and history (local screenshots only).
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern, iPhone Safari.
+
 # v0.1.56 validation — 2026-11-04
 
 - Extension Node suite: **140 passed, 0 failed** (`moments.test.mjs` walks the whole moment schema: every object property required, no extra properties).

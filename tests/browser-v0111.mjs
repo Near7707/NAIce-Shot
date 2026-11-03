@@ -27,7 +27,7 @@ try{
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
  await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
  await page.locator('[data-tab="settings"]').click();
- assert.equal(await page.locator('[data-action="save-preset"]').innerText(),'덮어쓰기');assert.equal(await page.locator('[data-action="save-preset"]').isDisabled(),true,'nothing to overwrite yet');
+ assert.equal(await page.locator('[data-action="save-preset"]').isHidden(),true,'nothing to overwrite yet (v0.1.57: hidden until a preset is chosen)');
  assert.equal(await page.locator('[data-action="save-preset-as"]').innerText(),'새 프리셋으로 저장');
  assert.equal(await page.locator('[data-action="new-preset"]').innerText(),'+ 새 프리셋 만들기');
  assert.equal(await page.locator('[data-action="update-preset"]').count(),0);
@@ -58,7 +58,7 @@ try{
  assert.equal(await page.locator('#ncs-common-preset').inputValue(),'');assert.equal(await page.locator('#ncs-common-preset-name').inputValue(),'');
  assert.equal(await selected(),'');assert.equal((await presets()).length,2,'saved presets untouched');
  assert.notEqual(await page.evaluate(()=>document.activeElement?.id),'ncs-common-preset-name','starting a preset does not summon the keyboard');
- assert.match(await page.locator('#ncs-preset-save-hint').innerText(),/따로 저장해요/);
+ assert.match(await page.locator('#ncs-preset-save-hint').innerText(),/새 프리셋을 저장해요. 기존 프리셋은 덮어쓰지 않아요/);
  // Empty name is refused with a clear message.
  await click('save-preset-as');assert.match(await page.locator('#ncs-notice').innerText(),/저장할 이름을 입력해 주세요/);
  // Already blank: no confirmation needed.

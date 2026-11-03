@@ -123,7 +123,7 @@ try {
  assert.equal(await page.locator('#ncs-size-preset').inputValue(),'portrait');assert.equal(await page.locator('#ncs-sampler').inputValue(),'k_euler');assert.equal(await page.locator('#ncs-scheduler').count(),0,'Noise Schedule is not offered');
  assert.doesNotMatch(await page.locator('#ncs-preset-state').innerText(),/수정됐어요/);
  await page.locator('#ncs-cfg').fill('0.3');
- await page.locator('#ncs-negative').fill('bad anatomy');await click('save-preset'); // a preset is selected: 프리셋 저장 overwrites it
+ await page.locator('#ncs-negative').fill('bad anatomy');page.once('dialog',d=>d.accept());await click('save-preset'); // v0.1.57: [변경 저장] asks first // a preset is selected: 프리셋 저장 overwrites it
  assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.imagePresets[0].negative),'bad anatomy');
  assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.imagePresets[0].options.cfgRescale),0.3);
  await page.locator('#ncs-cfg').fill('0');await page.locator('#ncs-common-preset').selectOption('');await page.locator('#ncs-common-preset').selectOption(presetId);

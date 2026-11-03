@@ -42,7 +42,7 @@ try{
   await page.locator('[data-tab="scene"]').click();await page.locator('[data-action="extract"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&document.querySelector('[data-character="leo"]'));
   const text=await card.innerText();for(const label of ['이번 그림','이 채팅에서','채팅 기본 복장','복장 잠금','옷장에 저장'])assert.ok(text.includes(label),label);
   assert.match(text,/채팅 기본 복장이 없어서 프로필 기본 복장을 기준으로 해요/);
-  assert.match(text,/메시지에 복장 설명이 없으면 이 채팅에서 기본으로 입는 옷이에요./);assert.match(text,/AI가 이 채팅에서 복장을 바꾸지 못하게 해요/);assert.match(text,/AI가 찾은 새 옷/);
+  assert.match(text,/메시지에 복장 설명이 없으면 이 채팅에서 기본으로 입는 옷이에요./);assert.match(await card.locator('.ncs-lock-help').innerText(),/잠금이 뭐예요/);assert.equal(await card.locator('.ncs-lock-help').evaluate(d=>d.open),false,'lock help folded');assert.match(text,/AI가 찾은 새 옷/);
   // 이 채팅 기본 복장: picking 잠옷 saves it for this chat and puts it on this image, over the AI's new outfit.
   await card.locator('[data-chat-outfit]').selectOption({label:'잠옷'});
   await page.waitForFunction(()=>mock.chatMetadata.naice_shot?.outfits?.leo?.value==='pajamas, slippers');
@@ -50,7 +50,7 @@ try{
   // Lit at a glance: a badge by the name, the picker and the button.
   assert.match(await card.locator('.ncs-clothes-badges').innerText(),/채팅 기본 복장/);
   assert.equal(await card.locator('select[data-chat-outfit].ncs-on').count(),1);
-  assert.equal(await card.locator('[data-save-outfit]').getAttribute('aria-pressed'),'true');assert.match(await card.locator('[data-save-outfit]').innerText(),/✓ 채팅 기본 복장/);
+  assert.equal(await card.locator('[data-save-outfit]').getAttribute('aria-pressed'),'true');assert.match(await card.locator('[data-save-outfit]').innerText(),/✓ 이 채팅 기본 복장/);
   // 평생 박제, then a new extraction with different clothes: the image keeps the locked pajamas.
   await card.locator('[data-lock]').check();await page.waitForFunction(()=>mock.chatMetadata.naice_shot.outfits.leo.locked===true);
   assert.match(await card.locator('.ncs-clothes-badges').innerText(),/복장 잠금/);

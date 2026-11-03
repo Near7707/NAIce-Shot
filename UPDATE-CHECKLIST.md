@@ -1,5 +1,15 @@
 # Installation and update checklist
 
+## v0.1.57
+
+Update the extension and refresh. No server update is needed.
+
+1. Settings: choose a preset → [변경 저장 · 이름] asks first; [+ 새 프리셋 만들기] leaves only [새 프리셋으로 저장].
+2. Person card: "이 복장을" row; "ⓘ 잠금이 뭐예요?" opens the explanation; edit 고정 외형 and press [프로필 업데이트], then [↶ 업데이트 취소].
+3. History: pick one card → the button says 모두 해제; "ⓘ 그림과 기록은 어디에 저장되나요?".
+4. A chat message's ⋯ menu matches the theme.
+
+
 ## v0.1.56
 
 Update the extension and refresh. No server update is needed.

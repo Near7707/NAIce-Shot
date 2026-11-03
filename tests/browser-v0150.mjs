@@ -47,13 +47,13 @@ try{
   // UI-049-04: rebuilding the card (이번 그림 → 비우기) keeps the hold and "저장 중…".
   await card.locator('[data-empty-outfit]').click();
   assert.equal(await card.locator('.ncs-outfit-saving').count(),1,'saving note survives a rebuild');
-  assert.equal(await card.locator('[data-outfit-chat] [data-save-outfit]').isDisabled(),true,'chat controls stay held');
+  assert.equal(await card.locator('[data-outfit-hold] [data-save-outfit]').isDisabled(),true,'chat controls stay held');
   assert.equal(await page.locator('#ncs-work-fields').isDisabled(),false,'the drawing window is not held');
   await once.fill('green scarf');
   await page.evaluate(()=>mock.failMetadata());await page.waitForFunction(()=>!document.querySelector('.ncs-outfit-saving'));
   assert.equal(await once.inputValue(),'green scarf','later edit kept after the failed save');
   assert.equal(await page.evaluate(()=>mock.chatMetadata.naice_shot?.outfits?.leo?.value),undefined,'failed save rolled back');
-  assert.equal(await card.locator('[data-outfit-chat] [data-save-outfit]').isDisabled(),false);
+  assert.equal(await card.locator('[data-outfit-hold] [data-save-outfit]').isDisabled(),false);
   await page.evaluate(()=>{mock.saveMetadata=mock.normalSave;});
   // An unchanged field still returns to its value from before the failed save.
   await page.evaluate(()=>{mock.saveMetadata=async()=>{throw Error('mock failure');};});await card.locator('[data-save-outfit]').click();
