@@ -1,3 +1,11 @@
+# v0.1.52 validation — 2026-11-04
+
+- Extension Node suite: **140 passed, 0 failed**.
+- Server Node suite: **25 passed** (server unchanged).
+- **41 of 41 Chromium browser scripts passed.** New `browser-v0152`: final prompt edited while an outfit save waits survives the save (fails on 0.1.51 code); a same-name temporary person becomes the profile when made or linked from the card-character box, and link undo restores it; same-name profiles get the box and link through this chat's binding. `browser-v0118` updated: linking the card character to one of several same-name profiles now succeeds through the chat link and still adds no alias.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: real SillyTavern, iPhone Safari.
+
 # v0.1.51 validation — 2026-11-03
 
 - Extension Node suite: **140 passed, 0 failed** (new `message-jump.test.mjs`: made message found unchanged, on another swipe, moved after deletions, edited, missing, hidden; one or two targets).

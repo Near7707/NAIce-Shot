@@ -1,5 +1,14 @@
 # Installation and update checklist
 
+## v0.1.52
+
+Update the extension and refresh. No server update is needed.
+
+1. Press 지금 옷을 기본으로 and edit the final prompt right away: your edit stays after saving.
+2. In a chat whose card character has no profile, add a temporary person with the same name, then 직접 만들기 from the box: one card, not two.
+3. With two profiles of the same name as the card character: the box offers 기존 프로필 연결하기.
+
+
 ## v0.1.51
 
 Update the extension and refresh. No server update is needed.

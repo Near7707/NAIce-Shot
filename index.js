@@ -661,7 +661,7 @@ function missingState(){
   // The card character has no profile, but the extraction did not list them among the visible people: the notice
   // still names them, so offer the same make/link buttons (they are not counted as left out of this picture).
   const card=people.find(p=>p.role==='character');
-  if(card&&scene.source&&!state.main.some(m=>m.person===card)&&!nameOwners(card.name).length){
+  if(card&&scene.source&&!state.main.some(m=>m.person===card)){
     const m=matchChatProfiles(ctx(),settings().profiles,[],chatBindings());
     if(m.characterName&&!m.characterProfileId&&!scene.characters.some(c=>c.id&&c.id===chatBindings().characterProfileId))state.absent.push({name:m.characterName,person:card});
   }
@@ -690,9 +690,9 @@ function renderMissingMain(main,absent=[]){
   const profiles=settings().profiles,undo=lastLink&&lastLink.chatKey===keyOf()?lastLink:null;
   $('ncs-missing-main').innerHTML=(undo?`<div class="ncs-link-done">"${esc(undo.name)}"을(를) ${esc(undo.profileName)} 프로필에 연결했어요. 잘못 연결했다면 <button type="button" data-missing-do="link-undo" data-missing-name="${esc(undo.name)}">연결 되돌리기</button></div>`:'')+[...main,...absent].map(({name,person})=>{
     const n=esc(name),source=sourceLabel(person.role),hasText=!!descriptionFor(ctx(),person).text,linking=linkTarget===name;
-    const reason=nameOwners(name).length?'프로필 연결을 확정하지 못해서':'프로필이 없어서',away=absent.some(a=>a.name===name);
-    return `<div class="ncs-missing-main"><strong>⚠ ${away?`${esc(roleLabel(person.role))} "${n}"에 연결된 프로필이 없어요.`:`${esc(roleLabel(person.role))} "${n}"의 ${reason} 이번 그림에 안 그려져요.`}</strong>
-<p>${away?'이번 장면에서는 AI가 찾지 못했어요. 프로필을 만들거나 연결하면 장면에 넣을 수 있고, 다음 추출부터 알아봐요.':'프로필을 만들거나 이미 만든 프로필에 연결하면 바로 장면에 들어가요.'}</p>
+    const reason=nameOwners(name).length?'프로필 연결을 확정하지 못해서':'프로필이 없어서',away=absent.some(a=>a.name===name),many=nameOwners(name).length>1;
+    return `<div class="ncs-missing-main"><strong>⚠ ${away?`${esc(roleLabel(person.role))} "${n}"${many?'과(와) 이름이 같은 프로필이 여러 개라 연결하지 못했어요.':'에 연결된 프로필이 없어요.'}`:`${esc(roleLabel(person.role))} "${n}"의 ${reason} 이번 그림에 안 그려져요.`}</strong>
+<p>${away&&many?'이번 장면에서는 AI가 찾지 못했어요. "기존 프로필 연결하기"로 하나를 고르면 이 채팅에서는 그 프로필을 써요.':away?'이번 장면에서는 AI가 찾지 못했어요. 프로필을 만들거나 연결하면 장면에 넣을 수 있고, 다음 추출부터 알아봐요.':'프로필을 만들거나 이미 만든 프로필에 연결하면 바로 장면에 들어가요.'}</p>
 <div class="ncs-row"><button type="button" data-missing-do="direct" data-missing-name="${n}">직접 만들기</button><button type="button" class="ncs-primary" data-missing-do="source" data-missing-name="${n}" ${hasText?'':'disabled'}>${esc(source)}에서 만들기</button>${profiles.length?`<button type="button" data-missing-do="link" data-missing-name="${n}" aria-expanded="${linking}">기존 프로필 연결하기</button>`:''}</div>
 <small>${hasText?esc(SOURCE_NOTE(source)):`${esc(source)} 설명이 비어 있어서 ${esc(source)}에서 만들 수 없어요. 직접 만들어 주세요.`}</small>
 ${renderMissingLink(name,person,profiles)}</div>`;
@@ -703,11 +703,13 @@ function renderLeftOut(main,others){
   const line=$('ncs-left-out');line.hidden=!list.length&&!skip;
   line.innerHTML=(list.length?`이번 그림에서 빠지는 인물: ${esc(list.join(', '))}`:'')+(skip?`<span class="ncs-left-out-skip">${list.length?' · ':''}이 채팅에서는 생성 전 경고창을 띄우지 않아요. <button type="button" data-action="missing-reenable">경고창 다시 켜기</button></span>`:'');
 }
+// A temporary person already in the scene under this name (so making or linking a profile replaces it).
+const sameNameTemp=name=>scene.characters.find(c=>c.temp&&c.name&&identityKey(c.name)===identityKey(name))??null;
 function linkMissing(name,person){
   const s=settings(),p=s.profiles.find(x=>x.id===$('ncs-link-profile').value);if(!p)throw new Error('연결할 프로필을 골라 주세요.');
-  const owners=nameOwners(name,p.id);
-  if(owners.length)throw new Error(`"${name}"은(는) 이미 ${owners.map(o=>o.name).join(', ')} 프로필의 이름·별칭이에요. 같은 이름이 두 프로필에 있으면 자동 연결이 안 돼요. 그 프로필을 고르거나, 그쪽 별칭을 먼저 정리해 주세요.`);
-  const addAlias=$('ncs-link-alias').checked&&![p.name,...p.aliases].some(x=>exactName(x,name));
+  const field0=person.role==='character'?'characterProfileId':person.role==='user'?'userProfileId':'',owners=nameOwners(name,p.id);
+  if(owners.length&&!field0)throw new Error(`"${name}"은(는) 이미 ${owners.map(o=>o.name).join(', ')} 프로필의 이름·별칭이에요. 같은 이름이 두 프로필에 있으면 자동 연결이 안 돼요. 그 프로필을 고르거나, 그쪽 별칭을 먼저 정리해 주세요.`);
+  const addAlias=$('ncs-link-alias').checked&&!owners.length&&![p.name,...p.aliases].some(x=>exactName(x,name));
   const setCard=person.role==='member'&&person.avatar&&!p.cardKey&&!s.profiles.some(x=>x.cardKey===person.avatar);
   const field=person.role==='character'?'characterProfileId':person.role==='user'?'userProfileId':'';
   const undo={chatKey:keyOf(),name,profileId:p.id,profileName:p.name,aliasAdded:addAlias,cardKeySet:setCard?person.avatar:'',field,previousBinding:field?chatBinding(field):'',addedToScene:!scene.characters.some(c=>c.id===p.id),sceneRef:scene};
@@ -716,6 +718,8 @@ function linkMissing(name,person){
   }
   if(field)setChatBinding(field,p.id);
   const beforeNames=[...(scene.unregistered??[])],beforeDetails=clone(scene.unregisteredDetails??[]);
+  const temp=sameNameTemp(name);
+  if(temp){undo.temp={card:clone(temp),at:scene.characters.indexOf(temp)};undo.addedToScene=true;pendingTempConvert={id:temp.id,session:profileFormSession,chatKey:keyOf()};convertTemp(p);}
   const {restored}=attachSceneProfile(scene,p,[name,...profileSceneNames(p)]);
   undo.removedNames=beforeNames.filter(n=>!scene.unregistered.includes(n));
   undo.removedDetails=beforeDetails.filter(c=>!scene.unregisteredDetails.some(d=>identityKey(d.entityName)===identityKey(c.entityName)));
@@ -731,6 +735,7 @@ function undoLink(){
   if(u.field)setChatBinding(u.field,u.previousBinding);
   if(scene===u.sceneRef){
     if(u.addedToScene)scene.characters=scene.characters.filter(c=>c.id!==u.profileId);
+    if(u.temp)scene.characters.splice(Math.min(u.temp.at,scene.characters.length),0,clone(u.temp.card));
     scene.unregistered=[...new Set([...(scene.unregistered??[]),...(u.removedNames??[u.name])])];
     scene.unregisteredDetails??=[];
     for(const detail of u.removedDetails??[])if(!scene.unregisteredDetails.some(c=>identityKey(c.entityName)===identityKey(detail.entityName)))scene.unregisteredDetails.push(clone(detail));
@@ -749,6 +754,7 @@ async function missingAction(kind,name){
   if(kind==='link-confirm'){linkMissing(name,person);return;}
   openQuickProfile(name);
   pendingBind={chatKey:keyOf(),role:person.role,avatar:person.avatar,session:profileFormSession};
+  const temp=sameNameTemp(name);if(temp)pendingTempConvert={id:temp.id,session:profileFormSession,chatKey:keyOf()}; // UI-050-04: becomes that card
   if(kind==='direct'){setProfileMode('direct',{save:false});notice(`"${name}" 프로필을 만들어 주세요. 저장하면 바로 장면에 들어가요.`);return;}
   const {text,truncated}=descriptionFor(ctx(),person);
   if(!text){setProfileMode('direct',{save:false});notice(`${sourceLabel(person.role)} 설명이 비어 있어요. 직접 입력해 주세요.`,true);return;}
@@ -885,7 +891,7 @@ function holdOutfitCard(id,on){
 // Metadata changes are serialized. Failure rolls back the captured chat, never the current chat.
 async function writeChatOutfit(id,entry,manual){
   assertChat();if(isFree()||outfitSaving)throw new Error('복장 저장이 끝난 뒤 다시 선택해 주세요.');
-  const context=ctx(),key=keyOf(),startScene=scene;
+  const context=ctx(),key=keyOf(),startScene=scene,startFinal=finalOverride,startOptions=optionsOverride;
   context.chatMetadata[KEY]??={};const outfits=context.chatMetadata[KEY].outfits??={};
   const old=outfits[id],c=scene.characters.find(c=>c.id===id),oldManual=c?.manualOutfit;
   if(entry===undefined)delete outfits[id];else outfits[id]=entry;
@@ -895,7 +901,12 @@ async function writeChatOutfit(id,entry,manual){
   catch(e){if(outfits[id]===entry||(entry===undefined&&!(id in outfits))){if(old===undefined)delete outfits[id];else outfits[id]=old;}if(c&&c.manualOutfit===manual)c.manualOutfit=oldManual;if(keyOf()===key&&scene===startScene)renderScene();throw new Error('복장을 저장하지 못했어요. 바꾸기 전 상태를 유지했어요.');}
   finally{outfitSaving=false;outfitSavingId=null;holdOutfitCard(id,false);}
   if(keyOf()!==key||scene!==startScene||isFree())return false;
-  justSavedOutfit=id;changed();return true;
+  // changed() rebuilds the final prompt from the new clothes; a final prompt or options edited while the save
+  // was waiting are the user's newer work and stay (UI-050-03).
+  const keptFinal=finalOverride!==startFinal?finalOverride:null,keptOptions=optionsOverride!==startOptions?optionsOverride:null;
+  justSavedOutfit=id;changed();
+  if(keptFinal||keptOptions){if(keptFinal)finalOverride=keptFinal;if(keptOptions)optionsOverride=keptOptions;updateFinal({force:true});scheduleDraft();}
+  return true;
 }
 async function setChatOutfit(id,value,{note}={}){
   const old=outfitState()[id],entry={value,locked:old?.locked??false,source:scene.source?compactSource(scene.source):null,updated:new Date().toISOString()};

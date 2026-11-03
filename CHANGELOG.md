@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.52 — 2026-11-04 (extension only; server v0.1.13 unchanged)
+
+Fixes from GPT's review of 0.1.50, applied on top of 0.1.51.
+
+- A chat-outfit save that succeeds no longer throws away a final prompt (or one-off options) you edited while it was saving (UI-050-03). Without such an edit the prompt is rebuilt from the new clothes as before.
+- Making or linking a profile from the card-character box turns a temporary person with the same name into that profile instead of adding a second one (UI-050-04). Undoing the link brings the temporary person back.
+- When several profiles share the card character's name, the box appears too ("이름이 같은 프로필이 여러 개라 연결하지 못했어요") and 기존 프로필 연결하기 sets this chat's link without the alias error (UI-050-05).
+- New `tests/browser-v0152.mjs`.
+
 ## 0.1.51 — 2026-11-03 (extension only; server v0.1.13 unchanged)
 
 - **메시지로 가기** at the bottom of each history card's ⋯ menu (under a divider) and in the enlarged viewer.
