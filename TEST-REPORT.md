@@ -1,3 +1,11 @@
+# v0.1.56 validation — 2026-11-04
+
+- Extension Node suite: **140 passed, 0 failed** (`moments.test.mjs` walks the whole moment schema: every object property required, no extra properties).
+- Server Node suite: **25 passed** (server unchanged).
+- **45 of 45 Chromium browser scripts passed.** New `browser-v0156` (fails on 0.1.55 code): "혼자" leaves a kept temporary person unticked and out of the prompt (drawn again without such a request); requested clothing matched by name after identity matching and cleaned of names and hair words, with the dropped part reported; a request changed mid-extraction drops the old result; the applied line follows its candidate. `browser-v0155` now gives the requested clothing in the scene, as the prompt asks.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a real extraction model, OpenAI strict mode against the live API, iPhone Safari.
+
 # v0.1.55 validation — 2026-11-04
 
 - Extension Node suite: **140 passed, 0 failed** (`moments.test.mjs` checks the 추가 요청 rules: pick, change, both, "alone", fixed appearance, requested clothing).

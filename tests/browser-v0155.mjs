@@ -50,7 +50,7 @@ try{
   assert.equal(await page.locator('[data-action="add-character"]').evaluate(b=>b.classList.contains('ncs-accent')),true);
   assert.equal(await page.locator('[data-action="add-temp"]').innerText(),'+ 인물 칸 추가');
   // Candidates + request: the box moves under them, results are shown, requested clothing beats the lock.
-  await page.evaluate(([a,b])=>{mock.chatMetadata.naice_shot={outfits:{leo:{value:'navy coat',locked:true}}};mock.extraction={moments:[a,b],defaultIndex:1,requestMatched:true,requestApplied:['밤','앉은 자세'],requestIgnored:['머리색 · 프로필 고정 외형'],requestOutfits:[{id:'leo',name:'Leo',outfit:'red raincoat'}]};},[moment('들어온다','walking in','sunlight'),moment('앉는다','sitting at night','moonlight')]);
+  await page.evaluate(([a,b])=>{mock.chatMetadata.naice_shot={outfits:{leo:{value:'navy coat',locked:true}}};mock.extraction={moments:[a,b],defaultIndex:1,requestMatched:true,requestApplied:['밤','앉은 자세'],requestIgnored:['머리색 · 프로필 고정 외형'],requestOutfits:[{id:'leo',name:'Leo',outfit:'red raincoat'}],requestVisibleOnly:false};},[moment('들어온다','walking in','sunlight'),{...moment('앉는다','sitting at night','moonlight'),characters:[{id:'leo',name:'Leo',expression:'smile',action:'sitting at night',position:'auto',outfitMode:'replace',outfit:'red raincoat'}]}]);
   await page.locator('#ncs-moment-wish').fill('밤에 앉아 있는 모습, 빨간 우비');await page.locator('[data-action="extract"]').click();await idle(page);
   assert.match(await page.evaluate(()=>mock.lastExtract.prompt??JSON.stringify(mock.lastExtract)),/USER REQUEST for this picture/);
   assert.equal(await page.locator('#ncs-request-near #ncs-request').count(),1,`${tag}: request under the candidates`);

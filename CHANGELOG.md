@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.56 — 2026-11-04 (extension only; server v0.1.13 unchanged)
+
+Fixes from GPT's review of 0.1.55.
+
+- The moment schema lists every property as required, as strict structured output (OpenAI) demands; with no request the new fields are empty (UI-055-01).
+- "혼자" / "X만" (the request decides who is visible): a temporary person kept from before is left out of this picture; the card stays, unticked. Without such a request it is drawn again (UI-055-02).
+- Requested clothing now comes from the matched and cleaned scene: the person is found by name after identity matching, names are removed, and hair/eye/skin words are dropped (fixed appearance follows the profile, said in the "반영하지 않음" line). Clothing that cannot be placed is reported instead of claimed (UI-055-03).
+- If 추가 요청 is changed while extraction runs, the old result is not applied (UI-055-04).
+- The "추가 요청 반영" line belongs to the candidate it was applied to and follows candidate switches (UI-055-05).
+- A leftover "글로 채우기" in the empty-scene cancel message now says "장면 추출" (UI-055-06).
+- Tests: `moments.test.mjs` checks the whole schema for strict rules; new `browser-v0156`.
+
 ## 0.1.55 — 2026-11-04 (extension only; server v0.1.13 unchanged)
 
 그리기 탭 정리 (draft reviewed with mock-ups).

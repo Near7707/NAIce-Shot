@@ -52,6 +52,10 @@ test('prompt: candidates only from the last message, one instant each, persistin
  assert.match(wished,/\(a\) name which instant[\s\S]*\(b\) change how the chosen instant is drawn/);assert.match(wished,/Apply to the moment at defaultIndex ONLY/);
  assert.match(wished,/"Alone" or "only X" keeps only that person/);assert.match(wished,/Never change fixed appearance/);assert.match(wished,/requestOutfits/);
  const schema=momentExtractionSchema(profiles);assert.equal(schema.properties.moments.maxItems,3);
+ // UI-055-01: strict structured output needs every property listed as required.
+ assert.deepEqual(Object.keys(schema.properties).sort(),[...schema.required].sort());
+ const walk=(o,at)=>{if(!o||typeof o!=='object')return;if(o.type==='object'&&o.properties){assert.deepEqual(Object.keys(o.properties).sort(),[...(o.required??[])].sort(),`${at}: every property required`);assert.equal(o.additionalProperties,false,at);for(const [k,v] of Object.entries(o.properties))walk(v,`${at}.${k}`);}if(o.items)walk(o.items,`${at}[]`);};
+ walk(schema,'schema');
  assert.ok(schema.properties.moments.items.required.includes('title'));
 });
 test('a reply whose JSON never closes is recognised as cut off',()=>{

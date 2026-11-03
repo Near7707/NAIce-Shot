@@ -1,5 +1,13 @@
 # Installation and update checklist
 
+## v0.1.56
+
+Update the extension and refresh. No server update is needed.
+
+1. With a temporary person in the scene, extract with 추가 요청 "혼자": that person's card stays but is unticked.
+2. Switch candidates after a request: the "추가 요청 반영" line shows only on the candidate it changed.
+
+
 ## v0.1.55
 
 Update the extension and refresh. No server update is needed.

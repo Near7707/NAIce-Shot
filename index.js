@@ -842,8 +842,9 @@ async function convertProfile({source='',truncated=false}={}) {
 }
 // --- Moment candidates --------------------------------------------------------------------------
 // The active candidate lives in scene's own fields; scene.moments keeps every candidate's (edited) copy.
-const MOMENT_FIELDS=['characters','unregistered','unregisteredDetails','interaction','location','lighting','camera'];
-function momentPart(from){const part={};for(const k of MOMENT_FIELDS)part[k]=clone(from[k]??(k==='interaction'||k==='location'||k==='lighting'||k==='camera'?'':[]));return part;}
+// request: what 추가 요청 changed in this candidate (only the candidate it was applied to has one, UI-055-05).
+const MOMENT_FIELDS=['characters','unregistered','unregisteredDetails','interaction','location','lighting','camera','request'];
+function momentPart(from){const part={};for(const k of MOMENT_FIELDS)part[k]=clone(from[k]??(k==='request'?null:k==='interaction'||k==='location'||k==='lighting'||k==='camera'?'':[]));return part;}
 function syncMoment(){if(scene.moments?.length>1&&scene.moments[scene.momentIndex])scene.moments[scene.momentIndex].scene=momentPart(scene);}
 let restoredFinal=null;
 function switchMoment(index){
@@ -851,7 +852,7 @@ function switchMoment(index){
   // A prompt restored from history is not the user's own edit; only a hand edit asks first.
   if(finalOverride&&finalOverride!==restoredFinal&&!confirm('직접 고친 최종 프롬프트가 있어요. 다른 순간으로 바꾸면 고른 순간의 조립 결과로 돌아가요. 바꿀까요?'))return;
   const temps=scene.characters.filter(c=>c.temp);
-  syncMoment();Object.assign(scene,clone(list[index].scene));scene.momentIndex=index;carryTemps(temps,scene);
+  syncMoment();Object.assign(scene,{request:null},clone(list[index].scene));scene.momentIndex=index;carryTemps(temps,scene);
   lastLink=null;linkTarget=null;changed();renderScene({forceFinal:true});
   notice(`"${list[index].title||`후보 ${index+1}`}" 순간으로 바꿨어요. 후보마다 고친 내용은 따로 남아 있어요.`);
 }
@@ -1010,10 +1011,13 @@ function addTemp(name=''){dismissKeyboard();
 // A new extraction or another candidate keeps temporary people, but never assumes they are still there:
 // a name the AI found again takes its fresh fields; otherwise the card asks for a check.
 function carryTemps(temps,part){
+  const only=part.request?.visibleOnly===true; // "혼자"/"X만": the request decided who is visible (UI-055-02)
   for(const t of temps){
     if(part.characters.some(c=>c.id===t.id))continue;
     const detail=t.name?(part.unregisteredDetails??[]).find(d=>identityKey(d.entityName)===identityKey(t.name)):null;
-    const copy={...clone(t),needsCheck:!detail};
+    const copy={...clone(t),needsCheck:!detail&&!only};
+    if(only&&!detail){copy.included=false;copy.requestExcluded=true;}
+    else if(copy.requestExcluded){copy.included=true;delete copy.requestExcluded;}
     if(detail){copy.expression=detail.expression??'';copy.action=detail.action??'';if(detail.position&&detail.position!=='auto')copy.position=detail.position;if(detail.outfitMode==='replace'&&detail.outfit)copy.outfit=detail.outfit;
       part.unregistered=(part.unregistered??[]).filter(n=>identityKey(n)!==identityKey(t.name));part.unregisteredDetails=part.unregisteredDetails.filter(d=>d!==detail);}
     part.characters.push(copy);
@@ -1214,24 +1218,26 @@ async function extract() {
         if(foreign.length&&attempt===0){retryForLanguage=true;report('추출 결과가 영어가 아니어서 영어로 다시 요청하고 있어요.');continue;}
         if(foreign.length)parsed.warnings.push(`영어로 바뀌지 않은 칸이 있어요(${foreign.join(', ')}). 직접 고치거나 다시 추출해 주세요.`);
         if(ticket!==task||keyOf()!==startKey||revision!==rev||!sourceValid(selection.source,ctx().chat)){report('채팅·장면 또는 원문이 바뀌어서 추출 결과를 적용하지 않았어요.');return;}
+        if($('ncs-moment-wish').value.trim()!==wish){report('추출하는 동안 추가 요청이 바뀌어서 결과를 적용하지 않았어요. 바꾼 요청으로 다시 눌러 주세요.');return;} // UI-055-04
         // Each candidate is reconciled and cleaned on its own, so one moment's people and poses never leak into another.
         const c=ctx(),baseNames=[...s.profiles.flatMap(p=>[p.name,...p.aliases]),...matching.profiles.flatMap(p=>[p.name,...p.aliases]),...matching.mappings.map(m=>m.name),
           matching.userName,matching.characterName,c.name1,c.name2];
         const warnings=[...matching.warnings,...parsed.warnings],removed=new Set();
-        const moments=parsed.moments.map(m=>{
+        // 추가 요청 belongs to the candidate it was applied to; its clothing goes through the same matching and cleaning.
+        const request=wish&&parsed.request?{applied:[...parsed.request.applied],ignored:[...parsed.request.ignored],visibleOnly:parsed.request.visibleOnly===true}:null;
+        const moments=parsed.moments.map((m,i)=>{
           const reconciled=reconcileCharacters(m.scene,matching);
           const generic=genericizeScene(reconciled.scene,[...baseNames,...reconciled.scene.unregistered,...reconciled.scene.characters.map(x=>x.entityName)],s.format);
           for(const w of [...m.warnings,...reconciled.warnings])if(!warnings.includes(w))warnings.push(w);
           generic.removed.forEach(x=>removed.add(x));
           for(const ch of generic.scene.characters)if(manualPositions.has(ch.id)){ch.position=manualPositions.get(ch.id);ch.positionManual=true;}
-          const part=momentPart(generic.scene);carryTemps(keptTemps,part);
+          const part=momentPart(generic.scene);
+          if(request&&i===parsed.defaultIndex){part.request=request;applyRequestOutfits(part,parsed.request.outfits,request);}
+          carryTemps(keptTemps,part);
           return {title:m.title,scene:part};
         });
         raw=response;
-        // 추가 요청: clothing the user asked for is their own choice for this picture (like 이번 그림 복장), so a lock does not hide it.
-        const request=wish&&parsed.request?parsed.request:null;
-        if(request)for(const o of request.outfits){for(const c of moments[parsed.defaultIndex].scene.characters??[])if((o.id&&c.id===o.id)||(!o.id&&identityKey(c.entityName??'')===identityKey(o.name)))c.manualOutfit=o.outfit;}
-        scene={...blankScene(),...clone(moments[parsed.defaultIndex].scene),source:selection.source,moments:moments.length>1?moments:[],momentIndex:moments.length>1?parsed.defaultIndex:0,momentWish:wish,momentsPartial:parsed.partial,request:request?{applied:request.applied,ignored:request.ignored}:null};
+        scene={...blankScene(),...clone(moments[parsed.defaultIndex].scene),source:selection.source,moments:moments.length>1?moments:[],momentIndex:moments.length>1?parsed.defaultIndex:0,momentWish:wish,momentsPartial:parsed.partial};
         finalOverride=null;optionsOverride=null;lastLink=null;linkTarget=null;revision++;renderScene();
         if(removed.size)warnings.push(`장면 설명에 들어간 이름(${[...removed].join(', ')})을 빼고 일반 표현으로 정리했어요.`);
         const lead=parsed.partial?`응답이 불완전해요. 온전히 받은 후보 ${moments.length}개만 보여줘요. 메시지의 마지막 순간이 빠졌을 수 있어요. ${limitHint()} `:wish&&!parsed.requestMatched?'요청한 순간을 이 메시지에서 찾지 못해서 마지막 순간으로 골랐어요. ':moments.length>1?`장면 후보 ${moments.length}개를 찾았어요. 위에서 그릴 순간을 고를 수 있어요. `:'';
@@ -1244,6 +1250,23 @@ async function extract() {
     if(extraction?.ticket===ticket)extraction=null;
     stopProgress(ticket);if(busyOwner===ticket)setBusy(false);
   }
+}
+// Clothing asked for in 추가 요청 is this picture's own choice (like 이번 그림 복장, so a lock does not hide it). It is
+// taken from the matched and cleaned scene, never from the raw list (UI-055-03): the person is found by name after
+// identity matching, and hair/eye/skin words are dropped because fixed appearance follows the profile.
+const LOOK_WORD=/\b(?:hair|eyes?|skin|pupils?|eyebrows?)$/i;
+function applyRequestOutfits(part,outfits,request){
+  let lookDropped=false;
+  for(const o of outfits??[]){
+    const c=(part.characters??[]).find(c=>o.name?identityKey(c.entityName??'')===identityKey(o.name):c.id===o.id);
+    if(!c||c.outfitMode!=='replace'||!String(c.outfit??'').trim()){request.ignored.push(`${o.name||'인물'} 복장 · 장면에서 찾지 못함`);continue;}
+    const kept=String(c.outfit).split(',').map(x=>x.trim()).filter(Boolean).filter(x=>!LOOK_WORD.test(x));
+    if(kept.length!==String(c.outfit).split(',').map(x=>x.trim()).filter(Boolean).length)lookDropped=true;
+    if(!kept.length){request.ignored.push(`${o.name||'인물'} 복장 · 장면에서 찾지 못함`);continue;}
+    c.manualOutfit=kept.join(', ');
+  }
+  if(lookDropped)request.ignored.push('복장 속 머리·눈 등 · 프로필 고정 외형');
+  request.ignored=[...new Set(request.ignored)];
 }
 async function saveOutfit(id,lockOnly=null) {
   assertChat();const c=scene.characters.find(c=>c.id===id),p=settings().profiles.find(p=>p.id===id),old=outfitState()[id];
@@ -1346,7 +1369,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   if(busy)return;if(!isFree())assertChat();
   // Nothing extracted or entered yet: the image would be the common prompt alone. Ask first.
   const emptyScene=!scene.characters.some(c=>c.included!==false)&&!['location','lighting','camera','interaction'].some(k=>(scene[k]??'').trim());
-  if(!skipMissingCheck&&emptyScene&&!finalOverride&&!confirm(isFree()?'장면 칸이 비어 있어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 상황을 적고 "장면 추출"을 누르거나 인물 추가하기':'장면을 아직 추출하지 않았어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "장면 추출" 누르기')){report(isFree()?'생성하지 않았어요. 상황을 적고 "글로 채우기"를 누르거나 인물을 추가해 주세요.':'생성하지 않았어요. "장면 추출"을 먼저 눌러 주세요.');return;}
+  if(!skipMissingCheck&&emptyScene&&!finalOverride&&!confirm(isFree()?'장면 칸이 비어 있어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 상황을 적고 "장면 추출"을 누르거나 인물 추가하기':'장면을 아직 추출하지 않았어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "장면 추출" 누르기')){report(isFree()?'생성하지 않았어요. 상황을 적고 "장면 추출"을 누르거나 인물을 추가해 주세요.':'생성하지 않았어요. "장면 추출"을 먼저 눌러 주세요.');return;}
   // No 공통 이미지 프리셋 chosen (and no history settings in use): say which settings will be used, every time.
   if(!skipMissingCheck&&!settings().imagePresetId&&!optionsOverride&&!confirm('공통 이미지 프리셋을 고르지 않았어요.\n설정 탭의 기본 생성 설정(모델·크기·스텝 등)과 공통 프롬프트로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "3 · 생성"에서 프리셋 고르기')){report('생성하지 않았어요. "3 · 생성"에서 공통 이미지 프리셋을 고를 수 있어요.');return;}
   if(!skipMissingCheck){const {main}=missingState();if(main.length&&!skipMissingWarning()){openMissingDialog(main,seedMode);return;}}
