@@ -1,3 +1,11 @@
+# v0.1.64 validation — 2026-11-04
+
+- Extension Node suite: **149 passed, 0 failed**.
+- Server Node suite: server unchanged.
+- **53 of 53 Chromium browser scripts passed.** New `browser-v0164` (fails on 0.1.63 code): with the next picture's decoding held back, the shown picture, save link and seed stay, 삭제 is locked and sends nothing, then all switch together and 삭제 takes the picture on screen (375/1100px); moving between portrait, landscape and square pictures served uncached shows no empty or mis-sized frame; a touch tap on empty space → its click lands on the viewer, is swallowed, and the viewer closes, three times at 375 and 1100px, and a tap with no click still closes; "연결된 메시지 없음 ⓘ" with its reason for a picture without a message, none over chat pictures, 메시지로 가기 otherwise; 프리샷 card-removal notice stays on 그리기 after moving to 설정 during extraction; 챗샷 English warning stays after 30 s while a plain success folds. `browser-v0148` now waits for each move (a press while the next picture loads is skipped).
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern, a real extraction model, iPhone Safari (real touch timing was simulated with dispatched events).
+
 # v0.1.63 validation — 2026-11-04
 
 - Extension Node suite: **149 passed, 0 failed**.

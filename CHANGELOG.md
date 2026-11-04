@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.64 — 2026-11-04 (extension only; server v0.1.13 unchanged)
+
+GPT's review of 0.1.63, and a note for pictures with no message to go to (the user's iPhone check).
+
+- **Enlarged view, moving to the next picture:** the shown picture keeps its date, seed, save link and delete target until the next one is ready; then everything switches at once. If it takes longer than a moment, "불러오는 중…" shows and 삭제 · 빼기 · 메시지로 가기 wait (UI-063-01, P1). The next picture is decoded off screen and put in place in one step, so there is no empty frame between pictures of different shapes (UI-063-05).
+- A tap on empty space closes the enlarged view only after that tap's own click has come (and is swallowed), so it can never open a chat picture underneath again (UI-063-02). If no click comes, it closes anyway.
+- The 프리샷 result notice (removed or unticked cards) stays on 그리기 even if you moved to another tab while it ran (UI-063-03). The 챗샷 "영어로 바뀌지 않은 칸이 있어요" warning no longer folds (UI-063-04).
+- **"연결된 메시지 없음 ⓘ"** in the enlarged view for a picture with no recorded message (made without 장면 추출, e.g. from the last saved prompt; older pictures; 프리샷). Tap it for the reason; the history ⋯ menu gives the same reason.
+- Tests: new `browser-v0164` (375 and 1100px); `browser-v0148` waits for each move.
+
 ## 0.1.63 — 2026-11-04 (extension only; server v0.1.13 unchanged)
 
 GPT's review of 0.1.62, and enlarged-view / chat-picture polish from the user's iPhone check.

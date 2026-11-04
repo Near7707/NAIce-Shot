@@ -97,11 +97,12 @@ try{for(const width of [1100,375,320]){
  accept=false;await page.locator('[data-v="delete"]').click();assert.equal(deleted.length,0);accept=true;await page.locator('[data-v="delete"]').click();await page.waitForFunction(()=>document.querySelector('.ncsv-position').textContent==='22 / 46');assert.equal(deleted.at(-1).ids[0],originals[21].id);assert.match(await page.locator('.ncsv-seed').innerText(),/seed 32/);
  // Failed pagination leaves the current picture usable; retry keeps order and reaches the final boundary.
  failPage=true;
- for(let i=0;i<17;i++)await page.keyboard.press('ArrowRight');
+ // 0.1.64: a move finishes once the next picture is shown, so each press waits for the previous one.
+ for(let i=0;i<17;i++){const at=await page.locator('.ncsv-position').innerText();await page.keyboard.press('ArrowRight');await page.waitForFunction(t=>document.querySelector('.ncsv-position').textContent!==t,at);}
  await page.waitForFunction(()=>document.querySelector('.ncsv-position').textContent==='39 / 46');await page.keyboard.press('ArrowRight');
  await page.waitForFunction(()=>document.querySelector('.ncsv-meta').textContent==='Page unavailable');assert.equal(await page.locator('.ncsv-position').innerText(),'39 / 46');
  failPage=false;await page.keyboard.press('ArrowRight');await page.waitForFunction(()=>document.querySelector('.ncsv-position').textContent==='40 / 46');
- for(let i=0;i<6;i++)await page.keyboard.press('ArrowRight');
+ for(let i=0;i<6;i++){const at=await page.locator('.ncsv-position').innerText();await page.keyboard.press('ArrowRight');if(i<6)await page.waitForFunction(t=>document.querySelector('.ncsv-position').textContent!==t,at);}
  assert.equal(await page.locator('.ncsv-position').innerText(),'46 / 46');assert.equal(await page.locator('[data-v="next"]').isDisabled(),true);assert.match(await page.locator('.ncsv-seed').innerText(),/seed 56/);
  await page.waitForFunction(()=>{const i=document.querySelector('#ncs-viewer .ncsv-stage img');return i.naturalWidth>0&&i.style.visibility===''&&!!i.style.width;});if(process.env.NAICE_SCREENSHOT_DIR)await page.screenshot({path:`${process.env.NAICE_SCREENSHOT_DIR}/viewer-${width}.png`});
  await page.locator('[data-v="close"]').click();await tab('scene');await page.locator('#ncs-result .ncs-image-open').click();assert.equal(await page.locator('.ncsv-navigation').isHidden(),true,'result previews stay single-image');await page.locator('[data-v="close"]').click();

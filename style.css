@@ -601,6 +601,9 @@
 #ncs-viewer .ncsv-jump {min-height:32px;padding:4px 12px;font-size:12px;white-space:nowrap;}
 #ncs-viewer .ncsv-jump-menu {position:absolute;right:0;bottom:calc(100% + 6px);z-index:3;display:flex;flex-direction:column;gap:4px;width:min(260px,calc(100vw - 24px));padding:6px;background:#1b202b;border:1px solid #ffffff55;border-radius:10px;box-shadow:0 8px 28px #0008;}
 #ncs-viewer .ncsv-jump-menu[hidden] {display:none;}
+#ncs-viewer .ncsv-no-jump {min-height:32px;padding:4px 6px;font-size:12px;white-space:nowrap;background:transparent;border:0;color:#c9ced8;opacity:.85;}
+#ncs-viewer .ncsv-no-jump-note {position:absolute;right:0;bottom:calc(100% + 6px);z-index:3;width:min(240px,calc(100vw - 24px));margin:0;padding:8px 10px;font-size:12px;line-height:1.5;color:#f1f3f6;background:#1b202b;border:1px solid #ffffff55;border-radius:10px;box-shadow:0 8px 28px #0008;}
+#ncs-viewer .ncsv-no-jump-note[hidden] {display:none;}
 #ncs-viewer .ncsv-jump-menu button {display:flex;flex-direction:column;align-items:flex-start;width:100%;min-height:44px;white-space:normal;text-align:left;background:transparent;border:0;color:#f1f3f6;font-weight:600;}
 #ncs-viewer .ncsv-jump-menu button:hover {background:#ffffff24;}
 #ncs-viewer .ncsv-jump-menu button:focus-visible {outline:2px solid var(--ncsv-accent);outline-offset:-2px;}

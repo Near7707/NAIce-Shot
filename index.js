@@ -232,7 +232,7 @@ function historyGallery(){
 }
 function imageViewerOptions(item,{attachment=null}={}){
   const jumps=attachment?[]:jumpChoices(item); // an attached image is opened from its own message
-  return {caption:item.created?shortDate(item.created):'',seed:item.seed,loadPrompt:()=>promptForImage(item),
+  return {noJump:Array.isArray(jumps)?'':jumps?.disabled??'',caption:item.created?shortDate(item.created):'',seed:item.seed,loadPrompt:()=>promptForImage(item),
     // A picture opened from the chat may not know its date or seed (attached before 0.1.63): the record tells.
     loadInfo:()=>findRecord(item).then(r=>r?{caption:r.created?shortDate(r.created):'',seed:r.seed}:null),
     jumps:Array.isArray(jumps)?jumps.map(j=>({label:j.label,note:j.note,run:()=>goToMessage(item,j.index,j.kind).catch(e=>{toast(e.message,true);notice(e.message,true);})})):[],
@@ -1309,7 +1309,7 @@ function applyFree(parsed,foreign=[],plan=planFreePeople(scene.characters,$('ncs
     emptyLooks?'외형이 비어 있는 임시 인물은 직접 채워 주세요.':'',
     foreign.length?`영어로 바뀌지 않은 칸이 있어요(${foreign.join(', ')}).`:'',
     before&&(plan.removed.length||plan.pinnedOut.length||out.refreshed.length)?'잘못됐다면 [↶ 추출 취소]를 눌러 주세요.':''];
-  notice(parts.filter(Boolean).join(' '),false,activeTab(),{keep:!!(plan.removed.length||plan.pinnedOut.length||out.notShown.length||out.refreshed.length||unsure.length||foreign.length)});
+  notice(parts.filter(Boolean).join(' '),false,'scene',{keep:!!(plan.removed.length||plan.pinnedOut.length||out.notShown.length||out.refreshed.length||unsure.length||foreign.length)});
 }
 async function extract() {
   const originTab='scene',report=(message,error=false)=>notice(message,error,originTab);
@@ -1370,7 +1370,7 @@ async function extract() {
         if(removed.size)warnings.push(`장면 설명에 들어간 이름(${[...removed].join(', ')})을 빼고 일반 표현으로 정리했어요.`);
         const lead=parsed.partial?`응답이 불완전해요. 온전히 받은 후보 ${moments.length}개만 보여줘요. 메시지의 마지막 순간이 빠졌을 수 있어요. ${limitHint()} `:wish&&!parsed.requestMatched?'요청한 순간을 이 메시지에서 찾지 못해서 마지막 순간으로 골랐어요. ':moments.length>1?`장면 후보 ${moments.length}개를 찾았어요. 위에서 그릴 순간을 고를 수 있어요. `:'';
         const asked=request?[request.applied.length?`추가 요청 반영: ${request.applied.join(' · ')}.`:'',request.ignored.length?`반영하지 않음: ${request.ignored.join(' · ')}.`:''].filter(Boolean).join(' ')+' ':'';
-        notice(lead+asked+(warnings.length?warnings.join(' / '):'추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.'),false,originTab,{keep:parsed.partial||!!(wish&&!parsed.requestMatched)});return;
+        notice(lead+asked+(warnings.length?warnings.join(' / '):'추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.'),false,originTab,{keep:parsed.partial||!!(wish&&!parsed.requestMatched)||foreign.length>0});return;
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}
     }
     if(ticket===task&&keyOf()===startKey){raw=response;renderScene();report(`추출 실패: ${failure?.message}.${looksCut(response)?` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
@@ -1747,16 +1747,18 @@ function historyActions(item,{editable=false,attached=false}={}){
 // --- 메시지로 가기: the attached message and the message the image was made from (docs/ROADMAP.md 0.1.51).
 const JUMP_STATE={swipe:' · 다른 스와이프에서 만들었어요',edited:' · 그림을 만든 뒤 내용이 바뀌었어요',moved:''};
 // Choices for one image: [{label,note,index,kind}] to go to, or {disabled:reason}.
+// Made without 장면 추출 (e.g. from the last saved prompt) or before 0.1.51: no message was recorded.
+const NO_SOURCE='장면 추출 없이 만들었거나 예전 그림이라 연결된 메시지가 없어요.';
 function jumpChoices(item){
   if(!item||item.chatKey===FREE_KEY)return {disabled:'프리샷 그림은 연결된 메시지가 없어요.'};
   const source=item.snapshot?.scene?.source;
   if(item.chatKey!==keyOf()){
-    if(!item.chatKey)return {disabled:'이 그림은 연결된 메시지가 없어요.'};
-    if(!source)return {disabled:'이 그림은 연결된 메시지가 없어요.'};
+    if(!item.chatKey)return {disabled:NO_SOURCE};
+    if(!source)return {disabled:NO_SOURCE};
     return [{label:'메시지로 가기',note:'다른 채팅이에요. 이동 전에 물어봐요.',index:null,kind:'other'}];
   }
   const {targets,both,made}=jumpTargets(item,ctx().chat);
-  if(!targets.length)return {disabled:source?'그림을 만든 메시지를 찾지 못했어요. 지워졌을 수 있어요.':'이 그림은 연결된 메시지가 없어요.'};
+  if(!targets.length)return {disabled:source?'그림을 만든 메시지를 찾지 못했어요. 지워졌을 수 있어요.':NO_SOURCE};
   const note=t=>JUMP_STATE[t.state]??'';
   if(targets.length===1){const t=targets[0];
     return [{label:'메시지로 가기',note:`#${t.index} · ${both?'이 그림을 만들고 넣은 메시지':t.kind==='attached'?'이 그림을 넣은 메시지':'이 그림을 만든 메시지'}${note(t)}`,index:t.index,kind:t.kind,state:t.state}];}

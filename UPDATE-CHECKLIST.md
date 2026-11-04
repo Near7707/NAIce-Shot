@@ -1,5 +1,14 @@
 # Installation and update checklist
 
+## v0.1.64
+
+Update the extension and refresh. No server update is needed.
+
+1. History → open a picture made without 장면 추출: "연결된 메시지 없음 ⓘ" where 메시지로 가기 would be; tap it for the reason.
+2. Open a chat picture large, tap the empty space around it: it closes and does not open again.
+3. Move between pictures: the date, seed and 삭제 change together with the picture.
+
+
 ## v0.1.63
 
 Update the extension and refresh. No server update is needed.
