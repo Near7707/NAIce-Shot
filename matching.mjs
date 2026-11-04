@@ -102,13 +102,16 @@ export function reconcileCharacters(scene,matching) {
 
 // Manual addition and profile creation/linking all restore the same preserved visual fields.
 // No new AI call and no guessed pose: absent details remain empty for the next scene extraction.
-export function attachSceneProfile(scene,profile,extraNames=[]) {
+// ambiguous: other profiles share this name, so no leftover scene detail is handed over by name (UI-076-01).
+export function attachSceneProfile(scene,profile,extraNames=[],{ambiguous=false}={}) {
  const names=new Set([...namesOf(profile),...extraNames.map(identityKey)].filter(Boolean));
  const matches=name=>names.has(identityKey(name));
- const detail=(scene.unregisteredDetails??[]).find(c=>matches(c.entityName));
+ const detail=ambiguous?null:(scene.unregisteredDetails??[]).find(c=>matches(c.entityName));
  let character=scene.characters.find(c=>c.id===profile.id);
  if(!character){character={...emptyPerson(detail?.entityName??extraNames[0]??profile.name),...(detail?clone(detail):{}),id:profile.id,included:true,manualOutfit:null};scene.characters.push(character);}
- scene.unregistered=(scene.unregistered??[]).filter(n=>!matches(n));
- scene.unregisteredDetails=(scene.unregisteredDetails??[]).filter(c=>!matches(c.entityName));
+ if(!ambiguous){
+  scene.unregistered=(scene.unregistered??[]).filter(n=>!matches(n));
+  scene.unregisteredDetails=(scene.unregisteredDetails??[]).filter(c=>!matches(c.entityName));
+ }
  return {character,restored:!!detail&&!!(detail.expression||detail.action||detail.outfit)};
 }

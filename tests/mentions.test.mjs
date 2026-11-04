@@ -54,3 +54,17 @@ test('autocomplete: the query before the caret, names and aliases, a short look 
  assert.equal(lookSummary(P[1]),'long black hair');assert.equal(lookSummary(P[2]),'');
  assert.ok(suggestions(P,'레')[0].look.includes('green eyes'));
 });
+test('0.1.77 lengths: the limit is what a person sees; ceilings; a chip name is never empty',async()=>{
+ const {lengthProblem,LENGTH_LIMITS,EMPTY_NAME}=await import('../mentions.mjs');
+ const id80='a'.repeat(80),one=chipToken('a',id80);
+ assert.equal(one.length,9+1+80);
+ // worst case: 1-letter names, 80-character ids -> visible 4,000 is 2,000 chips = exactly the 180,000 ceiling
+ const worst=one.repeat(2000);assert.equal(displayLength(worst),4000);assert.equal(worst.length,LENGTH_LIMITS.free.stored);assert.equal(lengthProblem(worst,'free'),null);
+ assert.match(lengthProblem(one.repeat(2001),'free'),/4,000자/);
+ assert.equal(lengthProblem(one.repeat(100),'wish'),null);assert.equal(one.repeat(100).length,LENGTH_LIMITS.wish.stored);assert.match(lengthProblem(one.repeat(101),'wish'),/200자/);
+ // a 3,961-character text with chips is fine (the old check counted "(roster id …)" and blocked it)
+ const text=`${chip(P[0])}`+'가'.repeat(3955);assert.ok(displayLength(text)<=4000);assert.equal(lengthProblem(text,'free'),null);
+ assert.match(lengthProblem('가'.repeat(4001),'free'),/\(지금 4,001자\)/);
+ assert.equal(chipToken('',P[0].id),`@[${EMPTY_NAME}](ref:${P[0].id})`);assert.equal(chipToken('  [()]  ',P[0].id),`@[${EMPTY_NAME}](ref:${P[0].id})`);
+ assert.equal(displayLength(`@[](ref:${P[0].id})`),EMPTY_NAME.length+1);
+});

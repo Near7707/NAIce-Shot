@@ -20,16 +20,80 @@ export function visibleInlineImages(message) {
   try{imageDownload(item);return item.swipeId===(message.swipe_id??0)&&item.signature===textSignature(message.mes);}catch{return false;}
  });
 }
+// The active swipe keeps its own other keys; only the attachment list follows the message (0.1.77).
 function syncActiveSwipe(message) {
  const swipe=message.swipe_info?.[message.swipe_id??0];
- if(swipe&&typeof swipe==='object')swipe.extra=clone(message.extra);
+ if(!swipe||typeof swipe!=='object')return;
+ const next={...swipe.extra},list=message.extra?.[IMAGE_KEY];
+ if(Array.isArray(list))next[IMAGE_KEY]=clone(list);else delete next[IMAGE_KEY];
+ swipe.extra=next;
+}
+
+// --- Verified saving (0.1.77, UI-072-01) --------------------------------------------------------------------------------
+// SillyTavern's saveChat() swallows errors, so after a save the chat file is read back (readSaved) and the touched
+// attachments are compared. First the target must be the same (message index, send date, reroll, text signature);
+// otherwise the answer is "unknown". Then, for the touched items only:
+//   all equal the intended state -> saved;  all equal the state before -> not saved, restore those items locally;
+//   anything else (mixed, or neither) -> unknown: nothing is reverted and the person is told to check.
+const sameState=(a,b)=>a.present===b.present&&a.placement===b.placement;
+// The state of one picture in an owner's extra. match: the exact swipe/text the entry belongs to (attach), or null.
+function stateOf(extra,id,match=null){
+ const list=Array.isArray(extra?.[IMAGE_KEY])?extra[IMAGE_KEY]:[];
+ const e=list.find(x=>x?.id===id&&(!match||(x.swipeId===match.swipeId&&x.signature===match.signature)));
+ return e?{present:true,placement:PLACEMENTS.includes(e.placement)?e.placement:null}:{present:false,placement:null};
+}
+const ownerOf=(message,k)=>k==null?message:message?.swipe_info?.[k];
+const targetOf=(message,index)=>({index,sendDate:String(message.send_date??''),swipeId:message.swipe_id??0,signature:textSignature(message.mes??'')});
+// Call BEFORE changing the owner. k: null for the message itself, otherwise the swipe_info index.
+function makeTouch(message,index,k,id,{match=null,intended}) {
+ const extra=ownerOf(message,k)?.extra,list=Array.isArray(extra?.[IMAGE_KEY])?extra[IMAGE_KEY]:[];
+ const beforeEntries=list.filter(x=>x?.id===id);
+ return {message,index,k,id,match,target:targetOf(message,index),before:stateOf(extra,id,match),intended,beforeEntries,beforeAt:list.findIndex(x=>x?.id===id),hadExtra:!!extra};
+}
+function judge(touches,saved) {
+ if(!Array.isArray(saved))return 'unknown';
+ let allIntended=true,allBefore=true;
+ for(const t of touches){
+  const sm=saved[t.index];
+  if(!sm||typeof sm!=='object'||String(sm.send_date??'')!==t.target.sendDate||(sm.swipe_id??0)!==t.target.swipeId||textSignature(sm.mes??'')!==t.target.signature)return 'unknown';
+  const owner=ownerOf(sm,t.k);if(!owner||typeof owner!=='object')return 'unknown';
+  const st=stateOf(owner.extra,t.id,t.match);
+  if(!sameState(st,t.intended))allIntended=false;
+  if(!sameState(st,t.before))allBefore=false;
+ }
+ return allIntended?'ok':allBefore?'unsaved':'unknown';
+}
+// Puts the touched items back locally, one by one. An item changed by the person since (not in the intended state any
+// more) is left alone; everything else on the message stays as it is.
+function restore(context,touches) {
+ for(const t of touches){
+  if(!context.chat?.includes(t.message))continue;
+  const owner=ownerOf(t.message,t.k);if(!owner||typeof owner!=='object')continue;
+  if(!sameState(stateOf(owner.extra,t.id,t.match),t.intended))continue;
+  const list=Array.isArray(owner.extra?.[IMAGE_KEY])?owner.extra[IMAGE_KEY]:[];
+  const rest=list.filter(x=>x?.id!==t.id),at=t.beforeAt<0?rest.length:Math.min(t.beforeAt,rest.length);
+  const back=[...rest.slice(0,at),...t.beforeEntries,...rest.slice(at)],next={...owner.extra};
+  if(back.length)next[IMAGE_KEY]=back;else delete next[IMAGE_KEY];
+  if(Object.keys(next).length||t.hadExtra)owner.extra=next;else delete owner.extra;
+ }
+}
+// Saves and checks. Returns {unverified:true} when it cannot be told whether the chat was saved (nothing is reverted);
+// throws when it was not saved (the touched items are restored). Without readSaved: a thrown save restores, else success.
+async function saveChecked(context,touches,readSaved) {
+ let thrown=null;
+ try{await context.saveChat();}catch(e){thrown=e;}
+ if(typeof readSaved!=='function'){if(thrown){restore(context,touches);throw thrown;}return {unverified:false};}
+ let verdict;try{verdict=judge(touches,await readSaved());}catch{verdict='unknown';}
+ if(verdict==='ok')return {unverified:false};
+ if(verdict==='unsaved'){restore(context,touches);throw new Error(thrown?`채팅 저장에 실패해 원래대로 돌려놨어요. (${thrown.message})`:'채팅이 저장되지 않아 원래대로 돌려놨어요.');}
+ return {unverified:true};
 }
 export async function attachInlineImage(context,item,options={}) {
- const {added,duplicates,targetIndex}=await attachInlineImages(context,[item],options);
- return {duplicate:duplicates>0&&!added,targetIndex};
+ const {added,duplicates,targetIndex,unverified}=await attachInlineImages(context,[item],options);
+ return {duplicate:duplicates>0&&!added,targetIndex,unverified};
 }
 // 0.1.72: several pictures go into one message with one chat save (선택 본문에 넣기).
-export async function attachInlineImages(context,items,{targetIndex,placement=null,isCurrent=()=>true}={}) {
+export async function attachInlineImages(context,items,{targetIndex,placement=null,isCurrent=()=>true,readSaved=null}={}) {
  const place=PLACEMENTS.includes(placement)?placement:null; // null: follow the chat's or global default
  for(const item of items)imageDownload(item);
  if(!isCurrent())throw new Error('채팅이 바뀌었어요. 현재 채팅에서 다시 선택해 주세요.');
@@ -38,6 +102,7 @@ export async function attachInlineImages(context,items,{targetIndex,placement=nu
  if(!Number.isInteger(targetIndex)||!isSceneMessage(message))throw new Error('그림을 넣을 RP 메시지를 선택해 주세요.');
  let list=Array.isArray(message.extra?.[IMAGE_KEY])?message.extra[IMAGE_KEY]:[];
  const swipeId=message.swipe_id??0,signature=textSignature(message.mes);let added=0,duplicates=0,moved=0;
+ const touches=[],swipeOwner=message.swipe_info?.[swipeId],swipeIsObject=!!swipeOwner&&typeof swipeOwner==='object';
  for(const item of items){
   const entry={id:item.id,image:item.image,swipeId,signature};
   // When it was made and its seed, so the enlarged view from the chat can show them (0.1.63). Nothing private.
@@ -45,84 +110,85 @@ export async function attachInlineImages(context,items,{targetIndex,placement=nu
   if(Number.isInteger(item.seed))entry.seed=item.seed;
   if(place)entry.placement=place;
   const same=list.find(x=>x.id===item.id&&x.signature===signature&&x.swipeId===swipeId);
+  const intended={present:true,placement:place??(same&&PLACEMENTS.includes(same.placement)?same.placement:null)};
+  const match={swipeId,signature};
+  // Touches are made before the change: the state before is read from the untouched message and its current swipe copy.
+  touches.push(makeTouch(message,targetIndex,null,item.id,{match,intended}));
+  if(swipeIsObject)touches.push(makeTouch(message,targetIndex,swipeId,item.id,{match,intended}));
   // Already here: only a different chosen place changes it (moved); otherwise nothing to do.
   if(same){if(place&&same.placement!==place){list=list.map(x=>x===same?{...x,placement:place}:x);moved++;}else duplicates++;continue;}
   if(!list.some(x=>x.id===item.id)&&list.length>=20)throw new Error('한 메시지에는 이미지를 최대 20개까지 넣을 수 있어요.');
   list=[...list.filter(x=>x.id!==item.id),entry];added++;
  }
- // 0.1.76 (UI-072-01): when saving the chat fails, the message and its current swipe go back to how they were, so a
- // picture that was never saved does not stay attached on screen (one picture or several).
- const before={extra:message.extra,swipe:message.swipe_info?.[swipeId],swipeHad:false,swipeExtra:undefined};
- if(before.swipe&&typeof before.swipe==='object'){before.swipeHad=Object.hasOwn(before.swipe,'extra');before.swipeExtra=before.swipe.extra;}
- let next=null;
- if(added||moved){next={...message.extra,[IMAGE_KEY]:list};message.extra=next;syncActiveSwipe(message);}
+ if(added||moved)message.extra={...message.extra,[IMAGE_KEY]:list};
+ if(added||moved)syncActiveSwipe(message);
  // No new messages, text edits, native media fields or RP generation events.
- try{if(added||moved||items.length===1)await context.saveChat();}
- catch(e){
-  if(next&&message.extra===next){
-   message.extra=before.extra;
-   if(before.swipe&&typeof before.swipe==='object'){if(before.swipeHad)before.swipe.extra=before.swipeExtra;else delete before.swipe.extra;}
-  }
-  throw e;
- }
- return {added,duplicates,moved,targetIndex};
+ // 0.1.77 (UI-072-01): the chat file is read back; see saveChecked for the three outcomes.
+ let unverified=false;
+ if(added||moved||items.length===1)({unverified}=await saveChecked(context,touches,readSaved));
+ return {added,duplicates,moved,targetIndex,unverified};
 }
 export async function detachInlineImage(context,item,options={}) {
  imageDownload(item);
  return detachInlineImages(context,new Set([item.id]),options);
 }
 // A viewer opened from an attachment removes this message's copy only, including its swipe copies.
-export async function detachMessageImage(context,item,{message,swipeId,signature,isCurrent=()=>true}={}) {
+export async function detachMessageImage(context,item,{message,swipeId,signature,isCurrent=()=>true,readSaved=null}={}) {
  imageDownload(item);
  if(!isCurrent())throw new Error('채팅이 바뀌었어요. 현재 채팅에서 다시 선택해 주세요.');
  if(!context.chat?.includes(message)||
     (message.swipe_id??0)!==swipeId||textSignature(message.mes)!==signature||!visibleInlineImages(message).some(x=>x.id===item.id))
   throw new Error('메시지나 리롤이 바뀌었어요. 해당 그림을 다시 열어 주세요.');
- const edits=[];
- for(const owner of [message,...(message.swipe_info??[]).filter(x=>x&&typeof x==='object')]){
+ const index=context.chat.indexOf(message),touches=[],gone={present:false,placement:null};
+ for(const [k,owner] of [[null,message],...(message.swipe_info??[]).map((x,k)=>[k,x])]){
+  if(!owner||typeof owner!=='object')continue;
   const old=owner.extra,list=old?.[IMAGE_KEY];if(!Array.isArray(list)||!list.some(x=>x.id===item.id))continue;
+  touches.push(makeTouch(message,index,k,item.id,{intended:gone}));
   const remaining=list.filter(x=>x.id!==item.id),next={...old};
   if(remaining.length)next[IMAGE_KEY]=remaining;else delete next[IMAGE_KEY];
-  edits.push({owner,old,next});owner.extra=next;
+  owner.extra=next;
  }
- try { await context.saveChat(); }
- catch(e){for(const {owner,old,next} of edits)if(owner.extra===next)owner.extra=old;throw e;}
- return {removed:edits.length};
+ const {unverified}=await saveChecked(context,touches,readSaved);
+ return {removed:touches.length,unverified};
 }
 // 0.1.74: moves this message's copy of a picture above or below the text (null: back to the default place), including
 // its swipe copies. Checked like detachMessageImage: the same message, reroll and text as when the view opened.
-export async function placeMessageImage(context,item,{message,swipeId,signature,placement=null,isCurrent=()=>true}={}) {
+export async function placeMessageImage(context,item,{message,swipeId,signature,placement=null,isCurrent=()=>true,readSaved=null}={}) {
  imageDownload(item);const place=PLACEMENTS.includes(placement)?placement:null;
  if(!isCurrent())throw new Error('채팅이 바뀌었어요. 현재 채팅에서 다시 선택해 주세요.');
  if(!context.chat?.includes(message)||
     (message.swipe_id??0)!==swipeId||textSignature(message.mes)!==signature||!visibleInlineImages(message).some(x=>x.id===item.id))
   throw new Error('메시지나 리롤이 바뀌었어요. 해당 그림을 다시 열어 주세요.');
- const edits=[];
- for(const owner of [message,...(message.swipe_info??[]).filter(x=>x&&typeof x==='object')]){
+ const index=context.chat.indexOf(message),touches=[],intended={present:true,placement:place};
+ for(const [k,owner] of [[null,message],...(message.swipe_info??[]).map((x,k)=>[k,x])]){
+  if(!owner||typeof owner!=='object')continue;
   const old=owner.extra,list=old?.[IMAGE_KEY];if(!Array.isArray(list)||!list.some(x=>x.id===item.id))continue;
-  const next={...old,[IMAGE_KEY]:list.map(x=>{if(x.id!==item.id)return x;const y={...x};if(place)y.placement=place;else delete y.placement;return y;})};
-  edits.push({owner,old,next});owner.extra=next;
+  touches.push(makeTouch(message,index,k,item.id,{intended}));
+  owner.extra={...old,[IMAGE_KEY]:list.map(x=>{if(x.id!==item.id)return x;const y={...x};if(place)y.placement=place;else delete y.placement;return y;})};
  }
- try { await context.saveChat(); }
- catch(e){for(const {owner,old,next} of edits)if(owner.extra===next)owner.extra=old;throw e;}
- return {changed:edits.length};
+ const {unverified}=await saveChecked(context,touches,readSaved);
+ return {changed:touches.length,unverified};
 }
 // Removes every attachment of the given image IDs from the current chat (all messages and swipes), one save.
-export async function detachInlineImages(context,ids,{isCurrent=()=>true}={}) {
+export async function detachInlineImages(context,ids,{isCurrent=()=>true,readSaved=null}={}) {
  if(!isCurrent())throw new Error('채팅이 바뀌었어요. 현재 채팅에서 다시 선택해 주세요.');
  if(!Array.isArray(context.chat)||typeof context.saveChat!=='function')throw new Error('현재 채팅에서 이미지를 뺄 수 없어요.');
- let removed=0;
- function remove(extra){
-  if(!Array.isArray(extra?.[IMAGE_KEY]))return extra;
-  const remaining=extra[IMAGE_KEY].filter(x=>!ids.has(x.id));if(remaining.length===extra[IMAGE_KEY].length)return extra;
+ let removed=0;const touches=[],gone={present:false,placement:null};
+ function remove(message,index,k,owner){
+  const extra=owner.extra;
+  if(!Array.isArray(extra?.[IMAGE_KEY]))return;
+  const remaining=extra[IMAGE_KEY].filter(x=>!ids.has(x.id));if(remaining.length===extra[IMAGE_KEY].length)return;
+  for(const id of new Set(extra[IMAGE_KEY].filter(x=>ids.has(x.id)).map(x=>x.id)))touches.push(makeTouch(message,index,k,id,{intended:gone}));
   removed+=extra[IMAGE_KEY].length-remaining.length;const next={...extra};
-  if(remaining.length)next[IMAGE_KEY]=remaining;else delete next[IMAGE_KEY];return next;
+  if(remaining.length)next[IMAGE_KEY]=remaining;else delete next[IMAGE_KEY];owner.extra=next;
  }
- for(const message of context.chat){
-  const next=remove(message.extra);if(next!==message.extra)message.extra=next;
-  if(Array.isArray(message.swipe_info))for(const swipe of message.swipe_info)if(swipe&&typeof swipe==='object'){const next=remove(swipe.extra);if(next!==swipe.extra)swipe.extra=next;}
- }
- if(removed)await context.saveChat();return {removed};
+ context.chat.forEach((message,index)=>{
+  remove(message,index,null,message);
+  if(Array.isArray(message.swipe_info))message.swipe_info.forEach((swipe,k)=>{if(swipe&&typeof swipe==='object')remove(message,index,k,swipe);});
+ });
+ let unverified=false;
+ if(removed)({unverified}=await saveChecked(context,touches,readSaved));
+ return {removed,unverified};
 }
 
 // Independent display metadata keeps generated images out of native media

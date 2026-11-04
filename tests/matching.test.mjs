@@ -110,3 +110,12 @@ test('0.1.76: a profile picked with @ beats the chat connection by name; two pic
  // The same name twice without picks is still one person.
  assert.equal(reconcileCharacters(both,chat).scene.characters.length,1);
 });
+
+test('0.1.77 (UI-076-01): a required person whose name is shared gets no leftover detail by name',async()=>{
+ const {attachSceneProfile}=await import('../matching.mjs');
+ const p={id:'a1',name:'Leo',aliases:[]};
+ const mk=()=>({characters:[],unregistered:['Leo'],unregisteredDetails:[{entityName:'Leo',expression:'smile',action:'waves',outfit:'',id:''}]});
+ const plain=mk(),r1=attachSceneProfile(plain,p,['Leo']);assert.equal(r1.character.action,'waves','a unique name still takes its detail');
+ const twin=mk(),r2=attachSceneProfile(twin,p,['Leo'],{ambiguous:true});
+ assert.equal(r2.character.action,'');assert.equal(r2.character.expression,'');assert.equal(twin.unregisteredDetails.length,1,'the other person\'s detail is kept');
+});

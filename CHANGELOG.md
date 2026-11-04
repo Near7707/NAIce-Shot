@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.77 — 2026-11-05 (extension + server v0.1.18 — update the server first)
+
+Fixes for the GPT review of 0.1.76.
+
+- Lengths (UI-076-02): the limit is what a person sees (situation 4,000, extra request 200; a chip counts as `@name`). Stored ceilings follow from the chip form `@[name](ref:ID)` (ID at most 80): 180,000 and 9,000 — reached only by 2,000 / 100 chips with 1-letter names, so no chip-count cap is needed. Typing, chip pick, paste and Hangul composition use the same rule. When Hangul composition ends over the limit only the part composed this time is trimmed; existing text and chips are never cut, and if that part cannot be found nothing is cut, the person is told, and extraction/generation stay blocked until it fits. Extraction and generation now stop early with a clear message when a field is too long. The 1,200-character cut of the extra request is gone; a 3,961-character situation is no longer refused because of the ids added for the AI.
+- Server 0.1.18: the situation text is checked on its own (visible ≤ 4,000, stored ≤ 180,000) before NovelAI is called and refused with a clear 400 instead of being dropped silently from history; the 250,000 request limit now counts everything else. Saved-work limits (200,000 per string, 1,000,000 total) still fit the longest allowed text and request (tested).
+- Save check (UI-072-01): after 본문에 넣기, 위치 바꾸기 and 빼기 (also deleting a picture that is attached) the chat file is read back. Same message/reroll/text first; then only the touched pictures: all as intended → saved; all as before → not saved, only those pictures go back (other changes stay); anything else, a changed target or a failed read → "저장 여부를 확인하지 못했어요" with nothing reverted. The active swipe keeps its own other extra keys. The chat read route is SillyTavern's own and was not checked against a real SillyTavern; an unexpected answer is treated as "cannot tell".
+- UI-076-01: with several profiles of the same name, a required person the AI returned without an id no longer takes an arbitrary same-name person's action. UI-076-03: a long chip name is cut with … inside the field (full name as the tooltip). UI-076-04: copy/cut keep the selected trailing newline. UI-075-07: picking from the list for a typed `@Le|o` replaces the rest of the name.
+- Tests: new `save-verify.test.mjs` (11 cases), new `browser-v0177` (375 and 1100px); the test fixture now answers the chat-read route.
+
 ## 0.1.76 — 2026-11-05 (extension only; server v0.1.17 unchanged)
 
 @ profile references become chips, plus the 0.1.75 review fixes.

@@ -6,7 +6,7 @@ import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } fr
 import { attachInlineImages, detachInlineImage, detachInlineImages, detachMessageImage, placeMessageImage, orderedInlineImages, placementOf, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, visibleInlineImages, SAVE_NOTES, INLINE_LAYOUTS, INLINE_SIZES } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
 import { freeScenePrompt, freeSceneSchema, parseFreeScene } from './free-scene.mjs';
-import { confirmRefs, refsForExtraction, plainNames, stripRefMarks, suggestions, displayLength } from './mentions.mjs';
+import { confirmRefs, refsForExtraction, plainNames, stripRefMarks, suggestions, displayLength, displayText, lengthProblem, LENGTH_LIMITS } from './mentions.mjs';
 import { setupChipField } from './chipfield.mjs';
 import { planFreePeople, confirmText, applyFreePeople, migratePins } from './free-people.mjs';
 import { momentExtractionPrompt, momentExtractionSchema, parseMoments, looksCut, foreignFields, dropLookWords } from './scene-extraction.mjs';
@@ -363,6 +363,21 @@ function bindImageMenus(){
   document.addEventListener('toggle',event=>{if(imageMenu?.menu.contains(event.target))positionImageMenu();},true);
   window.addEventListener('resize',()=>closeImageMenu());
 }
+// Reads the chat file back from SillyTavern to check that a save really happened (0.1.77). The route is SillyTavern's own
+// chat-read route; if its answer is not what is expected, the result is "cannot tell", never "saved".
+async function readSavedChat(){
+  const c=ctx(),inGroup=c.groupId!==null&&c.groupId!==undefined,id=c.getCurrentChatId?.() ?? c.chatId;
+  if(!id)throw new Error('no chat');
+  const card=c.characters?.[c.characterId];
+  const response=inGroup
+    ?await fetch('/api/chats/group/get',{method:'POST',headers:c.getRequestHeaders(),body:JSON.stringify({id})})
+    :await fetch('/api/chats/get',{method:'POST',headers:c.getRequestHeaders(),body:JSON.stringify({ch_name:card?.name,file_name:String(id).replace(/\.jsonl$/,''),avatar_url:card?.avatar})});
+  if(!response.ok)throw new Error(`read ${response.status}`);
+  const data=await response.json();if(!Array.isArray(data))throw new Error('unexpected shape');
+  // The first entry of a chat file is its header (no message text).
+  return data.length&&data[0]&&typeof data[0]==='object'&&'chat_metadata' in data[0]&&!('mes' in data[0])?data.slice(1):data;
+}
+const UNVERIFIED='채팅 파일에 저장됐는지 확인하지 못했어요. 화면은 그대로 두었어요. 채팅을 다시 열어 확인해 주세요.';
 function attachmentOf(element){
   const index=Number(element.closest('.mes')?.getAttribute('mesid')),message=ctx().chat?.[index];
   return {message,swipeId:message?.swipe_id??0,signature:textSignature(message?.mes??''),chatKey:keyOf()};
@@ -371,7 +386,7 @@ async function placeChatImage(item,attachment,placement){
   if(busy||attaching)throw new Error('진행 중인 작업이 끝난 뒤 옮겨 주세요.');
   if(ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 옮겨 주세요.');
   const startKey=attachment.chatKey;attaching=true;updateAttachButtons();
-  try{await placeMessageImage(ctx(),item,{...attachment,placement,isCurrent:()=>keyOf()===startKey});if(keyOf()===startKey)renderChatImages();}
+  try{const done=await placeMessageImage(ctx(),item,{...attachment,placement,readSaved:readSavedChat,isCurrent:()=>keyOf()===startKey});if(keyOf()===startKey)renderChatImages();if(done?.unverified)say(UNVERIFIED,true);}
   finally{attaching=false;updateAttachButtons();}
 }
 async function removeMessageImage(item,attachment){
@@ -380,9 +395,10 @@ async function removeMessageImage(item,attachment){
   const context=ctx(),startKey=attachment.chatKey;
   attaching=true;updateAttachButtons();
   try{
-    await detachMessageImage(context,item,{...attachment,isCurrent:()=>keyOf()===startKey});
+    const done=await detachMessageImage(context,item,{...attachment,readSaved:readSavedChat,isCurrent:()=>keyOf()===startKey});
     if(keyOf()===startKey){renderChatImages();renderResult();renderHistory();}
-    say('이 메시지에서 그림을 뺐어요. 원본과 생성 이력은 그대로예요.');return true;
+    if(done?.unverified)say(`그림을 뺐지만 ${UNVERIFIED}`,true);
+    else say('이 메시지에서 그림을 뺐어요. 원본과 생성 이력은 그대로예요.');return true;
   }finally{attaching=false;updateAttachButtons();}
 }
 function say(message,error=false,tab=activeTab()) {
@@ -1318,6 +1334,7 @@ function limitHint(){
 // Before an extraction: references typed by hand are confirmed into @Name#id (the text changes, and the note says so);
 // any reference that cannot be tied to exactly one profile stops it. Returns the text for the AI and the required people.
 function prepareRefs(el,label){
+  const tooLong=lengthProblem(el.value,el.id==='ncs-free-text'?'free':'wish');if(tooLong)throw new Error(tooLong);
   const profiles=settings().profiles,c=confirmRefs(el.value,profiles);
   if(c.problems.length)throw new Error(`${label}의 @참조를 확인해 주세요. ${c.problems.map(p=>p.message).join(' ')}`);
   if(c.confirmed.length){el.value=c.text;el.dispatchEvent(new Event('input',{bubbles:true}));}
@@ -1334,7 +1351,9 @@ function ensureRequired(part,required,present=null){
   const empty=[];
   for(const p of required){
     let c=part.characters.find(c=>!c.temp&&c.id===p.id);
-    if(!c){c=attachSceneProfile(part,p,[p.name]).character;c.pinned??=false;if(!c.expression&&!c.action)empty.push(p.name);}
+    // Another profile with the same name or alias: the AI gave no id, so whose action it is cannot be known. Leave it empty.
+    const twin=settings().profiles.some(o=>o.id!==p.id&&[o.name,...(o.aliases??[])].some(n=>[p.name,...(p.aliases??[])].some(m=>identityKey(n)===identityKey(m))));
+    if(!c){c=attachSceneProfile(part,p,[p.name],{ambiguous:twin}).character;c.pinned??=false;if(!c.expression&&!c.action)empty.push(p.name);}
     else if(present&&!present.has(p.id)){c.expression='';c.action='';empty.push(p.name);}
     c.included=true;
   }
@@ -1369,7 +1388,7 @@ function pickRef(i){
   closeRefList();field.insertChip(q,p);field.dispatchEvent(new Event('input',{bubbles:true}));
 }
 function bindRefFields(){
-  const lengths={'ncs-free-text':{limit:4000,measure:v=>v.length},'ncs-moment-wish':{limit:200,measure:displayLength,singleLine:true}};
+  const lengths={'ncs-free-text':{limit:LENGTH_LIMITS.free.visible,measure:displayLength},'ncs-moment-wish':{limit:LENGTH_LIMITS.wish.visible,measure:displayLength,singleLine:true}};
   for(const id of ['ncs-free-text','ncs-moment-wish']){
     const field=$(id);if(!field)continue;
     setupChipField(field,{getProfiles:()=>settings().profiles,...lengths[id]});
@@ -1378,6 +1397,7 @@ function bindRefFields(){
     field.addEventListener('keyup',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key))refresh();});
     field.addEventListener('blur',()=>setTimeout(()=>{if(refList?.field===field&&document.activeElement!==field)closeRefList();},150));
     field.addEventListener('ncs-field-full',()=>notice(id==='ncs-free-text'?'상황 글이 너무 길어서 붙여 넣지 못했어요.':'추가 요청이 너무 길어서 붙여 넣지 못했어요.',true,'scene'));
+    field.addEventListener('ncs-field-over',()=>notice(`${id==='ncs-free-text'?'상황 글':'추가 요청'}이 글자 수 한도를 넘었어요. 줄이기 전에는 추출하거나 생성할 수 없어요.`,true,'scene'));
     field.addEventListener('keydown',event=>{
       if(!refList||refList.field!==field||event.isComposing||event.keyCode===229)return;
       const n=refList.items.length;
@@ -1402,7 +1422,7 @@ async function freeFill() {
   // 0.1.59: the text decides who stays. Nothing changes before the response is valid; a cancelled question changes nothing.
   const plan=planFreePeople(scene.characters,plainNames(asked,s.profiles),s.profiles);
   const existing=plan.present.map(c=>c.temp?{id:'',name:c.name}:{id:c.id,name:s.profiles.find(p=>p.id===c.id)?.name??''}).filter(p=>p.name);
-  const prompt=freeScenePrompt(refs.text,s.profiles,existing,s.format,refs.required);
+  const prompt=freeScenePrompt(refs.text,s.profiles,existing,s.format,refs.required,displayText(asked));
   if(plan.ask&&!confirm(confirmText(plan,s.profiles))){report('추출하지 않았어요. 글을 고치거나 남길 카드를 📌 고정해 주세요.');return;}
   const before={...captureWork(),scene:clone(scene),undoClear:null,targetShown,kind:'extract',label:'추출 전으로 되돌려요. 다시 고치거나 생성·비우기·가져오기를 하면 사라져요.'};
   const ticket=++task,rev=revision,controller=new AbortController();extraction={ticket,controller,kind:'free'};
@@ -1751,6 +1771,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   if(!skipMissingCheck&&!settings().imagePresetId&&!optionsOverride&&!confirm('공통 이미지 프리셋을 고르지 않았어요.\n설정 탭의 기본 생성 설정(모델·크기·Steps 등)과 공통 프롬프트로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "3 · 생성"에서 프리셋 고르기')){report('생성하지 않았어요. "3 · 생성"에서 공통 이미지 프리셋을 고를 수 있어요.');return;}
   if(!skipMissingCheck){const {main}=missingState();if(main.length&&!skipMissingWarning()){openMissingDialog(main,seedMode);return;}}
   const s=settings(),startKey=workKey(),ticket=++task;
+  if(isFree()){const tooLong=lengthProblem($('ncs-free-text').value,'free');if(tooLong)throw new Error(tooLong);} // before anything is sent
   if(finalOverride?.invalid)throw new Error('최종 프롬프트 JSON이 올바르지 않아요. 고치거나 "조립 결과로 되돌리기"를 눌러 주세요.');
   const a=clone(finalData()),submittedFinal=finalOverride,submittedOptions=optionsOverride;
   const options=clone(effectiveOptions());
@@ -1919,7 +1940,7 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
   report('그림을 삭제하고 있어요…');
   attaching=true;updateAttachButtons();
   try {
-    const deleted=new Set(),skipped=[];
+    const deleted=new Set(),skipped=[];let unverifiedDetach=false;
     for(const [key,list] of groups){
       let response;
       try{response=list==='all'&&serverFeatures.includes('draft-delete')
@@ -1929,12 +1950,12 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
       for(const id of response.deleted??[])deleted.add(id);skipped.push(...(response.skipped??[]));
     }
     // Clean attachments of the open chat in one save; other chats keep a "missing image" note.
-    if(deleted.size&&current&&keyOf()===current)await detachInlineImages(ctx(),deleted,{isCurrent:()=>keyOf()===current});
+    if(deleted.size&&current&&keyOf()===current)unverifiedDetach=!!(await detachInlineImages(ctx(),deleted,{readSaved:readSavedChat,isCurrent:()=>keyOf()===current})).unverified;
     if(result&&deleted.has(result.id))result=null;
     for(const id of deleted)selectedIds.delete(id);
     if(current&&keyOf()===current){renderChatImages();renderResult();}
     const skippedText=skipped.length?` 찾지 못한 ${skipped.length}장은 지우지 않았어요.`:'';
-    say(deleted.size?`그림 ${deleted.size}장을 삭제했어요.${skippedText}`:`삭제한 그림이 없어요.${skippedText}`,!deleted.size,originTab);
+    say(deleted.size?`그림 ${deleted.size}장을 삭제했어요.${skippedText}${unverifiedDetach?` 다만 채팅에서 그림을 뺀 것이 ${UNVERIFIED}`:''}`:`삭제한 그림이 없어요.${skippedText}`,!deleted.size||unverifiedDetach,originTab);
     return {deleted:[...deleted],skipped};
   }finally{attaching=false;updateAttachButtons();loadHistory().catch(e=>report(e.message,true));}
 }
@@ -1980,11 +2001,12 @@ async function putImagesInChat(items,targetIndex,placement=null) {
   if(ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 첨부해 주세요.');
   attaching=true;updateAttachButtons();
   try {
-    const done=await attachInlineImages(ctx(),items,{targetIndex,placement,isCurrent:()=>keyOf()===startKey});
+    const done=await attachInlineImages(ctx(),items,{targetIndex,placement,readSaved:readSavedChat,isCurrent:()=>keyOf()===startKey});
     if(keyOf()!==startKey)return;
     renderChatImages();renderResult();renderHistory();
     const where=`#${targetIndex} 메시지${placement?` 글 ${placement==='above'?'위':'아래'}`:''}`,moved=done.moved?` 이미 있던 ${done.moved}장은 글 ${placement==='above'?'위':'아래'}로 옮겼어요.`:'';
-    notice(!done.added&&!done.moved?`${where}에 이미 넣은 그림이에요.`:!done.added?`${moved.trim()} 본문은 그대로예요.`:`${where}에 ${items.length>1?`${done.added}장을 `:'그림을 '}넣었어요.${moved}${done.duplicates?` 이미 있던 ${done.duplicates}장은 그대로 뒀어요.`:''} 본문은 그대로예요.`);
+    if(done.unverified)notice(`${where}에 그림을 넣었지만 ${UNVERIFIED}`,true);
+    else notice(!done.added&&!done.moved?`${where}에 이미 넣은 그림이에요.`:!done.added?`${moved.trim()} 본문은 그대로예요.`:`${where}에 ${items.length>1?`${done.added}장을 `:'그림을 '}넣었어요.${moved}${done.duplicates?` 이미 있던 ${done.duplicates}장은 그대로 뒀어요.`:''} 본문은 그대로예요.`);
   }finally{attaching=false;updateAttachButtons();}
 }
 async function removeImageFromChat(item) {
@@ -1993,10 +2015,11 @@ async function removeImageFromChat(item) {
   if(ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 이미지를 빼 주세요.');
   attaching=true;updateAttachButtons();
   try{
-    const removed=await detachInlineImage(ctx(),item,{isCurrent:()=>keyOf()===startKey});
+    const removed=await detachInlineImage(ctx(),item,{readSaved:readSavedChat,isCurrent:()=>keyOf()===startKey});
     if(keyOf()!==startKey)return;
     renderChatImages();renderResult();renderHistory();
-    notice(removed.removed?'채팅의 이미지 첨부만 뺐어요. 원본과 생성 이력은 남아 있어요.':'이 이미지는 현재 채팅에 첨부되어 있지 않아요.');
+    if(removed.unverified)notice(`채팅의 이미지 첨부를 뺐지만 ${UNVERIFIED}`,true);
+    else notice(removed.removed?'채팅의 이미지 첨부만 뺐어요. 원본과 생성 이력은 남아 있어요.':'이 이미지는 현재 채팅에 첨부되어 있지 않아요.');
   }finally{attaching=false;updateAttachButtons();}
 }
 function renderHistoryFilter() {

@@ -1,5 +1,13 @@
 # Installation and update checklist
 
+## v0.1.77
+
+**Update the server plugin first** (0.1.18), restart SillyTavern, then update the extension and refresh. The extension needs server 0.1.18 or newer.
+
+1. 프리샷: write a very long situation (over 4,000 seen characters): 장면 추출 stops with a clear message; nothing is sent.
+2. Type `@Le` in a text that has `@Leo`, pick Leo: no leftover `o`. Copy a selection that ends with a line break and paste it: the line break is kept.
+3. 본문에 넣기 / 위치 바꾸기 / 빼기: the normal message appears. If SillyTavern cannot confirm the save, the message says it could not check (nothing is undone).
+
 ## v0.1.76
 
 Update the extension and refresh. No server update is needed.

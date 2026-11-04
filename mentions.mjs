@@ -27,7 +27,8 @@ export function boundaryAfter(text,at){
 }
 
 // --- The chip as text -------------------------------------------------------------------------------------------------
-const safeName=name=>String(name??'').replace(/[\[\]()\n]/g,' ').replace(/\s+/g,' ').trim().slice(0,60);
+export const EMPTY_NAME='이름 없음';
+const safeName=name=>String(name??'').replace(/[\[\]()\n]/g,' ').replace(/\s+/g,' ').trim().slice(0,60)||EMPTY_NAME; // a chip name is never empty
 export const chipToken=(name,id)=>`@[${safeName(name)}](ref:${String(id??'').replace(/[^A-Za-z0-9_-]/g,'')})`;
 const TOKEN=/@\[([^\]\n]{0,60})\]\(ref:([A-Za-z0-9_-]*)\)/gu;
 // The 0.1.75 form "@Name#short": it cannot be trusted, so it shows as a broken chip. The name may hold spaces but does not
@@ -55,7 +56,19 @@ export function tokenize(value){
   return out;
 }
 // How long the text looks on screen: a chip counts as its "@name".
-export const displayLength=value=>tokenize(value).reduce((n,p)=>n+(p.type==='text'?p.text.length:p.name.length+1),0);
+export const displayLength=value=>tokenize(value).reduce((n,p)=>n+(p.type==='text'?p.text.length:(p.name||EMPTY_NAME).length+1),0);
+
+// Length rules (0.1.77): the limit is what a person sees (a chip counts as "@name"). The stored text form of a chip is
+// @[name](ref:ID) = 9 + name + ID (ID at most 80), so the longest stored text for a visible limit is reached with 1-letter
+// names: visible/2 chips x 90 characters = 45 x visible. No chip-count cap is needed; these are the ceilings.
+export const LENGTH_LIMITS={free:{visible:4000,stored:180000,label:'상황 글'},wish:{visible:200,stored:9000,label:'추가 요청'}};
+// Returns null when the text fits, otherwise a clear message.
+export function lengthProblem(value,kind){
+  const rule=LENGTH_LIMITS[kind],text=String(value??''),shown=displayLength(text);
+  if(shown>rule.visible)return `${rule.label}이 너무 길어요. 화면에 보이는 글자 기준 ${rule.visible.toLocaleString('en-US')}자까지예요. (지금 ${shown.toLocaleString('en-US')}자)`;
+  if(text.length>rule.stored)return `${rule.label}에 칩이 너무 많아요. 줄여 주세요.`;
+  return null;
+}
 
 const labelsOf=p=>[p.name,...(p.aliases??[])].filter(x=>String(x??'').trim());
 

@@ -11,6 +11,10 @@ test('prompt: one instant, existing people only if visible (0.1.59), others desc
  assert.doesNotMatch(p,/SECRET FIXED LOOK|hoodie/,'saved looks never go to the text AI');
  assert.throws(()=>freeScenePrompt('  ',profiles,[],'tags'),/상황을 적어/);
  assert.throws(()=>freeScenePrompt('x'.repeat(FREE_TEXT_LIMIT+1),profiles,[],'tags'),/까지/);
+ // 0.1.77: the rule is about what a person sees; ids added for the AI do not count
+ const long='가'.repeat(3961)+' (roster id '+'a'.repeat(36)+')';
+ assert.ok(long.length>FREE_TEXT_LIMIT);assert.doesNotThrow(()=>freeScenePrompt(long,profiles,[],'tags',[],'가'.repeat(3961)));
+ assert.throws(()=>freeScenePrompt('짧음',profiles,[],'tags',[],'가'.repeat(4001)),/까지/);
  assert.deepEqual(freeSceneSchema(profiles).properties.characters.items.properties.id.enum,['leo','mira','']);
 });
 test('parse: the appearance is kept until the app confirms the person (UI-054-02); unknown ids become temporary people; bad fields fall back',()=>{

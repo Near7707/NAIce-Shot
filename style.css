@@ -859,7 +859,7 @@
 #naice-shot-dialog .ncs-chipfield:focus {border-color:var(--ncs-edge);outline:2px solid var(--ncs-focus);outline-offset:2px;}
 #naice-shot-dialog .ncs-chipfield:empty::before {content:attr(data-placeholder);color:var(--ncs-muted);pointer-events:none;}
 #naice-shot-dialog fieldset:disabled .ncs-chipfield {opacity:.6;pointer-events:none;}
-#naice-shot-dialog .ncs-chip {display:inline-block;margin:0 1px;padding:0 9px;border-radius:var(--ncs-radius-pill);border:var(--ncs-border-width) solid var(--ncs-edge);background:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);font-weight:650;line-height:1.45;white-space:nowrap;user-select:all;cursor:default;}
+#naice-shot-dialog .ncs-chip {display:inline-block;max-width:min(100%,20em);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;box-sizing:border-box;margin:0 1px;padding:0 9px;border-radius:var(--ncs-radius-pill);border:var(--ncs-border-width) solid var(--ncs-edge);background:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);font-weight:650;line-height:1.45;white-space:nowrap;user-select:all;cursor:default;}
 #naice-shot-dialog .ncs-chip-broken {border-style:dashed;border-color:var(--ncs-warning);background:color-mix(in srgb,var(--ncs-warning) 16%,var(--ncs-bg));color:var(--ncs-fg);font-weight:500;}
 /* 0.1.75: @프로필 참조 — the list under the field while typing "@…". */
 #naice-shot-dialog .ncs-ref-list {position:fixed;z-index:30;display:grid;gap:2px;max-height:min(280px,50dvh);overflow:auto;padding:4px;border:var(--ncs-border-width) solid var(--ncs-edge);border-radius:var(--ncs-radius-control);background:var(--ncs-bg);box-shadow:0 8px 28px #0006;}

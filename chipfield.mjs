@@ -2,15 +2,15 @@
 // The field is a contenteditable box. On screen a chip is a pill "@Leo"; inside it keeps the profile's full id.
 // field.value reads and writes the text form (mentions.mjs: a chip is @[Leo](ref:FULL-ID)), so the rest of the app can
 // treat the box like a normal text field (value, input events, saved work and history).
-import {tokenize,chipToken,queryAt} from './mentions.mjs';
+import {tokenize,chipToken,queryAt,boundaryAfter,EMPTY_NAME} from './mentions.mjs';
 
 const escapeHtml=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const isChip=n=>n?.nodeType===1&&n.classList?.contains('ncs-chip');
 const BROKEN_TITLE='지워졌거나 찾을 수 없는 프로필이에요. 지우고 @를 쳐서 다시 골라 주세요.';
 
 function chipHtml(name,id,profile){
-  const label=profile?profile.name:(name||'이름 없음'),broken=!profile;
-  return `<span class="ncs-chip${broken?' ncs-chip-broken':''}" contenteditable="false" data-ref-id="${escapeHtml(id)}" data-ref-name="${escapeHtml(label)}"${broken?` title="${BROKEN_TITLE}"`:''}>@${escapeHtml(label)}</span>`;
+  const label=(profile?profile.name:name)||EMPTY_NAME,broken=!profile;
+  return `<span class="ncs-chip${broken?' ncs-chip-broken':''}" contenteditable="false" data-ref-id="${escapeHtml(id)}" data-ref-name="${escapeHtml(label)}" title="${broken?BROKEN_TITLE:escapeHtml('@'+label)}">@${escapeHtml(label)}</span>`;
 }
 // The HTML for a text value. chips:false keeps chip-looking text as plain text (a paste from another app).
 export function htmlOf(value,profiles,{chips=true,singleLine=false}={}){
@@ -32,7 +32,8 @@ export function htmlOf(value,profiles,{chips=true,singleLine=false}={}){
 }
 
 // Reads a node (or a copied fragment) back into text. internal: chips as @[name](ref:id); otherwise as @name.
-export function serialize(root,internal=true){
+// live: root is the field itself (its last <br> may be only a placeholder); a copied fragment keeps every newline.
+export function serialize(root,internal=true,live=false){
   const out=[];
   const walk=node=>{
     for(const n of node.childNodes){
@@ -48,7 +49,7 @@ export function serialize(root,internal=true){
   walk(root);
   let text=out.join('');
   // Browsers keep a placeholder <br> at the end of the last line; it is not a newline the person typed.
-  if(root.lastChild?.nodeName==='BR'&&text.endsWith('\n'))text=text.slice(0,-1);
+  if(live&&root.lastChild?.nodeName==='BR'&&text.endsWith('\n'))text=text.slice(0,-1);
   return text;
 }
 
@@ -57,7 +58,7 @@ export function setupChipField(el,{getProfiles,limit=Infinity,measure=v=>v.lengt
   el.setAttribute('contenteditable','true');el.setAttribute('role','textbox');el.setAttribute('spellcheck','false');
   if(!singleLine)el.setAttribute('aria-multiline','true');
   const profiles=()=>getProfiles?.()??[];
-  const read=()=>serialize(el,true);
+  const read=()=>serialize(el,true,true);
   const locked=()=>!!el.closest('fieldset:disabled');
   Object.defineProperty(el,'value',{configurable:true,
     get:read,
@@ -66,7 +67,7 @@ export function setupChipField(el,{getProfiles,limit=Infinity,measure=v=>v.lengt
   el.refreshChips=()=>{
     for(const chip of el.querySelectorAll('.ncs-chip')){
       const id=chip.dataset.refId,p=id?profiles().find(x=>String(x.id)===id):null;
-      if(p){chip.textContent=`@${p.name}`;chip.dataset.refName=p.name;chip.classList.remove('ncs-chip-broken');chip.removeAttribute('title');}
+      if(p){chip.textContent=`@${p.name}`;chip.dataset.refName=p.name;chip.classList.remove('ncs-chip-broken');chip.title=`@${p.name}`;}
       else{chip.classList.add('ncs-chip-broken');chip.title=BROKEN_TITLE;}
     }
   };
@@ -80,9 +81,18 @@ export function setupChipField(el,{getProfiles,limit=Infinity,measure=v=>v.lengt
   // Puts the chip of a profile where the "@query" is. execCommand keeps the browser's own undo (Ctrl+Z) working.
   el.insertChip=(q,profile)=>{
     el.focus();
-    const range=document.createRange();range.setStart(q.node,q.start);range.setEnd(q.node,q.end);
+    // "@Le|o": the rest of the name after the caret is part of what was typed, so it goes too (0.1.77, UI-075-07).
+    // Only when the profile's name or alias really continues with it and ends at a word edge; otherwise nothing extra.
+    const data=q.node.data,typed=data.slice(q.start+1,q.end).toLowerCase();let end=q.end,best=0;
+    for(const label of [profile.name,...(profile.aliases??[])].filter(Boolean)){
+      const l=String(label).toLowerCase();if(!l.startsWith(typed)||l.length===typed.length)continue;
+      const rest=l.slice(typed.length);
+      if(data.slice(q.end,q.end+rest.length).toLowerCase()===rest&&boundaryAfter(data,q.end+rest.length)>=0)best=Math.max(best,rest.length);
+    }
+    end+=best;
+    const range=document.createRange();range.setStart(q.node,q.start);range.setEnd(q.node,end);
     const sel=getSelection();sel.removeAllRanges();sel.addRange(range);
-    const next=q.node.data[q.end]??'',space=/\s/.test(next)?'':'&nbsp;';
+    const next=data[end]??'',space=/\s/.test(next)?'':'&nbsp;';
     document.execCommand('insertHTML',false,chipHtml(profile.name,profile.id,profile)+space);
   };
   const room=(extra='')=>{
@@ -131,6 +141,21 @@ export function setupChipField(el,{getProfiles,limit=Infinity,measure=v=>v.lengt
   el.addEventListener('input',event=>{
     if(event.isComposing)return;
     if(!el.querySelector('.ncs-chip')&&!el.textContent.replace(/[​﻿]/g,'')&&el.innerHTML)el.innerHTML='';
+  });
+  // Hangul (IME) text arrives while composing and cannot be refused. When composing ends over the limit, only the part
+  // composed this time is trimmed; existing text and chips are never touched. If that part cannot be found, nothing is
+  // cut: the field stays over the limit, the person is told, and extraction/generation stay blocked until it fits.
+  el.addEventListener('compositionend',event=>{
+    if(locked())return;
+    const over=measure(read())-limit;if(over<=0)return;
+    const data=event.data??'',sel=getSelection(),node=sel?.anchorNode,at=sel?.anchorOffset??0;
+    if(sel?.isCollapsed&&node?.nodeType===3&&el.contains(node)&&!isChip(node.parentNode)&&data&&node.data.slice(at-data.length,at)===data){
+      const cut=Math.min(over,data.length),from=at-cut;
+      const range=document.createRange();range.setStart(node,from);range.setEnd(node,at);
+      sel.removeAllRanges();sel.addRange(range);document.execCommand('delete');
+      if(measure(read())<=limit){el.dispatchEvent(new CustomEvent('ncs-field-full',{bubbles:true}));return;}
+    }
+    el.dispatchEvent(new CustomEvent('ncs-field-over',{bubbles:true}));
   });
   el.addEventListener('focus',()=>el.refreshChips());
   return el;

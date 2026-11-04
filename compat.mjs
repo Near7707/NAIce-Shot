@@ -1,7 +1,7 @@
 // UI ↔ server plugin compatibility. When a release changes the server plugin, raise MIN_SERVER_VERSION
 // (and add any new feature flag to REQUIRED_SERVER_FEATURES) so people who forget to replace the
 // server folder see a clear notice as soon as they open the panel.
-export const MIN_SERVER_VERSION = '0.1.17'; // 0.1.17: every failed account check (also offline, timeout, unreadable) is nai-account
+export const MIN_SERVER_VERSION = '0.1.18'; // 0.1.18: situation text is checked by what a person sees and refused before NovelAI (never dropped)
 export const REQUIRED_SERVER_FEATURES = ['paged-history', 'delete', 'private-records', 'all-history', 'privacy-controls','draft-work','draft-delete','free-text','draft-tombstone','nai-error-codes','history-kinds'];
 
 export function compareVersions(a, b) {
