@@ -80,16 +80,6 @@ try{
   assert.equal(await page.locator('.ncs-png-info').isVisible(),true,'the PNG warning stays open');
   assert.deepEqual(errors,[]);await page.close();
  }
- {// Chat message menus take the theme's colours (milk), even before the panel is opened again.
-  const {page,errors}=await open(375,{skin:'milk'});
-  await page.locator('[data-action="generate"]').click();await idle(page);
-  await page.locator('#ncs-result [data-image-target]').selectOption('1');await page.locator('[data-action="attach"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
-  const panelBg=await page.evaluate(()=>getComputedStyle(document.getElementById('naice-shot-dialog')).getPropertyValue('--ncs-menu-bg').trim()||getComputedStyle(document.getElementById('naice-shot-dialog')).getPropertyValue('--ncs-bg').trim());
-  await page.locator('[data-action="close"]').click();
-  const m=page.locator('#chat .mes[mesid="1"]');await m.locator('.ncs-inline-more').click();const pop=m.locator('.ncs-image-popup');await pop.waitFor({state:'visible'});
-  const menuBg=await pop.evaluate(e=>e.style.getPropertyValue('--ncs-menu-bg').trim()||e.style.getPropertyValue('--ncs-bg').trim());
-  assert.equal(menuBg,panelBg,'menu uses the theme colour');
-  assert.deepEqual(errors,[]);await page.close();
- }
- console.log('PASS: preset save box follows the selection (asks before overwriting), two-per-row fields, retention wording, fields and buttons end together on PC, "이 복장을" row held while saving, folded lock help, select all ↔ clear all, folded history notes, chat menus in theme colours');
+ // 0.1.63: chat pictures have no ⋯ menu any more (see browser-v0163), so the chat-menu colour check is gone.
+ console.log('PASS: preset save box follows the selection (asks before overwriting), two-per-row fields, retention wording, fields and buttons end together on PC, "이 복장을" row held while saving, folded lock help, select all ↔ clear all, folded history notes');
 }finally{await browser.close();server.close();}

@@ -32,6 +32,9 @@ export async function attachInlineImage(context,item,{targetIndex,isCurrent=()=>
  if(!Number.isInteger(targetIndex)||!isSceneMessage(message))throw new Error('그림을 넣을 RP 메시지를 선택해 주세요.');
  const old=Array.isArray(message.extra?.[IMAGE_KEY])?message.extra[IMAGE_KEY]:[];
  const entry={id:item.id,image:item.image,swipeId:message.swipe_id??0,signature:textSignature(message.mes)};
+ // When it was made and its seed, so the enlarged view from the chat can show them (0.1.63). Nothing private.
+ if(typeof item.created==='string'&&!Number.isNaN(Date.parse(item.created)))entry.created=item.created;
+ if(Number.isInteger(item.seed))entry.seed=item.seed;
  const duplicate=old.some(x=>x.id===item.id&&x.signature===entry.signature&&x.swipeId===entry.swipeId);
  if(!duplicate){
   if(old.length>=20&&!old.some(x=>x.id===item.id))throw new Error('한 메시지에는 이미지를 최대 20개까지 넣을 수 있어요.');
@@ -96,14 +99,13 @@ export function renderInlineImages(context,root,chatKey,{placement='below'}={}) 
    const tile=document.createElement('figure');tile.className='ncs-inline-image';
    const img=document.createElement('img');img.src=item.image;img.alt='생성된 장면';img.loading='lazy';
    const open=document.createElement('button');open.type='button';open.className='ncs-inline-open';open.dataset.ncsInlineView=item.id;open.setAttribute('aria-label','생성된 장면 크게 보기');open.append(img);
-   const actions=document.createElement('figcaption'),download=document.createElement('a'),clean=document.createElement('button'),remove=document.createElement('button');
-   actions.className='ncs-image-popup';actions.id=`ncs-inline-menu-${index}-${item.id}`;actions.hidden=true;actions.setAttribute('popover','manual');actions.setAttribute('role','group');actions.setAttribute('aria-label','첨부 그림 작업');
-   const more=document.createElement('button');more.type='button';more.className='ncs-inline-more';more.textContent='⋯';more.dataset.imageMore=actions.id;more.setAttribute('aria-controls',actions.id);more.setAttribute('aria-expanded','false');more.setAttribute('aria-label','첨부 그림 더 보기');more.title='그림 더 보기';
-   clean.type='button';clean.dataset.ncsInlineClean=item.id;clean.textContent='클린 PNG 저장';const cleanNote=document.createElement('small');cleanNote.textContent=SAVE_NOTES.shared;clean.append(cleanNote);
-   const file=imageDownload(item);download.href=file.url;download.download=file.filename;download.textContent='원본 PNG 저장';const originalNote=document.createElement('small');originalNote.textContent=SAVE_NOTES.original;download.append(originalNote);
+   const remove=document.createElement('button');
    // A deleted or missing file shows a note instead of a broken image; the remove button stays.
-   img.addEventListener('error',()=>{tile.classList.add('ncs-missing');open.disabled=true;download.remove();const note=document.createElement('span');note.className='ncs-missing-note';note.textContent='삭제됐거나 찾을 수 없는 그림이에요.';open.replaceChildren(note);},{once:true});
-   remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이 메시지에서 빼기';clean.classList.add('ncs-popup-primary');actions.append(clean,download,remove);tile.append(open,more,actions);holder.append(tile);
+   img.addEventListener('error',()=>{tile.classList.add('ncs-missing');open.disabled=true;remove.hidden=false;const note=document.createElement('span');note.className='ncs-missing-note';note.textContent='삭제됐거나 찾을 수 없는 그림이에요.';open.replaceChildren(note);},{once:true});
+   remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이 메시지에서 빼기';
+   // 0.1.63: no ⋯ over the picture. Saving, removing and deleting live in the enlarged view (tap the picture);
+   // only a picture whose file is gone shows a plain [이 메시지에서 빼기] under its note.
+   remove.className='ncs-inline-remove';remove.hidden=true;tile.append(open,remove);holder.append(tile);
   }
   const text=element.querySelector('.mes_text');
   if(text)where==='above'?text.before(holder):text.after(holder);else (element.querySelector('.mes_block')??element)[where==='above'?'prepend':'append'](holder);

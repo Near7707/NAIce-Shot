@@ -143,15 +143,17 @@ function renderMatching() {
 const tabNotices=new Map();
 // 0.1.62: while something runs, its progress box says it (no second banner); a success notice folds away after a while
 // (longer messages stay longer); errors stay until the next notice.
-let noticeTimer=null;
+// While anything runs, every notice of the tab waits (errors too) and comes back when it ends (UI-062-02).
+// Each notice folds on its own timer, so one tab's notice never cancels another tab's folding (UI-062-03).
+// A warning the user must act on (keep) stays like an error (UI-062-01).
 function renderNotice(){if(!dialog)return;const n=tabNotices.get(activeTab()),box=$('ncs-notice');
-  box.hidden=!n?.message||(!n.error&&(!!progress||(n.until&&Date.now()>=n.until)));box.textContent=n?.message??'';box.classList.toggle('ncs-error',n?.error===true);}
+  box.hidden=!n?.message||!!progress||(!!n.until&&Date.now()>=n.until);box.textContent=n?.message??'';box.classList.toggle('ncs-error',n?.error===true);}
 // The shared core (also on the server) still says 스텝; the panel calls it Steps like Guidance and Seed (0.1.62).
 const stepsWord=text=>String(text??'').replace(/(\d+)스텝/g,'$1 Steps').replace(/스텝은/g,'Steps는').replace(/스텝/g,'Steps');
-function notice(message,error=false,tab=activeTab()){
-  const text=stepsWord(message),until=error?0:Date.now()+Math.min(15000,5000+text.length*60);
+function notice(message,error=false,tab=activeTab(),{keep=false}={}){
+  const text=stepsWord(message),until=error||keep?0:Date.now()+Math.min(15000,5000+text.length*60);
   tabNotices.set(tab,{message:text,error,until});renderNotice();
-  clearTimeout(noticeTimer);if(until)noticeTimer=setTimeout(renderNotice,until-Date.now()+50);
+  if(until)setTimeout(renderNotice,until-Date.now()+50);
 }
 // One main button per action; 장면 추출 serves both modes (챗샷 reads the chat, 프리샷 the written situation).
 const BUTTON_LABELS={extract:['extract','장면 추출',['extract','free']],generate:['generate','이미지 생성',['generate']],profile:['convert-profile','태그로 변환',['profile']]};
@@ -181,18 +183,28 @@ function cancelExtraction(message) {
   stopProgress(current.ticket);if(busyOwner===current.ticket)setBusy(false);
   if(message)notice(message);return true;
 }
-async function promptForImage(item) {
+// The history record of a picture (attachments store no prompt text). Read only when needed; one lookup per picture.
+const recordLookups=new Map();
+function findRecord(item){
   const cached=item.assembled?item:result?.id===item.id?result:historyItems.find(x=>x.id===item.id&&x.assembled);
-  if(cached?.assembled)return promptText(cached);
-  if(!item.chatKey)throw new Error('이 그림의 프롬프트를 찾을 수 없어요. 이력에서 다시 열어 주세요.');
-  // Attachments store no prompt text. Read history only when the user opens the prompt disclosure.
-  for(let offset=0;;){
-    const page=await api(`/history?chatKey=${encodeURIComponent(item.chatKey)}&offset=${offset}&limit=100`);
-    const records=page.items??[],found=records.find(x=>x.id===item.id);
-    if(found?.assembled)return promptText(found);
-    offset+=records.length;
-    if(!records.length||page.hasMore===false||offset>=(page.total??offset))break;
-  }
+  if(cached?.assembled)return Promise.resolve(cached);
+  if(!item.chatKey)return Promise.resolve(null);
+  const key=`${item.chatKey}\n${item.id}`;
+  if(!recordLookups.has(key))recordLookups.set(key,(async()=>{
+    for(let offset=0;;){
+      const page=await api(`/history?chatKey=${encodeURIComponent(item.chatKey)}&offset=${offset}&limit=100`);
+      const records=page.items??[],found=records.find(x=>x.id===item.id);
+      if(found)return found;
+      offset+=records.length;
+      if(!records.length||page.hasMore===false||offset>=(page.total??offset))return null;
+    }
+  })().catch(e=>{recordLookups.delete(key);throw e;}));
+  return recordLookups.get(key);
+}
+async function promptForImage(item) {
+  if(!item.assembled&&!item.chatKey)throw new Error('이 그림의 프롬프트를 찾을 수 없어요. 이력에서 다시 열어 주세요.');
+  const found=await findRecord(item);
+  if(found?.assembled)return promptText(found);
   throw new Error('이 그림의 프롬프트 기록을 찾을 수 없어요.');
 }
 // 2026. 10. 27. 오후 12:27 — minutes, no seconds.
@@ -221,9 +233,12 @@ function historyGallery(){
 function imageViewerOptions(item,{attachment=null}={}){
   const jumps=attachment?[]:jumpChoices(item); // an attached image is opened from its own message
   return {caption:item.created?shortDate(item.created):'',seed:item.seed,loadPrompt:()=>promptForImage(item),
+    // A picture opened from the chat may not know its date or seed (attached before 0.1.63): the record tells.
+    loadInfo:()=>findRecord(item).then(r=>r?{caption:r.created?shortDate(r.created):'',seed:r.seed}:null),
     jumps:Array.isArray(jumps)?jumps.map(j=>({label:j.label,note:j.note,run:()=>goToMessage(item,j.index,j.kind).catch(e=>{toast(e.message,true);notice(e.message,true);})})):[],
     onDetach:attachment?()=>removeMessageImage(item,attachment):null,
-    onDelete:attachment?null:()=>deleteImages({ids:[item.id],owners:item.chatKey?{[item.id]:item.chatKey}:null}).then(r=>!!r?.deleted?.includes(item.id),e=>{say(e.message,true);return false;})};
+    // Also from the chat (0.1.63): deleteImages asks first and takes the picture out of every message it is in.
+    onDelete:()=>deleteImages({ids:[item.id],owners:item.chatKey?{[item.id]:item.chatKey}:null}).then(r=>!!r?.deleted?.includes(item.id),e=>{say(e.message,true);return false;})};
 }
 function viewImage(item,{attachment=null,gallery=false}={}) {
   if(!item)return;
@@ -1294,7 +1309,7 @@ function applyFree(parsed,foreign=[],plan=planFreePeople(scene.characters,$('ncs
     emptyLooks?'외형이 비어 있는 임시 인물은 직접 채워 주세요.':'',
     foreign.length?`영어로 바뀌지 않은 칸이 있어요(${foreign.join(', ')}).`:'',
     before&&(plan.removed.length||plan.pinnedOut.length||out.refreshed.length)?'잘못됐다면 [↶ 추출 취소]를 눌러 주세요.':''];
-  notice(parts.filter(Boolean).join(' '));
+  notice(parts.filter(Boolean).join(' '),false,activeTab(),{keep:!!(plan.removed.length||plan.pinnedOut.length||out.notShown.length||out.refreshed.length||unsure.length||foreign.length)});
 }
 async function extract() {
   const originTab='scene',report=(message,error=false)=>notice(message,error,originTab);
@@ -1355,7 +1370,7 @@ async function extract() {
         if(removed.size)warnings.push(`장면 설명에 들어간 이름(${[...removed].join(', ')})을 빼고 일반 표현으로 정리했어요.`);
         const lead=parsed.partial?`응답이 불완전해요. 온전히 받은 후보 ${moments.length}개만 보여줘요. 메시지의 마지막 순간이 빠졌을 수 있어요. ${limitHint()} `:wish&&!parsed.requestMatched?'요청한 순간을 이 메시지에서 찾지 못해서 마지막 순간으로 골랐어요. ':moments.length>1?`장면 후보 ${moments.length}개를 찾았어요. 위에서 그릴 순간을 고를 수 있어요. `:'';
         const asked=request?[request.applied.length?`추가 요청 반영: ${request.applied.join(' · ')}.`:'',request.ignored.length?`반영하지 않음: ${request.ignored.join(' · ')}.`:''].filter(Boolean).join(' ')+' ':'';
-        report(lead+asked+(warnings.length?warnings.join(' / '):'추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.'));return;
+        notice(lead+asked+(warnings.length?warnings.join(' / '):'추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.'),false,originTab,{keep:parsed.partial||!!(wish&&!parsed.requestMatched)});return;
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}
     }
     if(ticket===task&&keyOf()===startKey){raw=response;renderScene();report(`추출 실패: ${failure?.message}.${looksCut(response)?` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
@@ -1869,7 +1884,8 @@ async function copyRaw(){
   await copyText(raw,dialog);$('ncs-raw-copy').textContent='복사됨';notice('추출 응답을 복사했어요.');
 }
 // How many messages of the open chat hold this picture.
-const attachedCount=id=>(ctx().chat??[]).filter(m=>m?.extra?.naice_shot_images?.some?.(x=>x.id===id)).length;
+// Counted like removal does: a message counts once if the picture is on any of its swipes (UI-062-04).
+const attachedCount=id=>(ctx().chat??[]).filter(m=>[m?.extra,...(Array.isArray(m?.swipe_info)?m.swipe_info.map(x=>x?.extra):[])].some(e=>e?.naice_shot_images?.some?.(x=>x.id===id))).length;
 function renderHistory() {
   closeImageMenu();rememberScroll();renderHistoryTarget();
   const chat=ctx().chat??[],current=keyOf(),multi=['chats','all'].includes(historyScope);
@@ -2248,7 +2264,7 @@ async function initialize() {
     const clean=event.target.closest('[data-ncs-inline-clean]');
     if(clean){event.preventDefault();const id=clean.dataset.ncsInlineClean;clean.disabled=true;saveCleanImage({id,image:`/user/images/naice-shot/${id}.png`}).then(()=>say('클린 PNG(메타데이터 제거)를 저장했어요.'),()=>say('클린 PNG를 저장하지 못했어요. 원본으로 대체 저장하지 않았어요.',true)).finally(()=>{clean.disabled=false;});return;}
     const open=event.target.closest('[data-ncs-inline-view]');
-    if(open){event.preventDefault();event.stopPropagation();try{const attachment=attachmentOf(open);viewImage({id:open.dataset.ncsInlineView,image:`/user/images/naice-shot/${open.dataset.ncsInlineView}.png`,chatKey:attachment.chatKey},{attachment});}catch(e){console.error('[NAIce Shot]',e.message);}return;}
+    if(open){event.preventDefault();event.stopPropagation();try{const attachment=attachmentOf(open);const id=open.dataset.ncsInlineView,entry=(attachment.message?.extra?.naice_shot_images??[]).find(x=>x.id===id)??{};viewImage({id,image:`/user/images/naice-shot/${id}.png`,chatKey:attachment.chatKey,...(entry.created?{created:entry.created}:{}),...(Number.isInteger(entry.seed)?{seed:entry.seed}:{})},{attachment});}catch(e){console.error('[NAIce Shot]',e.message);}return;}
     const button=event.target.closest('[data-ncs-inline-remove]');if(!button)return;
     event.preventDefault();const id=button.dataset.ncsInlineRemove,attachment=attachmentOf(button);
     removeMessageImage({id,image:`/user/images/naice-shot/${id}.png`,chatKey:attachment.chatKey},attachment).catch(e=>say(e.message,true));

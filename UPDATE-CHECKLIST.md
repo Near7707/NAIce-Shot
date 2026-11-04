@@ -1,5 +1,14 @@
 # Installation and update checklist
 
+## v0.1.63
+
+Update the extension and refresh. No server update is needed.
+
+1. Chat pictures: no ⋯ on the picture. Tap it → 저장 ▾ · 이 메시지에서 빼기 · 삭제, date and seed at the bottom.
+2. Move between pictures in the enlarged view: no flash.
+3. The save menu notes are readable.
+
+
 ## v0.1.62
 
 Update the extension and refresh. No server update is needed.

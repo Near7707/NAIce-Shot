@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.63 — 2026-11-04 (extension only; server v0.1.13 unchanged)
+
+GPT's review of 0.1.62, and enlarged-view / chat-picture polish from the user's iPhone check.
+
+- A warning to act on stays: an incomplete extraction reply ("응답이 불완전해요…"), a request that could not be matched, and 프리샷 results that removed or unticked cards (UI-062-01).
+- While anything runs, every notice of the tab waits (errors too) and shows again afterwards (UI-062-02). Each notice folds on its own timer, so one tab's notice no longer stops another's from folding (UI-062-03).
+- "(N곳)" counts messages the same way removal does (a picture on another swipe counts; swipes of one message count once) (UI-062-04).
+- `browser-v0162` waits for the fold instead of a fixed time and runs at 1100px too (UI-062-05).
+- **Enlarged view:** no picture size; the date shows at once (no "불러오는 중…" swap); [메시지로 가기] sits at the right of "프롬프트 보기", so the bottom line is always "date · [seed 복사]". Moving to another picture decodes it first and swaps in one go — no flash or overlap. The save menu notes have fixed light colours (themes were colouring them dark).
+- **Chat pictures:** no ⋯ over the picture; tap it for the enlarged view with 저장 · 이 메시지에서 빼기 · **삭제** (asks first; the picture and record are deleted and taken out of every message). A picture whose file is gone keeps a plain [이 메시지에서 빼기] under its note. Pictures attached from now on keep their date and seed; older ones look them up from history when opened.
+- A tap on empty space closes the enlarged view just after its own click, so the click never lands on the chat underneath.
+- Tests: new `browser-v0163`; older scripts updated (no ⋯, no size line, delete from the chat).
+
 ## 0.1.62 — 2026-11-04 (extension only; server v0.1.13 unchanged)
 
 Phone polish from the user's iPhone check of 0.1.60.

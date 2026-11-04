@@ -282,7 +282,9 @@
 #ncs-viewer .ncsv-meta {font-size:12px;color:#c9ced6;overflow-wrap:anywhere;}
 #ncs-viewer .ncsv-seed {min-height:32px;min-width:0;padding:4px 10px;font-size:12px;}
 #ncs-viewer [hidden] {display:none!important;}
-#ncs-viewer .ncsv-prompt {flex:none;min-height:0;max-height:44dvh;overflow:auto;padding:4px 12px;background:#1b202b;color:#f1f3f6;border-top:1px solid #ffffff40;}
+#ncs-viewer .ncsv-prompt-row {flex:none;display:flex;align-items:flex-start;gap:8px;padding:4px 12px;background:#1b202b;color:#f1f3f6;border-top:1px solid #ffffff40;}
+#ncs-viewer .ncsv-prompt-row[hidden] {display:none;}
+#ncs-viewer .ncsv-prompt {flex:1;min-width:0;min-height:0;max-height:44dvh;overflow:auto;padding:2px 0;}
 #ncs-viewer .ncsv-prompt summary {cursor:pointer;font-weight:600;font-size:13px;padding:2px 0;}
 #ncs-viewer .ncsv-prompt-body {padding-top:8px;}
 #ncs-viewer .ncsv-prompt-text {max-height:28dvh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 monospace;user-select:text;-webkit-user-select:text;}
@@ -453,7 +455,10 @@
 #ncs-viewer .ncsv-save-menu button,#ncs-viewer .ncsv-save-menu .ncsv-save {display:flex;flex-direction:column;align-items:flex-start;width:100%;min-height:44px;white-space:normal;text-align:left;background:transparent;border:0;color:#f1f3f6;font-weight:600;}
 #ncs-viewer .ncsv-save-menu button:hover,#ncs-viewer .ncsv-save-menu .ncsv-save:hover {background:#ffffff24;}
 #ncs-viewer .ncsv-save-menu .ncs-popup-primary,#ncs-viewer .ncsv-save-menu .ncs-popup-primary:hover {background:var(--ncsv-pressed);box-shadow:inset 0 0 0 1.5px var(--ncsv-accent);}
-#ncs-viewer .ncsv-save-menu small {display:block;margin-top:2px;font-size:11px;font-weight:400;line-height:1.5;opacity:.82;}
+/* 0.1.63: explicit colours — SillyTavern themes colour <small> too, which made these notes unreadable on the dark menu. */
+#ncs-viewer .ncsv-save-menu small {display:block;margin-top:2px;font-size:11px;font-weight:400;line-height:1.5;color:#d3d8e0!important;opacity:1;}
+#ncs-viewer .ncsv-save-menu .ncs-popup-primary small {color:#ffffffe6!important;}
+#ncs-viewer .ncsv-save-menu button,#ncs-viewer .ncsv-save-menu .ncsv-save {color:#f1f3f6!important;}
 #naice-shot-dialog .ncs-zip-note {display:block;padding:2px 12px 6px;font-size:12px;line-height:1.5;color:var(--ncs-muted);}
 #naice-shot-dialog .ncs-zip-note[hidden] {display:none;}
 /* 0.1.46 — Anlas balance and cost, right above the generate button. */
@@ -592,7 +597,7 @@
 #naice-shot-dialog .ncs-png-info {margin:10px 0;}
 #naice-shot-dialog .ncs-png-info p {margin:4px 0 0;}
 /* 0.1.51 메시지로 가기: the viewer button sits with the seed at the bottom; its menu opens upward. */
-#ncs-viewer .ncsv-jump-wrap {position:relative;margin-left:auto;}
+#ncs-viewer .ncsv-jump-wrap {position:relative;margin-left:auto;flex:none;}
 #ncs-viewer .ncsv-jump {min-height:32px;padding:4px 12px;font-size:12px;white-space:nowrap;}
 #ncs-viewer .ncsv-jump-menu {position:absolute;right:0;bottom:calc(100% + 6px);z-index:3;display:flex;flex-direction:column;gap:4px;width:min(260px,calc(100vw - 24px));padding:6px;background:#1b202b;border:1px solid #ffffff55;border-radius:10px;box-shadow:0 8px 28px #0008;}
 #ncs-viewer .ncsv-jump-menu[hidden] {display:none;}
@@ -650,3 +655,6 @@
 #naice-shot-dialog .ncs-pin {width:auto;margin:0;padding:4px 10px;font-size:13px;white-space:nowrap;}
 #naice-shot-dialog .ncs-look-line {font-size:13px;margin:4px 0;overflow-wrap:anywhere;}
 #naice-shot-dialog .ncs-look-line > b {display:block;font-size:12px;opacity:.8;}
+/* 0.1.63: no ⋯ over chat pictures; a picture whose file is gone keeps a plain remove button under its note. */
+#chat .ncs-inline-image .ncs-inline-remove {display:block;margin:6px 0 0;padding:6px 12px;font-size:13px;border-radius:8px;}
+#chat .ncs-inline-image .ncs-inline-remove[hidden] {display:none;}

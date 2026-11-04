@@ -77,11 +77,10 @@ try{
   await target.selectOption('1');await page.locator('[data-action="attach"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
   await page.locator('[data-action="close"]').click();
   const first=page.locator('#chat .mes[mesid="0"]');assert.equal(await first.locator('[data-ncs-inline-remove]').isVisible(),false);
-  await first.locator('.ncs-inline-more').click();await first.locator('.ncs-image-popup').waitFor({state:'visible'});
-  assert.equal(await first.locator('[data-ncs-inline-remove]').innerText(),'이 메시지에서 빼기');
+  assert.equal(await first.locator('.ncs-inline-more').count(),0,'0.1.63: no ⋯ over chat pictures (actions are in the enlarged view)');
   if(fontRoot)await page.screenshot({path:`/tmp/naice-stage1/inline-${width}.png`});
   await page.keyboard.press('Escape');await first.locator('.ncs-inline-open').click();
-  assert.equal(await page.locator('#ncs-viewer [data-v="detach"]').isVisible(),true);assert.equal(await page.locator('#ncs-viewer [data-v="delete"]').isVisible(),false);
+  assert.equal(await page.locator('#ncs-viewer [data-v="detach"]').isVisible(),true);assert.equal(await page.locator('#ncs-viewer [data-v="delete"]').isVisible(),true,'0.1.63: 삭제 from the chat too (asks first)');
   await page.locator('#ncs-viewer [data-v="detach"]').click();await page.locator('#ncs-viewer').waitFor({state:'hidden'});
   assert.equal(await first.locator('.ncs-inline-open').count(),0);assert.equal(await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').count(),1);assert.ok(!requests.some(x=>x.endsWith('/delete')));
   // A stale viewer must not remove the edited message's attachment.

@@ -46,22 +46,23 @@ const cardIds=page=>page.locator('#ncs-characters [data-character]').evaluateAll
 const ticked=(page,id)=>page.locator(`[data-character="${id}"] [data-field="included"]`).isChecked();
 const addTemp=async(page,name)=>{await page.locator('[data-action="add-temp"]').click();await page.locator('[data-temp="name"]').last().fill(name);};
 try{
- {// Steps wording, [↓ 생성] lands the real button at the bottom, one banner while working, success notices fold.
-  const {page,errors}=await open(375);ask(page);
+ for(const width of [375,1100]){// Steps wording, [↓ 생성] lands the real button at the bottom, one banner while working, success notices fold.
+  const {page,errors}=await open(width);ask(page);
   await page.locator('[data-tab="settings"]').click();assert.match(await page.locator('label:has(#ncs-steps)').innerText(),/^Steps · 최대 28/);
   assert.doesNotMatch(await page.locator('#naice-shot-dialog').evaluate(d=>d.textContent),/스텝/,'no 스텝 anywhere in the panel');
   await page.locator('[data-tab="scene"]').click();assert.match(await page.locator('#ncs-gen-line').innerText(),/28 Steps/);
   const content=page.locator('#naice-shot-dialog .ncs-content');await content.evaluate(e=>e.scrollTop=0);await page.waitForTimeout(200);
-  await page.locator('#ncs-jump-generate').click();await page.waitForTimeout(900);
+  if(await page.locator('#ncs-jump-generate').isVisible()){await page.locator('#ncs-jump-generate').click();await page.waitForTimeout(900);
   const [b,c]=await page.evaluate(()=>[document.querySelector('[data-action="generate"]').getBoundingClientRect().bottom,document.querySelector('#naice-shot-dialog .ncs-content').getBoundingClientRect().bottom]);
-  assert.ok(b<=c&&c-b<40,`the generate button sits at the bottom edge (${Math.round(c-b)}px above it)`);
+  assert.ok(b<=c&&c-b<40,`the generate button sits at the bottom edge (${Math.round(c-b)}px above it)`);}
   // One banner while working: the progress box only.
   await page.evaluate(()=>{let done;mock.extractionDeferred=new Promise(r=>done=r);mock.finishExtraction=()=>{mock.extractionDeferred=null;done(JSON.stringify(mock.extraction));};});
   await page.locator('[data-action="extract"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-progress').hidden);
   assert.equal(await page.locator('#ncs-notice').isVisible(),false,'no second banner during progress');
   await page.evaluate(()=>mock.finishExtraction());await idle(page);assert.equal(await page.locator('#ncs-notice').isVisible(),true,'the result notice shows afterwards');
   // A short success notice folds away; an error stays.
-  await freeOn(page);await page.waitForTimeout(6600);assert.equal(await page.locator('#ncs-notice').isVisible(),false,'success notice folded');
+  // UI-062-05: wait for the fold instead of a fixed time.
+  await freeOn(page);await page.waitForFunction(()=>document.querySelector('#ncs-notice').hidden,null,{timeout:20000});
   await page.locator('[data-action="extract"]').click();assert.match(await page.locator('#ncs-notice').innerText(),/그릴 상황을 적어/);
   await page.waitForTimeout(6600);assert.equal(await page.locator('#ncs-notice').isVisible(),true,'an error stays');
   assert.deepEqual(errors,[]);await page.close();

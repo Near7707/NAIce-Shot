@@ -47,12 +47,12 @@ function build() {
   <div class="ncsv-stage"><img alt="생성된 장면 크게 보기" draggable="false"></div>
   <div class="ncsv-tools"><div class="ncsv-navigation" hidden aria-label="이력 그림 이동"><button type="button" data-v="previous" aria-label="이전 그림">‹</button><output class="ncsv-position" aria-live="polite"></output><button type="button" data-v="next" aria-label="다음 그림">›</button></div>
     <div class="ncsv-group ncsv-save-group"><div class="ncsv-save-wrap"><button type="button" class="ncs-save-toggle" data-v="save-menu" aria-expanded="false" aria-haspopup="true">저장<span class="ncs-caret" aria-hidden="true"></span></button><div class="ncsv-save-menu" role="group" aria-label="저장 방식" hidden><button type="button" class="ncs-popup-primary" data-v="clean">클린 PNG<small>${SAVE_NOTES.shared}</small></button><a class="ncsv-save" download>원본 PNG<small>${SAVE_NOTES.original}</small></a></div></div><button type="button" data-v="detach" hidden>이 메시지에서 빼기</button><button type="button" data-v="delete" class="ncsv-delete" hidden>삭제</button></div></div>
-  <details class="ncsv-prompt" hidden><summary>프롬프트 보기</summary><div class="ncsv-prompt-body"><button type="button" class="ncsv-copy" data-v="copy" disabled>프롬프트 복사</button><span class="ncsv-copy-status" role="status"></span><pre class="ncsv-prompt-text"></pre></div></details><div class="ncsv-info"><span class="ncsv-meta"></span><button type="button" class="ncsv-seed" data-v="seed" hidden></button><div class="ncsv-jump-wrap"><button type="button" class="ncsv-jump" data-v="jump" hidden aria-haspopup="true" aria-expanded="false">메시지로 가기</button><div class="ncsv-jump-menu" role="group" aria-label="이동할 메시지" hidden></div></div></div>`;
+  <div class="ncsv-prompt-row"><details class="ncsv-prompt" hidden><summary>프롬프트 보기</summary><div class="ncsv-prompt-body"><button type="button" class="ncsv-copy" data-v="copy" disabled>프롬프트 복사</button><span class="ncsv-copy-status" role="status"></span><pre class="ncsv-prompt-text"></pre></div></details><div class="ncsv-jump-wrap"><button type="button" class="ncsv-jump" data-v="jump" hidden aria-haspopup="true" aria-expanded="false">메시지로 가기</button><div class="ncsv-jump-menu" role="group" aria-label="이동할 메시지" hidden></div></div></div><div class="ncsv-info"><span class="ncsv-meta"></span><button type="button" class="ncsv-seed" data-v="seed" hidden></button></div>`;
   document.body.append(dialog);
 
   const stage = dialog.querySelector('.ncsv-stage'), img = stage.querySelector('img');
   const zoomLabel = dialog.querySelector('.ncsv-zoom'), meta = dialog.querySelector('.ncsv-meta'), save = dialog.querySelector('.ncsv-save');
-  const state = { nat: { w: 0, h: 0 }, view: { scale: 1, x: 0, y: 0 }, mode: 'fit', caption: '', seed: null, onDelete: null, onDetach:null, jumps:[], loadPrompt:null, promptText:'', epoch:0, item: null, gallery:null, index:0, navBusy:false, actionBusy:false };
+  const state = { loadToken:0, nat: { w: 0, h: 0 }, view: { scale: 1, x: 0, y: 0 }, mode: 'fit', caption: '', seed: null, onDelete: null, onDetach:null, jumps:[], loadPrompt:null, promptText:'', epoch:0, item: null, gallery:null, index:0, navBusy:false, actionBusy:false };
   const jumpButton=dialog.querySelector('[data-v="jump"]'),jumpMenu=dialog.querySelector('.ncsv-jump-menu');
   const showJumpMenu=open=>{jumpMenu.hidden=!open;jumpButton.setAttribute('aria-expanded',String(open));if(open)jumpMenu.querySelector('button')?.focus({preventScroll:true});};
   // One target goes at once; two (attached and made differ) open a small menu to choose.
@@ -155,11 +155,10 @@ function build() {
 
   img.addEventListener('load', () => {
     state.nat = { w: img.naturalWidth, h: img.naturalHeight };
-    img.style.width = `${state.nat.w}px`; img.style.height = `${state.nat.h}px`;
-    meta.textContent = [`${state.nat.w} × ${state.nat.h}`, state.caption].filter(Boolean).join(' · ');
-    fit();
+    img.style.width = `${state.nat.w}px`; img.style.height = `${state.nat.h}px`;dialog.dataset.loaded=img.getAttribute('src')??'';
+    fit();img.style.visibility='';
   });
-  img.addEventListener('error', () => { meta.textContent = '이미지를 불러오지 못했어요. PNG 저장은 계속 시도할 수 있어요.'; });
+  img.addEventListener('error', () => { img.style.visibility=''; meta.textContent = '이미지를 불러오지 못했어요. PNG 저장은 계속 시도할 수 있어요.'; });
 
   dialog.addEventListener('click', event => {
     const button = event.target.closest('[data-v]'); if (!button) return;
@@ -213,7 +212,8 @@ function build() {
     if (event.type === 'pointerup' && gesture?.type === 'pan' && !gesture.moved) {
       const now = Date.now();
       if (gesture.pointerType !== 'mouse' && lastTap && now - lastTap.time < 320 && Math.hypot(point.x - lastTap.point.x, point.y - lastTap.point.y) < 30) { lastTap = null; toggle(point); }
-      else { lastTap = { time: now, point }; if (!gesture.onImage) dialog.close(); }
+      // Closed just after this tap's own click, so the click never lands on what lies under the viewer (a chat picture).
+      else { lastTap = { time: now, point }; if (!gesture.onImage) { const epoch=state.epoch; setTimeout(()=>{ if(epoch===state.epoch&&dialog.open) dialog.close(); },0); } }
     }
     if (pointers.size === 1) { const [rest] = pointers.values(); gesture = { type: 'pan', start: rest, view: { ...state.view }, moved: true }; }
     else if (!pointers.size) gesture = null;
@@ -225,7 +225,7 @@ function build() {
   new ResizeObserver(() => { if (!dialog.open || !state.nat.w) return; if (state.mode === 'fit') fit(); else set(clampPan(state.view, state.nat, stageSize())); }).observe(stage);
   dialog.addEventListener('close', () => { state.epoch++;state.gallery=null;state.navBusy=false;pointers.clear();gesture=null;lastTap=null; });
 
-  function show(item,{caption='',seed=null,onDelete=null,onDetach=null,loadPrompt=null,gallery=null,index=0,focus=true,jumps=[]}={}){
+  function show(item,{caption='',seed=null,onDelete=null,onDetach=null,loadPrompt=null,loadInfo=null,gallery=null,index=0,focus=true,jumps=[]}={}){
       const file = imageDownload(item); // validates the same-origin generated PNG path
       state.epoch++;pointers.clear();gesture=null;lastTap=null;state.gallery=gallery;state.index=index;state.navBusy=false;state.actionBusy=false;state.item = item;state.caption = caption;showSaveMenu(false);
       state.seed=seed===null||seed===undefined||seed===''?null:seed;seedButton.hidden=state.seed===null;if(state.seed!==null)seedButton.textContent=seedLabel();
@@ -236,15 +236,22 @@ function build() {
       state.jumps=Array.isArray(jumps)?jumps.filter(j=>typeof j?.run==='function'):[];showJumpMenu(false);jumpButton.hidden=!state.jumps.length;
       jumpButton.textContent=state.jumps.length>1?'메시지로 가기 ▾':'메시지로 가기';jumpButton.title=state.jumps.length===1?state.jumps[0].note??'':'';
       jumpMenu.replaceChildren(...state.jumps.map((j,i)=>{const b=document.createElement('button');b.type='button';b.dataset.jump=String(i);b.textContent=j.label;const n=document.createElement('small');n.textContent=j.note??'';b.append(n);return b;}));
+      dialog.querySelector('.ncsv-prompt-row').hidden=promptBox.hidden&&jumpButton.hidden;
       dialog.querySelector('[data-v="clean"]').disabled=false;updateNavigation();
       save.href = file.url; save.download = file.filename;
-      meta.textContent = '불러오는 중…'; img.style.transform = ''; img.removeAttribute('style');
+      meta.textContent = state.caption;
+      // The next picture is decoded off screen first; the current one stays as it is until then (no flash, no overlap).
+      const token=++state.loadToken,swap=()=>{if(token!==state.loadToken)return;img.style.cssText='visibility:hidden';
+        if (img.getAttribute('src') === file.url && img.complete && img.naturalWidth) img.dispatchEvent(new Event('load')); else img.src = file.url;};
+      const pre=new Image();pre.src=file.url;(pre.decode?pre.decode():Promise.resolve()).then(swap,swap);
       dialog.dataset.skin = currentSkin();
       if (!dialog.open) dialog.showModal();
-      if (img.getAttribute('src') === file.url && img.complete && img.naturalWidth) img.dispatchEvent(new Event('load'));
-      else img.src = file.url;
       if(focus||!dialog.contains(document.activeElement))dialog.querySelector('[data-v="close"]').focus({ preventScroll: true });
       prefetch();
+      if(typeof loadInfo==='function'&&(!state.caption||state.seed===null)){const epoch=state.epoch;
+        Promise.resolve().then(loadInfo).then(info=>{if(epoch!==state.epoch||!info)return;
+          if(!state.caption&&info.caption){state.caption=info.caption;meta.textContent=info.caption;}
+          if(state.seed===null&&info.seed!==null&&info.seed!==undefined&&info.seed!==''){state.seed=info.seed;seedButton.hidden=false;seedButton.textContent=seedLabel();}},()=>{});}
   }
   return {dialog,open:show};
 }

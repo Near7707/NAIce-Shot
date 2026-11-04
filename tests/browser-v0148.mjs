@@ -103,7 +103,7 @@ try{for(const width of [1100,375,320]){
  failPage=false;await page.keyboard.press('ArrowRight');await page.waitForFunction(()=>document.querySelector('.ncsv-position').textContent==='40 / 46');
  for(let i=0;i<6;i++)await page.keyboard.press('ArrowRight');
  assert.equal(await page.locator('.ncsv-position').innerText(),'46 / 46');assert.equal(await page.locator('[data-v="next"]').isDisabled(),true);assert.match(await page.locator('.ncsv-seed').innerText(),/seed 56/);
- await page.waitForFunction(()=>document.querySelector('.ncsv-meta').textContent.includes('832 × 1216'));if(process.env.NAICE_SCREENSHOT_DIR)await page.screenshot({path:`${process.env.NAICE_SCREENSHOT_DIR}/viewer-${width}.png`});
+ await page.waitForFunction(()=>{const i=document.querySelector('#ncs-viewer .ncsv-stage img');return i.naturalWidth>0&&i.style.visibility===''&&!!i.style.width;});if(process.env.NAICE_SCREENSHOT_DIR)await page.screenshot({path:`${process.env.NAICE_SCREENSHOT_DIR}/viewer-${width}.png`});
  await page.locator('[data-v="close"]').click();await tab('scene');await page.locator('#ncs-result .ncs-image-open').click();assert.equal(await page.locator('.ncsv-navigation').isHidden(),true,'result previews stay single-image');await page.locator('[data-v="close"]').click();
  await tab('settings');assert.match(await page.locator('#ncs-delete-work-box').innerText(),/모든 채팅과 프리샷의 작성 중인 작업을 삭제해요/);await tab('scene');assert.ok(await page.locator('.ncs-content').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
  if(process.env.NAICE_SCREENSHOT_DIR)await page.screenshot({path:`${process.env.NAICE_SCREENSHOT_DIR}/drawing-${width}.png`});

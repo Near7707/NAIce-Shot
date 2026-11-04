@@ -81,7 +81,7 @@ try{
  // 3) Viewer from the result thumbnail.
  await page.locator('#ncs-result .ncs-image-open').click();
  await page.locator('#ncs-viewer[open]').waitFor();
- await page.waitForFunction(()=>/640 × 960/.test(document.querySelector('#ncs-viewer .ncsv-meta').textContent));
+ await page.waitForFunction(()=>{const i=document.querySelector('#ncs-viewer .ncsv-stage img');return i.naturalWidth===640&&i.style.visibility===''&&i.style.width==='640px';});
  const fitPct=parseInt(await zoom());assert.ok(fitPct<100&&fitPct>50,'tall image is fitted down to the screen');
  assert.equal(await page.locator('#ncs-viewer [data-v="fit"]').getAttribute('aria-pressed'),'true');
  await page.locator('#ncs-viewer [data-v="original"]').click();assert.equal(await zoom(),'100%');
@@ -110,14 +110,15 @@ try{
  await click('close');
  await page.locator('#chat .ncs-inline-open').click();await page.locator('#ncs-viewer[open]').waitFor();
  assert.equal(await page.locator('#ncs-viewer .ncsv-save').getAttribute('download'),`naice-shot-${id}.png`);
- // A tap on empty stage area closes.
+ // A tap on empty stage area closes (after the picture is in; 0.1.63 decodes it first).
+ await page.waitForFunction(()=>{const i=document.querySelector('#ncs-viewer .ncsv-stage img');return i.naturalWidth>0&&i.style.visibility===''&&!!i.style.width;});
  await page.mouse.click(5,450);await page.locator('#ncs-viewer').waitFor({state:'hidden'});
  assert.equal(await page.locator('#chat .ncs-inline-image [data-ncs-inline-remove]').count(),1,'remove button still present');
 
  // 5) Mobile: toolbar fits, pinch zoom changes scale.
  await page.setViewportSize({width:375,height:740});
  await page.locator('#chat .ncs-inline-open').click();await page.locator('#ncs-viewer[open]').waitFor();
- await page.waitForFunction(()=>/640 × 960/.test(document.querySelector('#ncs-viewer .ncsv-meta').textContent));
+ await page.waitForFunction(()=>{const i=document.querySelector('#ncs-viewer .ncsv-stage img');return i.naturalWidth===640&&i.style.visibility===''&&i.style.width==='640px';});
  const geo=await page.locator('#ncs-viewer').evaluate(v=>({w:v.scrollWidth,cw:v.clientWidth,bar:v.querySelector('.ncsv-bar').getBoundingClientRect().height,right:Math.max(...[...v.querySelectorAll('button,a')].map(b=>b.getBoundingClientRect().right))}));
  assert.ok(geo.w<=geo.cw+1 && geo.right<=375,'toolbar fits 375px');assert.ok(geo.bar<120,'toolbar at most two rows');
  const pinchBefore=parseInt(await zoom());

@@ -118,7 +118,7 @@ try{
  await page.evaluate(()=>{mock.renderChat();});
  await page.locator('#chat .ncs-inline-image.ncs-missing').waitFor();
  assert.match(await page.locator('#chat .ncs-missing-note').textContent(),/찾을 수 없는/);
- await click('close');await page.locator('#chat .ncs-inline-more').click();assert.equal(await page.locator('#chat [data-ncs-inline-remove]').isVisible(),true);
+ await click('close');assert.equal(await page.locator('#chat [data-ncs-inline-remove]').isVisible(),true,'a missing picture keeps a plain remove button');
  await page.keyboard.press('Escape');await page.locator('.ncs-launch-button').click();
 
  // 5) Generate with a mixed AI placement: no blocking error, a warning, no coordinates.

@@ -171,7 +171,7 @@ try{
   const menu=page.locator('.ncsv-save-menu');assert.deepEqual((await menu.locator('button,a').allInnerTexts()).map(t=>t.split('\n')[0]),['클린 PNG','원본 PNG']);
   assert.equal(await menu.locator('text=다시 묻지').count(),0);assert.equal(await menu.locator('text=취소').count(),0);
   await page.keyboard.press('Escape');assert.equal(await menu.isHidden(),true);assert.equal(await page.locator('#ncs-viewer').isVisible(),true,'Escape closes only the menu');
-  await toggle.click();await page.locator('#ncs-viewer .ncsv-meta').click();assert.equal(await menu.isHidden(),true,'a click outside closes it');
+  await toggle.click();await page.locator('#ncs-viewer .ncsv-tools').click({position:{x:3,y:3}});assert.equal(await menu.isHidden(),true,'a click outside closes it');
   await toggle.click();await toggle.click();assert.equal(await menu.isHidden(),true,'the button folds it again');
   if(fontRoot){await page.addStyleTag({content:'@import url("/test-font/400.css"); body {font-family:"Noto Sans KR",sans-serif}'});await page.evaluate(()=>document.fonts.ready);await toggle.click();await page.screenshot({path:`/tmp/naice-save-menu-${width}.png`});await toggle.click();}
   await toggle.click();const cleanDownload=page.waitForEvent('download');await menu.locator('[data-v="clean"]').click();assert.match((await cleanDownload).suggestedFilename(),/-clean\.png$/);assert.equal(await menu.isHidden(),true);

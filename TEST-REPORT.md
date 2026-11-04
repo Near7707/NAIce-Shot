@@ -1,3 +1,11 @@
+# v0.1.63 validation — 2026-11-04
+
+- Extension Node suite: **149 passed, 0 failed**.
+- Server Node suite: server unchanged.
+- **52 of 52 Chromium browser scripts passed** (`browser-v031` once timed out on a tap made while the next picture was still loading; it now waits for the picture, and a tap on empty space closes just after its own click so the click never lands on the chat underneath). New `browser-v0163` (fake clock): the incomplete-reply warning stays after 30 s, a plain success folds, nothing but the progress box while working, an error from the drawing tab does not keep the settings notice open; enlarged view shows the date only with [메시지로 가기] in the prompt row, light menu notes, and moving never shows an unfitted picture; chat pictures have no ⋯, store date and seed, older ones look them up, and [삭제] asks and takes the picture out of the message. `browser-v0162` now waits for the fold and runs at 375 and 1100px.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern, iPhone Safari.
+
 # v0.1.62 validation — 2026-11-04
 
 - Extension Node suite: **149 passed, 0 failed**.
