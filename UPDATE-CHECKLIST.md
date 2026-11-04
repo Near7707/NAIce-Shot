@@ -1,5 +1,10 @@
 # Installation and update checklist
 
+## v0.1.69
+
+**Update the server plugin first** (0.1.17), restart SillyTavern, then update the extension and refresh. Nothing new to try: two fixes for rare timing and connection cases in the account box.
+
+
 ## v0.1.68
 
 **Update the server plugin first** (0.1.16), restart SillyTavern, then update the extension and refresh.

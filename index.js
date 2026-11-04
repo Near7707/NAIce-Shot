@@ -1460,12 +1460,17 @@ let account={sub:null,at:0,failed:false,message:'',previous:null,checking:null,k
 const anlasTotal=sub=>{const a=sub?.anlas;if(!a||(a.subscription==null&&a.purchased==null))return null;return (Number(a.subscription)||0)+(Number(a.purchased)||0);};
 // [NAI 연결 확인] also asks for the account reply's field names (no values; server 0.1.14 'account-shape').
 let accountShape=null,shapeUnsupported=false,shapeAt=0,shapeStale=false;
+// UI-068-01: each check has a number; a refusal (dropAccount) moves the number on, so a check that started before the
+// refusal can neither restore the old verdict nor clear the refusal note when its answer comes in late.
+let accountEpoch=0;
 function refreshAccount({shape=false}={}){
   if(account.checking)return account.checking;
-  account.checking=(async()=>{
+  const epoch=accountEpoch;let mine=null;
+  mine=account.checking=(async()=>{
     renderAccount();
     try{
       const data=await api(shape?'/status?shape=1':'/status'),before=anlasTotal(account.sub)??account.previous;
+      if(epoch!==accountEpoch)return data; // outdated: a refusal came in meanwhile
       if(shape){accountShape=data.keyConfigured&&Array.isArray(data.subscription?.shape)?data.subscription.shape.filter(x=>typeof x==='string'):null;shapeAt=Date.now();shapeStale=false;
         shapeUnsupported=!!data.keyConfigured&&!accountShape&&!(data.features??[]).includes('account-shape');renderShape();}
       const {shape:_names,...sub}=data.subscription??{};
@@ -1473,8 +1478,8 @@ function refreshAccount({shape=false}={}){
       account={...account,sub:subscription,at:Date.now(),failed:!data.keyConfigured,keyConfigured:!!data.keyConfigured,
         message:data.keyConfigured?'':'NAI 키가 없어요. 실리태번 API 연결 화면에서 저장해 주세요.',previous:before};
       return data;
-    }catch(e){subscription=null;account={...account,sub:null,failed:true,message:e.message};if(shape&&accountShape){shapeStale=true;renderShape();}throw e;}
-    finally{account.checking=null;renderAccount();if(dialog)updateFinal();}
+    }catch(e){if(epoch!==accountEpoch)throw e;subscription=null;account={...account,sub:null,failed:true,message:e.message};if(shape&&accountShape){shapeStale=true;renderShape();}throw e;}
+    finally{if(account.checking===mine)account.checking=null;renderAccount();if(dialog)updateFinal();}
   })();
   return account.checking;
 }
@@ -1524,7 +1529,7 @@ function renderAccount(){
     `서버 연결됨 · ${tier} · Anlas ${total===null?'?':total.toLocaleString()} (구독 ${s?.subscription??'?'} + 구매 ${s?.purchased??'?'})${sub.tier===3?` · V5 ${v5Detail(sub)}`:''}${guard.missing?' · 계정 정보에서 필요한 항목을 확인하지 못했어요.':''}`:$('ncs-status').textContent;
 }
 // A refusal from the server means the shown verdict may be old: forget it until the next check comes back.
-function dropAccount(){subscription=null;account={...account,sub:null,at:0,failed:false,message:''};if(dialog)renderAccount();}
+function dropAccount(){accountEpoch++;subscription=null;account={...account,sub:null,at:0,failed:false,message:'',checking:null};if(dialog)renderAccount();}
 function toggleAccount(){
   const more=dialog.querySelector('[data-action="toggle-account"]'),open=more.getAttribute('aria-expanded')!=='true';
   more.setAttribute('aria-expanded',String(open));$('ncs-account-details').hidden=!open;more.querySelector('.ncs-anlas-caret').textContent=open?'▴':'▾';

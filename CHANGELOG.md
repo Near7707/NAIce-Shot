@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.69 — 2026-11-04 (extension + server v0.1.17)
+
+GPT's review of 0.1.68.
+
+- A ↻ check that started before the server refused a generation can no longer bring back the old "free" verdict or clear the consent note when its answer arrives late; only a check started after the refusal decides again (UI-068-01, P2).
+- Every failure of the server's account check — no connection, a timeout, a reply that cannot be read, as well as an HTTP error — is reported as `nai-account`, so the old verdict is dropped. A timeout at this step says "생성 요청은 보내지 않았어요" instead of the image-timeout note (UI-068-02, P2).
+- The extension now asks for server 0.1.17.
+- Tests: new `browser-v0169` (375 and 1100px); server tests for offline, timeout and unreadable replies.
+
 ## 0.1.68 — 2026-11-04 (extension + server v0.1.16)
 
 GPT's review of 0.1.67, and polish from the user's check (the user confirmed V4.5 generates with Anlas consent off).

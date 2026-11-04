@@ -1,3 +1,11 @@
+# v0.1.69 validation — 2026-11-04
+
+- Extension Node suite: **149 passed, 0 failed**.
+- Server Node suite (v0.1.17): **30 passed, 0 failed**. New: HTTP 503, no connection, timeout, an HTML reply and a `null` reply in the account check are all `nai-account` (502, or 504 for the timeout) on both `/generate` and `/status`, nothing is sent, and none says "실제 생성·차감"; with consent on, an image timeout keeps its own note.
+- **58 of 58 Chromium browser scripts passed.** New `browser-v0169` (fails on 0.1.68 code) at 375 and 1100px: a held ↻ check, then a 428 refusal → a new check starts (inactive, or failing) and wins; releasing the old "free" answer changes nothing and the consent note stays; a later successful check clears it; an account-check timeout just before sending drops the verdict and the notice says nothing was sent.
+- Publication diffs (both repositories) screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern, iPhone Safari.
+
 # v0.1.68 validation — 2026-11-04
 
 - Extension Node suite: **149 passed, 0 failed** (cost guard: inactive Tablet, grace-period Scroll, missing or text tier).
