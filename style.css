@@ -661,3 +661,10 @@
 /* 0.1.63: no ⋯ over chat pictures; a picture whose file is gone keeps a plain remove button under its note. */
 #chat .ncs-inline-image .ncs-inline-remove {display:block;margin:6px 0 0;padding:6px 12px;font-size:13px;border-radius:8px;}
 #chat .ncs-inline-image .ncs-inline-remove[hidden] {display:none;}
+
+/* 0.1.66: [NAI 연결 확인] → account reply field names (no values) */
+#naice-shot-dialog .ncs-account-shape {margin:8px 0 0;}
+#naice-shot-dialog .ncs-account-shape summary {cursor:pointer;font-weight:650;}
+#naice-shot-dialog .ncs-shape-tools {display:flex;align-items:center;gap:8px;margin:6px 0;}
+#naice-shot-dialog .ncs-shape-tools button {margin:0;}
+#naice-shot-dialog #ncs-shape-list {max-height:260px;overflow:auto;margin:0;padding:8px 10px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;line-height:1.5;border:1px solid var(--ncs-rule);border-radius:var(--ncs-radius-control);background:var(--ncs-control);color:var(--ncs-fg);}

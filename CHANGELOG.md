@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.66 — 2026-11-04 (extension + server v0.1.14)
+
+A first step to fix the "Opus 무료 생성 특전을 확인하지 못했어요" warning: see which fields NovelAI really sends.
+
+- Settings → [서버·NAI 연결 확인] now also shows a folded **"계정 응답 항목 이름 보기 (값 없이)"** with [목록 복사]: the names and kinds of the fields in NovelAI's account reply (e.g. `perks.unlimitedImageGeneration: boolean`), never their values. Only that button asks for it; opening the panel and ↻ do not.
+- With an older server the box says to update the server to 0.1.14.
+- The free check, the cost line and the server's consent block are unchanged in this release.
+- Tests: new `browser-v0166` (375 and 1100px); server test for names without values.
+
 ## 0.1.65 — 2026-11-04 (extension only; server v0.1.13 unchanged)
 
 GPT's review of 0.1.64, and a thinner 챗샷/프리샷 switch (the user's choice (가)).

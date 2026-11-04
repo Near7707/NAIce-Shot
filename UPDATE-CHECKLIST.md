@@ -1,5 +1,13 @@
 # Installation and update checklist
 
+## v0.1.66
+
+**Update the server plugin first**, restart SillyTavern, then update the extension and refresh.
+
+1. Settings → [서버·NAI 연결 확인] → open "계정 응답 항목 이름 보기 (값 없이)".
+2. Check the list shows names only (no numbers or dates), then [목록 복사] and send it to the next session.
+
+
 ## v0.1.65
 
 Update the extension and refresh. No server update is needed.

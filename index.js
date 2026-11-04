@@ -1457,13 +1457,18 @@ function renderCompat() {
 // never leaves an old balance looking current. The difference shown is "since the last check", not a cost.
 let account={sub:null,at:0,failed:false,message:'',previous:null,checking:null,keyConfigured:null};
 const anlasTotal=sub=>{const a=sub?.anlas;if(!a||(a.subscription==null&&a.purchased==null))return null;return (Number(a.subscription)||0)+(Number(a.purchased)||0);};
-function refreshAccount(){
+// [NAI 연결 확인] also asks for the account reply's field names (no values; server 0.1.14 'account-shape').
+let accountShape=null,shapeUnsupported=false;
+function refreshAccount({shape=false}={}){
   if(account.checking)return account.checking;
   account.checking=(async()=>{
     renderAccount();
     try{
-      const data=await api('/status'),before=anlasTotal(account.sub)??account.previous;
-      subscription=data.keyConfigured?data.subscription??null:null;
+      const data=await api(shape?'/status?shape=1':'/status'),before=anlasTotal(account.sub)??account.previous;
+      if(shape){accountShape=data.keyConfigured&&Array.isArray(data.subscription?.shape)?data.subscription.shape.filter(x=>typeof x==='string'):null;
+        shapeUnsupported=!!data.keyConfigured&&!accountShape&&!(data.features??[]).includes('account-shape');renderShape();}
+      const {shape:_names,...sub}=data.subscription??{};
+      subscription=data.keyConfigured&&data.subscription?sub:null;
       account={...account,sub:subscription,at:Date.now(),failed:!data.keyConfigured,keyConfigured:!!data.keyConfigured,
         message:data.keyConfigured?'':'NAI 키가 없어요. 실리태번 API 연결 화면에서 저장해 주세요.',previous:before};
       return data;
@@ -1502,7 +1507,16 @@ function gotoAnlasSetting(){
 }
 async function refreshStatus() {
   checkServer({force:true}).catch(()=>{});
-  return refreshAccount();
+  await account.checking?.catch(()=>{}); // a check already running did not ask for the field names
+  return refreshAccount({shape:true});
+}
+function renderShape(){
+  if(!dialog)return;const box=$('ncs-account-shape');box.hidden=!accountShape&&!shapeUnsupported;
+  $('ncs-shape-list').textContent=accountShape?accountShape.join('\n'):'서버 플러그인을 0.1.14 이상으로 업데이트하면 보여요.';
+  dialog.querySelector('[data-action="copy-shape"]').disabled=!accountShape;$('ncs-shape-status').textContent='';
+}
+async function copyShape(){
+  if(!accountShape)return;try{await copyText(accountShape.join('\n'),dialog);$('ncs-shape-status').textContent='복사했어요.';}catch(e){$('ncs-shape-status').textContent=e.message;}
 }
 async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   const originTab='scene',report=(message,error=false)=>notice(message,error,originTab);
@@ -2019,6 +2033,7 @@ async function onAction(action,el) {
     }
     case 'reset-final':changed();break;
     case 'status':await refreshStatus();break;
+    case 'copy-shape':await copyShape();break;
     case 'refresh-anlas':await refreshAccount().catch(()=>{});break;
     case 'goto-anlas':gotoAnlasSetting();break;
     // 프리셋 저장: overwrite the selected preset, or create one when none is selected.

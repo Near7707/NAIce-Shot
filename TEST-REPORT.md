@@ -1,3 +1,11 @@
+# v0.1.66 validation — 2026-11-04
+
+- Extension Node suite: **149 passed, 0 failed**.
+- Server Node suite (v0.1.14): **26 passed, 0 failed**. New: `/status?shape=1` lists names and kinds (nested, arrays, unsafe key names hidden) and no value from the reply; plain `/status` sends no list; `account-shape` advertised.
+- **55 of 55 Chromium browser scripts passed.** New `browser-v0166` at 375 and 1100px: the box is hidden until [서버·NAI 연결 확인], which asks with `shape=1`; folded list without values, [목록 복사], no sideways scroll; the drawing tab's ↻ never asks for the names and the cost line still reads the account; an older server → "0.1.14 이상으로 업데이트" with copy disabled.
+- Publication diffs (both repositories) screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern, a real NovelAI account reply, iPhone Safari.
+
 # v0.1.65 validation — 2026-11-04
 
 - Extension Node suite: **149 passed, 0 failed**.
