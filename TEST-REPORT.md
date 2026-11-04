@@ -1,3 +1,11 @@
+# v0.1.65 validation — 2026-11-04
+
+- Extension Node suite: **149 passed, 0 failed**.
+- Server Node suite: server unchanged.
+- **54 of 54 Chromium browser scripts passed.** New `browser-v0165` (fails on 0.1.64 code for UI-064-01), at 375 and 1100px: a slow gallery move locks [메시지로 가기], the view is closed, the result picture opens with [메시지로 가기] and [삭제] usable, and the old move finishing later does not lock them again; a touch tap followed by Escape or ✕ → the first click on the chat picture within 0.7 s opens it and the old timer does not close it; the tap path still swallows its own click and closes; the 챗샷/프리샷 bar is 42px (95px before) with 32px buttons on one line and stays at the top while scrolling.
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern, iPhone Safari (touch timing simulated with dispatched events).
+
 # v0.1.64 validation — 2026-11-04
 
 - Extension Node suite: **149 passed, 0 failed**.

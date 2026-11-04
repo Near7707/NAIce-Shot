@@ -100,10 +100,12 @@ function build() {
   }
   const navigation=dialog.querySelector('.ncsv-navigation'),position=dialog.querySelector('.ncsv-position');
   function updateNavigation(){
+    // Buttons that act on the shown picture wait only while a slow move is under way — for every picture, so a lock
+    // left from an earlier gallery never carries over to a single picture (UI-064-01).
+    deleteButton.disabled=state.navPage||state.actionBusy;detachButton.disabled=state.navPage;jumpButton.disabled=state.navPage;
     const g=state.gallery;navigation.hidden=!g;if(!g)return;
     position.textContent=`${state.index+1} / ${g.total}${state.navPage?' · 불러오는 중…':''}`;
     dialog.querySelector('[data-v="previous"]').disabled=state.navPage||state.actionBusy||state.index<=0;
-    deleteButton.disabled=state.navPage||state.actionBusy;detachButton.disabled=state.navPage;jumpButton.disabled=state.navPage;
     dialog.querySelector('[data-v="next"]').disabled=state.navPage||state.actionBusy||(!g.hasMore&&state.index>=g.items.length-1);
 
     if(dialog.open&&!dialog.contains(document.activeElement))dialog.querySelector('[data-v="close"]').focus({preventScroll:true});
@@ -212,11 +214,16 @@ function build() {
   });
   // A tap on empty space closes the viewer only once that tap's click has come (it is swallowed), so the click can
   // never land on what lies under the viewer, such as a chat picture that would open it again (UI-063-02).
+  let pendingTap=null;
+  const dropTap=()=>{pendingTap?.();pendingTap=null;};
   function closeAfterTap(){
-    const epoch=state.epoch;let done=false,timer=0;
-    const finish=()=>{if(done)return;done=true;clearTimeout(timer);window.removeEventListener('click',swallow,true);if(epoch===state.epoch&&dialog.open)dialog.close();};
-    const swallow=event=>{event.preventDefault();event.stopPropagation();finish();};
+    dropTap();const epoch=state.epoch;let timer=0;
+    const stop=()=>{clearTimeout(timer);window.removeEventListener('click',swallow,true);if(pendingTap===stop)pendingTap=null;};
+    const finish=()=>{stop();if(epoch===state.epoch&&dialog.open)dialog.close();};
+    // Only the tap's own click, which lands on the viewer; anything else goes through untouched (UI-064-02).
+    const swallow=event=>{if(!dialog.open||!dialog.contains(event.target)){stop();return;}event.preventDefault();event.stopPropagation();finish();};
     window.addEventListener('click',swallow,true);timer=setTimeout(finish,700); // no click (cancelled tap): close anyway
+    pendingTap=stop;
   }
   const end = event => {
     if (!pointers.has(event.pointerId)) return;
@@ -240,12 +247,12 @@ function build() {
   stage.addEventListener('dblclick', event => { if (event.target === img) toggle(local(event)); });
 
   new ResizeObserver(() => { if (!dialog.open || !state.nat.w) return; if (state.mode === 'fit') fit(); else set(clampPan(state.view, state.nat, stageSize())); }).observe(stage);
-  dialog.addEventListener('close', () => { state.epoch++;state.gallery=null;state.navBusy=false;state.navPage=false;pointers.clear();gesture=null;lastTap=null; });
+  dialog.addEventListener('close', () => { dropTap();state.epoch++;state.gallery=null;state.navBusy=false;state.navPage=false;pointers.clear();gesture=null;lastTap=null; });
 
   // Everything about one picture changes together: image, date, seed, prompt, save link and the delete/detach target.
   // While the next picture of the gallery loads, the current one and all its buttons stay as they are (UI-063-01).
   function present(item,file,{caption='',seed=null,onDelete=null,onDetach=null,loadPrompt=null,loadInfo=null,gallery=null,index=0,focus=true,jumps=[],noJump=''}={},ready=null){
-      state.epoch++;pointers.clear();gesture=null;lastTap=null;state.gallery=gallery;state.index=index;state.navBusy=false;state.navPage=false;state.actionBusy=false;state.item = item;state.caption = caption;showSaveMenu(false);
+      dropTap();state.epoch++;pointers.clear();gesture=null;lastTap=null;state.gallery=gallery;state.index=index;state.navBusy=false;state.navPage=false;state.actionBusy=false;state.item = item;state.caption = caption;showSaveMenu(false);
       state.seed=seed===null||seed===undefined||seed===''?null:seed;seedButton.hidden=state.seed===null;if(state.seed!==null)seedButton.textContent=seedLabel();
       state.loadPrompt=typeof loadPrompt==='function'?loadPrompt:null;state.promptText='';
       promptBox.open=false;promptBox.hidden=!state.loadPrompt;delete promptBox.dataset.loaded;promptContent.textContent='';copyButton.disabled=true;copyButton.textContent='프롬프트 복사';copyStatus.textContent='';

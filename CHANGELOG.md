@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.65 — 2026-11-04 (extension only; server v0.1.13 unchanged)
+
+GPT's review of 0.1.64, and a thinner 챗샷/프리샷 switch (the user's choice (가)).
+
+- After a slow move in the history gallery, closing the enlarged view and opening another picture on its own (e.g. the result) no longer leaves [메시지로 가기] locked (UI-064-01, P2). The lock follows the shown picture every time, gallery or not.
+- A tap on empty space that is followed by closing the view another way (Escape, ✕) no longer swallows the next click elsewhere; the waiting tap-close is dropped when the view closes or shows another picture, and it only ever takes a click on the view itself (UI-064-02).
+- **챗샷 / 프리샷 switch:** one thin joined switch that stays at the top: 42px instead of 95px (buttons 32px, 13px text).
+- Tests: new `browser-v0165` (375 and 1100px).
+
 ## 0.1.64 — 2026-11-04 (extension only; server v0.1.13 unchanged)
 
 GPT's review of 0.1.63, and a note for pictures with no message to go to (the user's iPhone check).

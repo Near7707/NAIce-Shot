@@ -1,5 +1,13 @@
 # Installation and update checklist
 
+## v0.1.65
+
+Update the extension and refresh. No server update is needed.
+
+1. Drawing tab: the 챗샷 / 프리샷 switch is a thin bar that still stays at the top.
+2. Open a chat picture large, close it with ✕, then tap the picture again at once: it opens.
+
+
 ## v0.1.64
 
 Update the extension and refresh. No server update is needed.
