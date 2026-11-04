@@ -1,5 +1,14 @@
 # Installation and update checklist
 
+## v0.1.75
+
+Update the extension and refresh. No server update is needed.
+
+1. 프리샷: type `@` in the situation box → a profile list appears; pick one → `@Name#…` goes in.
+2. Write a situation with two `@` people and press 장면 추출: both are ticked in the result.
+3. 챗샷: in 추가 요청, `@` someone who is not in the message → they are added to the scene.
+
+
 ## v0.1.74
 
 Update the extension and refresh. No server update is needed.

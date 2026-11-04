@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.75 — 2026-11-05 (extension only; server v0.1.17 unchanged)
+
+@ profile references.
+
+- In the 프리샷 situation and the 챗샷 추가 요청 field, typing `@` opens a list of profiles with their aliases and a short id; picking one writes `@Name#id` (e.g. `@Leo#a3f2`). The id is the start of the profile's own id (4 characters, longer when two would share it), so the link survives renames, sorting and copy-paste. Hangul being composed is never picked by Enter; Escape closes only the list.
+- A typed `@Name` is confirmed into `@Name#id` just before extraction when it fits exactly one profile (the notice says so). Unknown names, names shared by several profiles, letters stuck to a name or id, ids that are gone or now shared stop the extraction with a note; nothing is linked by guessing. A name or id may be followed by the end, a space, punctuation or up to two particles. An `@` inside a word (an email) is not a reference.
+- A referenced profile is always in the extracted people and wins over a request to leave it out (the field notes say so). If the AI leaves one out, its card is added ticked and the notice says its expression and action are empty. In 챗샷 this can add someone not in the message.
+- More required people than the model allows (the same profile counted once) stops the extraction.
+- The extraction AI gets each reference as the current name with the full id and a list of required people; no `@` or `#id` reaches cards or NovelAI.
+- Tests: new `browser-v0175` (375 and 1100px) and `mentions.test.mjs`.
+
 ## 0.1.74 — 2026-11-05 (extension only; server v0.1.17 unchanged)
 
 Each picture can sit above or below the message text.

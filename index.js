@@ -6,6 +6,7 @@ import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } fr
 import { attachInlineImages, detachInlineImage, detachInlineImages, detachMessageImage, placeMessageImage, orderedInlineImages, placementOf, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, visibleInlineImages, SAVE_NOTES, INLINE_LAYOUTS, INLINE_SIZES } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
 import { freeScenePrompt, freeSceneSchema, parseFreeScene } from './free-scene.mjs';
+import { confirmRefs, refsForExtraction, plainNames, stripRefMarks, refText, queryAt, suggestions, shortIds } from './mentions.mjs';
 import { planFreePeople, confirmText, applyFreePeople, migratePins } from './free-people.mjs';
 import { momentExtractionPrompt, momentExtractionSchema, parseMoments, looksCut, foreignFields, dropLookWords } from './scene-extraction.mjs';
 import { isSceneMessage, isHiddenSceneMessage, chooseSceneMessages } from './scene-messages.mjs';
@@ -1310,16 +1311,85 @@ function limitHint(){
   return settings().extractionProfileId?`설정 → 추출 AI의 "독립 추출 응답 한도"(지금 ${settings().extractionMaxTokens})를 올려 주세요.`
     :'본편 연결로 추출하면 본편 프리셋의 응답 길이가 그대로 적용돼요. 설정 → 추출 AI에서 별도 연결 프로필을 고르고 응답 한도를 넉넉히(8192부터) 잡아 주세요.';
 }
+// --- @프로필 참조 (0.1.75) ----------------------------------------------------------------------------------------
+// Before an extraction: references typed by hand are confirmed into @Name#id (the text changes, and the note says so);
+// any reference that cannot be tied to exactly one profile stops it. Returns the text for the AI and the required people.
+function prepareRefs(el,label){
+  const profiles=settings().profiles,c=confirmRefs(el.value,profiles);
+  if(c.problems.length)throw new Error(`${label}의 @참조를 확인해 주세요. ${c.problems.map(p=>p.message).join(' ')}`);
+  if(c.confirmed.length){el.value=c.text;el.dispatchEvent(new Event('input',{bubbles:true}));}
+  const x=refsForExtraction(c.text,profiles),limit=MODELS[effectiveOptions().model]?.limit??6;
+  if(x.required.length>limit)throw new Error(`@로 지정한 필수 인물이 ${x.required.length}명이라 지금 모델의 한도(${limit}명)를 넘어요. 일부의 @를 지워 주세요.`);
+  return {text:x.text,required:x.required,note:c.confirmed.length?`${c.confirmed.map(x=>`${x.from} → ${x.to}`).join(', ')}로 확정했어요. `:''};
+}
+// Leftover @Name#id marks never reach a card or NovelAI.
+const unmark=value=>JSON.parse(JSON.stringify(value),(k,v)=>typeof v==='string'?stripRefMarks(v):v);
+// A required person missing from the result gets a card anyway (ticked); returns the names whose pose is still empty.
+function ensureRequired(part,required){
+  const empty=[];
+  for(const p of required){
+    let c=part.characters.find(c=>!c.temp&&c.id===p.id);
+    if(!c){c=attachSceneProfile(part,p,[p.name]).character;c.pinned??=false;if(!c.expression&&!c.action)empty.push(p.name);}
+    c.included=true;
+  }
+  return empty;
+}
+const emptyNote=names=>names.length?`결과에 없던 필수 인물을 넣었어요: ${names.join(', ')}. 표정·행동이 비어 있어요. 직접 채우거나 다시 추출해 주세요.`:'';
+// The list under the field while typing "@…": names with their aliases and short id; picking inserts @Name#id.
+let refList=null; // {field,start,items,active}
+function closeRefList(){refList=null;const box=$('ncs-ref-list');if(box)box.hidden=true;}
+function updateRefList(field){
+  const box=$('ncs-ref-list');if(!box)return;
+  const q=queryAt(field.value,field.selectionStart??field.value.length);
+  if(!q||document.activeElement!==field){closeRefList();return;}
+  const profiles=settings().profiles,items=suggestions(profiles,q.query),short=shortIds(profiles);
+  if(!items.length){closeRefList();return;}
+  const active=refList&&refList.field===field&&refList.start===q.start?Math.min(refList.active,items.length-1):0;
+  refList={field,start:q.start,items,active};
+  box.innerHTML=items.map((it,i)=>`<button type="button" role="option" class="ncs-ref-item" data-ref-pick="${i}" aria-selected="${i===active}"><b>${esc(it.name)}</b>${it.aliases.length?`<span class="ncs-ref-aliases">${esc(it.aliases.join(', '))}</span>`:''}<small>#${esc(short.get(String(it.id)))}</small></button>`).join('');
+  const r=field.getBoundingClientRect(),width=Math.min(Math.max(r.width,220),360);
+  box.style.width=`${width}px`;box.style.left=`${Math.max(8,Math.min(r.left,innerWidth-width-8))}px`;
+  box.hidden=false;const h=box.offsetHeight;
+  box.style.top=`${r.bottom+4+h<=innerHeight-8?r.bottom+4:Math.max(8,r.top-4-h)}px`;
+}
+function pickRef(i){
+  if(!refList)return;const {field,start,items}=refList,it=items[i];if(!it)return;
+  const profiles=settings().profiles,p=profiles.find(x=>x.id===it.id),caret=field.selectionStart??field.value.length,text=refText(p,profiles);
+  field.value=field.value.slice(0,start)+text+field.value.slice(caret);
+  const at=start+text.length;field.setSelectionRange(at,at);closeRefList();field.dispatchEvent(new Event('input',{bubbles:true}));field.focus();
+}
+function bindRefFields(){
+  for(const id of ['ncs-free-text','ncs-moment-wish']){
+    const field=$(id);if(!field)continue;
+    const refresh=event=>{if(event?.isComposing)return updateRefList(field);updateRefList(field);};
+    field.addEventListener('input',refresh);field.addEventListener('compositionend',refresh);field.addEventListener('click',refresh);
+    field.addEventListener('keyup',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key))refresh();});
+    field.addEventListener('blur',()=>setTimeout(()=>{if(refList?.field===field&&document.activeElement!==field)closeRefList();},150));
+    field.addEventListener('keydown',event=>{
+      if(!refList||refList.field!==field||event.isComposing||event.keyCode===229)return;
+      const n=refList.items.length;
+      if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();refList.active=(refList.active+(event.key==='ArrowDown'?1:n-1))%n;updateRefList(field);}
+      else if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();pickRef(refList.active);}
+      else if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeRefList();}
+    });
+  }
+  const box=$('ncs-ref-list');
+  box.addEventListener('mousedown',event=>event.preventDefault()); // keeps the caret in the field
+  box.addEventListener('click',event=>{const b=event.target.closest('[data-ref-pick]');if(b)pickRef(Number(b.dataset.refPick));});
+  // Scrolling (also the field scrolling itself into view while typing) moves the list along instead of closing it.
+  const follow=()=>{if(refList)updateRefList(refList.field);};
+  dialog.querySelector('.ncs-content')?.addEventListener('scroll',follow,{passive:true});addEventListener('resize',follow);
+}
 // --- 프리샷: 적은 상황으로 장면 추출 -------------------------------------------------------------------------------
 const FOREIGN_TEXT=/[\u1100-\u11FF\u3040-\u30FF\u3130-\u318F\u3400-\u9FFF\uAC00-\uD7A3]/;
 async function freeFill() {
   const originTab='scene',report=(message,error=false)=>notice(message,error,originTab);
   if(busy||!isFree())return;
-  const s=settings(),asked=$('ncs-free-text').value;
+  const s=settings(),refs=prepareRefs($('ncs-free-text'),'상황 글'),asked=$('ncs-free-text').value;
   // 0.1.59: the text decides who stays. Nothing changes before the response is valid; a cancelled question changes nothing.
-  const plan=planFreePeople(scene.characters,asked,s.profiles);
+  const plan=planFreePeople(scene.characters,plainNames(asked,s.profiles),s.profiles);
   const existing=plan.present.map(c=>c.temp?{id:'',name:c.name}:{id:c.id,name:s.profiles.find(p=>p.id===c.id)?.name??''}).filter(p=>p.name);
-  const prompt=freeScenePrompt(asked,s.profiles,existing,s.format);
+  const prompt=freeScenePrompt(refs.text,s.profiles,existing,s.format,refs.required);
   if(plan.ask&&!confirm(confirmText(plan,s.profiles))){report('추출하지 않았어요. 글을 고치거나 남길 카드를 📌 고정해 주세요.');return;}
   const before={...captureWork(),scene:clone(scene),undoClear:null,targetShown,kind:'extract',label:'추출 전으로 되돌려요. 다시 고치거나 생성·비우기·가져오기를 하면 사라져요.'};
   const ticket=++task,rev=revision,controller=new AbortController();extraction={ticket,controller,kind:'free'};
@@ -1335,12 +1405,12 @@ async function freeFill() {
           {profileId:s.extractionProfileId,structured:(attempt===0||retryForLanguage)&&s.structuredOutput,maxTokens:s.extractionMaxTokens,temperature:extractionTemperature(),schemaValue:freeSceneSchema(s.profiles),schemaName:'naice_shot_free',
            systemPrompt:'You turn a described situation into an image scene as JSON. Do not roleplay.',signal:controller.signal});
         received=true;
-        const parsed=parseFreeScene(response,s.profiles);
+        const parsed=unmark(parseFreeScene(response,s.profiles));
         const foreign=[...['interaction','location','lighting','camera'].filter(k=>FOREIGN_TEXT.test(parsed[k])),...new Set(parsed.characters.flatMap(c=>['appearance','outfit','expression','action'].filter(k=>FOREIGN_TEXT.test(c[k]))))];
         if(foreign.length&&attempt===0){retryForLanguage=true;report('결과가 영어가 아니어서 영어로 다시 요청하고 있어요.');continue;}
         if(ticket!==task||!isFree()||revision!==rev){report('작업 내용이 바뀌어서 채운 결과를 적용하지 않았어요.');return;}
         if($('ncs-free-text').value!==asked){report('추출하는 동안 상황 글이 바뀌어서 결과를 적용하지 않았어요. 바꾼 글로 다시 눌러 주세요.');return;} // UI-054-04
-        raw=response;applyFree(parsed,foreign,plan,before);return;
+        raw=response;applyFree(parsed,foreign,plan,before,refs);return;
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}
     }
     if(ticket===task&&isFree()){raw=response;renderScene();report(`장면 추출 실패: ${failure?.message}.${looksCut(response)?` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
@@ -1353,8 +1423,10 @@ async function freeFill() {
 // Who a 프리샷 person is. A unique name/alias match wins over the returned id; a shared one stays a temporary person
 // (look kept) rather than guessing. An id whose profile does not carry that name is trusted only for a person the
 // user already put in the picture and described without a new look (e.g. "the girl" for a chosen profile).
-function freeIdentity(c,appearance,profiles,selectedIds){
+function freeIdentity(c,appearance,profiles,selectedIds,requiredIds=new Set()){
   const key=identityKey(c.name??''),byName=key?profiles.filter(p=>[p.name,...(p.aliases??[])].some(n=>identityKey(n)===key)):[];
+  // 0.1.75: a person picked with @ is told apart by the id the AI was given, when that profile carries the name.
+  if(byName.length>1&&c.id&&requiredIds.has(c.id)&&byName.some(p=>p.id===c.id))return {profile:byName.find(p=>p.id===c.id)};
   if(byName.length===1)return {profile:byName[0],corrected:!!c.id&&c.id!==byName[0].id};
   // Several profiles answer to this name: the AI's id is not proof. Only a card the user already has in this work decides (UI-059-05).
   if(byName.length>1){const mine=byName.filter(p=>selectedIds.has(p.id));return mine.length===1?{profile:mine[0]}:{ambiguous:true};}
@@ -1363,18 +1435,19 @@ function freeIdentity(c,appearance,profiles,selectedIds){
   if(selectedIds.has(p.id)&&!String(appearance??'').trim())return {profile:p};
   return {};
 }
-function applyFree(parsed,foreign=[],plan=planFreePeople(scene.characters,$('ncs-free-text').value,settings().profiles),before=null){
+function applyFree(parsed,foreign=[],plan=planFreePeople(scene.characters,$('ncs-free-text').value,settings().profiles),before=null,refs={required:[],note:''}){
   const s=settings(),names=[...s.profiles.flatMap(p=>[p.name,...p.aliases]),...parsed.characters.map(c=>c.name)];
   const generic=genericizeScene({...parsed,unregistered:[],characters:parsed.characters.map(c=>({...c,outfitMode:c.outfit?'replace':'unchanged'}))},names,s.format).scene;
   const fixed=[],unsure=[],selectedIds=new Set(plan.present.filter(x=>!x.temp).map(x=>x.id));
   const people=generic.characters.map((c,i)=>{
     const appearance=parsed.characters[i]?.appearance??'';
     // UI-054-02: the returned id is checked against the name (names and aliases of saved profiles).
-    const who=freeIdentity(c,appearance,s.profiles,selectedIds);
+    const who=freeIdentity(c,appearance,s.profiles,selectedIds,new Set(refs.required.map(p=>p.id)));
     if(who.corrected)fixed.push(c.name);if(who.ambiguous)unsure.push(c.name);
     return {profile:who.profile??null,name:c.name,subject:c.subject,appearance,outfit:c.outfitMode==='replace'?c.outfit:'',expression:c.expression,action:c.action,position:c.position};
   });
   const out=applyFreePeople(scene.characters,plan,people,{makeTemp:tempPerson});
+  const emptyRequired=ensureRequired({characters:out.cards},refs.required);out.notShown=out.notShown.filter(c=>!refs.required.some(p=>p.id===c.id));
   for(const k of ['location','lighting','camera','interaction'])scene[k]=generic[k]??'';
   scene.characters=out.cards;scene.unregistered=[];scene.unregisteredDetails=[];scene.source=null;
   finalOverride=null;optionsOverride=null;restoredFinal=null;revision++;
@@ -1383,7 +1456,7 @@ function applyFree(parsed,foreign=[],plan=planFreePeople(scene.characters,$('ncs
   const label=c=>c.temp?(c.name||'이름 없는 인물'):(s.profiles.find(p=>p.id===c.id)?.name??'인물');
   const drawn=out.cards.filter(c=>c.included);
   const emptyLooks=drawn.filter(c=>c.temp&&!(c.appearance??'').trim()).length;
-  const parts=[`장면 칸을 채웠어요. 그릴 인물 ${drawn.length}명. 확인한 뒤 생성해 주세요.`,
+  const parts=[refs.note,`장면 칸을 채웠어요. 그릴 인물 ${drawn.length}명. 확인한 뒤 생성해 주세요.`,emptyNote(emptyRequired),
     plan.removed.length?`글에 없는 카드를 지웠어요: ${plan.removed.map(label).join(', ')}.`:'',
     plan.pinnedOut.length?`📌 고정 카드는 남기고 체크를 풀었어요: ${plan.pinnedOut.map(label).join(', ')}.`:'',
     out.notShown.length?`글에 이름은 있지만 이번 장면엔 보이지 않아 체크를 풀었어요: ${out.notShown.map(label).join(', ')}.`:'',
@@ -1393,24 +1466,26 @@ function applyFree(parsed,foreign=[],plan=planFreePeople(scene.characters,$('ncs
     emptyLooks?'외형이 비어 있는 임시 인물은 직접 채워 주세요.':'',
     foreign.length?`영어로 바뀌지 않은 칸이 있어요(${foreign.join(', ')}).`:'',
     before&&(plan.removed.length||plan.pinnedOut.length||out.refreshed.length)?'잘못됐다면 [↶ 추출 취소]를 눌러 주세요.':''];
-  notice(parts.filter(Boolean).join(' '),false,'scene',{keep:!!(plan.removed.length||plan.pinnedOut.length||out.notShown.length||out.refreshed.length||unsure.length||foreign.length)});
+  notice(parts.filter(Boolean).join(' '),false,'scene',{keep:!!(plan.removed.length||plan.pinnedOut.length||out.notShown.length||out.refreshed.length||unsure.length||foreign.length||emptyRequired.length||refs.note)});
 }
 async function extract() {
   const originTab='scene',report=(message,error=false)=>notice(message,error,originTab);
   if(busy)return;assertChat();
   const s=settings();if(!s.profiles.length){openQuickProfile();report('등록된 프로필이 없어요. 아래에서 첫 프로필을 만들면 바로 추출할 수 있어요.');return;}
   if(ctx().streamingProcessor && !ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 추출해 주세요.');
+  const refs=prepareRefs($('ncs-moment-wish'),'추가 요청'),requiredIds=refs.required.map(p=>p.id);
   const selection=chooseSceneMessages(ctx().chat,{target:$('ncs-target').value===''?null:Number($('ncs-target').value),recent:Number($('ncs-recent').value),includeUser:$('ncs-include-user').checked});
   stampSource(selection.source,ctx().chat);
   const startKey=keyOf(),rev=revision,ticket=++task,profiles=clone(s.profiles),outfits=clone(outfitState());
-  const matching=matchChatProfiles(ctx(),profiles,selection.messages,chatBindings(),scene.characters.filter(c=>c.included!==false).map(c=>c.id));
+  const matching=matchChatProfiles(ctx(),profiles,selection.messages,chatBindings(),[...scene.characters.filter(c=>c.included!==false).map(c=>c.id),...requiredIds]);
+  matching.required=new Set(requiredIds); // 0.1.75: people picked with @ (may not be in the message)
   const wish=$('ncs-moment-wish').value.trim();
   // Positions the user chose by hand survive a re-extraction of the same message.
   // Temporary people survive a new extraction (marked for a check unless the AI found them again).
   const keptTemps=[...new Map([scene,...(scene.moments??[]).map(m=>m.scene)].flatMap(part=>(part.characters??[]).filter(c=>c.temp)).map(t=>[t.id,t])).values()];
   const manualPositions=new Map();
   if(scene.source?.target===selection.source.target)for(const part of [scene,...(scene.moments??[]).map(m=>m.scene)])for(const c of part.characters??[])if(c.positionManual&&c.id)manualPositions.set(c.id,c.position);
-  const prompt=momentExtractionPrompt(selection.messages,matching.profiles,outfits,s.format,matching.mappings,wish);
+  const prompt=momentExtractionPrompt(selection.messages,matching.profiles,outfits,s.format,matching.mappings,refs.text.trim(),refs.required);
   const controller=new AbortController();extraction={ticket,controller};
   dropUndo();setBusy(true,ticket);startProgress('extract',ticket);report('장면 추출을 시작했어요.');
   let response='',failure;
@@ -1424,7 +1499,7 @@ async function extract() {
         response=await requestExtraction(ctx(),prompt+(attempt?(retryForLanguage?'\nYour previous reply wrote descriptive fields in a language other than English. Return the complete JSON again with every descriptive field in English; keep title in Korean.':'\nThe previous response could not be parsed. Return ONLY the complete JSON object.'):''),
           {profileId:s.extractionProfileId,structured:(attempt===0||retryForLanguage)&&s.structuredOutput,maxTokens:s.extractionMaxTokens,temperature:extractionTemperature(),schemaValue:momentExtractionSchema(matching.profiles),signal:controller.signal});
         received=true;
-        const parsed=parseMoments(response,profiles);
+        const parsed=unmark(parseMoments(response,profiles));
         // Fields in the chat's language instead of English: ask once more, then accept with a note.
         const foreign=foreignFields(parsed.moments);
         if(foreign.length&&attempt===0){retryForLanguage=true;report('추출 결과가 영어가 아니어서 영어로 다시 요청하고 있어요.');continue;}
@@ -1437,6 +1512,7 @@ async function extract() {
         const warnings=[...matching.warnings,...parsed.warnings],removed=new Set();
         // 추가 요청 belongs to the candidate it was applied to; its clothing goes through the same matching and cleaning.
         const request=wish&&parsed.request?{applied:[...parsed.request.applied],ignored:[...parsed.request.ignored],visibleOnly:parsed.request.visibleOnly===true}:null;
+        let emptyRequired=[];
         const moments=parsed.moments.map((m,i)=>{
           const reconciled=reconcileCharacters(m.scene,matching);
           const generic=genericizeScene(reconciled.scene,[...baseNames,...reconciled.scene.unregistered,...reconciled.scene.characters.map(x=>x.entityName)],s.format);
@@ -1445,6 +1521,7 @@ async function extract() {
           for(const ch of generic.scene.characters)if(manualPositions.has(ch.id)){ch.position=manualPositions.get(ch.id);ch.positionManual=true;}
           const part=momentPart(generic.scene);
           if(request&&i===parsed.defaultIndex){part.request=request;applyRequestOutfits(part,parsed.request.outfits,request);}
+          const empty=ensureRequired(part,refs.required);if(i===parsed.defaultIndex)emptyRequired=empty;
           carryTemps(keptTemps,part);
           return {title:m.title,scene:part};
         });
@@ -1454,7 +1531,8 @@ async function extract() {
         if(removed.size)warnings.push(`장면 설명에 들어간 이름(${[...removed].join(', ')})을 빼고 일반 표현으로 정리했어요.`);
         const lead=parsed.partial?`응답이 불완전해요. 온전히 받은 후보 ${moments.length}개만 보여줘요. 메시지의 마지막 순간이 빠졌을 수 있어요. ${limitHint()} `:wish&&!parsed.requestMatched?'요청한 순간을 이 메시지에서 찾지 못해서 마지막 순간으로 골랐어요. ':moments.length>1?`장면 후보 ${moments.length}개를 찾았어요. 위에서 그릴 순간을 고를 수 있어요. `:'';
         const asked=request?[request.applied.length?`추가 요청 반영: ${request.applied.join(' · ')}.`:'',request.ignored.length?`반영하지 않음: ${request.ignored.join(' · ')}.`:''].filter(Boolean).join(' ')+' ':'';
-        notice(lead+asked+(warnings.length?warnings.join(' / '):'추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.'),false,originTab,{keep:parsed.partial||!!(wish&&!parsed.requestMatched)||foreign.length>0});return;
+        const must=emptyNote(emptyRequired);
+        notice(refs.note+lead+asked+(must?must+' ':'')+(warnings.length?warnings.join(' / '):'추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.'),false,originTab,{keep:!!must||!!refs.note||parsed.partial||!!(wish&&!parsed.requestMatched)||foreign.length>0});return;
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}
     }
     if(ticket===task&&keyOf()===startKey){raw=response;renderScene();report(`추출 실패: ${failure?.message}.${looksCut(response)?` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
@@ -2449,7 +2527,7 @@ async function initialize() {
   $('ncs-missing-dialog').addEventListener('cancel',()=>{missingPrompt=null;}); // Escape closes only this box
   $('ncs-attach-dialog').addEventListener('close',()=>{attachPick=null;});
   for(const tab of dialog.querySelectorAll('[data-tab]')){const icon=document.createElement('span');icon.className='ncs-tab-icon';icon.innerHTML=TAB_ICONS[tab.dataset.tab]??'';tab.prepend(icon);}
-  $('ncs-version').textContent=`v${VERSION}`;setProfileMode('direct');renderSettings();renderProfiles();editProfile();renderTargets();bindEvents();watchGenerateArea();chatKey=keyOf();renderProgress();renderModeUI();renderScene();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';
+  $('ncs-version').textContent=`v${VERSION}`;setProfileMode('direct');renderSettings();renderProfiles();editProfile();renderTargets();bindEvents();bindRefFields();watchGenerateArea();chatKey=keyOf();renderProgress();renderModeUI();renderScene();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';
   const menu=document.getElementById('extensionsMenu');if(menu){const button=document.createElement('div');button.className='list-group-item flex-container flexGap5 ncs-menu-item';button.innerHTML=`<div class="extensionsMenuExtensionButton ncs-menu-icon">${CAMERA_ICON}</div><span data-brand>${esc(brand())}</span>`;button.tabIndex=0;button.setAttribute('role','button');button.addEventListener('click',()=>open().catch(e=>notice(e.message,true)));button.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open().catch(e=>notice(e.message,true));}});menu.append(button);}
   renderBrand();
   // Apply the saved skin right away when it is the built-in one; file skins wait for detection.

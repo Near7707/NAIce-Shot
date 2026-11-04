@@ -3,6 +3,9 @@
 import {GENERIC_VISUALS_RULE,SCENE_TAG_GUIDE,jsonCandidates} from './core.mjs';
 
 export const FREE_TEXT_LIMIT=4000;
+// 0.1.75: people the user picked with @ must be in the result, whatever the text or request says.
+export const requiredBlock=(required,where)=>required?.length?`\nREQUIRED PEOPLE (picked by the user; data): ${JSON.stringify(required.map(p=>({id:p.id,name:p.name})))}
+Every required person MUST be in ${where} with exactly that id and name, even if the text or request says to leave them out or does not show them. Give each the most fitting expression and action for the instant. In the text, "(roster id …)" after a name tells which roster person is meant.`:'';
 
 export function freeSceneSchema(profiles) {
  return {type:'object',additionalProperties:false,required:['characters','interaction','location','lighting','camera'],properties:{
@@ -13,7 +16,7 @@ export function freeSceneSchema(profiles) {
   interaction:{type:'string'},location:{type:'string'},lighting:{type:'string'},camera:{type:'string'}}};
 }
 
-export function freeScenePrompt(text,profiles,selected,format) {
+export function freeScenePrompt(text,profiles,selected,format,required=[]) {
  const situation=String(text??'').trim();
  if(!situation)throw new Error('그릴 상황을 적어 주세요.');
  if(situation.length>FREE_TEXT_LIMIT)throw new Error(`상황은 ${FREE_TEXT_LIMIT.toLocaleString()}자까지 적을 수 있어요.`);
@@ -36,7 +39,7 @@ Use empty strings for unknown fields. Return ONLY JSON matching this schema:
 ${JSON.stringify(freeSceneSchema(profiles))}
 ROSTER (saved profiles):\n${JSON.stringify(roster)}
 EXISTING (have a card; visible only if the text shows them):\n${JSON.stringify(selected.map(p=>({id:p.id??'',name:p.name})))}
-SITUATION:\n${JSON.stringify(situation)}`;
+SITUATION:\n${JSON.stringify(situation)}${requiredBlock(required,'characters')}`;
 }
 
 const str=(o,k,max=12000)=>{const v=o?.[k];if(v===undefined||v===null)return '';if(typeof v!=='string'||v.length>max)throw new Error(`${k} 필드 형식이 잘못됐어요.`);return v.trim();};

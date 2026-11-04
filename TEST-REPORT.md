@@ -1,3 +1,12 @@
+# v0.1.75 validation — 2026-11-05
+
+- Extension Node suite: **157 passed, 0 failed**. New `mentions.test.mjs`: short ids (4 characters, longer only where two would share them; a full id like "leo" wins over "leon-two"); typed names with Korean and spaced names and up to two particles (`@Leo에게는`, `@미라한테도`, `@Kai Lee가`); `@미라클`, `@Leo가방`, `@Leon`, `@Leo에게는요` stop; `a@b.com` and `me@Leo` are not references; the id form links after a rename, a new "Leo" does not take an old reference, `@Leo#zz99` (gone), `@Leo#a3f2가방` (stuck letters) and an old short id now shared by two all stop; confirming typed names; the text for the AI has no `@` or `#id` and the required list has each person once; leftover marks are stripped; the autocomplete query and suggestions.
+- Server Node suite: server unchanged.
+- **64 of 64 Chromium browser scripts passed.** New `browser-v0175` at 375 and 1100px: `@` opens the list under the field (names, aliases, short ids, on screen); typing narrows it; Enter during Hangul composition picks nothing; Enter and a click put `@Leo#leo` / `@Mira#mira` in; Escape closes only the list; `a@` opens nothing. With "@Leo#leo랑 @Mira#mira, 레오는 빼고 …" and an AI reply with only Mira, Leo is added ticked with the empty-pose notice; the AI's situation has no `@` or `#id`, carries "Leo (roster id leo)" and a REQUIRED PEOPLE block; the final prompt has no `@`. `@레오랑 @카이가` becomes `@Leo#leo랑 @Kai Lee#kai가` with a notice. `@미라클`, `@Leo가방`, `@Leo#zz99`, `@Leo#leo가방` stop with nothing sent. With two "Leo" profiles a typed `@Leo` stops, the list shows #leo and #leon, and `@Leo#leon` ticks that Leo. On V4.5, Leo twice + 5 others (6) extracts, 7 stops with the limit notice. 챗샷: `@카` → `@Kai Lee#kai`, Kai (not in the message) is required in the prompt and added ticked.
+- Visual check: the list under the situation box at 375 and 1100px (local screenshots only).
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern with a real extraction AI, a real phone keyboard (Hangul input), iPhone Safari.
+
 # v0.1.74 validation — 2026-11-05
 
 - Extension Node suite: **151 passed, 0 failed** (new: a chosen place is stored and the default stores nothing; the group above comes first; putting a picture in again elsewhere moves it, 기본 위치 leaves an own place alone; placeMessageImage sets and clears the place on the message and its swipe copy and refuses a changed message).

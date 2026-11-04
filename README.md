@@ -171,6 +171,16 @@ Saved work can be removed: **설정 → 마지막 작업 기억 → 저장된 �
 
 Extraction can be cancelled. Image generation has no cancellation button once submitted. If you switch chats while generation runs, the server saves the result under the originating chat.
 
+## @ profile references
+
+In the 프리샷 situation and the 챗샷 추가 요청 field, type `@` to open a list of your profiles (names, aliases and a short id). Picking one writes `@Name#id` into the text — for example `@Leo#a3f2` — so the link to that exact profile survives renames, sorting and copy-paste. A name typed by hand (`@Leo`, `@레오랑`) is confirmed into the `@Name#id` form just before extraction when it fits exactly one profile, and the notice says so.
+
+- A profile picked with `@` is always in the extracted people and wins over a request to leave it out. Deleting the `@` only removes that requirement; check the people ticks before generating.
+- In 챗샷 this can add someone who is not in the message.
+- Nothing is linked by guessing: an unknown name, a name shared by several profiles, letters stuck to a name or id (`@Leo가방`), or an id that is gone or now shared all stop the extraction with a note. Up to two particles may follow a name or id (`@Leo에게는`). An `@` inside a word (an email address) is not a reference.
+- More required people than the model allows (V4.5: 6, V5: 22; the same profile counts once) stops the extraction.
+- The extraction AI receives each reference as the profile's current name with its full id; no `@` or `#id` reaches NovelAI. When the AI leaves a required person out, the card is added anyway and the notice says its expression and action are empty.
+
 ## Extraction connection
 
 Use either the current SillyTavern connection or a saved connection profile selected inside NAIce Shot. A separate profile does not switch the active RP connection.

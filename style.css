@@ -852,3 +852,11 @@
 #naice-shot-dialog .ncs-attach-place > span {font-size:13px;color:var(--ncs-muted);margin-right:2px;}
 #naice-shot-dialog .ncs-attach-place button {padding:6px 10px;font-size:13px;min-height:36px;}
 #naice-shot-dialog .ncs-attach-place button[aria-pressed="true"] {border-color:var(--ncs-edge);background-color:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);font-weight:650;}
+/* 0.1.75: @프로필 참조 — the list under the field while typing "@…". */
+#naice-shot-dialog .ncs-ref-list {position:fixed;z-index:30;display:grid;gap:2px;max-height:min(280px,50dvh);overflow:auto;padding:4px;border:var(--ncs-border-width) solid var(--ncs-edge);border-radius:var(--ncs-radius-control);background:var(--ncs-bg);box-shadow:0 8px 28px #0006;}
+#naice-shot-dialog .ncs-ref-item {display:flex;align-items:baseline;gap:8px;width:100%;padding:8px 10px;border:0;border-radius:6px;background:transparent;text-align:left;min-height:40px;}
+#naice-shot-dialog .ncs-ref-item[aria-selected="true"],#naice-shot-dialog .ncs-ref-item:hover {background:var(--ncs-tab-active-bg);}
+#naice-shot-dialog .ncs-ref-item .ncs-ref-aliases {color:var(--ncs-muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;}
+#naice-shot-dialog .ncs-ref-item small {margin-left:auto;color:var(--ncs-muted);font-variant-numeric:tabular-nums;}
+#naice-shot-dialog .ncs-ref-help {display:block;margin-top:4px;}
+#naice-shot-dialog .ncs-ref-help code {font-size:12px;}
