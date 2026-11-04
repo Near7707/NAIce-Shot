@@ -155,7 +155,7 @@ The expandable target-message picker lists newest messages first in a scrolling 
 
 In **설정 → 채팅 속 그림**, choose a global default and an optional **이 채팅의 위치** override. The override is saved with the chat; selecting **전체 기본값 따르기** removes it. Existing attachments move immediately without changing message text.
 
-Several pictures in one message show as **넘겨보기** (default: one at a time with ‹ n/m › or a sideways swipe), **격자** (2 per row on a phone, 3 on a wide screen) or **세로**, in **작게 · 보통 · 크게** (about 200 / 320 / 480px). Pictures keep their shape and are never cropped.
+Several pictures in one message show as **넘겨보기** (default: one picture at a time, in the same place and size as a single picture, with ‹ n/m › buttons under it — there is no swipe, so a sideways swipe stays SillyTavern's own), **격자** (pictures side by side at one height, wrapping to the next line) or **세로**, in **작게 · 보통 · 크게** (about 200 / 320 / 480px; in 격자 the row height is about 120 / 180 / 260px). No frame or background is added; pictures keep their shape and are never cropped.
 
 The wardrobe shows compact outfit-name buttons; expand one to edit it, then save the profile. Removing an outfit requires confirmation. Adding and resetting forms do not focus text inputs or open the mobile keyboard. Status notices belong to the tab where the action started.
 

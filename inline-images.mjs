@@ -93,28 +93,19 @@ export async function detachInlineImages(context,ids,{isCurrent=()=>true}={}) {
 
 // Independent display metadata keeps generated images out of native media
 // prompt processing. Rendering is display-only: placement 'above' or 'below' the RP text never touches message text.
-// 0.1.71: several pictures in one message show as 넘겨보기 (one at a time, ‹ › or a swipe), 격자 or 세로, in three sizes.
+// 0.1.71: several pictures in one message show as 넘겨보기 (one at a time), 격자 or 세로, in three sizes.
 export const INLINE_LAYOUTS=['slide','grid','stack'],INLINE_SIZES=['small','medium','large'];
-// A sideways swipe on the slide strip must not also reroll the message (UI-071-01). SillyTavern's swipe detector
-// checks only the element actually touched, so every element of the strip carries data-swipe-ignore, and its touch
-// events stop at the strip so the detector on the page never sees them. The strip's own sideways scroll is untouched.
-const noSwipe=el=>{el.dataset.swipeIgnore='true';return el;};
-const keepSwipe=event=>event.stopPropagation();
-function guardSwipes(holder){
- for(const el of [holder,...holder.querySelectorAll('*')])noSwipe(el);
- for(const type of ['touchstart','touchmove','touchend','touchcancel'])holder.addEventListener(type,keepSwipe,{passive:true});
-}
-function slideControls(holder,track,count){
- const bar=document.createElement('div');bar.className='ncs-inline-slide-bar';
- const make=(dir,label,text)=>{const b=noSwipe(document.createElement('button'));b.type='button';b.className=`ncs-inline-slide-${dir}`;b.setAttribute('aria-label',label);b.textContent=text;return b;};
+// 0.1.73: 넘겨보기 shows one picture in its usual place and ‹ n/m › under it. Buttons only: no swipe, so nothing here
+// competes with SillyTavern's own sideways swipe (reroll).
+function slideControls(holder,tiles){
+ const count=tiles.length,bar=document.createElement('div');bar.className='ncs-inline-slide-bar';
+ const make=(dir,label,text)=>{const b=document.createElement('button');b.type='button';b.className=`ncs-inline-slide-${dir}`;b.setAttribute('aria-label',label);b.textContent=text;return b;};
  const prev=make('prev','이전 그림','‹'),next=make('next','다음 그림','›'),position=document.createElement('span');position.className='ncs-inline-slide-count';
- const current=()=>track.clientWidth?Math.round(track.scrollLeft/track.clientWidth):0;
- // Written only when the number changes, so scrolling does not keep changing the chat (UI-071-03).
- let shown=-1;const update=()=>{const i=Math.min(count-1,Math.max(0,current()));if(i===shown)return;shown=i;position.textContent=`${i+1} / ${count}`;prev.disabled=i<=0;next.disabled=i>=count-1;};
- const go=step=>event=>{event.preventDefault();event.stopPropagation();track.scrollTo({left:(current()+step)*track.clientWidth,behavior:'smooth'});};
+ let shown=0;
+ const show=i=>{shown=Math.min(count-1,Math.max(0,i));tiles.forEach((t,k)=>t.classList.toggle('ncs-current',k===shown));position.textContent=`${shown+1} / ${count}`;prev.disabled=shown<=0;next.disabled=shown>=count-1;};
+ const go=step=>event=>{event.preventDefault();event.stopPropagation();show(shown+step);};
  prev.addEventListener('click',go(-1));next.addEventListener('click',go(1));
- let frame=0;track.addEventListener('scroll',()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(update);},{passive:true});
- bar.append(prev,position,next);holder.append(bar);update();
+ bar.append(prev,position,next);holder.append(bar);show(0);
 }
 export function renderInlineImages(context,root,chatKey,{placement='below',layout='slide',size='medium'}={}) {
  const where=placement==='above'?'above':'below';
@@ -129,20 +120,20 @@ export function renderInlineImages(context,root,chatKey,{placement='below',layou
   holder?.remove();holder=document.createElement('div');holder.className='ncs-inline-images';holder.dataset.signature=signature;holder.dataset.chatKey=chatKey;holder.dataset.placement=where;
   // One picture is simply shown; the layouts only matter for two or more.
   const mode=items.length>1?shape:'stack';holder.dataset.layout=mode;holder.dataset.size=scale;
-  const track=mode==='slide'?noSwipe(document.createElement('div')):holder;if(mode==='slide'){track.className='ncs-inline-track';holder.append(track);}
+  const tiles=[];
   for(const item of items){
    const tile=document.createElement('figure');tile.className='ncs-inline-image';
    const img=document.createElement('img');img.src=item.image;img.alt='생성된 장면';img.loading='lazy';
    const open=document.createElement('button');open.type='button';open.className='ncs-inline-open';open.dataset.ncsInlineView=item.id;open.setAttribute('aria-label','생성된 장면 크게 보기');open.append(img);
    const remove=document.createElement('button');
    // A deleted or missing file shows a note instead of a broken image; the remove button stays.
-   img.addEventListener('error',()=>{tile.classList.add('ncs-missing');open.disabled=true;remove.hidden=false;const note=document.createElement('span');note.className='ncs-missing-note';note.textContent='삭제됐거나 찾을 수 없는 그림이에요.';if(holder.dataset.layout==='slide')noSwipe(note);open.replaceChildren(note);},{once:true});
+   img.addEventListener('error',()=>{tile.classList.add('ncs-missing');open.disabled=true;remove.hidden=false;const note=document.createElement('span');note.className='ncs-missing-note';note.textContent='삭제됐거나 찾을 수 없는 그림이에요.';open.replaceChildren(note);},{once:true});
    remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이 메시지에서 빼기';
    // 0.1.63: no ⋯ over the picture. Saving, removing and deleting live in the enlarged view (tap the picture);
    // only a picture whose file is gone shows a plain [이 메시지에서 빼기] under its note.
-   remove.className='ncs-inline-remove';remove.hidden=true;tile.append(open,remove);track.append(tile);
+   remove.className='ncs-inline-remove';remove.hidden=true;tile.append(open,remove);holder.append(tile);tiles.push(tile);
   }
-  if(mode==='slide'){slideControls(holder,track,items.length);guardSwipes(holder);}
+  if(mode==='slide')slideControls(holder,tiles);
   const text=element.querySelector('.mes_text');
   if(text)where==='above'?text.before(holder):text.after(holder);else (element.querySelector('.mes_block')??element)[where==='above'?'prepend':'append'](holder);
  }

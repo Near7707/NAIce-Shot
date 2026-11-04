@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.73 — 2026-11-05 (extension only; server v0.1.17 unchanged)
+
+Small fixes and tidying from the user's check.
+
+- **Settings → 추출 AI:** the connection, [연결 프로필 목록 새로고침] and the cost note stay in view; the rest (recommendation, response limit, temperature, JSON structured output) folds into **세부 설정**, whose title shows the current values (e.g. "응답 한도 8192 · 온도 연결 값 · JSON 켬"). The "○○로 추출 · 본편 연결 유지" line is gone; it only appears when the chosen connection cannot be found.
+- **Profiles:** saving an edited profile keeps its place in the list; only a new profile goes to the end.
+- **History cards:** the buttons are now **[⋯] [저장 ▾] [삭제]**, like row 1 of the enlarged view; the ⋯ menu opens from its left edge.
+- **Pictures in a message:** no frame or grey background any more. **넘겨보기** shows one picture in the same place and size as a single picture, with ‹ n/m › buttons under it. The sideways swipe is removed, so a swipe over a picture is SillyTavern's own again (and the swipe guard from 0.1.72 is gone). **격자** lines pictures up at one height and wraps to the next line, with no grey cells.
+- Tests: new `browser-v0173` (375 and 1100px); `browser-v0171` and `v0172` follow the new 넘겨보기 and 격자.
+
 ## 0.1.72 — 2026-11-05 (extension only; server v0.1.17 unchanged)
 
 본문에 넣기 opens a message list, and GPT's review of 0.1.71.

@@ -53,8 +53,8 @@ try{
   answer=true;await over.click();await page.waitForFunction(()=>mock.extensionSettings.naice_shot.imagePresets[0].options.steps===20);
   await page.locator('[data-action="new-preset"]').click();await page.waitForFunction(()=>document.querySelector('[data-action="save-preset"]').hidden);
   assert.equal(await as.evaluate(b=>b.classList.contains('ncs-primary')),true);
-  assert.match(await page.locator('.ncs-advanced > summary').innerText(),/추출 AI 응답 원문 추가 보관/);
-  assert.match(await page.locator('.ncs-advanced').evaluate(e=>e.textContent),/이 옵션을 꺼도 생성 기록\(JSON\)은 실리태번 폴더에 저장돼요[\s\S]*개인정보 주의[\s\S]*이름·대화 인용[\s\S]*AI가 인용한 내용은/);
+  assert.match(await page.locator('.ncs-advanced:not(.ncs-extraction-more) > summary').innerText(),/추출 AI 응답 원문 추가 보관/);
+  assert.match(await page.locator('.ncs-advanced:not(.ncs-extraction-more)').evaluate(e=>e.textContent),/이 옵션을 꺼도 생성 기록\(JSON\)은 실리태번 폴더에 저장돼요[\s\S]*개인정보 주의[\s\S]*이름·대화 인용[\s\S]*AI가 인용한 내용은/);
   if(width>=1000){const field=await page.locator('#ncs-common-preset-name').boundingBox(),acts=await page.locator('.ncs-preset-savebox .ncs-actions').boundingBox();assert.ok(Math.abs((field.x+field.width)-(acts.x+acts.width))<=2,`${tag}: field and buttons end together`);}
   // ---- Drawing: clothes and fixed look
   await page.locator('[data-tab="scene"]').click();const card=page.locator('[data-character="leo"]');

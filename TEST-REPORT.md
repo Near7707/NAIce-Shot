@@ -1,3 +1,12 @@
+# v0.1.73 validation — 2026-11-05
+
+- Extension Node suite: **150 passed, 0 failed**.
+- Server Node suite: server unchanged.
+- **62 of 62 Chromium browser scripts passed.** New `browser-v0173` at 375 and 1100px: 추출 AI shows the connection, the refresh button and the cost note; the response limit, temperature and JSON switch are folded and the "○○로 추출" line is hidden; the 세부 설정 title shows the values and follows changes to temperature, JSON and the limit; a lost connection is still told outside the fold. Saving an edited Leo keeps Leo before Mira in the settings and in the list; a new Kai goes last. History card buttons read ⋯ | 저장 | 삭제 with no overlap; the ⋯ menu opens from ⋯'s left edge and the 저장 menu from 저장, both on screen. `browser-v0171` now checks 넘겨보기 as one picture at a time with no frame background and no swipe strip (‹ › to 2 / 3 and 3 / 3, a tap opens 2 / 3), and 격자 as one 120px row height with no grey cells and the pictures' shapes kept; `browser-v0172` checks there is no swipe marking and that ‹ › runs no chat-wide search. Older scripts follow the fold (v0132, v0141, v0149, v0157, v017) and the new card order (v0138, v0140).
+- Visual check: 넘겨보기 and 격자 with 400×600, 600×400 and 500×500 pictures, the history card and 추출 AI at 375 and 1100px (local screenshots only).
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern with the user's custom theme, iPhone Safari.
+
 # v0.1.72 validation — 2026-11-05
 
 - Extension Node suite: **150 passed, 0 failed** (new: several pictures into one message with one save; a duplicate stays once; going over 20 changes nothing and saves nothing).

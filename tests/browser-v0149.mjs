@@ -78,7 +78,7 @@ try{
   assert.equal(await page.locator('.ncs-image-popup:popover-open').evaluate(el=>{const c=getComputedStyle(el).backgroundColor;const m=c.match(/[\d.]+/g);return m.length<4||Number(m[3])===1;}),true,`${skin}: menu is opaque`);
   await page.locator('.ncs-history-card .ncs-save-toggle').first().click();
   await page.locator('.ncs-history-card [data-image-more]:not(.ncs-save-toggle)').first().click();await check('⋯ 메뉴');for(const item of await page.locator('.ncs-image-popup:popover-open button:not(:disabled)').all()){await item.hover();await check('⋯ 메뉴 hover');}await page.keyboard.press('Escape');
-  await page.locator('[data-tab="settings"]').click();await page.locator('.ncs-advanced > summary').click();await scroll(page,()=>check('설정'));
+  await page.locator('[data-tab="settings"]').click();await page.locator('.ncs-advanced:not(.ncs-extraction-more) > summary').click();await scroll(page,()=>check('설정'));
   await page.locator('[data-tab="profiles"]').click();await scroll(page,()=>check('프로필'));
   for(const f of new Set(found))problems.push(`${skin} ${f}`);
   assert.deepEqual(errors,[]);await page.close();

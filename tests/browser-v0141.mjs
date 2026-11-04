@@ -106,7 +106,7 @@ try{
   await page.evaluate(()=>mock.switchChat('B'));await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);assert.equal(await value(),'B river');
   finishGeneration();genWait=null;await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden);assert.equal(await value(),'B river');
   await page.evaluate(()=>mock.switchChat('A'));await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);assert.doesNotMatch(await page.locator('#ncs-gen-scope').innerText(),/이력/);
-  await page.locator('[data-tab="settings"]').click();await page.locator('.ncs-advanced > summary').click();accept=false;await page.locator('#ncs-retain-raw').click();assert.equal(await page.locator('#ncs-retain-raw').isChecked(),false);
+  await page.locator('[data-tab="settings"]').click();await page.locator('.ncs-advanced:not(.ncs-extraction-more) > summary').click();accept=false;await page.locator('#ncs-retain-raw').click();assert.equal(await page.locator('#ncs-retain-raw').isChecked(),false);
   accept=true;await page.locator('#ncs-retain-raw').check();assert.match(await page.locator('#ncs-retain-state').innerText(),/켜짐/);await page.locator('#ncs-retain-raw').uncheck();
   // Saved work can be deleted: all at once from settings, or with a chat's whole history.
   await page.locator('[data-tab="settings"]').click();await page.locator('[data-action="delete-all-work"]').click();

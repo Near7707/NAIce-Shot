@@ -38,7 +38,7 @@ try{
  // An existing user keeps 4096 and 3 until they press the recommended button (which leaves the message count alone).
  ({page,errors}=await load("document.addEventListener('DOMContentLoaded',()=>{mock.extensionSettings.naice_shot.extractionMaxTokens=4096;mock.extensionSettings.naice_shot.recent=3;});"));
  await page.locator('[data-tab="settings"]').click();assert.equal(await page.locator('#ncs-extraction-max-tokens').inputValue(),'4096');
- await page.locator('[data-action="extraction-recommended"]').click();
+ await page.locator('#ncs-extraction-more > summary').click();await page.locator('[data-action="extraction-recommended"]').click();
  assert.equal(await page.locator('#ncs-extraction-max-tokens').inputValue(),'8192');assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.extractionMaxTokens),8192);
  assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.recent),3);
  // Temperature goes only with a separate connection, only for this request; empty sends nothing.

@@ -329,7 +329,7 @@ function positionImageMenu(){
   if(!button.isConnected){closeImageMenu();return;}
   const r=button.getBoundingClientRect(),pad=8,belowSpace=innerHeight-pad-r.bottom-4,aboveSpace=r.top-pad-4;
   menu.style.maxHeight=`${Math.max(32,Math.max(belowSpace,aboveSpace))}px`;
-  const m=menu.getBoundingClientRect(),start=button.classList.contains('ncs-save-toggle')?r.left:r.right-m.width;
+  const m=menu.getBoundingClientRect(),start=button.classList.contains('ncs-save-toggle')||button.closest('.ncs-history-actions')?r.left:r.right-m.width; // menus open toward the card
   menu.style.left=`${Math.max(pad,Math.min(start,innerWidth-m.width-pad))}px`;
   const below=m.height<=belowSpace||belowSpace>=aboveSpace;
   const top=below?r.bottom+4:r.top-4-m.height;
@@ -685,6 +685,11 @@ function saveImagePreset(overwrite=false,typedName=null) {
   s.imagePresets=validateImagePresets(old?s.imagePresets.map(x=>x.id===id?p:x):[...s.imagePresets,p]);s.imagePresetId=id;
   ctx().saveSettingsDebounced();renderImagePresets();notice(overwrite?`"${name}" 프리셋에 지금 값을 저장했어요.`:`지금 값을 새 프리셋 "${name}"(으)로 저장했어요.`);
 }
+// 0.1.73: 세부 설정 is folded; its title shows the current values.
+function renderExtractionSummary(){
+  const s=settings(),t=extractionTemperature();
+  $('ncs-extraction-summary').textContent=` · 응답 한도 ${s.extractionMaxTokens} · 온도 ${t===null?'연결 값':t} · JSON ${s.structuredOutput?'켬':'끔'}`;
+}
 function renderExtractionProfiles() {
   const s=settings(),profiles=listExtractionProfiles(ctx());
   $('ncs-extraction-profile').innerHTML='<option value="">본편에서 현재 사용하는 연결</option>'+profiles.map(p=>`<option value="${esc(p.id)}">${esc(p.name)} · ${esc(p.model||p.api)}</option>`).join('');
@@ -693,7 +698,9 @@ function renderExtractionProfiles() {
   }
   $('ncs-extraction-profile').value=s.extractionProfileId;
   const selected=profiles.find(p=>p.id===s.extractionProfileId);
-  $('ncs-extraction-state').textContent=selected?`${selected.name}로 추출 · 본편 연결 유지`:s.extractionProfileId?'이 연결을 찾지 못했어요. 자동으로 본편 연결로 바꾸지 않아요.':'본편과 같은 연결로 추출해요.';
+  // 0.1.73: the choice speaks for itself; the line under it shows up only when the chosen connection is gone.
+  const lost=!selected&&!!s.extractionProfileId;$('ncs-extraction-state').hidden=!lost;$('ncs-extraction-state').textContent=lost?'이 연결을 찾지 못했어요. 자동으로 본편 연결로 바꾸지 않아요.':'';
+  renderExtractionSummary();
 }
 function renderProfiles() {
   const s=settings();
@@ -741,7 +748,8 @@ function saveProfile() {
   const bind=pendingBind&&pendingBind.session===profileFormSession&&pendingBind.chatKey===keyOf()?pendingBind:null;
   const fromTemp=pendingTempConvert&&pendingTempConvert.session===profileFormSession&&pendingTempConvert.chatKey===keyOf();
   if(bind&&(bind.role==='character'||bind.role==='member')&&bind.avatar&&!p.cardKey&&!s.profiles.some(x=>x.id!==id&&x.cardKey===bind.avatar))p.cardKey=bind.avatar;
-  const next=s.profiles.filter(p=>p.id!==id);next.push(p);s.profiles=validateProfiles(next);ctx().saveSettingsDebounced();
+  // An edited profile keeps its place in the list; only a new one goes to the end (0.1.73, like presets in 0.1.68).
+  const next=s.profiles.some(x=>x.id===id)?s.profiles.map(x=>x.id===id?p:x):[...s.profiles,p];s.profiles=validateProfiles(next);ctx().saveSettingsDebounced();
   pendingBind=null; // only after the profile was accepted, so fixing a validation error keeps the planned link
   if(bind?.role==='user')setChatBinding('userProfileId',id);
   editProfile(id);renderProfiles();renderScene();changed();
@@ -1898,7 +1906,8 @@ function historyActions(item,{editable=false,attached=false}={}){
     item.options?`<button type="button" data-history-preset="${id}">설정을 프리셋으로</button>`:'',`<button type="button" data-history-attach="${id}" ${item.chatKey===keyOf()?'':'disabled data-unavailable="true"'}>본문에 넣기${item.chatKey===keyOf()?'':`<small>${item.chatKey===FREE_KEY?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.'}</small>`}</button>`,
     editable&&attached?`<button type="button" data-history-detach="${id}">채팅에서 이 그림 빼기${attachedCount(item.id)>1?` (${attachedCount(item.id)}곳)`:''}</button>`:'',
     `<hr><div class="ncs-jump-slot" data-jump-slot="${id}"></div>`].join('');
-  return `<div class="ncs-history-actions">${save.button}<button type="button" data-history-delete="${id}" class="ncs-danger-outline">삭제</button><button type="button" data-image-more="${menu}" aria-controls="${menu}" aria-expanded="false" aria-haspopup="true" aria-label="이력 그림 더 보기">⋯</button></div>${save.menu}<div id="${menu}" class="ncs-image-popup" popover="manual" hidden role="group" aria-label="이력 그림 작업">${more}</div>${historyPresetControls(item)}`;
+  // 0.1.73: ⋯ first, like the enlarged view's row 1 (⋯ | … | 저장 · 삭제).
+  return `<div class="ncs-history-actions"><button type="button" data-image-more="${menu}" aria-controls="${menu}" aria-expanded="false" aria-haspopup="true" aria-label="이력 그림 더 보기">⋯</button>${save.button}<button type="button" data-history-delete="${id}" class="ncs-danger-outline">삭제</button></div>${save.menu}<div id="${menu}" class="ncs-image-popup" popover="manual" hidden role="group" aria-label="이력 그림 작업">${more}</div>${historyPresetControls(item)}`;
 }
 // --- 메시지로 가기: the attached message and the message the image was made from (docs/ROADMAP.md 0.1.51).
 const JUMP_STATE={swipe:' · 다른 스와이프에서 만들었어요',edited:' · 그림을 만든 뒤 내용이 바뀌었어요',moved:''};
@@ -2210,7 +2219,7 @@ async function onAction(action,el) {
     case 'gen-preset-new-confirm':saveImagePreset(false,$('ncs-gen-preset-name').value);genNaming=false;$('ncs-gen-preset-name').value='';renderGenBox();break;
     case 'wardrobe-add':addWardrobeRow();notice('새 옷 버튼을 추가했어요. 눌러서 이름과 태그를 입력한 뒤 프로필을 저장해 주세요.');break;
     case 'wardrobe-remove':{if(!confirm('이 옷을 옷장에서 제거할까요? 프로필 저장을 눌러야 반영돼요.'))break;el.closest('.ncs-wardrobe-item')?.remove();if(!$('ncs-wardrobe-list').children.length)renderWardrobeForm([]);notice('옷을 제거했어요. 프로필 저장을 눌러야 반영돼요.');break;}
-    case 'extraction-recommended':settings().extractionMaxTokens=RECOMMENDED_MAX_TOKENS;$('ncs-extraction-max-tokens').value=RECOMMENDED_MAX_TOKENS;revision++;ctx().saveSettingsDebounced();notice(`독립 추출 응답 한도를 권장값 ${RECOMMENDED_MAX_TOKENS}로 바꿨어요. 실제로 쓰는 양은 응답 길이만큼이에요.`);break;
+    case 'extraction-recommended':settings().extractionMaxTokens=RECOMMENDED_MAX_TOKENS;$('ncs-extraction-max-tokens').value=RECOMMENDED_MAX_TOKENS;renderExtractionSummary();revision++;ctx().saveSettingsDebounced();notice(`독립 추출 응답 한도를 권장값 ${RECOMMENDED_MAX_TOKENS}로 바꿨어요. 실제로 쓰는 양은 응답 길이만큼이에요.`);break;
     case 'copy-raw':await copyRaw();break;
     case 'draft-retry':await retryDraft();break;
     case 'delete-all-work':await deleteAllWork();break;
@@ -2310,8 +2319,8 @@ function bindEvents() {
         else renderImagePresets();ctx().saveSettingsDebounced();return;
       }
       if(el.id==='ncs-extraction-profile'){settings().extractionProfileId=el.value;revision++;ctx().saveSettingsDebounced();renderExtractionProfiles();return;}
-      if(el.id==='ncs-extraction-max-tokens'){settings().extractionMaxTokens=Number(el.value);revision++;ctx().saveSettingsDebounced();return;}
-      if(el.id==='ncs-extraction-temperature'){const v=el.value.trim(),n=Number(v);if(v===''){delete settings().extractionTemperature;}else if(Number.isFinite(n)&&n>=0&&n<=2)settings().extractionTemperature=n;else throw new Error('추출 온도는 0~2 사이로 입력하거나 비워 두세요.');ctx().saveSettingsDebounced();return;}
+      if(el.id==='ncs-extraction-max-tokens'){settings().extractionMaxTokens=Number(el.value);revision++;ctx().saveSettingsDebounced();renderExtractionSummary();return;}
+      if(el.id==='ncs-extraction-temperature'){const v=el.value.trim(),n=Number(v);if(v===''){delete settings().extractionTemperature;}else if(Number.isFinite(n)&&n>=0&&n<=2)settings().extractionTemperature=n;else throw new Error('추출 온도는 0~2 사이로 입력하거나 비워 두세요.');ctx().saveSettingsDebounced();renderExtractionSummary();return;}
       if(el.id==='ncs-size-preset'){
         const preset=SIZE_PRESETS[el.value];if(preset){optionsOverride=null;const o=settings().options;o.width=preset.width;o.height=preset.height;/* set together: a half-changed size would read as custom */ctx().saveSettingsDebounced();revision++;updateFinal();updatePresetState();}return;
       }
@@ -2353,6 +2362,7 @@ function bindEvents() {
       const settingMap={'ncs-positive':'positive','ncs-negative':'negative','ncs-format':'format','ncs-recent':'recent','ncs-include-user':'includeUser','ncs-schema':'structuredOutput','ncs-allow-anlas':'allowAnlas'};
       const optionMap={'ncs-model':'model','ncs-steps':'steps','ncs-scale':'scale','ncs-seed':'seed','ncs-cfg':'cfgRescale','ncs-sampler':'sampler'};
       if(settingMap[el.id])settings()[settingMap[el.id]]=el.type==='checkbox'?el.checked:el.type==='number'?Number(el.value):el.value;
+      if(el.id==='ncs-schema')renderExtractionSummary();
       if(optionMap[el.id]){optionsOverride=null;settings().options[optionMap[el.id]]=el.type==='number'?Number(el.value):el.value;if(el.id==='ncs-steps'&&Number(el.value)>FREE_STEPS){settings().options.steps=FREE_STEPS;el.value=FREE_STEPS;}}
       if(settingMap[el.id]||optionMap[el.id]){
         ctx().saveSettingsDebounced();

@@ -1,5 +1,15 @@
 # Installation and update checklist
 
+## v0.1.73
+
+Update the extension and refresh. No server update is needed.
+
+1. Settings → 추출 AI: only the connection, the refresh button and the cost note show; 세부 설정 opens the rest and its title shows the values.
+2. Edit a profile and save: it stays where it was in the list.
+3. A message with several pictures: 넘겨보기 shows the picture in its usual place with ‹ 1/3 › under it; 격자 puts them side by side. No grey boxes.
+4. History: each card's buttons read ⋯ · 저장 · 삭제.
+
+
 ## v0.1.72
 
 Update the extension and refresh. No server update is needed.

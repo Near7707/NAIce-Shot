@@ -1,5 +1,5 @@
 // v0.1.72: 본문에 넣기 opens the message list (newest first, the made message chosen), 선택 본문에 넣기, from the enlarged
-// view too; UI-071-01 (no reroll from the strip), UI-071-02 (dates per message), UI-071-03 (no chat re-scan while sliding).
+// view too; UI-071-02 (dates per message), UI-071-03 (no chat re-scan while sliding).
 import zlib from 'node:zlib';
 import http from 'node:http';
 import fs from 'node:fs/promises';
@@ -115,32 +115,23 @@ try{
   await page.locator('#ncs-attach-dialog[open]').waitFor();assert.equal((await rows(page)).filter(r=>r[1]).length,0);assert.equal(await confirm(page).isDisabled(),true);
   assert.equal(await confirm(page).innerText(),'넣을 메시지를 골라 주세요');await page.locator('[data-action="attach-cancel"]').click();
   await page.locator('[data-action="close"]').click();
-  // --- UI-071-01: nothing in the strip reaches SillyTavern's swipe detector (it reads the touched element itself).
+  // --- 0.1.73: no swipe on 넘겨보기 — nothing in the strip is marked or holds touches back, so a swipe on it behaves
+  // like a swipe on a single picture. (UI-071-01 no longer applies.)
   await page.waitForFunction(()=>document.querySelectorAll('#chat .mes[mesid="1"] .ncs-inline-image').length===3);
-  await page.evaluate(()=>{window.__swipes=[];const seen=e=>{if(e.target.dataset?.swipeIgnore!=='true')window.__swipes.push(e.type+':'+(e.target.className||e.target.tagName));};
-   for(const t of ['touchstart','touchend'])document.addEventListener(t,seen,false);});
-  assert.equal(await page.locator(holder).evaluate(h=>[h,...h.querySelectorAll('*')].every(e=>e.dataset.swipeIgnore==='true')),true,'every part is marked');
-  for(const part of ['.ncs-inline-slide-count','.ncs-inline-slide-bar','.ncs-inline-track','.ncs-inline-open img']){
-   await page.locator(`${holder} ${part}`).first().evaluate(el=>{const r=el.getBoundingClientRect(),t=new Touch({identifier:1,target:el,clientX:r.x+r.width/2,clientY:r.y+r.height/2});
-    el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,cancelable:true,touches:[t],targetTouches:[t],changedTouches:[t]}));
-    el.dispatchEvent(new TouchEvent('touchend',{bubbles:true,cancelable:true,touches:[],targetTouches:[],changedTouches:[t]}));});
-  }
-  assert.deepEqual(await page.evaluate(()=>window.__swipes),[],'no touch from the strip reaches the page');
-  // A missing picture's note and 빼기 are marked too.
+  assert.equal(await page.locator(`${holder} [data-swipe-ignore], ${holder} .ncs-inline-track`).count(),0);
+  // A missing picture still shows its note and 빼기 in 넘겨보기.
   await page.route('**/user/images/naice-shot/**',r=>r.fulfill({status:404,body:''}));
   await page.evaluate(()=>{const e=mock.chat[1].extra.naice_shot_images;const g='99999999-9999-4999-8999-999999999999';mock.chat[1].extra.naice_shot_images=[{...e[0],id:g,image:`/user/images/naice-shot/${g}.png`},...e];});
   await page.evaluate(()=>{for(const h of document.querySelectorAll('.ncs-inline-images'))h.remove();});await page.locator('.ncs-launch-button').click();await page.locator('[data-action="close"]').click();
   await page.waitForFunction(()=>document.querySelector('#chat .mes[mesid="1"] .ncs-missing-note'));
-  assert.equal(await page.locator(`${holder} .ncs-missing-note`).first().getAttribute('data-swipe-ignore'),'true');
-  assert.equal(await page.locator(`${holder} .ncs-inline-remove`).first().getAttribute('data-swipe-ignore'),'true');
   await page.unroute('**/user/images/naice-shot/**');
   await page.evaluate(()=>{const e=mock.chat[1].extra.naice_shot_images;mock.chat[1].extra.naice_shot_images=e.slice(1);for(const h of document.querySelectorAll('.ncs-inline-images'))h.remove();});
   await page.locator('.ncs-launch-button').click();await page.locator('[data-action="close"]').click();
   await page.waitForFunction(()=>document.querySelectorAll('#chat .mes[mesid="1"] .ncs-inline-open img').length===3&&!document.querySelector('#chat .ncs-missing-note'));
   // --- UI-071-03: sliding does not make NAIce Shot look through the whole chat again.
   await page.evaluate(()=>{window.__scans=0;const real=Element.prototype.querySelectorAll;Element.prototype.querySelectorAll=function(q){if(this.id==='chat'&&/\.mes\[mesid\]/.test(q))window.__scans++;return real.call(this,q);};});
-  const track=page.locator(`${holder} .ncs-inline-track`);
-  for(let step=1;step<=8;step++)await track.evaluate((t,s)=>{t.scrollLeft=t.clientWidth*s/4;},step);
+  for(let step=0;step<2;step++)await page.locator(`${holder} .ncs-inline-slide-next`).click();
+  await page.locator(`${holder} .ncs-inline-slide-prev`).click();await page.locator(`${holder} .ncs-inline-slide-next`).click();
   await page.waitForFunction(()=>document.querySelector('#chat .mes[mesid="1"] .ncs-inline-slide-count').textContent==='3 / 3');await page.waitForTimeout(200);
   assert.equal(await page.evaluate(()=>window.__scans),0,'no chat re-scan while sliding');
   // --- UI-071-02: dates shown on some messages only — each message decides for itself.
@@ -155,5 +146,5 @@ try{
   await page.waitForFunction(()=>document.querySelector('#chat .mes[mesid="0"] .timestamp + .ncs-mes-draw')&&!document.querySelector('#chat .mes[mesid="0"] .extraMesButtons .ncs-mes-draw'));
   assert.deepEqual(errors,[]);await page.close();
  }
- console.log('PASS: 본문에 넣기 opens the message list (newest first, made message chosen and marked, 이미 넣음 marked, Escape closes only the list), 선택 본문에 넣기 puts two pictures in with one save, the enlarged view opens the same list, an unknown message waits for a choice; nothing in the slide strip reaches the swipe detector (missing pictures too); sliding re-scans nothing; message icons follow each message\'s own date (375/1100)');
+ console.log('PASS: 본문에 넣기 opens the message list (newest first, made message chosen and marked, 이미 넣음 marked, Escape closes only the list), 선택 본문에 넣기 puts two pictures in with one save, the enlarged view opens the same list, an unknown message waits for a choice; sliding re-scans nothing; message icons follow each message\'s own date (375/1100)');
 }finally{await browser.close();server.close();}

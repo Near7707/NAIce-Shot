@@ -95,21 +95,23 @@ try{
   assert.equal(await page.locator(holder).getAttribute('data-layout'),'slide');assert.equal(await page.locator(holder).getAttribute('data-size'),'medium');
   const count=page.locator(`${holder} .ncs-inline-slide-count`);assert.equal(await count.innerText(),'1 / 3');
   assert.equal(await page.locator(`${holder} .ncs-inline-slide-prev`).isDisabled(),true);
-  const frame=await rect(page,`${holder} .ncs-inline-image`);assert.ok(Math.abs(frame.height-Math.min(320,900*.7))<=1,`보통 = 320px (${frame.height})`);
-  assert.equal(await page.locator(`${holder} .ncs-inline-track`).getAttribute('data-swipe-ignore'),'true','a sideways swipe is not a reroll');
+  // 0.1.73: no frame — one picture shows where a single picture would, the others are hidden; buttons only.
+  const visible=()=>page.locator(`${holder} .ncs-inline-image`).evaluateAll(els=>els.map(e=>getComputedStyle(e).display!=='none'));
+  assert.deepEqual(await visible(),[true,false,false],'one picture at a time');
+  assert.equal(await page.locator(`${holder} .ncs-inline-image`).first().evaluate(e=>getComputedStyle(e).backgroundColor),'rgba(0, 0, 0, 0)','no grey frame');
+  assert.equal(await page.locator(`${holder} [data-swipe-ignore], ${holder} .ncs-inline-track`).count(),0,'no swipe strip');
   await page.locator(`${holder} .ncs-inline-slide-next`).click();await page.waitForFunction(()=>document.querySelector('#chat .mes[mesid="1"] .ncs-inline-slide-count').textContent==='2 / 3');
-  await page.waitForFunction(()=>{const h=document.querySelector('#chat .mes[mesid="1"] .ncs-inline-images'),t=h.querySelector('.ncs-inline-track').getBoundingClientRect(),s=h.querySelectorAll('.ncs-inline-image')[1].getBoundingClientRect();return Math.abs(s.x-t.x)<=2;},null,{timeout:3000}); // the second picture is in view
+  assert.deepEqual(await visible(),[false,true,false]);
   await page.locator(`${holder} .ncs-inline-open`).nth(1).click();await viewerReady(page);assert.equal(await page.locator('#ncs-viewer .ncsv-position').innerText(),'2 / 3');
   await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.getElementById('ncs-viewer').open);
-  // Swipe = native scroll with snapping.
-  await page.locator(`${holder} .ncs-inline-track`).evaluate(t=>t.scrollTo({left:t.clientWidth*2}));await page.waitForFunction(()=>document.querySelector('#chat .mes[mesid="1"] .ncs-inline-slide-count').textContent==='3 / 3');
+  await page.locator(`${holder} .ncs-inline-slide-next`).click();await page.waitForFunction(()=>document.querySelector('#chat .mes[mesid="1"] .ncs-inline-slide-count').textContent==='3 / 3');
   assert.equal(await page.locator(`${holder} .ncs-inline-slide-next`).isDisabled(),true);
-  // --- 격자: 2 columns on a phone, 3 on PC; 작게 = 120px tiles.
+  // --- 격자 (0.1.73): pictures side by side at one height, no grey cells; 작게 = 120px.
   await page.locator('.ncs-launch-button').click();
   await page.locator('[data-tab="settings"]').click();await page.locator('#ncs-inline-layout').selectOption('grid');await page.locator('#ncs-inline-size').selectOption('small');
   await page.waitForFunction(()=>{const h=document.querySelector('#chat .mes[mesid="1"] .ncs-inline-images');return h.dataset.layout==='grid'&&h.dataset.size==='small';});
-  const tiles=await page.locator(`${holder} .ncs-inline-image`).evaluateAll(els=>els.map(e=>{const r=e.getBoundingClientRect();return [Math.round(r.y),Math.round(r.height)];}));
-  const firstRow=tiles.filter(t=>t[0]===tiles[0][0]).length;assert.equal(firstRow,width<700?2:3,`${width<700?2:3} per row`);assert.ok(tiles.every(t=>t[1]===120),'작게 = 120px tiles');
+  const tiles=await page.locator(`${holder} .ncs-inline-image`).evaluateAll(els=>els.map(e=>{const r=e.getBoundingClientRect(),i=e.querySelector('img'),ir=i.getBoundingClientRect();return {h:Math.round(r.height),bg:getComputedStyle(e).backgroundColor,ratio:Math.abs(ir.width/ir.height-i.naturalWidth/i.naturalHeight)};}));
+  assert.ok(tiles.every(t=>t.h===120),'작게 = 120px row');assert.ok(tiles.every(t=>t.bg==='rgba(0, 0, 0, 0)'),'no grey cells');assert.ok(tiles.every(t=>t.ratio<0.02),'shapes kept, nothing cropped');
   assert.equal(await page.locator(`${holder} .ncs-inline-image img`).first().evaluate(i=>getComputedStyle(i).objectFit),'contain','whole picture, not cropped');
   // --- 세로 + 크게: one under another, up to 480px.
   await page.locator('#ncs-inline-layout').selectOption('stack');await page.locator('#ncs-inline-size').selectOption('large');
@@ -166,5 +168,5 @@ try{
   await box.uncheck();await page.waitForFunction(()=>!document.querySelector('#chat .ncs-mes-draw'));
   assert.deepEqual(errors,[]);await page.close();
  }
- console.log('PASS: viewer row never overlaps at 320/360/375 even while loading; 저장 ▾ and notes over the prompt; a failed delete is told in the view; a profile switch drops the old look; message pictures 넘겨보기 (default, ‹ › and swipe) / 격자 (2 or 3 per row) / 세로 in 작게·보통·크게, saved; short storage note; message icon right after the date, or at the end of the button row when the date is hidden (375/1100)');
+ console.log('PASS: viewer row never overlaps at 320/360/375 even while loading; 저장 ▾ and notes over the prompt; a failed delete is told in the view; a profile switch drops the old look; message pictures 넘겨보기 (default, ‹ › only) / 격자 (one height, no cells) / 세로 in 작게·보통·크게, saved; short storage note; message icon right after the date, or at the end of the button row when the date is hidden (375/1100)');
 }finally{await browser.close();server.close();}

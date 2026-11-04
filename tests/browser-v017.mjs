@@ -63,7 +63,7 @@ try{
  assert.ok(await page.locator('.ncsv-bar').evaluate(el=>el.scrollWidth<=el.clientWidth));
  checkClean((await downloadBy(page.locator('#ncs-viewer [data-v="clean"]'))).bytes);
  await page.locator('#ncs-viewer [data-v="close"]').click();
- await page.locator('[data-tab="settings"]').click();await page.locator('.ncs-advanced > summary').click();await page.locator('#ncs-retain-raw').check();
+ await page.locator('[data-tab="settings"]').click();await page.locator('.ncs-advanced:not(.ncs-extraction-more) > summary').click();await page.locator('#ncs-retain-raw').check();
  await page.locator('[data-tab="scene"]').click();await click('generate');await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===2);
  assert.equal(sent[1].retainRawExtraction,true);assert.doesNotMatch(sent[1].snapshot.rawExtraction,/PRIVATE_REASONING|<think>/);
  await click('attach');await click('attach-confirm');await click('close');
