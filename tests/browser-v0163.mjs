@@ -80,8 +80,8 @@ try{
   const entry=await page.evaluate(()=>mock.chat[1].extra.naice_shot_images[0]);assert.ok(entry.created&&Number.isInteger(entry.seed),'date and seed stored with the attachment');
   await page.locator('[data-tab="history"]').click();await page.waitForFunction(()=>document.querySelectorAll('.ncs-history-card').length>=2);
   await page.locator('[data-view-history]').first().click();await page.waitForFunction(()=>document.getElementById('ncs-viewer').dataset.loaded);
-  const meta=page.locator('#ncs-viewer .ncsv-meta');assert.doesNotMatch(await meta.innerText(),/×/,'no size');assert.match(await meta.innerText(),/\d{4}\. \d+\. \d+\./);
-  assert.equal(await page.locator('.ncsv-prompt-row .ncsv-jump').count(),1,'메시지로 가기 sits in the prompt row');
+  const meta=page.locator('#ncs-viewer .ncsv-meta');assert.doesNotMatch(await meta.textContent(),/×/,'no size');assert.match(await meta.textContent(),/\d{4}\. \d+\. \d+\./);
+  assert.equal(await page.locator('#ncs-viewer [data-v="more"]').isVisible(),true,'0.1.70: 메시지로 가기 lives in ⋯');
   const small=await page.locator('.ncsv-save-menu small').first().evaluate(e=>getComputedStyle(e).color);assert.match(small,/rgba?\((2[0-5]\d|1[89]\d), /,`readable note colour (${small})`);
   await page.locator('[data-v="next"]').click();
   const seen=await page.evaluate(()=>new Promise(res=>{const img=document.querySelector('#ncs-viewer .ncsv-stage img');const vals=[];const t=setInterval(()=>{vals.push([img.style.visibility,img.style.transform]);if(vals.length>40){clearInterval(t);res(vals);}},10);}));

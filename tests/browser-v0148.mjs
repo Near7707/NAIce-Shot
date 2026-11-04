@@ -81,12 +81,12 @@ try{for(const width of [1100,375,320]){
  // Gallery follows the selected chat filter and its server order, including the full total.
  await tab('history');await range('all');await page.locator('#ncs-history-filter').selectOption(other);await page.waitForFunction(()=>document.querySelectorAll('.ncs-history-card').length===15);
  await page.locator('[data-view-history]').first().click();await page.locator('.ncsv-stage img').waitFor();assert.equal(await page.locator('.ncsv-position').innerText(),'1 / 15');assert.equal(await page.locator('[data-v="previous"]').isDisabled(),true);
- await page.keyboard.press('ArrowRight');assert.equal(await page.locator('.ncsv-position').innerText(),'2 / 15');assert.match(await page.locator('.ncsv-seed').innerText(),/seed 15/);await page.locator('.ncsv-prompt > summary').click();await page.waitForFunction(()=>document.querySelector('.ncsv-prompt-text').textContent.includes('place 5'));
+ await page.keyboard.press('ArrowRight');assert.equal(await page.locator('.ncsv-position').innerText(),'2 / 15');assert.match(await page.locator('.ncsv-seed').textContent(),/seed 15/);await page.locator('.ncsv-prompt > summary').click();await page.waitForFunction(()=>document.querySelector('.ncsv-prompt-text').textContent.includes('place 5'));
  await page.locator('[data-v="close"]').click();await range('all');
  // One next-page request, pending repeated navigation, and safe pagination failure/retry.
  heldPage=true;await page.locator('[data-view-history]').nth(19).click();await page.waitForFunction(()=>document.querySelector('.ncsv-stage img').complete);while(!releasePage)await page.waitForTimeout(20);
  await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowRight');assert.match(await page.locator('.ncsv-position').innerText(),/^20 \/ 47/);assert.equal(requests.filter(r=>r.offset===20&&r.all&&!r.chat).length,1);
- heldPage=false;releasePage();await page.waitForFunction(()=>document.querySelector('.ncsv-position').textContent==='21 / 47');assert.match(await page.locator('.ncsv-seed').innerText(),/seed 30/);
+ heldPage=false;releasePage();await page.waitForFunction(()=>document.querySelector('.ncsv-position').textContent==='21 / 47');assert.match(await page.locator('.ncsv-seed').textContent(),/seed 30/);
  // Touch swipes only navigate at fit. Pinch (including the remaining pointer) and zoomed pans never navigate.
  const swipe=async({pinch=false}={})=>page.locator('.ncsv-stage').evaluate((e,pinch)=>{const r=e.getBoundingClientRect(),y=r.top+r.height/2,x=r.left+r.width*.8;
   const send=(type,id,x,y)=>e.dispatchEvent(new PointerEvent(type,{bubbles:true,pointerId:id,pointerType:'touch',clientX:x,clientY:y,button:0}));
@@ -94,16 +94,16 @@ try{for(const width of [1100,375,320]){
  await page.locator('[data-v="fit"]').click();await swipe();await page.waitForFunction(()=>document.querySelector('.ncsv-position').textContent==='22 / 47');
  await page.locator('[data-v="in"]').click();await swipe();assert.equal(await page.locator('.ncsv-position').innerText(),'22 / 47');await page.locator('[data-v="fit"]').click();await swipe({pinch:true});assert.equal(await page.locator('.ncsv-position').innerText(),'22 / 47');
  // Delete cancel keeps the image; successful delete keeps the gallery open on the adjacent image.
- accept=false;await page.locator('[data-v="delete"]').click();assert.equal(deleted.length,0);accept=true;await page.locator('[data-v="delete"]').click();await page.waitForFunction(()=>document.querySelector('.ncsv-position').textContent==='22 / 46');assert.equal(deleted.at(-1).ids[0],originals[21].id);assert.match(await page.locator('.ncsv-seed').innerText(),/seed 32/);
+ accept=false;await page.locator('[data-v="delete"]').click();assert.equal(deleted.length,0);accept=true;await page.locator('[data-v="delete"]').click();await page.waitForFunction(()=>document.querySelector('.ncsv-position').textContent==='22 / 46');assert.equal(deleted.at(-1).ids[0],originals[21].id);assert.match(await page.locator('.ncsv-seed').textContent(),/seed 32/);
  // Failed pagination leaves the current picture usable; retry keeps order and reaches the final boundary.
  failPage=true;
  // 0.1.64: a move finishes once the next picture is shown, so each press waits for the previous one.
  for(let i=0;i<17;i++){const at=await page.locator('.ncsv-position').innerText();await page.keyboard.press('ArrowRight');await page.waitForFunction(t=>document.querySelector('.ncsv-position').textContent!==t,at);}
  await page.waitForFunction(()=>document.querySelector('.ncsv-position').textContent==='39 / 46');await page.keyboard.press('ArrowRight');
- await page.waitForFunction(()=>document.querySelector('.ncsv-meta').textContent==='Page unavailable');assert.equal(await page.locator('.ncsv-position').innerText(),'39 / 46');
+ await page.waitForFunction(()=>document.querySelector('.ncsv-toast').textContent==='Page unavailable');assert.equal(await page.locator('.ncsv-position').innerText(),'39 / 46');
  failPage=false;await page.keyboard.press('ArrowRight');await page.waitForFunction(()=>document.querySelector('.ncsv-position').textContent==='40 / 46');
  for(let i=0;i<6;i++){const at=await page.locator('.ncsv-position').innerText();await page.keyboard.press('ArrowRight');if(i<6)await page.waitForFunction(t=>document.querySelector('.ncsv-position').textContent!==t,at);}
- assert.equal(await page.locator('.ncsv-position').innerText(),'46 / 46');assert.equal(await page.locator('[data-v="next"]').isDisabled(),true);assert.match(await page.locator('.ncsv-seed').innerText(),/seed 56/);
+ assert.equal(await page.locator('.ncsv-position').innerText(),'46 / 46');assert.equal(await page.locator('[data-v="next"]').isDisabled(),true);assert.match(await page.locator('.ncsv-seed').textContent(),/seed 56/);
  await page.waitForFunction(()=>{const i=document.querySelector('#ncs-viewer .ncsv-stage img');return i.naturalWidth>0&&i.style.visibility===''&&!!i.style.width;});if(process.env.NAICE_SCREENSHOT_DIR)await page.screenshot({path:`${process.env.NAICE_SCREENSHOT_DIR}/viewer-${width}.png`});
  await page.locator('[data-v="close"]').click();await tab('scene');await page.locator('#ncs-result .ncs-image-open').click();assert.equal(await page.locator('.ncsv-navigation').isHidden(),true,'result previews stay single-image');await page.locator('[data-v="close"]').click();
  await tab('settings');assert.match(await page.locator('#ncs-delete-work-box').innerText(),/모든 채팅과 프리샷의 작성 중인 작업을 삭제해요/);await tab('scene');assert.ok(await page.locator('.ncs-content').evaluate(el=>el.scrollWidth<=el.clientWidth+1));

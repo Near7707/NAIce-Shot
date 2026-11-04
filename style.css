@@ -724,3 +724,71 @@
 
 #naice-shot-dialog .ncs-shape-help p {margin:6px 0;font-size:12.5px;line-height:1.55;color:var(--ncs-muted);}
 #naice-shot-dialog .ncs-shape-help b {color:var(--ncs-fg);}
+
+/* ==== 0.1.70 — enlarged view, user's layout (docs/DESIGN.md). One set of rules for every enlarged picture. ==== */
+#ncs-viewer .ncsv-bar,#ncs-viewer .ncsv-tools {display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);grid-template-areas:none;align-items:center;gap:6px;}
+#ncs-viewer .ncsv-bar {padding:4px 8px;padding-top:max(4px,env(safe-area-inset-top));}
+#ncs-viewer .ncsv-bar .ncsv-group,#ncs-viewer .ncsv-tools > * {grid-area:auto;flex-wrap:nowrap;}
+#ncs-viewer .ncsv-bar button {min-height:32px;min-width:32px;padding:3px 10px;font-size:13px;}
+#ncs-viewer .ncsv-bar button[data-v=in],#ncs-viewer .ncsv-bar button[data-v=out],#ncs-viewer .ncsv-bar button[data-v=close],#ncs-viewer .ncsv-bar button[data-v=panel] {width:36px;padding:0;font-size:16px;}
+#ncs-viewer .ncsv-zooms {justify-content:center;gap:2px;}
+#ncs-viewer .ncsv-zoom {min-width:46px;font-size:12px;}
+#ncs-viewer .ncsv-close-group {justify-content:flex-end;gap:4px;}
+#ncs-viewer .ncsv-panel-icon {display:flex;width:20px;height:20px;}
+#ncs-viewer .ncsv-panel-icon svg {width:100%;height:100%;}
+#ncs-viewer .ncsv-tools {position:relative;padding:6px 10px;}
+#ncs-viewer .ncsv-tools .ncsv-more-wrap {position:relative;justify-self:start;}
+#ncs-viewer .ncsv-tools .ncsv-navigation {justify-self:center;grid-column:2;}
+#ncs-viewer .ncsv-tools .ncsv-save-group {justify-self:end;grid-column:3;margin:0;flex-wrap:nowrap;}
+#ncs-viewer .ncsv-more {width:40px;font-size:16px;}
+#ncs-viewer .ncsv-more-menu {position:absolute;left:0;bottom:calc(100% + 6px);z-index:4;display:flex;flex-direction:column;gap:2px;width:min(260px,calc(100vw - 24px));padding:6px;background:#1b202b;border:1px solid #ffffff55;border-radius:10px;box-shadow:0 8px 28px #0008;}
+#ncs-viewer .ncsv-more-items {display:contents;}
+#ncs-viewer .ncsv-more-menu button {display:flex;flex-direction:column;align-items:flex-start;width:100%;min-height:40px;white-space:normal;text-align:left;background:transparent;border:0;color:#f1f3f6;font-size:13px;font-weight:600;}
+#ncs-viewer .ncsv-more-menu button:hover {background:#ffffff24;}
+#ncs-viewer .ncsv-more-menu button:focus-visible {outline:2px solid var(--ncsv-accent);outline-offset:-2px;}
+#ncs-viewer .ncsv-more-menu small {display:block;font-size:11px;font-weight:400;line-height:1.5;color:#c9ced8;}
+#ncs-viewer .ncsv-more-menu .ncsv-more-divider,#ncs-viewer .ncsv-more-menu [data-v=detach] {border-top:1px solid #ffffff22;border-radius:0 0 7px 7px;}
+#ncs-viewer .ncsv-toast {position:absolute;left:10px;right:10px;bottom:calc(100% + 8px);margin:0;padding:8px 12px;font-size:12.5px;line-height:1.5;text-align:center;color:#f1f3f6;background:#1b202bf2;border:1px solid #ffffff33;border-radius:10px;pointer-events:none;}
+/* Row 2: a thin bar; the opened info covers the picture from below instead of pushing it up. */
+#ncs-viewer .ncsv-prompt-row {position:relative;align-items:center;padding:2px 10px;padding-bottom:max(2px,env(safe-area-inset-bottom));}
+#ncs-viewer .ncsv-prompt {max-height:none;overflow:visible;padding:0;}
+#ncs-viewer .ncsv-prompt summary {display:inline-flex;align-items:center;gap:6px;min-height:32px;font-size:13px;list-style:none;}
+#ncs-viewer .ncsv-prompt summary::-webkit-details-marker {display:none;}
+#ncs-viewer .ncsv-prompt summary::after {content:'⌄';font-size:13px;opacity:.8;}
+#ncs-viewer .ncsv-prompt[open] summary::after {content:'⌃';}
+#ncs-viewer .ncsv-info-icon {display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:1.5px solid currentColor;border-radius:50%;font:italic 700 11px/1 Georgia,serif;}
+#ncs-viewer .ncsv-prompt-body {position:absolute;left:0;right:0;bottom:100%;z-index:3;display:flex;flex-direction:column;gap:8px;max-height:min(46dvh,380px);overflow:auto;padding:10px 12px;background:#15181ff5;border-top:1px solid #ffffff33;box-shadow:0 -8px 24px #0008;}
+#ncs-viewer .ncsv-prompt-body .ncsv-info {display:block;padding:0;background:none;border:0;}
+#ncs-viewer .ncsv-copy-row {display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+#ncs-viewer .ncsv-copy-row button {min-height:30px;padding:3px 10px;font-size:12px;}
+#ncs-viewer .ncsv-copy-status {margin-left:4px;}
+#ncs-viewer .ncsv-prompt-text {max-height:none;margin:0;}
+#ncs-viewer .ncsv-jump-wrap .ncsv-jump::after {content:' ↗';opacity:.8;}
+#ncs-viewer .ncsv-jump-wrap .ncsv-jump {background:transparent;border-color:transparent;}
+#ncs-viewer .ncsv-jump-wrap .ncsv-jump:hover {background:#ffffff1a;}
+@media(max-width:360px){
+ #ncs-viewer .ncsv-bar button {padding:3px 7px;}
+ #ncs-viewer .ncsv-zoom {min-width:38px;}
+ #ncs-viewer .ncsv-tools button,#ncs-viewer .ncsv-tools .ncsv-save {padding:6px 7px;}
+ #ncs-viewer .ncsv-position {min-width:40px;}
+}
+#ncs-viewer .ncsv-jump-wrap .ncsv-detach {min-height:30px;padding:3px 10px;font-size:12px;}
+#ncs-viewer .ncsv-more-menu button:disabled {opacity:.55;}
+/* 이력에서 보기 lands on its history card: a short ring. */
+#naice-shot-dialog .ncs-history-card.ncs-card-found {box-shadow:0 0 0 3px var(--ncs-accent);transition:box-shadow .2s;}
+@media(max-width:520px){ /* row 1 on a phone: ⋯ | ‹ n/m › exactly centred | 저장 ▾ · 삭제, all on one line */
+ #ncs-viewer .ncsv-tools {padding:6px 8px;gap:4px;}
+ #ncs-viewer .ncsv-tools .ncsv-navigation {gap:2px;}
+ #ncs-viewer .ncsv-tools .ncsv-navigation button {min-width:34px;width:34px;padding:0;}
+ #ncs-viewer .ncsv-tools .ncsv-position {min-width:40px;font-size:12.5px;}
+ #ncs-viewer .ncsv-tools .ncsv-save-group {gap:4px;}
+ #ncs-viewer .ncsv-tools .ncs-save-toggle,#ncs-viewer .ncsv-tools .ncsv-delete {padding:6px 9px;}
+ #ncs-viewer .ncsv-more {width:38px;min-width:38px;}
+}
+
+/* 0.1.70 — 고정 외형 · 전용 태그 edited on the card for this picture */
+#naice-shot-dialog .ncs-fixed-look .ncs-look-field {display:block;margin:6px 0 0;font-size:12.5px;}
+#naice-shot-dialog .ncs-fixed-look .ncs-look-field textarea {display:block;width:100%;margin-top:3px;}
+#naice-shot-dialog .ncs-fixed-look > small {display:block;margin-top:6px;font-size:12px;color:var(--ncs-muted);}
+#naice-shot-dialog .ncs-look-edited {margin-left:6px;font-size:11.5px;font-weight:650;color:var(--ncs-accent-text);}
+#naice-shot-dialog .ncs-look-actions [hidden] {display:none;}

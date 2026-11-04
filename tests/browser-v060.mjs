@@ -43,8 +43,9 @@ try{
  assert.equal(await page.locator('#ncs-scene-profile-slot [data-action="delete-profile"]').isHidden(),true);
  assert.equal(await page.evaluate(()=>mock.prompts?.length??0),0,'no extraction request without profiles');
 
- // 2) Describe mode is the default; cancel a slow conversion, then convert for real.
- assert.equal(await page.locator('[data-profile-mode="describe"]').getAttribute('aria-pressed'),'true');
+ // 2) 0.1.70: 직접 입력 is the default; 설명으로 만들기 is one tap away. Cancel a slow conversion, then convert for real.
+ assert.equal(await page.locator('[data-profile-mode="direct"]').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#ncs-describe-box').isVisible(),false);
+ await page.locator('[data-profile-mode="describe"]').click();assert.equal(await page.locator('[data-profile-mode="describe"]').getAttribute('aria-pressed'),'true');
  assert.equal(await page.locator('#ncs-describe-box').isVisible(),true);
  await page.locator('#ncs-profile-describe').fill('갈색 곱슬머리에 초록 눈, 키 큰 30대 남자. 베이지 트렌치코트에 회색 니트.');
  await page.evaluate(()=>{mock.draftDeferred=new Promise(()=>{});});
@@ -77,9 +78,9 @@ try{
  assert.match(await page.locator('#ncs-final').inputValue(),/brown hair, my edit/);
  assert.equal(await page.locator('#ncs-add-row').isVisible(),true);
 
- // 4) Direct mode hides the description box and is remembered.
+ // 4) Direct mode hides the description box. 0.1.70: the choice is not remembered; a new profile starts on 직접 입력.
  await page.locator('[data-tab="profiles"]').click();await page.locator('[data-profile-mode="direct"]').click();
- assert.equal(await page.locator('#ncs-describe-box').isHidden(),true);assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.profileInputMode),'direct');
+ assert.equal(await page.locator('#ncs-describe-box').isHidden(),true);assert.notEqual(await page.evaluate(()=>mock.extensionSettings.naice_shot.profileInputMode),'direct','not saved as a setting');
  await page.locator('[data-profile-mode="describe"]').click();
 
  // 5) An unregistered visible person gets a chip that opens the quick profile with the name filled in.

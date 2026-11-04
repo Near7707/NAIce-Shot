@@ -1,5 +1,14 @@
 # Installation and update checklist
 
+## v0.1.70
+
+Update the extension and refresh. No server update is needed.
+
+1. Open any picture large: ⋯ on the left, ‹ n/m › in the middle, 저장 · 삭제 on the right; 프롬프트 보기 opens over the picture.
+2. Open a chat picture in a message with two pictures: ‹ 1/2 › moves between them; ⋯ → 이력에서 보기 shows its history card.
+3. Drawing tab: [옷장에 저장] opens the name box right under it; open 고정 외형 · 전용 태그 on a card and type — only this picture changes.
+
+
 ## v0.1.69
 
 **Update the server plugin first** (0.1.17), restart SillyTavern, then update the extension and refresh. Nothing new to try: two fixes for rare timing and connection cases in the account box.

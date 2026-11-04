@@ -104,7 +104,7 @@ try{
 
  // 4) Viewer from history, then from the chat attachment.
  await page.locator('[data-tab="history"]').click();await page.locator('#ncs-history .ncs-image-open').first().click();
- await page.locator('#ncs-viewer[open]').waitFor();assert.doesNotMatch(await page.locator('#ncs-viewer .ncsv-meta').textContent(),/seed|:\d\d:\d\d/,'date without seconds; seed has its own button');assert.match(await page.locator('#ncs-viewer [data-v="seed"]').innerText(),/^seed \d+ 복사$/);
+ await page.locator('#ncs-viewer[open]').waitFor();assert.doesNotMatch(await page.locator('#ncs-viewer .ncsv-meta').textContent(),/seed|:\d\d:\d\d/,'date without seconds; seed has its own button');assert.match(await page.locator('#ncs-viewer [data-v="seed"]').textContent(),/^seed \d+ 복사$/);
  await page.keyboard.press('Escape');await page.locator('#ncs-viewer').waitFor({state:'hidden'});
  await page.locator('[data-tab="scene"]').click();await click('attach');await page.locator('#chat .ncs-inline-open img').waitFor();
  await click('close');

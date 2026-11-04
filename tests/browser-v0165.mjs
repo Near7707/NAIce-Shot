@@ -72,11 +72,11 @@ try{
    await page.locator('[data-view-history]').first().click();await viewerReady(page);
    await holdDecode(page);await page.locator('[data-v="next"]').click();
    await page.waitForFunction(()=>/불러오는 중/.test(document.querySelector('.ncsv-position').textContent));
-   assert.equal(await page.locator('#ncs-viewer [data-v="jump"]').isDisabled(),true,'locked while the slow move runs');
+   assert.equal(await page.locator('#ncs-viewer [data-v="more"]').isDisabled(),true,'⋯ locked while the slow move runs');
    await page.locator('[data-v="close"]').click();
    await page.locator('[data-tab="scene"]').click();await page.locator('#ncs-result .ncs-image-open').click();await viewerReady(page);
-   const jump=page.locator('#ncs-viewer [data-v="jump"]');
-   assert.equal(await jump.isVisible(),true,'the result picture has a message');assert.equal(await jump.isDisabled(),false,'메시지로 가기 is not left locked');
+   const jump=page.locator('#ncs-viewer [data-v="more"]'); // 0.1.70: 메시지로 가기 lives in ⋯, which locks the same way
+   assert.equal(await jump.isVisible(),true,'the result picture has ⋯');assert.equal(await jump.isDisabled(),false,'⋯ is not left locked');
    assert.equal(await page.locator('#ncs-viewer [data-v="delete"]').isDisabled(),false,'삭제 is not left locked');
    await releaseDecode(page);await page.waitForTimeout(400);
    assert.equal(await jump.isDisabled(),false,'the old move finishing later does not lock it again');

@@ -1,3 +1,12 @@
+# v0.1.70 validation — 2026-11-05
+
+- Extension Node suite: **149 passed, 0 failed**.
+- Server Node suite: server unchanged.
+- **59 of 59 Chromium browser scripts passed.** New `browser-v0170` at 375 and 1100px: top row under 46px with 맞춤/원본, the zoom centred (±2px) and the window button; ‹ n/m › centred in row 1 (±2px) with ⋯ left and 저장·삭제 right, no overlap; the date folded away; 프롬프트 보기 leaves the picture area unchanged and stays above row 1, date and time only, seed and prompt copy on one line, the prompt starting with 모델; ⋯ starts with the four history actions and ends with 메시지로 가기, opens upward inside the screen; 프리샷으로 보내기 closes the view and shows 그리기 in 프리샷; two pictures in one message move 1/2 → 2/2, row 2 has 이 메시지에서 빼기, ⋯ ends with 이력에서 보기, which opens the history tab with the ring on that picture's card; the window button opens the panel; the wardrobe name box opens within 24px under its button; a look edit reaches the final prompt without changing the profile and resets; 직접 입력 is pressed for a new profile; ↻ is disabled at once. Older scripts updated: `v031`, `v0140`, `v0148`, `v0151`, `v0163`, `v0164`, `v0165` (viewer), `v016`, `v060`, `v0112` (direct input first), `v0159` (editable look).
+- Visual check: enlarged view at 375, 360 and 1100px, ⋯ menu and 프롬프트 보기 open (local screenshots only).
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern, iPhone Safari.
+
 # v0.1.69 validation — 2026-11-04
 
 - Extension Node suite: **149 passed, 0 failed**.

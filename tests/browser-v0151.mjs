@@ -64,9 +64,10 @@ try{
   await openMore(page);assert.deepEqual(await lines(page),['넣은 메시지로 가기 #0 · 지금 그림이 들어 있는 곳','만든 메시지로 가기 #1 · 이 그림을 만든 메시지']);await page.keyboard.press('Escape');
   // The enlarged viewer offers the same two.
   await page.locator('.ncs-history-card .ncs-image-open').first().click();await page.locator('#ncs-viewer[open]').waitFor();
-  const jump=page.locator('#ncs-viewer [data-v="jump"]');assert.equal(await jump.innerText(),'메시지로 가기 ▾');await jump.click();
-  assert.deepEqual((await page.locator('#ncs-viewer .ncsv-jump-menu button').allInnerTexts()).map(t=>t.split('\n')[0]),['넣은 메시지로 가기','만든 메시지로 가기']);
-  await page.locator('#ncs-viewer .ncsv-jump-menu button').first().click();
+  // 0.1.70: they are the last items of the enlarged view's ⋯, like the history card's ⋯.
+  await page.locator('#ncs-viewer [data-v="more"]').click();
+  assert.deepEqual((await page.locator('#ncs-viewer .ncsv-more-items button').allInnerTexts()).map(t=>t.split('\n')[0]).slice(-2),['넣은 메시지로 가기','만든 메시지로 가기']);
+  await page.locator('#ncs-viewer .ncsv-more-items button',{hasText:'넣은 메시지로 가기'}).click();
   await page.waitForFunction(()=>!document.querySelector('#ncs-viewer').open&&!document.querySelector('#naice-shot-dialog').open);
   await page.waitForFunction(()=>document.querySelector('#chat .mes[mesid="0"]')?.classList.contains('ncs-jump-flash'));
   // The made message was edited afterwards: still offered, with a note.

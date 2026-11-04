@@ -98,7 +98,7 @@ try{
   {// One profile editor: [프로필 편집] on the card, unsaved typing is protected; message button opens 챗샷; [↓ 생성].
    const {page,errors}=await open(width,{extra:true});const st=ask(page);
    const card=page.locator('[data-character="leo"]');await card.locator('.ncs-fixed-look summary').click();
-   assert.equal(await card.locator('[data-look]').count(),0,'no editing inside the card any more');assert.match(await card.locator('[data-look-view="appearance"]').innerText(),/brown hair, green eyes/);
+   assert.equal(await card.locator('[data-look-field]').count(),3,'0.1.70: the look is editable on the card');assert.match(await card.locator('[data-look-field="appearance"]').inputValue(),/brown hair, green eyes/);
    await card.locator('[data-edit-profile="leo"]').click();
    const slot=page.locator('#ncs-scene-profile-slot');assert.equal(await slot.isVisible(),true);assert.equal(await slot.locator('.ncs-quick-head strong').innerText(),'프로필 편집');
    assert.equal(await page.locator('#ncs-profile-appearance').inputValue(),'brown hair, green eyes');assert.equal(await page.locator('#ncs-profile-submit').innerText(),'프로필 저장');
@@ -111,7 +111,7 @@ try{
    await page.locator('[data-tab="scene"]').click();await card.locator('.ncs-fixed-look').evaluate(d=>d.open=true);await card.locator('[data-edit-profile="leo"]').click();
    assert.equal(await page.locator('#ncs-profile-appearance').inputValue(),'brown hair, green eyes, freckles','the same profile keeps its typing');
    st.answer=true;await page.locator('#ncs-profile-submit').click();await page.waitForFunction(()=>mock.extensionSettings.naice_shot.profiles.find(p=>p.id==='leo').appearance.endsWith('freckles'));
-   assert.equal(await slot.isVisible(),false,'the editor goes back to the profile tab');assert.match(await card.locator('[data-look-view="appearance"]').innerText(),/freckles/);
+   assert.equal(await slot.isVisible(),false,'the editor goes back to the profile tab');assert.match(await card.locator('[data-look-field="appearance"]').inputValue(),/freckles/);
    // [↓ 생성]
    const jump=page.locator('#ncs-jump-generate');await page.locator('.ncs-content').evaluate(e=>e.scrollTop=0);await page.waitForTimeout(150);
    if(width<1000){assert.equal(await jump.isVisible(),true,`${tag}: shown while the generate area is out of sight`);

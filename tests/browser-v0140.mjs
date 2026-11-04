@@ -85,7 +85,7 @@ try{
   assert.equal(await first.locator('.ncs-inline-open').count(),0);assert.equal(await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').count(),1);assert.ok(!requests.some(x=>x.endsWith('/delete')));
   // A stale viewer must not remove the edited message's attachment.
   await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').click();await page.evaluate(()=>mock.chat[1].mes+=' changed');await page.locator('#ncs-viewer [data-v="detach"]').click();
-  await page.waitForFunction(()=>/メッセージ|메시지나 리롤/.test(document.querySelector('.ncsv-meta').textContent));
+  await page.waitForFunction(()=>/メッセージ|메시지나 리롤/.test(document.querySelector('.ncsv-toast').textContent));
   assert.equal(await page.evaluate(()=>mock.chat[1].extra.naice_shot_images.length),1);
   assert.deepEqual(errors,[]);await page.close();
  }

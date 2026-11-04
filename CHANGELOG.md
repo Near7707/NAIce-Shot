@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.70 — 2026-11-05 (extension only; server v0.1.17 unchanged)
+
+The enlarged view in the user's own layout, chat pictures that move within their message, and drawing-tab polish.
+
+- **Enlarged view (every one: history, result and chat pictures):** a thin top row — 맞춤 · 원본 | − % + in the middle | NAIce Shot window button · ✕. Row 1: ⋯ | ‹ n/m › exactly in the middle | 저장 ▾ · 삭제. Row 2, a thin bar: ⓘ 프롬프트 보기 | 이 메시지에서 빼기 (chat pictures only). 프롬프트 보기 now opens over the picture (it no longer pushes it up or covers row 1) and holds the date and time, [seed 복사] and [프롬프트 복사] on one line, and the model line with the prompt. Short messages float above row 1.
+- **⋯ is the history card's ⋯:** 챗샷으로 보내기 · 프리샷으로 보내기 · 설정을 프리셋으로 · 본문에 넣기 · 채팅에서 이 그림 빼기 (when attached) — then 메시지로 가기 (greyed with the reason when there is none), or **이력에서 보기** for a chat picture, which opens the history tab on that card with a short ring. The window button closes the view and opens the panel on its last tab.
+- **Chat pictures** move between the pictures of their message (‹ 1/2 ›).
+- **Drawing tab:** the wardrobe name box opens right under [옷장에 저장]. 고정 외형 · 전용 태그 are edited on the card for **this picture only** (the profile stays as it is; "이번 그림만 고침" and [프로필 값으로 되돌리기]); [프로필 편집] still edits the profile. A new profile always starts on **직접 입력**.
+- ↻ locks the moment a check starts (UI-069-01).
+- Tests: new `browser-v0170` (375 and 1100px); older scripts updated for the new layout (date and seed are inside 프롬프트 보기, 메시지로 가기 is in ⋯, the look is editable, 직접 입력 first).
+
 ## 0.1.69 — 2026-11-04 (extension + server v0.1.17)
 
 GPT's review of 0.1.68.

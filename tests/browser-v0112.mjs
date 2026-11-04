@@ -39,7 +39,7 @@ try{
  // 1) Late conversion result after clearing the form (both buttons).
  for(const action of ['clear-profile-form','new-profile']){
   await page.locator('[data-tab="profiles"]').click();await click('new-profile');
-  await page.locator('#ncs-profile-name').fill('Draft');await page.locator('#ncs-profile-describe').fill('갈색 머리 남자');
+  await page.locator('#ncs-profile-name').fill('Draft');await page.locator('[data-profile-mode="describe"]').click();await page.locator('#ncs-profile-describe').fill('갈색 머리 남자');
   await page.evaluate(()=>{mock.draftDeferred=new Promise(r=>{window.__finishDraft=r;});});
   await click('convert-profile');await page.locator('#ncs-progress').waitFor({state:'visible'});
   await click(action);
@@ -51,7 +51,7 @@ try{
   await page.evaluate(()=>{mock.draftDeferred=null;});
  }
  // A conversion that is not interrupted still fills the form.
- await page.locator('#ncs-profile-describe').fill('갈색 머리 남자');await click('convert-profile');
+ await page.locator('[data-profile-mode="describe"]').click();await page.locator('#ncs-profile-describe').fill('갈색 머리 남자');await click('convert-profile');
  await page.waitForFunction(()=>document.querySelector('#ncs-profile-appearance').value.includes('late result hair'));
 
  // 2) History tab left open, panel closed, chat switched, panel reopened: the new chat's history loads by itself.

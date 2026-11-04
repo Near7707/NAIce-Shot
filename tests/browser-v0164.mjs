@@ -126,18 +126,20 @@ try{
   items[0].snapshot={...items[0].snapshot,scene:{...items[0].snapshot.scene,source:null}}; // made from the saved prompt, without 장면 추출
   await page.locator('[data-tab="history"]').click();await page.locator('.ncs-refresh-button').click();await page.waitForFunction(()=>document.querySelectorAll('.ncs-history-card').length>=2);
   await page.locator('[data-view-history]').first().click();await viewerReady(page);
-  const none=page.locator('#ncs-viewer [data-v="no-jump"]');assert.equal(await none.isVisible(),true);assert.equal(await page.locator('#ncs-viewer [data-v="jump"]').isVisible(),false);
-  assert.match(await none.innerText(),/연결된 메시지 없음/);await none.click();
-  assert.match(await page.locator('#ncs-viewer .ncsv-no-jump-note').innerText(),/장면 추출 없이 만들었거나 예전 그림이라 연결된 메시지가 없어요/);
-  await page.locator('#ncs-viewer .ncsv-meta').click();assert.equal(await page.locator('#ncs-viewer .ncsv-no-jump-note').isVisible(),false,'a tap elsewhere closes the note');
+  // 0.1.70: no line in the viewer any more; ⋯ ends with a disabled 메시지로 가기 that gives the reason (like the history card).
+  const moreItems=page.locator('#ncs-viewer .ncsv-more-items button'),last=()=>moreItems.last();
+  await page.locator('#ncs-viewer [data-v="more"]').click();
+  assert.equal(await last().isDisabled(),true);assert.match(await last().innerText(),/^메시지로 가기\n장면 추출 없이 만들었거나 예전 그림이라 연결된 메시지가 없어요/);
+  await page.keyboard.press('Escape');
   assert.ok(await page.locator('#ncs-viewer').evaluate(d=>d.scrollWidth<=d.clientWidth+1),'no sideways scroll');
-  await page.locator('[data-v="next"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-viewer [data-v="jump"]').hidden);
-  assert.equal(await none.isVisible(),false,'a picture with a message shows 메시지로 가기 instead');
-  // A chat picture is opened from its own message: no line at all.
+  await page.locator('[data-v="next"]').click();await page.waitForFunction(()=>/2 \//.test(document.querySelector('.ncsv-position').textContent));
+  await page.locator('#ncs-viewer [data-v="more"]').click();assert.equal(await last().isDisabled(),false,'a picture with a message: 메시지로 가기 works');await page.keyboard.press('Escape');
+  // A chat picture is opened from its own message: ⋯ ends with 이력에서 보기, and row 2 has 이 메시지에서 빼기.
   await page.locator('[data-v="close"]').click();await page.locator('[data-tab="scene"]').click();
   await page.locator('#ncs-result [data-image-target]').selectOption('1');await page.locator('[data-action="attach"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
   await page.locator('[data-action="close"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').click();await viewerReady(page);
-  assert.equal(await none.isVisible(),false,'nothing over a chat picture');
+  await page.locator('#ncs-viewer [data-v="more"]').click();assert.match(await last().innerText(),/^이력에서 보기/);await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#ncs-viewer .ncsv-prompt-row [data-v="detach"]').isVisible(),true);
   assert.deepEqual(errors,[]);await page.close();
  }
  {// UI-063-03: the 프리샷 result notice stays on 그리기, even if the user moved to 설정 while it ran. UI-063-04: the 챗샷 English warning stays.

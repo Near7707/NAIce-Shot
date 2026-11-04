@@ -54,7 +54,7 @@ try{
  // 4) Profile form: editing a saved profile, then "모든 칸 비우기" clears everything and keeps the saved profile.
  await page.locator('[data-tab="profiles"]').click();await page.locator('[data-profile="leo"]').click();
  assert.equal(await page.locator('#ncs-profile-name').inputValue(),'Leo');
- await page.locator('#ncs-profile-describe').fill('갈색 머리');await page.locator('#ncs-profile-outfit').fill('changed outfit');
+ await page.locator('[data-profile-mode="describe"]').click();await page.locator('#ncs-profile-describe').fill('갈색 머리');await page.locator('#ncs-profile-outfit').fill('changed outfit');
  await click('clear-profile-form');
  const fields=['id','name','aliases','appearance','outfit','positive','negative','describe'];
  for(const f of fields)assert.equal(await page.locator(`#ncs-profile-${f}`).inputValue(),'',f);

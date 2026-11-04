@@ -4,6 +4,7 @@ import { imageDownload, SAVE_NOTES } from './inline-images.mjs';
 import { saveCleanImage } from './downloads.mjs';
 import { currentSkin } from './skins.mjs';
 import { copyText } from './clipboard.mjs';
+import { BRAND_ICON } from './icons.mjs';
 
 export const ZOOM_MIN = 0.05, ZOOM_MAX = 8, ZOOM_STEP = 1.25;
 
@@ -39,25 +40,40 @@ function build() {
   const dialog = document.createElement('dialog');
   dialog.id = 'ncs-viewer';
   dialog.setAttribute('aria-label', '이미지 크게 보기');
+  // 0.1.70 layout (user's design): top = 맞춤·원본 | − % + | panel · ✕; row 1 = ⋯ | ‹ n/m › (centred) | 저장 ▾ · 삭제;
+  // row 2 (thin) = ⓘ 프롬프트 보기 | [이 메시지에서 빼기] for a picture opened from its message. ⋯ matches the history
+  // card's ⋯, ending with 메시지로 가기 (or 이력에서 보기 for a chat picture). The info covers the picture instead of pushing it up.
   dialog.innerHTML = `<div class="ncsv-bar">
-    <div class="ncsv-group ncsv-modes"><button type="button" data-v="fit" aria-pressed="true">화면 맞춤</button><button type="button" data-v="original" aria-pressed="false">원본 크기</button></div>
+    <div class="ncsv-group ncsv-modes"><button type="button" data-v="fit" aria-pressed="true" title="화면 맞춤">맞춤</button><button type="button" data-v="original" aria-pressed="false" title="원본 크기">원본</button></div>
     <div class="ncsv-group ncsv-zooms"><button type="button" data-v="out" aria-label="축소" title="축소 (-)">−</button><output class="ncsv-zoom" aria-live="polite">100%</output><button type="button" data-v="in" aria-label="확대" title="확대 (+)">+</button></div>
-    <div class="ncsv-group ncsv-close-group"><button type="button" data-v="close" aria-label="닫기" title="닫기 (Esc)">✕</button></div>
+    <div class="ncsv-group ncsv-close-group"><button type="button" data-v="panel" class="ncsv-panel" hidden aria-label="NAIce Shot 창 열기" title="확대창을 닫고 NAIce Shot 창 열기"><span class="ncsv-panel-icon">${BRAND_ICON}</span></button><button type="button" data-v="close" aria-label="닫기" title="닫기 (Esc)">✕</button></div>
   </div>
   <div class="ncsv-stage"><img alt="생성된 장면 크게 보기" draggable="false"></div>
-  <div class="ncsv-tools"><div class="ncsv-navigation" hidden aria-label="이력 그림 이동"><button type="button" data-v="previous" aria-label="이전 그림">‹</button><output class="ncsv-position" aria-live="polite"></output><button type="button" data-v="next" aria-label="다음 그림">›</button></div>
-    <div class="ncsv-group ncsv-save-group"><div class="ncsv-save-wrap"><button type="button" class="ncs-save-toggle" data-v="save-menu" aria-expanded="false" aria-haspopup="true">저장<span class="ncs-caret" aria-hidden="true"></span></button><div class="ncsv-save-menu" role="group" aria-label="저장 방식" hidden><button type="button" class="ncs-popup-primary" data-v="clean">클린 PNG<small>${SAVE_NOTES.shared}</small></button><a class="ncsv-save" download>원본 PNG<small>${SAVE_NOTES.original}</small></a></div></div><button type="button" data-v="detach" hidden>이 메시지에서 빼기</button><button type="button" data-v="delete" class="ncsv-delete" hidden>삭제</button></div></div>
-  <div class="ncsv-prompt-row"><details class="ncsv-prompt" hidden><summary>프롬프트 보기</summary><div class="ncsv-prompt-body"><button type="button" class="ncsv-copy" data-v="copy" disabled>프롬프트 복사</button><span class="ncsv-copy-status" role="status"></span><pre class="ncsv-prompt-text"></pre></div></details><div class="ncsv-jump-wrap"><button type="button" class="ncsv-jump" data-v="jump" hidden aria-haspopup="true" aria-expanded="false">메시지로 가기</button><div class="ncsv-jump-menu" role="group" aria-label="이동할 메시지" hidden></div><button type="button" class="ncsv-no-jump" data-v="no-jump" hidden aria-expanded="false">연결된 메시지 없음 ⓘ</button><p class="ncsv-no-jump-note" role="status" hidden></p></div></div><div class="ncsv-info"><span class="ncsv-meta"></span><button type="button" class="ncsv-seed" data-v="seed" hidden></button></div>`;
+  <div class="ncsv-tools"><div class="ncsv-more-wrap"><button type="button" data-v="more" class="ncsv-more" hidden aria-label="그림 메뉴" aria-haspopup="true" aria-expanded="false">⋯</button><div class="ncsv-more-menu" role="group" aria-label="그림 작업" hidden><div class="ncsv-more-items"></div></div></div>
+    <div class="ncsv-navigation" hidden aria-label="그림 이동"><button type="button" data-v="previous" aria-label="이전 그림">‹</button><output class="ncsv-position" aria-live="polite"></output><button type="button" data-v="next" aria-label="다음 그림">›</button></div>
+    <div class="ncsv-group ncsv-save-group"><div class="ncsv-save-wrap"><button type="button" class="ncs-save-toggle" data-v="save-menu" aria-expanded="false" aria-haspopup="true">저장<span class="ncs-caret" aria-hidden="true"></span></button><div class="ncsv-save-menu" role="group" aria-label="저장 방식" hidden><button type="button" class="ncs-popup-primary" data-v="clean">클린 PNG<small>${SAVE_NOTES.shared}</small></button><a class="ncsv-save" download>원본 PNG<small>${SAVE_NOTES.original}</small></a></div></div><button type="button" data-v="delete" class="ncsv-delete" hidden>삭제</button></div>
+    <p class="ncsv-toast" role="status" hidden></p></div>
+  <div class="ncsv-prompt-row"><details class="ncsv-prompt"><summary><span class="ncsv-info-icon" aria-hidden="true">i</span>프롬프트 보기</summary><div class="ncsv-prompt-body"><div class="ncsv-info"><span class="ncsv-meta"></span></div><div class="ncsv-copy-row"><button type="button" class="ncsv-seed" data-v="seed" hidden></button><button type="button" class="ncsv-copy" data-v="copy" disabled>프롬프트 복사</button><span class="ncsv-copy-status" role="status"></span></div><pre class="ncsv-prompt-text"></pre></div></details><div class="ncsv-jump-wrap"><button type="button" class="ncsv-jump" data-v="jump" hidden aria-haspopup="true" aria-expanded="false">메시지로 가기</button><div class="ncsv-jump-menu" role="group" aria-label="이동할 메시지" hidden></div><button type="button" class="ncsv-detach" data-v="detach" hidden>이 메시지에서 빼기</button><button type="button" class="ncsv-no-jump" data-v="no-jump" hidden aria-expanded="false">연결된 메시지 없음 ⓘ</button><p class="ncsv-no-jump-note" role="status" hidden></p></div></div>`;
   document.body.append(dialog);
 
   const stage = dialog.querySelector('.ncsv-stage');let img = stage.querySelector('img');
   const zoomLabel = dialog.querySelector('.ncsv-zoom'), meta = dialog.querySelector('.ncsv-meta'), save = dialog.querySelector('.ncsv-save');
-  const state = { loadToken:0, nat: { w: 0, h: 0 }, view: { scale: 1, x: 0, y: 0 }, mode: 'fit', caption: '', seed: null, onDelete: null, onDetach:null, jumps:[], loadPrompt:null, promptText:'', epoch:0, item: null, gallery:null, index:0, navBusy:false, actionBusy:false };
+  const toastBox=dialog.querySelector('.ncsv-toast');let toastTimer=0;
+  const say=(text,{stay=false}={})=>{clearTimeout(toastTimer);toastBox.textContent=text;toastBox.hidden=!text;if(text&&!stay)toastTimer=setTimeout(()=>{toastBox.hidden=true;},5000);};
+  const state = { loadToken:0, nat: { w: 0, h: 0 }, view: { scale: 1, x: 0, y: 0 }, mode: 'fit', caption: '', seed: null, onDelete: null, onDetach:null, actions:[], onPanel:null, jumps:[], loadPrompt:null, promptText:'', epoch:0, item: null, gallery:null, index:0, navBusy:false, actionBusy:false };
   const jumpButton=dialog.querySelector('[data-v="jump"]'),jumpMenu=dialog.querySelector('.ncsv-jump-menu');
   const noJumpButton=dialog.querySelector('[data-v="no-jump"]'),noJumpNote=dialog.querySelector('.ncsv-no-jump-note');
   const showNoJump=open=>{noJumpNote.hidden=!open;noJumpButton.setAttribute('aria-expanded',String(open));};
   dialog.addEventListener('click',event=>{if(!noJumpNote.hidden&&!event.target.closest('[data-v="no-jump"]'))showNoJump(false);},true);
   dialog.addEventListener('cancel',event=>{if(!noJumpNote.hidden){event.preventDefault();showNoJump(false);noJumpButton.focus({preventScroll:true});}});
+  const moreButton=dialog.querySelector('[data-v="more"]'),moreMenu=dialog.querySelector('.ncsv-more-menu'),moreItems=dialog.querySelector('.ncsv-more-items');
+  const panelButton=dialog.querySelector('[data-v="panel"]');
+  const showMoreMenu=open=>{moreMenu.hidden=!open;moreButton.setAttribute('aria-expanded',String(open));if(open)moreMenu.querySelector('button:not([hidden]):not(:disabled)')?.focus({preventScroll:true});};
+  dialog.addEventListener('click',event=>{if(!moreMenu.hidden&&!event.target.closest('.ncsv-more-wrap'))showMoreMenu(false);},true);
+  dialog.addEventListener('cancel',event=>{if(!moreMenu.hidden){event.preventDefault();showMoreMenu(false);moreButton.focus({preventScroll:true});}});
+  moreItems.addEventListener('click',event=>{const b=event.target.closest('button[data-more]');if(!b||b.disabled)return;showMoreMenu(false);const a=state.actions[Number(b.dataset.more)];
+    if(!a)return;const epoch=state.epoch;if(a.leave)dialog.close(); // it goes elsewhere (a tab, a card, a message)
+    Promise.resolve().then(()=>a.run()).catch(e=>{if(epoch===state.epoch)say(e.message,{stay:true});});});
   const showJumpMenu=open=>{jumpMenu.hidden=!open;jumpButton.setAttribute('aria-expanded',String(open));if(open)jumpMenu.querySelector('button')?.focus({preventScroll:true});};
   // One target goes at once; two (attached and made differ) open a small menu to choose.
   jumpButton.addEventListener('click',()=>{if(state.navBusy)return;if(state.jumps.length===1){state.jumps[0].run();return;}showJumpMenu(jumpMenu.hidden);});
@@ -72,10 +88,12 @@ function build() {
   dialog.addEventListener('cancel',event=>{if(!saveMenu.hidden){event.preventDefault();showSaveMenu(false);saveToggle.focus({preventScroll:true});}});
   dialog.addEventListener('cancel',event=>{if(!jumpMenu.hidden){event.preventDefault();showJumpMenu(false);jumpButton.focus({preventScroll:true});}});
   const seedLabel=()=>`seed ${state.seed} 복사`;
-  async function copySeed(){const epoch=state.epoch;try{await copyText(String(state.seed),dialog);if(epoch===state.epoch)seedButton.textContent='seed 복사됨';}catch(e){if(epoch===state.epoch)meta.textContent=e.message;}}
+  async function copySeed(){const epoch=state.epoch;try{await copyText(String(state.seed),dialog);if(epoch===state.epoch)seedButton.textContent='seed 복사됨';}catch(e){if(epoch===state.epoch)say(e.message);}}
   const deleteButton = dialog.querySelector('[data-v="delete"]'), detachButton=dialog.querySelector('[data-v="detach"]');
   const promptBox=dialog.querySelector('.ncsv-prompt'),promptContent=dialog.querySelector('.ncsv-prompt-text'),copyButton=dialog.querySelector('[data-v="copy"]'),copyStatus=dialog.querySelector('.ncsv-copy-status');
+  const promptBody=dialog.querySelector('.ncsv-prompt-body'),tools=dialog.querySelector('.ncsv-tools');
   promptBox.addEventListener('toggle',async()=>{
+    if(promptBox.open)promptBody.style.bottom=`calc(100% + ${tools.offsetHeight}px)`; // over the picture, not over row 1
     if(!promptBox.open||promptBox.dataset.loaded||!state.loadPrompt)return;
     const epoch=state.epoch;promptBox.dataset.loaded='1';promptContent.textContent='프롬프트를 불러오는 중…';
     try{const text=await state.loadPrompt();if(epoch!==state.epoch)return;state.promptText=text;promptContent.textContent=text;copyButton.disabled=false;}
@@ -89,20 +107,20 @@ function build() {
   async function detach(){
     if(!state.onDetach||state.navBusy)return;const epoch=state.epoch;detachButton.disabled=true;
     try{if(await state.onDetach()&&epoch===state.epoch)dialog.close();}
-    catch(e){if(epoch===state.epoch)meta.textContent=e.message;}
+    catch(e){if(epoch===state.epoch)say(e.message);}
     finally{if(epoch===state.epoch)detachButton.disabled=false;}
   }
   async function cleanSave(){
     const epoch=state.epoch,item=state.item,button=dialog.querySelector('[data-v="clean"]');button.disabled=true;
-    try{await saveCleanImage(item);if(epoch===state.epoch)meta.textContent='클린 PNG(메타데이터 제거)를 저장했어요.';}
-    catch{if(epoch===state.epoch)meta.textContent='클린 PNG를 저장하지 못했어요. 원본으로 대체 저장하지 않았어요.';}
+    try{await saveCleanImage(item);if(epoch===state.epoch)say('클린 PNG(메타데이터 제거)를 저장했어요.');}
+    catch{if(epoch===state.epoch)say('클린 PNG를 저장하지 못했어요. 원본으로 대체 저장하지 않았어요.',{stay:true});}
     finally{if(epoch===state.epoch)button.disabled=false;}
   }
   const navigation=dialog.querySelector('.ncsv-navigation'),position=dialog.querySelector('.ncsv-position');
   function updateNavigation(){
     // Buttons that act on the shown picture wait only while a slow move is under way — for every picture, so a lock
     // left from an earlier gallery never carries over to a single picture (UI-064-01).
-    deleteButton.disabled=state.navPage||state.actionBusy;detachButton.disabled=state.navPage;jumpButton.disabled=state.navPage;
+    deleteButton.disabled=state.navPage||state.actionBusy;detachButton.disabled=state.navPage;jumpButton.disabled=state.navPage;moreButton.disabled=state.navPage;
     const g=state.gallery;navigation.hidden=!g;if(!g)return;
     position.textContent=`${state.index+1} / ${g.total}${state.navPage?' · 불러오는 중…':''}`;
     dialog.querySelector('[data-v="previous"]').disabled=state.navPage||state.actionBusy||state.index<=0;
@@ -126,7 +144,7 @@ function build() {
       while(next>=g.items.length&&g.hasMore)await g.loadMore();
       if(epoch!==state.epoch||!dialog.open)return;
       if(g.items[next])await show(g.items[next],{...g.describe(g.items[next]),gallery:g,index:next,focus:false});
-    }catch(e){if(epoch===state.epoch)meta.textContent=e.message;}
+    }catch(e){if(epoch===state.epoch)say(e.message);}
     finally{clearTimeout(slow);if(epoch===state.epoch){state.navBusy=false;state.navPage=false;updateNavigation();}}
   }
   async function remove() {
@@ -143,7 +161,7 @@ function build() {
       if(epoch!==state.epoch||!dialog.open)return;
       const next=Math.min(index,g.items.length-1);
       if(next<0)dialog.close();else await show(g.items[next],{...g.describe(g.items[next]),gallery:g,index:next,focus:false});
-    }catch(e){if(epoch===state.epoch)meta.textContent=e.message;}
+    }catch(e){if(epoch===state.epoch)say(e.message);}
     finally{if(epoch===state.epoch){state.actionBusy=false;deleteButton.disabled=false;updateNavigation();}}
   }
   const stageSize = () => { const r = stage.getBoundingClientRect(); return { w: r.width, h: r.height }; };
@@ -167,13 +185,14 @@ function build() {
   const placed=el=>{state.nat = { w: el.naturalWidth, h: el.naturalHeight };el.style.width = `${state.nat.w}px`; el.style.height = `${state.nat.h}px`;dialog.dataset.loaded=el.getAttribute('src')??'';};
   const wire=el=>{
     el.addEventListener('load', () => { if(el!==img)return;placed(el);fit();el.style.visibility=''; });
-    el.addEventListener('error', () => { if(el!==img)return;el.style.visibility=''; meta.textContent = '이미지를 불러오지 못했어요. PNG 저장은 계속 시도할 수 있어요.'; });
+    el.addEventListener('error', () => { if(el!==img)return;el.style.visibility=''; say('이미지를 불러오지 못했어요. PNG 저장은 계속 시도할 수 있어요.',{stay:true}); });
   };
   wire(img);
 
   dialog.addEventListener('click', event => {
     const button = event.target.closest('[data-v]'); if (!button) return;
-    ({ previous:()=>navigate(-1),next:()=>navigate(1),fit, original: () => original(), in: () => zoomBy(ZOOM_STEP), out: () => zoomBy(1 / ZOOM_STEP), close: () => dialog.close(), delete: remove, detach, copy:copyPrompt, clean: cleanSave, 'save-menu':()=>showSaveMenu(saveMenu.hidden), seed:copySeed, 'no-jump':()=>showNoJump(noJumpNote.hidden) })[button.dataset.v]?.();
+    ({ previous:()=>navigate(-1),next:()=>navigate(1),fit, original: () => original(), in: () => zoomBy(ZOOM_STEP), out: () => zoomBy(1 / ZOOM_STEP), close: () => dialog.close(), delete: remove, detach, copy:copyPrompt, clean: cleanSave, 'save-menu':()=>showSaveMenu(saveMenu.hidden), seed:copySeed, 'no-jump':()=>showNoJump(noJumpNote.hidden),
+      more:()=>showMoreMenu(moreMenu.hidden), panel:()=>{const go=state.onPanel;dialog.close();go?.();} })[button.dataset.v]?.();
   });
   dialog.addEventListener('keydown', event => {
     if (event.target.closest?.('a,button') && (event.key === 'Enter' || event.key === ' ')) return;
@@ -251,19 +270,25 @@ function build() {
 
   // Everything about one picture changes together: image, date, seed, prompt, save link and the delete/detach target.
   // While the next picture of the gallery loads, the current one and all its buttons stay as they are (UI-063-01).
-  function present(item,file,{caption='',seed=null,onDelete=null,onDetach=null,loadPrompt=null,loadInfo=null,gallery=null,index=0,focus=true,jumps=[],noJump=''}={},ready=null){
-      dropTap();state.epoch++;pointers.clear();gesture=null;lastTap=null;state.gallery=gallery;state.index=index;state.navBusy=false;state.navPage=false;state.actionBusy=false;state.item = item;state.caption = caption;showSaveMenu(false);
+  function present(item,file,{caption='',seed=null,onDelete=null,onDetach=null,loadPrompt=null,loadInfo=null,gallery=null,index=0,focus=true,jumps=[],noJump='',actions=[],onPanel=null}={},ready=null){
+      dropTap();state.epoch++;pointers.clear();gesture=null;lastTap=null;state.gallery=gallery;state.index=index;state.navBusy=false;state.navPage=false;state.actionBusy=false;state.item = item;state.caption = caption;showSaveMenu(false);showMoreMenu(false);say('');
       state.seed=seed===null||seed===undefined||seed===''?null:seed;seedButton.hidden=state.seed===null;if(state.seed!==null)seedButton.textContent=seedLabel();
       state.loadPrompt=typeof loadPrompt==='function'?loadPrompt:null;state.promptText='';
-      promptBox.open=false;promptBox.hidden=!state.loadPrompt;delete promptBox.dataset.loaded;promptContent.textContent='';copyButton.disabled=true;copyButton.textContent='프롬프트 복사';copyStatus.textContent='';
+      promptBox.open=false;promptBox.hidden=false; /* 0.1.70: date and seed live here too */delete promptBox.dataset.loaded;promptContent.textContent='';copyButton.disabled=true;copyButton.textContent='프롬프트 복사';copyStatus.textContent='';
       state.onDetach=typeof onDetach==='function'?onDetach:null;detachButton.hidden=!state.onDetach;detachButton.disabled=false; state.mode = 'fit';
+      // ⋯ holds the same work as the history card's ⋯ (send to 챗샷/프리샷, preset, 본문에 넣기, taking it out).
+      state.actions=(Array.isArray(actions)?actions:[]).filter(a=>a&&typeof a.run==='function');
+      moreItems.replaceChildren(...state.actions.map((a,i)=>{const b=document.createElement('button');b.type='button';b.dataset.more=String(i);b.textContent=a.label;b.disabled=!!a.disabled;
+        if(a.note){const n=document.createElement('small');n.textContent=a.note;b.append(n);}if(a.divider)b.classList.add('ncsv-more-divider');return b;}));
+      moreButton.hidden=!state.actions.length;
+      state.onPanel=typeof onPanel==='function'?onPanel:null;panelButton.hidden=!state.onPanel;
       state.onDelete = typeof onDelete === 'function' ? onDelete : null; deleteButton.hidden = !state.onDelete; deleteButton.disabled = false;
       state.jumps=Array.isArray(jumps)?jumps.filter(j=>typeof j?.run==='function'):[];showJumpMenu(false);jumpButton.hidden=!state.jumps.length;
       jumpButton.textContent=state.jumps.length>1?'메시지로 가기 ▾':'메시지로 가기';jumpButton.title=state.jumps.length===1?state.jumps[0].note??'':'';
       jumpMenu.replaceChildren(...state.jumps.map((j,i)=>{const b=document.createElement('button');b.type='button';b.dataset.jump=String(i);b.textContent=j.label;const n=document.createElement('small');n.textContent=j.note??'';b.append(n);return b;}));
       // No message to go to: say so in a small line instead of leaving the place empty.
       noJumpButton.hidden=!jumpButton.hidden||!noJump;noJumpButton.dataset.note=noJump||'';noJumpNote.hidden=true;noJumpNote.textContent=noJump||'';noJumpButton.setAttribute('aria-expanded','false');
-      dialog.querySelector('.ncsv-prompt-row').hidden=promptBox.hidden&&jumpButton.hidden&&noJumpButton.hidden;
+      dialog.querySelector('.ncsv-prompt-row').hidden=promptBox.hidden&&jumpButton.hidden&&noJumpButton.hidden&&detachButton.hidden;
       dialog.querySelector('[data-v="clean"]').disabled=false;
       save.href = file.url; save.download = file.filename;
       meta.textContent = state.caption;
