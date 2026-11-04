@@ -3,7 +3,7 @@ import { DEFAULTS, MODELS, clone, PROFILE_SCHEMA, profileDraftPrompt, parseProfi
   BRAND, SIZE_PRESETS, sizePresetOf, VERSION, stripReasoningBlocks } from './core.mjs';
 import { CAMERA_ICON, BRAND_ICON, TAB_ICONS } from './icons.mjs';
 import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } from './skins.mjs';
-import { attachInlineImages, detachInlineImage, detachInlineImages, detachMessageImage, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, visibleInlineImages, SAVE_NOTES, INLINE_LAYOUTS, INLINE_SIZES } from './inline-images.mjs';
+import { attachInlineImages, detachInlineImage, detachInlineImages, detachMessageImage, placeMessageImage, orderedInlineImages, placementOf, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, visibleInlineImages, SAVE_NOTES, INLINE_LAYOUTS, INLINE_SIZES } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
 import { freeScenePrompt, freeSceneSchema, parseFreeScene } from './free-scene.mjs';
 import { planFreePeople, confirmText, applyFreePeople, migratePins } from './free-people.mjs';
@@ -62,8 +62,8 @@ function freeOptions(o){
   const out={...o};if(sizePresetOf(out)==='custom'){out.width=SIZE_PRESETS.portrait.width;out.height=SIZE_PRESETS.portrait.height;}
   const steps=Number(out.steps);out.steps=Number.isFinite(steps)?Math.min(FREE_STEPS,Math.max(1,Math.round(steps))):DEFAULTS.options.steps;return out;
 }
-const imagePlacement=()=>{const local=ctx().chatMetadata?.[KEY]?.imagePlacement;return ['above','below'].includes(local)?local:settings().imagePlacement==='above'?'above':'below';};
-function renderPlacement(){const local=$('ncs-chat-image-placement');local.disabled=!keyOf();local.value=ctx().chatMetadata?.[KEY]?.imagePlacement??'';}
+const imagePlacement=()=>{const local=ctx().chatMetadata?.[KEY]?.imagePlacement;return ['above','below'].includes(local)?local:settings().imagePlacement==='below'?'below':'above';}; // 0.1.74: above unless 'below' was chosen
+function renderPlacement(){const local=$('ncs-chat-image-placement');local.disabled=!keyOf();local.value=ctx().chatMetadata?.[KEY]?.imagePlacement??'';renderChatImageSummary();}
 const inlineLayout=()=>INLINE_LAYOUTS.includes(settings().inlineLayout)?settings().inlineLayout:'slide';
 const inlineSize=()=>INLINE_SIZES.includes(settings().inlineSize)?settings().inlineSize:'medium';
 function renderChatImages(){renderInlineImages(ctx(),document.getElementById('chat'),keyOf(),{placement:imagePlacement(),layout:inlineLayout(),size:inlineSize()});if(messageButtonsOn())decorateMessages();}
@@ -257,6 +257,11 @@ function viewerActions(item,{attachment=null}={}){
     {label:'본문에 넣기',note:here?'':free?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.',disabled:!here,leave:true,run:away(async()=>{const rec=await recordOf(item);await showPanel();openAttachPicker([rec]);})}];
   const count=here&&!attachment?attachedCount(item.id):0;
   if(count)actions.push({label:`채팅에서 이 그림 빼기${count>1?` (${count}곳)`:''}`,run:async()=>removeImageFromChat(await recordOf(item))});
+  // 0.1.74: a chat picture can move above or below the text on its own, or go back to the default place.
+  if(attachment){const entry=visibleInlineImages(attachment.message).find(x=>x.id===item.id),fallback=imagePlacement(),now=placementOf(entry,fallback),other=now==='above'?'below':'above';
+    const move=(placement,done)=>away(async()=>{await placeChatImage(item,attachment,placement);toast(done);});
+    actions.push({label:other==='above'?'글 위로 옮기기':'글 아래로 옮기기',note:'이 그림만 옮겨요.',divider:true,leave:true,run:move(other,other==='above'?'그림을 글 위로 옮겼어요.':'그림을 글 아래로 옮겼어요.')});
+    if(entry?.placement)actions.push({label:'기본 위치로 되돌리기',note:`지금 기본: 글 ${fallback==='above'?'위':'아래'}`,leave:true,run:move(null,'그림을 기본 위치로 되돌렸어요.')});}
   if(attachment)actions.push({label:'이력에서 보기',note:'이력 탭에서 이 그림 카드로 가요.',divider:true,leave:true,run:away(()=>goToHistoryCard(item))});
   else{const jumps=jumpChoices(item);
     if(Array.isArray(jumps))jumps.forEach((j,i)=>actions.push({label:j.label,note:j.note,divider:i===0,leave:true,run:away(()=>goToMessage(item,j.index,j.kind))}));
@@ -359,6 +364,13 @@ function bindImageMenus(){
 function attachmentOf(element){
   const index=Number(element.closest('.mes')?.getAttribute('mesid')),message=ctx().chat?.[index];
   return {message,swipeId:message?.swipe_id??0,signature:textSignature(message?.mes??''),chatKey:keyOf()};
+}
+async function placeChatImage(item,attachment,placement){
+  if(busy||attaching)throw new Error('진행 중인 작업이 끝난 뒤 옮겨 주세요.');
+  if(ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 옮겨 주세요.');
+  const startKey=attachment.chatKey;attaching=true;updateAttachButtons();
+  try{await placeMessageImage(ctx(),item,{...attachment,placement,isCurrent:()=>keyOf()===startKey});if(keyOf()===startKey)renderChatImages();}
+  finally{attaching=false;updateAttachButtons();}
 }
 async function removeMessageImage(item,attachment){
   if(busy||attaching)throw new Error('진행 중인 작업이 끝난 뒤 그림을 빼 주세요.');
@@ -625,7 +637,7 @@ function renderSettings() {
   for(const [id,k] of [['model','model'],['steps','steps'],['scale','scale'],['seed','seed'],['cfg','cfgRescale'],['sampler','sampler']])$(`ncs-${id}`).value=s.options[k];
   renderRawRetention();
   $('ncs-include-user').checked=s.includeUser;$('ncs-schema').checked=s.structuredOutput;$('ncs-retain-raw').checked=s.retainRawExtraction===true;$('ncs-allow-anlas').checked=s.allowAnlas;
-  $('ncs-image-placement').value=s.imagePlacement==='above'?'above':'below';renderPlacement();$('ncs-message-button').checked=messageButtonsOn();$('ncs-inline-layout').value=inlineLayout();$('ncs-inline-size').value=inlineSize();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
+  $('ncs-image-placement').value=s.imagePlacement==='below'?'below':'above';renderPlacement();$('ncs-message-button').checked=messageButtonsOn();$('ncs-inline-layout').value=inlineLayout();$('ncs-inline-size').value=inlineSize();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
   renderImagePresets();renderExtractionProfiles();$('ncs-extraction-max-tokens').value=s.extractionMaxTokens;$('ncs-extraction-temperature').value=extractionTemperature()??'';
 }
 // --- Generation settings box in the scene tab: the same values as the settings tab, edited in place.
@@ -684,6 +696,11 @@ function saveImagePreset(overwrite=false,typedName=null) {
   // 0.1.68: [변경 저장] keeps the preset where it was; only a new preset goes to the end.
   s.imagePresets=validateImagePresets(old?s.imagePresets.map(x=>x.id===id?p:x):[...s.imagePresets,p]);s.imagePresetId=id;
   ctx().saveSettingsDebounced();renderImagePresets();notice(overwrite?`"${name}" 프리셋에 지금 값을 저장했어요.`:`지금 값을 새 프리셋 "${name}"(으)로 저장했어요.`);
+}
+// 0.1.74: 채팅 속 그림 is folded too; its title shows where pictures go in this chat and how they show.
+function renderChatImageSummary(){
+  const el=$('ncs-chat-image-summary');if(!el)return;const local=ctx().chatMetadata?.[KEY]?.imagePlacement;
+  el.textContent=` · 글 ${imagePlacement()==='above'?'위':'아래'}${['above','below'].includes(local)?'(이 채팅)':''} · ${{slide:'넘겨보기',grid:'격자',stack:'세로'}[inlineLayout()]} · ${{small:'작게',medium:'보통',large:'크게'}[inlineSize()]} · 그리기 아이콘 ${messageButtonsOn()?'켬':'끔'}`;
 }
 // 0.1.73: 세부 설정 is folded; its title shows the current values.
 function renderExtractionSummary(){
@@ -1843,7 +1860,7 @@ function openAttachPicker(list){
   // when they all share one). Otherwise nothing is chosen, so a quick 넣기 never lands on a guess (v0.1.51).
   const made=[...new Set(items.map(x=>preferredTarget(x,{fallback:false})))];
   const target=made.length===1&&Number.isInteger(made[0])?made[0]:null;
-  attachPick={items,skipped:all.length-items.length,target,shown:ATTACH_STEP};
+  attachPick={items,skipped:all.length-items.length,target,shown:ATTACH_STEP,placement:''};
   renderAttachPicker();const box=$('ncs-attach-dialog');if(!box.open)box.showModal();
   const row=target===null?null:box.querySelector(`[data-attach-target="${target}"]`);row?.scrollIntoView({block:'nearest'});
   (target===null?box.querySelector('[data-attach-target]'):box.querySelector('[data-action="attach-confirm"]'))?.focus({preventScroll:true});
@@ -1864,19 +1881,19 @@ function renderAttachPicker(){
     <p class="ncs-target-count">최신순 · ${rows.length}개 중 ${shown.length}개 표시</p>
     <div class="ncs-target-list" role="group" aria-label="그림을 넣을 메시지 · 최신순">${shown.map(i=>`<button type="button" class="ncs-target-item" data-attach-target="${i}" aria-pressed="${i===attachPick.target}"><span class="ncs-target-meta">#${i} · ${esc(chat[i].name??'')}${isHiddenSceneMessage(chat[i])?' · 숨김':''}${tags(i)}</span><span class="ncs-target-preview">${esc(text(i))}</span></button>`).join('')}</div>
     ${left>0?`<button type="button" class="ncs-target-more" data-action="attach-more">이전 메시지 ${Math.min(ATTACH_STEP,left)}개 더 보기</button>`:''}
-    <div class="ncs-row ncs-attach-actions"><button type="button" class="ncs-primary" data-action="attach-confirm" ${chosen?'':'disabled'}>${chosen?`#${attachPick.target}에 넣기`:'넣을 메시지를 골라 주세요'}</button><button type="button" data-action="attach-cancel">취소</button></div>`;
+    <div class="ncs-row ncs-attach-actions"><div class="ncs-attach-place" role="group" aria-label="넣을 위치"><span>넣을 위치</span>${[['',`기본 위치 (글 ${imagePlacement()==='above'?'위':'아래'})`],['above','글 위'],['below','글 아래']].map(([v,l])=>`<button type="button" data-attach-place="${v}" aria-pressed="${attachPick.placement===v}">${l}</button>`).join('')}</div><button type="button" class="ncs-primary" data-action="attach-confirm" ${chosen?'':'disabled'}>${chosen?`#${attachPick.target}에 넣기`:'넣을 메시지를 골라 주세요'}</button><button type="button" data-action="attach-cancel">취소</button></div>`;
 }
-async function putImagesInChat(items,targetIndex) {
+async function putImagesInChat(items,targetIndex,placement=null) {
   if(!items?.length||attaching||busy)return;assertChat();const startKey=keyOf();
   if(items.some(x=>x.chatKey!==startKey))throw new Error('현재 채팅의 이미지만 첨부할 수 있어요.');
   if(ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 첨부해 주세요.');
   attaching=true;updateAttachButtons();
   try {
-    const done=await attachInlineImages(ctx(),items,{targetIndex,isCurrent:()=>keyOf()===startKey});
+    const done=await attachInlineImages(ctx(),items,{targetIndex,placement,isCurrent:()=>keyOf()===startKey});
     if(keyOf()!==startKey)return;
     renderChatImages();renderResult();renderHistory();
-    const where=`#${targetIndex} 메시지`;
-    notice(!done.added?`${where}에 이미 넣은 그림이에요.`:`${where}에 ${items.length>1?`${done.added}장을 `:'그림을 '}넣었어요.${done.duplicates?` 이미 있던 ${done.duplicates}장은 그대로 뒀어요.`:''} 본문은 그대로예요.`);
+    const where=`#${targetIndex} 메시지${placement?` 글 ${placement==='above'?'위':'아래'}`:''}`,moved=done.moved?` 이미 있던 ${done.moved}장은 글 ${placement==='above'?'위':'아래'}로 옮겼어요.`:'';
+    notice(!done.added&&!done.moved?`${where}에 이미 넣은 그림이에요.`:!done.added?`${moved.trim()} 본문은 그대로예요.`:`${where}에 ${items.length>1?`${done.added}장을 `:'그림을 '}넣었어요.${moved}${done.duplicates?` 이미 있던 ${done.duplicates}장은 그대로 뒀어요.`:''} 본문은 그대로예요.`);
   }finally{attaching=false;updateAttachButtons();}
 }
 async function removeImageFromChat(item) {
@@ -2125,7 +2142,7 @@ async function importSettings(file) {
   if(typeof next.imagePresetId!=='string'||typeof next.extractionProfileId!=='string'||next.extractionProfileId.length>80||!Number.isInteger(next.extractionMaxTokens)||next.extractionMaxTokens<256||next.extractionMaxTokens>16384)throw new Error('프리셋·추출 연결 백업 값을 확인해 주세요.');
   // Import only the declared settings fields, never arbitrary payload keys.
   const clean={};for(const k of Object.keys(DEFAULTS))clean[k]=next[k];
-  clean.imagePlacement=next.imagePlacement==='above'?'above':'below';
+  clean.imagePlacement=next.imagePlacement==='below'?'below':'above';
   clean.messageButton=next.messageButton===true;
   clean.inlineLayout=INLINE_LAYOUTS.includes(next.inlineLayout)?next.inlineLayout:'slide';
   clean.inlineSize=INLINE_SIZES.includes(next.inlineSize)?next.inlineSize:'medium';
@@ -2168,7 +2185,7 @@ async function onAction(action,el) {
     case 'attach-selected':openAttachPicker(historyItems.filter(x=>selectedIds.has(x.id)));break;
     case 'attach-more':attachPick.shown+=ATTACH_STEP;renderAttachPicker();break;
     case 'attach-cancel':closeAttachPicker();break;
-    case 'attach-confirm':{if(!attachPick||attachPick.target===null)break;const {items,target}=attachPick;closeAttachPicker();await putImagesInChat(items,target);break;}
+    case 'attach-confirm':{if(!attachPick||attachPick.target===null)break;const {items,target,placement}=attachPick;closeAttachPicker();await putImagesInChat(items,target,placement||null);break;}
     case 'detach':await removeImageFromChat(result);break;
     case 'new-profile':case 'clear-profile-form':{
       if(extraction?.kind==='profile')cancelExtraction(''); // a late conversion result must not fill the emptied form
@@ -2288,6 +2305,7 @@ function bindEvents() {
       else if(el.dataset.viewHistory)viewImage(historyItems.find(x=>x.id===el.dataset.viewHistory),{gallery:true});
       else if(el.dataset.historyAttach){closeImageMenu();openAttachPicker([historyItems.find(x=>x.id===el.dataset.historyAttach)]);}
       else if(el.dataset.attachTarget!==undefined){attachPick.target=Number(el.dataset.attachTarget);renderAttachPicker();}
+      else if(el.dataset.attachPlace!==undefined){attachPick.placement=el.dataset.attachPlace;renderAttachPicker();}
       else if(el.dataset.historyJump){const item=historyItems.find(x=>x.id===el.dataset.historyJump);await goToMessage(item,el.dataset.jumpIndex===undefined?null:Number(el.dataset.jumpIndex),el.dataset.jumpKind);}
       else if(el.dataset.historyDelete)await deleteImages({ids:[el.dataset.historyDelete]});
       else if(el.dataset.historyDetach)await removeImageFromChat(historyItems.find(x=>x.id===el.dataset.historyDetach));
@@ -2350,10 +2368,10 @@ function bindEvents() {
       if(el.hasAttribute('data-wear-once')){if(el.value)wearOnce(el.closest('[data-character]').dataset.character,el.value);return;}
       if(el.hasAttribute('data-lock')){const id=el.closest('[data-character]').dataset.character;saveOutfit(id,el.checked).catch(e=>notice(e.message,true));return;}
       for(const field of ['location','lighting','camera','interaction'])if(el.id===`ncs-${field}`){scene[field]=el.value;changed();return;}
-      if(el.id==='ncs-message-button'){settings().messageButton=el.checked;ctx().saveSettingsDebounced();setMessageButtons(el.checked);notice(el.checked?'메시지 날짜 옆에 그리기 아이콘을 넣었어요.':'메시지의 그리기 아이콘을 뺐어요.');return;}
-      if(el.id==='ncs-inline-layout'||el.id==='ncs-inline-size'){settings()[el.id==='ncs-inline-layout'?'inlineLayout':'inlineSize']=el.value;ctx().saveSettingsDebounced();renderChatImages();return;}
-      if(el.id==='ncs-chat-image-placement'){assertChat();const c=ctx();c.chatMetadata[KEY]??={};if(el.value)c.chatMetadata[KEY].imagePlacement=el.value;else delete c.chatMetadata[KEY].imagePlacement;c.saveMetadata().catch(e=>notice(e.message,true,'settings'));renderChatImages();notice('이 채팅의 그림 표시 위치를 바꿨어요.');return;}
-      if(el.id==='ncs-image-placement'){settings().imagePlacement=el.value==='above'?'above':'below';ctx().saveSettingsDebounced();renderChatImages();notice(el.value==='above'?'채팅 속 그림을 메시지 글 위에 보여줘요.':'채팅 속 그림을 메시지 글 아래에 보여줘요.');return;}
+      if(el.id==='ncs-message-button'){settings().messageButton=el.checked;ctx().saveSettingsDebounced();setMessageButtons(el.checked);renderChatImageSummary();notice(el.checked?'메시지 날짜 옆에 그리기 아이콘을 넣었어요.':'메시지의 그리기 아이콘을 뺐어요.');return;}
+      if(el.id==='ncs-inline-layout'||el.id==='ncs-inline-size'){settings()[el.id==='ncs-inline-layout'?'inlineLayout':'inlineSize']=el.value;ctx().saveSettingsDebounced();renderChatImages();renderChatImageSummary();return;}
+      if(el.id==='ncs-chat-image-placement'){assertChat();const c=ctx();c.chatMetadata[KEY]??={};if(el.value)c.chatMetadata[KEY].imagePlacement=el.value;else delete c.chatMetadata[KEY].imagePlacement;c.saveMetadata().catch(e=>notice(e.message,true,'settings'));renderChatImages();renderChatImageSummary();notice('이 채팅의 기본 위치를 바꿨어요. 따로 정한 그림은 그대로예요.');return;}
+      if(el.id==='ncs-image-placement'){settings().imagePlacement=el.value==='above'?'above':'below';ctx().saveSettingsDebounced();renderChatImages();renderChatImageSummary();notice(el.value==='above'?'채팅 속 그림을 메시지 글 위에 보여줘요.':'채팅 속 그림을 메시지 글 아래에 보여줘요.');return;}
       if(el.id==='ncs-save-zip'){settings().saveAsZip=el.checked;ctx().saveSettingsDebounced();renderSelectionSave();return;}
       if(el.id==='ncs-retain-raw'){
         if(el.checked&&!confirm('추출 AI 응답 원문을 추가로 보관할까요?\n개인정보 주의: 응답에 이름·대화 인용 등이 포함될 수 있어요. 앞으로 만드는 그림의 이력과 마지막 작업에 보관되고, PNG에는 들어가지 않아요.'))el.checked=false;
@@ -2450,7 +2468,7 @@ async function initialize() {
     const open=event.target.closest('[data-ncs-inline-view]');
     if(open){event.preventDefault();event.stopPropagation();try{const attachment=attachmentOf(open);const id=open.dataset.ncsInlineView;
       const asItem=entry=>({id:entry.id,image:`/user/images/naice-shot/${entry.id}.png`,chatKey:attachment.chatKey,...(entry.created?{created:entry.created}:{}),...(Number.isInteger(entry.seed)?{seed:entry.seed}:{})});
-      const siblings=visibleInlineImages(attachment.message).map(asItem),item=siblings.find(x=>x.id===id)??asItem({id});viewImage(item,{attachment,siblings});}catch(e){console.error('[NAIce Shot]',e.message);}return;}
+      const siblings=orderedInlineImages(attachment.message,imagePlacement()).map(asItem),item=siblings.find(x=>x.id===id)??asItem({id});viewImage(item,{attachment,siblings});}catch(e){console.error('[NAIce Shot]',e.message);}return;}
     const button=event.target.closest('[data-ncs-inline-remove]');if(!button)return;
     event.preventDefault();const id=button.dataset.ncsInlineRemove,attachment=attachmentOf(button);
     removeMessageImage({id,image:`/user/images/naice-shot/${id}.png`,chatKey:attachment.chatKey},attachment).catch(e=>say(e.message,true));

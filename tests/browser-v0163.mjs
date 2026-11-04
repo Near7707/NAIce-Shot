@@ -61,15 +61,15 @@ try{
   await page.locator('[data-action="extract"]').click();await idle(page);assert.doesNotMatch(await page.locator('#ncs-notice').innerText(),/불완전/);
   await page.clock.fastForward(30000);assert.equal(await shown(page),false,'a plain success folds');
   // A settings notice, then an extraction on the drawing tab that fails.
-  await page.locator('[data-tab="settings"]').click();await page.locator('#ncs-message-button').check();assert.equal(await shown(page),true,'settings notice');
+  await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});await page.locator('#ncs-message-button').check();assert.equal(await shown(page),true,'settings notice');
   await page.locator('[data-tab="scene"]').click();
   await page.evaluate(()=>{let done,n=0;mock.generateRaw=async function(){this.extractCalls=(this.extractCalls??0)+1;if(n++===0)return await new Promise(r=>done=r);return 'not json';};mock.finishExtraction=()=>done('not json');});
   await page.locator('[data-action="extract"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-progress').hidden);
-  await page.locator('[data-tab="settings"]').click();assert.equal(await shown(page),false,'nothing but the progress box while working');
+  await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});assert.equal(await shown(page),false,'nothing but the progress box while working');
   await page.locator('[data-tab="scene"]').click();await page.evaluate(()=>mock.finishExtraction());
   await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden);
   assert.equal(await shown(page),true,'the error shows once the work ends');
-  await page.clock.fastForward(30000);await page.locator('[data-tab="settings"]').click();assert.equal(await shown(page),false,"another tab's error does not keep this notice open");
+  await page.clock.fastForward(30000);await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});assert.equal(await shown(page),false,"another tab's error does not keep this notice open");
   assert.deepEqual(errors,[]);await page.close();
  }
  {// Viewer: date only, 메시지로 가기 beside 프롬프트 보기, readable notes, no flash; chat pictures: no ⋯, [삭제], date and seed.

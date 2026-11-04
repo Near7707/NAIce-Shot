@@ -76,7 +76,7 @@ try{
   await page.evaluate(()=>{mock.chat[3].is_system=false;document.querySelector('#chat .mes[mesid="3"]').setAttribute('is_system','false');});
   await page.waitForFunction(()=>{const row=document.querySelector('#ncs-target-list [data-message-index="3"]');return row&&!row.textContent.includes('숨김');});
   assert.equal(await icon(3).count(),1);assert.ok(await page.locator('.ncs-content').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
-  await page.locator('#ncs-target-label').click();await page.locator('[data-tab="settings"]').click();await page.locator('#ncs-message-button').uncheck();
+  await page.locator('#ncs-target-label').click();await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});await page.locator('#ncs-message-button').uncheck();
   assert.equal(await page.locator('#chat .ncs-mes-draw').count(),0);assert.deepEqual(errors,[]);await page.close();
  }
  console.log('PASS: hidden user/character icons, tagged system exclusion, hidden labels, explicit hidden extraction/reference scope, unchanged chat/hide/privacy, generation guard, hidden image attachment, visible latest mode, live hide/unhide updates and mobile fit.');

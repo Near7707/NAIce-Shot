@@ -153,7 +153,7 @@ Profiles are shared across character chats. Scene extraction checks visible peop
 
 The expandable target-message picker lists newest messages first in a scrolling box. **이전 메시지 N개 더 보기** adds ten more rows. Hidden RP messages are marked **숨김** and can also use the optional draw icon. Selecting a hidden target explicitly sends it and the preceding reference range (including hidden RP) to the extraction AI, without changing chat hide flags. Latest mode and visible targets exclude hidden history. Images can be attached to hidden RP too. Explicit system-type/UI notices are excluded; legacy untyped `is_system` records cannot be distinguished reliably from hidden RP and are available for manual selection. The target-message list also remembers its browsing position and loaded rows when reopened. Each panel tab remembers its own scroll position when switching tabs or closing and reopening the panel, until the browser page is refreshed.
 
-In **설정 → 채팅 속 그림**, choose a global default and an optional **이 채팅의 위치** override. The override is saved with the chat; selecting **전체 기본값 따르기** removes it. Existing attachments move immediately without changing message text.
+In **설정 → 채팅 속 그림** (folded; its title shows the current choices), choose a global default (**메시지 글 위** unless you pick 아래) and an optional **이 채팅의 기본 위치**. The chat setting is saved with the chat; selecting **전체 기본값 따르기** removes it. Existing attachments move immediately without changing message text. Each picture can also have its own place: choose **기본 위치 / 글 위 / 글 아래** in the 본문에 넣기 list, or open a chat picture and use ⋯ → **글 위로 옮기기 / 글 아래로 옮기기 / 기본 위치로 되돌리기**. A picture with its own place stays there when the defaults change.
 
 Several pictures in one message show as **넘겨보기** (default: one picture at a time, in the same place and size as a single picture, with ‹ n/m › buttons under it — there is no swipe, so a sideways swipe stays SillyTavern's own), **격자** (pictures side by side at one height, wrapping to the next line) or **세로**, in **작게 · 보통 · 크게** (about 200 / 320 / 480px; in 격자 the row height is about 120 / 180 / 260px). No frame or background is added; pictures keep their shape and are never cropped.
 
@@ -203,7 +203,7 @@ Restoring history uses that record's prompt, seed and options without changing p
 
 - Profiles, preferences and shared presets use SillyTavern extension settings under `naice_shot`.
 - Chat bindings and outfits use chat metadata under `naice_shot`.
-- Inline image attachment metadata uses `extra.naice_shot_images`. Images are drawn above or below the message text (Settings → 채팅 속 그림); the message text itself is never changed, so prompts, summaries and extraction do not see the images.
+- Inline image attachment metadata uses `extra.naice_shot_images`. Images are drawn above or below the message text (per picture `placement`, else Settings → 채팅 속 그림); the message text itself is never changed, so prompts, summaries and extraction do not see the images.
 - PNG files use the `naice-shot/` subfolder of SillyTavern's user-images directory.
 - Generation records use `<user data root>/naice-shot-records/`, outside the web-served image folder.
 - Records include submitted prompts, exact payload and extracted scene. Raw extraction responses are omitted by default; explicit opt-in retains a copy with known reasoning tags removed. Older records are not automatically scrubbed. They do not include the NovelAI request authorization header.

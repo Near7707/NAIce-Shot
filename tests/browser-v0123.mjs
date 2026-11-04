@@ -39,7 +39,7 @@ try{
  // Turn it on: AI and user messages get it, system and empty ones do not.
  await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
  assert.match(await page.locator('#ncs-brand-icon').innerHTML(),/#ffd65a/);
- await page.locator('[data-tab="settings"]').click();assert.equal(await page.locator('#ncs-message-button').isChecked(),false);
+ await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});assert.equal(await page.locator('#ncs-message-button').isChecked(),false);
  await page.locator('#ncs-message-button').check();
  assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.messageButton),true);
  assert.deepEqual(await page.$$eval('#chat .mes[mesid]',els=>els.filter(e=>e.querySelector('.ncs-mes-draw')).map(e=>e.getAttribute('mesid'))),['0','1','4']);
@@ -74,7 +74,7 @@ try{
  await page.locator('#ncs-progress-cancel').click();
 
  // Off again: every button removed and none come back.
- await page.locator('[data-tab="settings"]').click();await page.locator('#ncs-message-button').uncheck();
+ await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});await page.locator('#ncs-message-button').uncheck();
  assert.equal(await buttons(page).count(),0);
  await page.evaluate(()=>mock.renderChat());await page.waitForTimeout(150);assert.equal(await buttons(page).count(),0);
  // 미니멀 keeps the icon in color.

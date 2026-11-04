@@ -29,27 +29,31 @@ export async function attachInlineImage(context,item,options={}) {
  return {duplicate:duplicates>0&&!added,targetIndex};
 }
 // 0.1.72: several pictures go into one message with one chat save (선택 본문에 넣기).
-export async function attachInlineImages(context,items,{targetIndex,isCurrent=()=>true}={}) {
+export async function attachInlineImages(context,items,{targetIndex,placement=null,isCurrent=()=>true}={}) {
+ const place=PLACEMENTS.includes(placement)?placement:null; // null: follow the chat's or global default
  for(const item of items)imageDownload(item);
  if(!isCurrent())throw new Error('채팅이 바뀌었어요. 현재 채팅에서 다시 선택해 주세요.');
  if(!Array.isArray(context.chat)||typeof context.saveChat!=='function')throw new Error('현재 채팅에 이미지를 저장할 수 없어요.');
  const message=context.chat[targetIndex];
  if(!Number.isInteger(targetIndex)||!isSceneMessage(message))throw new Error('그림을 넣을 RP 메시지를 선택해 주세요.');
  let list=Array.isArray(message.extra?.[IMAGE_KEY])?message.extra[IMAGE_KEY]:[];
- const swipeId=message.swipe_id??0,signature=textSignature(message.mes);let added=0,duplicates=0;
+ const swipeId=message.swipe_id??0,signature=textSignature(message.mes);let added=0,duplicates=0,moved=0;
  for(const item of items){
   const entry={id:item.id,image:item.image,swipeId,signature};
   // When it was made and its seed, so the enlarged view from the chat can show them (0.1.63). Nothing private.
   if(typeof item.created==='string'&&!Number.isNaN(Date.parse(item.created)))entry.created=item.created;
   if(Number.isInteger(item.seed))entry.seed=item.seed;
-  if(list.some(x=>x.id===item.id&&x.signature===signature&&x.swipeId===swipeId)){duplicates++;continue;}
+  if(place)entry.placement=place;
+  const same=list.find(x=>x.id===item.id&&x.signature===signature&&x.swipeId===swipeId);
+  // Already here: only a different chosen place changes it (moved); otherwise nothing to do.
+  if(same){if(place&&same.placement!==place){list=list.map(x=>x===same?{...x,placement:place}:x);moved++;}else duplicates++;continue;}
   if(!list.some(x=>x.id===item.id)&&list.length>=20)throw new Error('한 메시지에는 이미지를 최대 20개까지 넣을 수 있어요.');
   list=[...list.filter(x=>x.id!==item.id),entry];added++;
  }
- if(added){message.extra={...message.extra,[IMAGE_KEY]:list};syncActiveSwipe(message);}
+ if(added||moved){message.extra={...message.extra,[IMAGE_KEY]:list};syncActiveSwipe(message);}
  // No new messages, text edits, native media fields or RP generation events.
- if(added||items.length===1)await context.saveChat();
- return {added,duplicates,targetIndex};
+ if(added||moved||items.length===1)await context.saveChat();
+ return {added,duplicates,moved,targetIndex};
 }
 export async function detachInlineImage(context,item,options={}) {
  imageDownload(item);
@@ -72,6 +76,24 @@ export async function detachMessageImage(context,item,{message,swipeId,signature
  try { await context.saveChat(); }
  catch(e){for(const {owner,old,next} of edits)if(owner.extra===next)owner.extra=old;throw e;}
  return {removed:edits.length};
+}
+// 0.1.74: moves this message's copy of a picture above or below the text (null: back to the default place), including
+// its swipe copies. Checked like detachMessageImage: the same message, reroll and text as when the view opened.
+export async function placeMessageImage(context,item,{message,swipeId,signature,placement=null,isCurrent=()=>true}={}) {
+ imageDownload(item);const place=PLACEMENTS.includes(placement)?placement:null;
+ if(!isCurrent())throw new Error('채팅이 바뀌었어요. 현재 채팅에서 다시 선택해 주세요.');
+ if(!context.chat?.includes(message)||
+    (message.swipe_id??0)!==swipeId||textSignature(message.mes)!==signature||!visibleInlineImages(message).some(x=>x.id===item.id))
+  throw new Error('메시지나 리롤이 바뀌었어요. 해당 그림을 다시 열어 주세요.');
+ const edits=[];
+ for(const owner of [message,...(message.swipe_info??[]).filter(x=>x&&typeof x==='object')]){
+  const old=owner.extra,list=old?.[IMAGE_KEY];if(!Array.isArray(list)||!list.some(x=>x.id===item.id))continue;
+  const next={...old,[IMAGE_KEY]:list.map(x=>{if(x.id!==item.id)return x;const y={...x};if(place)y.placement=place;else delete y.placement;return y;})};
+  edits.push({owner,old,next});owner.extra=next;
+ }
+ try { await context.saveChat(); }
+ catch(e){for(const {owner,old,next} of edits)if(owner.extra===next)owner.extra=old;throw e;}
+ return {changed:edits.length};
 }
 // Removes every attachment of the given image IDs from the current chat (all messages and swipes), one save.
 export async function detachInlineImages(context,ids,{isCurrent=()=>true}={}) {
@@ -107,16 +129,31 @@ function slideControls(holder,tiles){
  prev.addEventListener('click',go(-1));next.addEventListener('click',go(1));
  bar.append(prev,position,next);holder.append(bar);show(0);
 }
-export function renderInlineImages(context,root,chatKey,{placement='below',layout='slide',size='medium'}={}) {
- const where=placement==='above'?'above':'below';
+// 0.1.74: a picture may carry its own place ('above' or 'below' the message text). Pictures without one follow the
+// chat's or the global default. Each side is its own group with the chosen layout.
+export const PLACEMENTS=['above','below'];
+export const placementOf=(item,fallback)=>PLACEMENTS.includes(item?.placement)?item.placement:fallback;
+// The message's pictures in the order they show: the group above the text first, then the group below.
+export function orderedInlineImages(message,fallback='above'){
+ const items=visibleInlineImages(message);
+ return [...items.filter(x=>placementOf(x,fallback)==='above'),...items.filter(x=>placementOf(x,fallback)==='below')];
+}
+export function renderInlineImages(context,root,chatKey,{placement='above',layout='slide',size='medium'}={}) {
+ const fallback=placement==='below'?'below':'above';
  const shape=INLINE_LAYOUTS.includes(layout)?layout:'slide',scale=INLINE_SIZES.includes(size)?size:'medium';
  if(!root)return;
  for(const element of root.querySelectorAll('.mes[mesid]')){
-  const index=Number(element.getAttribute('mesid')),message=context.chat?.[index];
-  const items=visibleInlineImages(message),signature=JSON.stringify([where,shape,scale,items]);
-  let holder=element.querySelector('.ncs-inline-images');
-  if(!items.length){holder?.remove();continue;}
-  if(holder?.dataset.signature===signature&&holder.dataset.chatKey===chatKey)continue;
+  const index=Number(element.getAttribute('mesid')),message=context.chat?.[index],all=visibleInlineImages(message);
+  for(const where of PLACEMENTS)renderGroup(element,where,all.filter(x=>placementOf(x,fallback)===where),{shape,scale,chatKey});
+  // Holders from before 0.1.74 (no side) or with an unknown side are cleared.
+  for(const old of element.querySelectorAll('.ncs-inline-images'))if(!PLACEMENTS.includes(old.dataset.placement))old.remove();
+ }
+}
+function renderGroup(element,where,items,{shape,scale,chatKey}){
+  const signature=JSON.stringify([where,shape,scale,items]);
+  let holder=element.querySelector(`.ncs-inline-images[data-placement="${where}"]`);
+  if(!items.length){holder?.remove();return;}
+  if(holder?.dataset.signature===signature&&holder.dataset.chatKey===chatKey)return;
   holder?.remove();holder=document.createElement('div');holder.className='ncs-inline-images';holder.dataset.signature=signature;holder.dataset.chatKey=chatKey;holder.dataset.placement=where;
   // One picture is simply shown; the layouts only matter for two or more.
   const mode=items.length>1?shape:'stack';holder.dataset.layout=mode;holder.dataset.size=scale;
@@ -136,5 +173,4 @@ export function renderInlineImages(context,root,chatKey,{placement='below',layou
   if(mode==='slide')slideControls(holder,tiles);
   const text=element.querySelector('.mes_text');
   if(text)where==='above'?text.before(holder):text.after(holder);else (element.querySelector('.mes_block')??element)[where==='above'?'prepend':'append'](holder);
- }
 }

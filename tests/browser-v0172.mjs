@@ -135,9 +135,9 @@ try{
   await page.waitForFunction(()=>document.querySelector('#chat .mes[mesid="1"] .ncs-inline-slide-count').textContent==='3 / 3');await page.waitForTimeout(200);
   assert.equal(await page.evaluate(()=>window.__scans),0,'no chat re-scan while sliding');
   // --- UI-071-02: dates shown on some messages only — each message decides for itself.
-  await page.locator('.ncs-launch-button').click();await page.locator('[data-tab="settings"]').click();await page.locator('#ncs-message-button').check();await page.locator('[data-action="close"]').click();
+  await page.locator('.ncs-launch-button').click();await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});await page.locator('#ncs-message-button').check();await page.locator('[data-action="close"]').click();
   await page.evaluate(()=>{for(const m of document.querySelectorAll('#chat .mes')){const s=document.createElement('small');s.className='timestamp';s.textContent='2026. 1. 1. 오후 3:00';if(m.getAttribute('mesid')==='0')s.style.display='none';m.querySelector('.mes_block').prepend(s);}});
-  await page.locator('.ncs-launch-button').click();await page.locator('[data-tab="settings"]').click();await page.locator('#ncs-message-button').uncheck();await page.locator('#ncs-message-button').check();await page.locator('[data-action="close"]').click();
+  await page.locator('.ncs-launch-button').click();await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});await page.locator('#ncs-message-button').uncheck();await page.locator('#ncs-message-button').check();await page.locator('[data-action="close"]').click();
   await page.waitForFunction(()=>document.querySelector('#chat .mes[mesid="1"] .timestamp + .ncs-mes-draw')&&document.querySelector('#chat .mes[mesid="0"] .extraMesButtons .ncs-mes-draw'));
   assert.equal(await page.locator('#chat .ncs-mes-draw').count(),2,'one each');
   // The date of #0 shows later: its icon moves to the date on the next pass.

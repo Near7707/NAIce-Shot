@@ -33,23 +33,23 @@ try{
  await page.locator('#ncs-allow-anlas').check();await click('generate');await page.locator('#ncs-result img').waitFor();
  const before=await page.evaluate(()=>JSON.stringify(mock.chat.map(m=>m.mes)));
  await click('attach');await click('attach-confirm');await page.waitForFunction(()=>document.querySelector('#chat .ncs-inline-images'));
- assert.equal(await order(),'text-first','default is below the text');
+ assert.equal(await order(),'image-first','0.1.74: default is above the text');
 
- await page.locator('[data-tab="settings"]').click();
- assert.equal(await page.locator('#ncs-image-placement').inputValue(),'below');
- await page.locator('#ncs-image-placement').selectOption('above');
- await page.waitForFunction(()=>document.querySelector('#chat .ncs-inline-images')?.dataset.placement==='above');
- assert.equal(await order(),'image-first','moves above the text right away');
- assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.imagePlacement),'above','saved');
+ await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});
+ assert.equal(await page.locator('#ncs-image-placement').inputValue(),'above');
+ await page.locator('#ncs-image-placement').selectOption('below');
+ await page.waitForFunction(()=>document.querySelector('#chat .ncs-inline-images')?.dataset.placement==='below');
+ assert.equal(await order(),'text-first','moves below the text right away');
+ assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.imagePlacement),'below','saved');
  assert.equal(await page.evaluate(()=>JSON.stringify(mock.chat.map(m=>m.mes))),before,'message text untouched');
  assert.equal(await page.locator('#chat .ncs-inline-images').count(),1,'no duplicate holder');
 
  // New messages and re-renders keep the chosen side.
  await page.evaluate(()=>mock.emit('MESSAGE_EDITED'));await page.waitForTimeout(100);
- assert.equal(await order(),'image-first');
- await page.locator('#ncs-image-placement').selectOption('below');
- await page.waitForFunction(()=>document.querySelector('#chat .ncs-inline-images')?.dataset.placement==='below');
  assert.equal(await order(),'text-first');
+ await page.locator('#ncs-image-placement').selectOption('above');
+ await page.waitForFunction(()=>document.querySelector('#chat .ncs-inline-images')?.dataset.placement==='above');
+ assert.equal(await order(),'image-first');
  assert.deepEqual(errors,[]);
  console.log('PASS: chat image placement below by default, switch to above and back moves existing images at once, saved, text untouched, no duplicates');
 }finally{await browser.close();server.close();}

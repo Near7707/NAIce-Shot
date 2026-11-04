@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.74 — 2026-11-05 (extension only; server v0.1.17 unchanged)
+
+Each picture can sit above or below the message text.
+
+- **Per-picture place:** in the 본문에 넣기 list, choose **기본 위치 (글 위)** (chosen by default), **글 위** or **글 아래**. A chat picture's ⋯ in the enlarged view offers **글 위로 옮기기 / 글 아래로 옮기기** and, for a picture with its own place, **기본 위치로 되돌리기**. Putting an attached picture in again with another place moves it. A message can have a group above and a group below its text, each shown 넘겨보기 / 격자 / 세로; the enlarged view goes through the group above first.
+- **Defaults:** pictures go **above** the text unless you chose 아래 before (a saved "아래" stays). "이 채팅의 위치" is now **이 채팅의 기본 위치**, with a note on placing pictures one by one. Pictures with their own place stay put when a default changes.
+- **Settings → 채팅 속 그림** is folded; its title shows where pictures go, the layout, the size and whether the draw icon is on. 추출 AI 세부 설정 uses the same fold.
+- Tests: new `browser-v0174` (375 and 1100px) and a unit test for places; older scripts open the fold and expect the new default.
+
 ## 0.1.73 — 2026-11-05 (extension only; server v0.1.17 unchanged)
 
 Small fixes and tidying from the user's check.

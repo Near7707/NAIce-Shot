@@ -1,3 +1,12 @@
+# v0.1.74 validation — 2026-11-05
+
+- Extension Node suite: **151 passed, 0 failed** (new: a chosen place is stored and the default stores nothing; the group above comes first; putting a picture in again elsewhere moves it, 기본 위치 leaves an own place alone; placeMessageImage sets and clears the place on the message and its swipe copy and refuses a changed message).
+- Server Node suite: server unchanged.
+- **63 of 63 Chromium browser scripts passed.** New `browser-v0174` at 375 and 1100px: 채팅 속 그림 folded with " · 글 위 · 넘겨보기 · 보통 · 그리기 아이콘 끔" in its title, the global default 글 위, "이 채팅의 기본 위치" and the per-picture note; the 본문에 넣기 box offers 기본 위치 (글 위) (chosen) / 글 위 / 글 아래; a picture put in 글 아래 sits after the text with the notice "#1 메시지 글 아래에 …", a second with the default sits before it; 이 채팅의 기본 위치 = 아래 moves only the default one (one group of two, title "글 아래(이 채팅)"); from the enlarged view (2 / 2, the picture above first) ⋯ shows 글 위로 옮기기 and 기본 위치로 되돌리기 but not 글 아래로, and both work; a picture without its own place offers only the move; putting an attached picture in again with 글 아래 moves it without adding it twice. Older scripts open the fold (v0123, v0125, v0147, v015, v0159, v0163, v0171, v0172, v019), expect the new default (v015, v0147) and count only message rows as chosen (v040, v0151, v0153, v0154).
+- Visual check: the 본문에 넣기 box with the place row and the folded settings at 375 and 1100px (local screenshots only).
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern, iPhone Safari.
+
 # v0.1.73 validation — 2026-11-05
 
 - Extension Node suite: **150 passed, 0 failed**.

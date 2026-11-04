@@ -45,7 +45,7 @@ try{
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.addStyleTag({content:`select,input,textarea{background:${theme.bg}!important;background-color:${theme.bg}!important;color:${theme.fg}!important;-webkit-text-fill-color:${theme.fg}!important}`});
   await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
-  await page.locator('[data-tab="settings"]').click();
+  await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});
   await page.waitForFunction(()=>document.querySelectorAll('#ncs-skins .ncs-skin').length===17);await page.evaluate(()=>{document.querySelector('#ncs-theme-box').open=true;});
   for(const skin of ['classic','glass','minimal','pastel','cream','matcha','deepblue','lavender','milk','strawberrymilk','bananamilk','chocomilk','coffeemilk','apple','christmas','snownight','candycane']){
    await page.locator(`.ncs-skin:has(input[value="${skin}"])`).click();await page.waitForTimeout(250);

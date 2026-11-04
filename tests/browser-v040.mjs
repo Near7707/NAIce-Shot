@@ -82,7 +82,7 @@ try{
  // no source message, so 자동 asks for a message instead of quietly using the latest (v0.1.51).
  const newest=seeded.at(-1),second=seeded.at(-2);
  await pick(page,`[data-history-attach="${newest.id}"]`);
- await page.locator('#ncs-attach-dialog[open]').waitFor();assert.equal(await page.locator('#ncs-attach-dialog [aria-pressed="true"]').count(),0,'no message chosen for it');assert.equal(await page.locator('[data-action="attach-confirm"]').isDisabled(),true);await page.locator('[data-action="attach-cancel"]').click();
+ await page.locator('#ncs-attach-dialog[open]').waitFor();assert.equal(await page.locator('#ncs-attach-dialog [data-attach-target][aria-pressed="true"]').count(),0,'no message chosen for it');assert.equal(await page.locator('[data-action="attach-confirm"]').isDisabled(),true);await page.locator('[data-action="attach-cancel"]').click();
  assert.equal(await page.evaluate(()=>mock.chat.some(m=>m.extra?.naice_shot_images?.length)),false);
  await pick(page,`[data-history-attach="${newest.id}"]`);await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();
  await page.waitForFunction(id=>mock.chat[1]?.extra?.naice_shot_images?.some(x=>x.id===id),newest.id);

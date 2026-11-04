@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {attachInlineImage,attachInlineImages,detachInlineImage,visibleInlineImages,hasInlineImage,imageDownload,IMAGE_KEY} from '../inline-images.mjs';
+import {attachInlineImage,attachInlineImages,placeMessageImage,orderedInlineImages,detachInlineImage,visibleInlineImages,hasInlineImage,imageDownload,IMAGE_KEY} from '../inline-images.mjs';
 import {chooseMessages} from '../core.mjs';
 const id='78c72e1e-e533-4188-9c93-a776da821ce3',item={id,image:`/user/images/naice-shot/${id}.png`};
 function context(){return {chat:[{name:'Mira',is_user:true,mes:'hello'},{name:'Leo',mes:'RP text',extra:{reasoning:'private',media:[{type:'image',url:'/existing.png'}]}}],saves:0,async saveChat(){this.saves++;}};}
@@ -65,4 +65,17 @@ test('several pictures go into one message with one save; duplicates stay once a
  const full=context();full.chat[1].extra[IMAGE_KEY]=Array.from({length:19},(_,i)=>({id:`${String(i).padStart(8,'0')}-0000-4000-8000-000000000000`,image:'/x.png',swipeId:0,signature:'s'}));
  const before=structuredClone(full.chat[1].extra);
  await assert.rejects(attachInlineImages(full,items,{targetIndex:1}),/최대 20개/);assert.deepEqual(full.chat[1].extra,before);assert.equal(full.saves,0);
+});
+test('a picture keeps its own place; putting it in again elsewhere moves it; placeMessageImage sets and clears it with swipe copies',async()=>{
+ const other='33333333-3333-4333-8333-333333333333',b={id:other,image:`/user/images/naice-shot/${other}.png`};
+ const ctx=context();ctx.chat[1].swipe_info=[{}];
+ let r=await attachInlineImages(ctx,[item],{targetIndex:1,placement:'below'});assert.equal(ctx.chat[1].extra[IMAGE_KEY][0].placement,'below');
+ await attachInlineImages(ctx,[b],{targetIndex:1});assert.equal('placement' in ctx.chat[1].extra[IMAGE_KEY][1],false,'the default stores nothing');
+ assert.deepEqual(orderedInlineImages(ctx.chat[1],'above').map(x=>x.id),[other,id],'above first');
+ r=await attachInlineImages(ctx,[item],{targetIndex:1,placement:'above'});assert.deepEqual([r.added,r.moved],[0,1]);assert.equal(ctx.chat[1].extra[IMAGE_KEY].length,2);
+ r=await attachInlineImages(ctx,[item],{targetIndex:1});assert.deepEqual([r.added,r.moved,r.duplicates],[0,0,1],'기본 위치 leaves an own place alone');
+ const m=ctx.chat[1],at={message:m,swipeId:0,signature:m.extra[IMAGE_KEY][0].signature};
+ await placeMessageImage(ctx,b,{...at,placement:'below'});assert.equal(m.extra[IMAGE_KEY][1].placement,'below');assert.equal(m.swipe_info[0].extra[IMAGE_KEY][1].placement,'below','swipe copy too');
+ await placeMessageImage(ctx,b,{...at,placement:null});assert.equal('placement' in m.extra[IMAGE_KEY][1],false);
+ await assert.rejects(placeMessageImage(ctx,b,{...at,signature:'other'}),/다시 열어/);
 });

@@ -1,5 +1,14 @@
 # Installation and update checklist
 
+## v0.1.74
+
+Update the extension and refresh. No server update is needed.
+
+1. Settings → 채팅 속 그림 is folded; its title says where pictures go. If you never chose a place before, pictures now show above the text.
+2. Press 본문에 넣기: under the list, choose 기본 위치 / 글 위 / 글 아래.
+3. Tap a picture in the chat → ⋯ → 글 아래로 옮기기 (or 글 위로 옮기기).
+
+
 ## v0.1.73
 
 Update the extension and refresh. No server update is needed.

@@ -63,7 +63,7 @@ const viewerReady=page=>page.waitForFunction(()=>{const d=document.getElementByI
 const rect=(page,sel)=>page.locator(sel).first().boundingBox();
 const apart=(a,b)=>a.x+a.width<=b.x+0.5;
 const holder='#chat .mes[mesid="1"] .ncs-inline-images';
-const setting=async(page,id,value)=>{await page.locator('[data-tab="settings"]').click();await page.locator(`#${id}`).selectOption(value);await page.waitForFunction(([v])=>document.querySelector('#chat .mes[mesid="1"] .ncs-inline-images')?.dataset.layout&&true,[value]);};
+const setting=async(page,id,value)=>{await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});await page.locator(`#${id}`).selectOption(value);await page.waitForFunction(([v])=>document.querySelector('#chat .mes[mesid="1"] .ncs-inline-images')?.dataset.layout&&true,[value]);};
 // Three pictures in message #1.
 async function threeInMessage(page){
  for(let i=0;i<3;i++){await page.locator('[data-action="generate"]').click();await idle(page);await page.locator('[data-action="attach"]').click();await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();await page.waitForTimeout(150);}
@@ -108,7 +108,7 @@ try{
   assert.equal(await page.locator(`${holder} .ncs-inline-slide-next`).isDisabled(),true);
   // --- 격자 (0.1.73): pictures side by side at one height, no grey cells; 작게 = 120px.
   await page.locator('.ncs-launch-button').click();
-  await page.locator('[data-tab="settings"]').click();await page.locator('#ncs-inline-layout').selectOption('grid');await page.locator('#ncs-inline-size').selectOption('small');
+  await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});await page.locator('#ncs-inline-layout').selectOption('grid');await page.locator('#ncs-inline-size').selectOption('small');
   await page.waitForFunction(()=>{const h=document.querySelector('#chat .mes[mesid="1"] .ncs-inline-images');return h.dataset.layout==='grid'&&h.dataset.size==='small';});
   const tiles=await page.locator(`${holder} .ncs-inline-image`).evaluateAll(els=>els.map(e=>{const r=e.getBoundingClientRect(),i=e.querySelector('img'),ir=i.getBoundingClientRect();return {h:Math.round(r.height),bg:getComputedStyle(e).backgroundColor,ratio:Math.abs(ir.width/ir.height-i.naturalWidth/i.naturalHeight)};}));
   assert.ok(tiles.every(t=>t.h===120),'작게 = 120px row');assert.ok(tiles.every(t=>t.bg==='rgba(0, 0, 0, 0)'),'no grey cells');assert.ok(tiles.every(t=>t.ratio<0.02),'shapes kept, nothing cropped');
@@ -153,17 +153,17 @@ try{
   const fin=await page.evaluate(()=>JSON.parse(document.querySelector('#ncs-final').value).characters.find(c=>c.name==='Mira').prompt);
   assert.doesNotMatch(fin,/freckles/);assert.match(fin,/long black hair/);
   // --- Message icon: always visible after the date; at the end of the button row when the theme hides the date.
-  await page.locator('[data-tab="settings"]').click();const box=page.locator('#ncs-message-button');await box.check();
+  await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});const box=page.locator('#ncs-message-button');await box.check();
   await page.waitForFunction(()=>document.querySelector('#chat .mes[mesid="1"] .extraMesButtons .ncs-mes-draw'));
   await page.locator('[data-action="close"]').click();
   await page.evaluate(()=>{for(const m of document.querySelectorAll('#chat .mes')){const s=document.createElement('small');s.className='timestamp';s.textContent='2026. 1. 1. 오후 3:00';m.querySelector('.mes_block').prepend(s);}});
-  await page.locator('.ncs-launch-button').click();await page.locator('[data-tab="settings"]').click();await box.uncheck();await box.check();await page.locator('[data-action="close"]').click();
+  await page.locator('.ncs-launch-button').click();await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});await box.uncheck();await box.check();await page.locator('[data-action="close"]').click();
   const icon=page.locator('#chat .mes[mesid="1"] .timestamp + .ncs-mes-draw');await icon.waitFor();
   assert.equal(await icon.isVisible(),true,'shown without opening any menu');assert.equal(await page.locator('#chat .mes[mesid="1"] .extraMesButtons .ncs-mes-draw').count(),0,'only one icon');
   const ib=await icon.boundingBox(),sb=await rect(page,'#chat .mes[mesid="1"] .timestamp');assert.ok(Math.abs((ib.y+ib.height/2)-(sb.y+sb.height/2))<=4&&ib.x>=sb.x+sb.width,'on the date line, right after it');
   await icon.click();await page.waitForFunction(()=>document.getElementById('naice-shot-dialog').open);
   await page.locator('[data-action="close"]').click();
-  await page.addStyleTag({content:'#chat .timestamp{display:none}'});await page.locator('.ncs-launch-button').click();await page.locator('[data-tab="settings"]').click();await box.uncheck();await box.check();
+  await page.addStyleTag({content:'#chat .timestamp{display:none}'});await page.locator('.ncs-launch-button').click();await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});await box.uncheck();await box.check();
   await page.waitForFunction(()=>document.querySelector('#chat .mes[mesid="1"] .extraMesButtons .ncs-mes-draw')&&!document.querySelector('#chat .timestamp + .ncs-mes-draw'));
   await box.uncheck();await page.waitForFunction(()=>!document.querySelector('#chat .ncs-mes-draw'));
   assert.deepEqual(errors,[]);await page.close();

@@ -118,7 +118,7 @@ try{
     await jump.click();await page.waitForFunction(()=>{const r=document.querySelector('#ncs-generate-section').getBoundingClientRect(),c=document.querySelector('#naice-shot-dialog .ncs-content').getBoundingClientRect();return r.top<c.bottom&&r.bottom>c.top;});
     await page.waitForTimeout(400);assert.equal(await jump.isVisible(),false,`${tag}: hidden once there`);assert.equal(await page.locator('[data-action="generate"]').isVisible(),true);}
    // Message button from 프리샷 opens 챗샷 with that message.
-   await freeOn(page);await page.locator('[data-tab="settings"]').click();await page.locator('#ncs-message-button').check();
+   await freeOn(page);await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{const d=document.getElementById('ncs-chat-image-more');if(d)d.open=true;});await page.locator('#ncs-message-button').check();
    await page.locator('[data-action="close"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-mes-draw').click();
    await page.waitForFunction(()=>document.querySelector('[data-mode="chat"]').getAttribute('aria-pressed')==='true'&&document.querySelector('#ncs-target').value==='1');
    assert.equal(await page.locator('[data-page="scene"]').isVisible(),true);

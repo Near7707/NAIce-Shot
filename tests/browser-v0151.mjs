@@ -76,7 +76,7 @@ try{
   // Gone: the line is greyed with the reason, and 본문에 넣기 (auto) asks for a message instead of using the last one.
   await page.evaluate(()=>{mock.chat.splice(1,1);mock.renderChat();});
   await openMore(page);assert.equal(await slot(page).first().isDisabled(),true);assert.match(await slot(page).first().innerText(),/찾지 못했어요/);
-  await page.locator('.ncs-image-popup:popover-open [data-history-attach]').click();await page.locator('#ncs-attach-dialog[open]').waitFor();assert.equal(await page.locator('#ncs-attach-dialog [aria-pressed="true"]').count(),0,'no message chosen for it');assert.equal(await page.locator('[data-action="attach-confirm"]').isDisabled(),true);await page.locator('[data-action="attach-cancel"]').click();
+  await page.locator('.ncs-image-popup:popover-open [data-history-attach]').click();await page.locator('#ncs-attach-dialog[open]').waitFor();assert.equal(await page.locator('#ncs-attach-dialog [data-attach-target][aria-pressed="true"]').count(),0,'no message chosen for it');assert.equal(await page.locator('[data-action="attach-confirm"]').isDisabled(),true);await page.locator('[data-action="attach-cancel"]').click();
   assert.equal(await page.evaluate(()=>mock.chat.some(m=>m.extra?.naice_shot_images?.length)),false,'nothing attached silently');
   // Another chat: asks, opens it, then goes to the message.
   await page.evaluate(()=>{mock.chat.push({name:'Leo',mes:'Leo sits by the window. Scene Info: sunny afternoon.',send_date:'2026-01-01 1'});mock.savedChats={A:structuredClone(mock.chat)};mock.switchChat('B');});

@@ -840,4 +840,15 @@
 #naice-shot-dialog .ncs-attach-tag {display:inline-block;margin-left:6px;padding:0 6px;border-radius:var(--ncs-radius-pill);font-size:11.5px;line-height:1.6;color:var(--ncs-accent-text);border:1px solid var(--ncs-edge);}
 #naice-shot-dialog .ncs-attach-actions {position:sticky;bottom:0;margin:0 -18px;padding:12px 18px;background:inherit;border-top:1px solid var(--ncs-rule);justify-content:flex-end;}
 /* 0.1.73: 추출 AI 세부 설정 — the current values sit quietly after the title. */
-#naice-shot-dialog .ncs-extraction-summary {font-weight:400;font-size:13px;color:var(--ncs-muted);}
+#naice-shot-dialog .ncs-fold-values {font-weight:400;font-size:13px;color:var(--ncs-muted);}
+/* Folded settings groups (0.1.74: 추출 AI 세부 설정, 채팅 속 그림): same look as 고급, their own class. */
+#naice-shot-dialog .ncs-fold {border:1px solid var(--ncs-rule);border-radius:var(--ncs-radius-control);padding:4px 12px;margin-top:8px;}
+#naice-shot-dialog .ncs-fold > summary {cursor:pointer;font-weight:700;padding:8px 0;color:var(--ncs-fg);}
+#naice-shot-dialog .ncs-fold[open] {padding-bottom:12px;}
+#naice-shot-dialog .ncs-place-note {display:block;margin-top:6px;}
+/* 본문에 넣기 box: where to put it, then 넣기 · 취소. */
+#naice-shot-dialog .ncs-attach-actions {flex-wrap:wrap;}
+#naice-shot-dialog .ncs-attach-place {display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;}
+#naice-shot-dialog .ncs-attach-place > span {font-size:13px;color:var(--ncs-muted);margin-right:2px;}
+#naice-shot-dialog .ncs-attach-place button {padding:6px 10px;font-size:13px;min-height:36px;}
+#naice-shot-dialog .ncs-attach-place button[aria-pressed="true"] {border-color:var(--ncs-edge);background-color:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);font-weight:650;}
