@@ -1,5 +1,5 @@
 import { DEFAULTS, MODELS, clone, PROFILE_SCHEMA, profileDraftPrompt, parseProfileDraft, blankScene, validateProfiles, sourceValid,
-  assemble, resolveOutfit, buildPayload, costGuard, textSignature,
+  assemble, resolveOutfit, buildPayload, costGuard, usageOf, textSignature,
   BRAND, SIZE_PRESETS, sizePresetOf, VERSION, stripReasoningBlocks } from './core.mjs';
 import { CAMERA_ICON, BRAND_ICON, TAB_ICONS } from './icons.mjs';
 import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } from './skins.mjs';
@@ -393,6 +393,7 @@ function showTab(tab) {
   for(const el of dialog.querySelectorAll('[data-page]'))el.hidden=el.dataset.page!==tab;
   for(const el of dialog.querySelectorAll('[data-tab]'))el.classList.toggle('ncs-active',el.dataset.tab===tab);
   for(const el of dialog.querySelectorAll('[data-tab]'))el.setAttribute('aria-selected',String(el.dataset.tab===tab));
+  $('ncs-mode-fields').hidden=tab!=='scene'; // 0.1.67: 챗샷/프리샷 lives in the title row, on 그리기 only
   renderNotice();restoreScroll();
   if(tab==='history')loadHistory().catch(e=>notice(e.message,true));
 }
@@ -1477,25 +1478,63 @@ function refreshAccount({shape=false}={}){
   })();
   return account.checking;
 }
+// --- Account box D (0.1.67): line 1 "tier · this generation", line 2 "Anlas · V5 · checked at", details on tap.
+const TIER_NAMES={0:'Paper',1:'Tablet',2:'Scroll',3:'Opus'};
+const tierName=sub=>typeof sub?.tier==='number'?TIER_NAMES[sub.tier]??`구독 등급 ${sub.tier}`:'';
+const modelShort=model=>String(model).includes('diffusion-5')?'V5':String(model).includes('4-5')?'V4.5':MODELS[model]?.label??'';
+// GPT 0.1.67 wording: we cannot tell the reply changed, only that a needed field is missing.
+const missingText=()=>'계정 정보에서 필요한 항목을 확인하지 못했어요. 무료 생성 여부를 확인할 수 없어, '+(settings().allowAnlas===true?'현재 Anlas 사용이 허용되어 있어요. 생성하면 Anlas가 차감될 수 있어요.':'생성하려면 Anlas 사용 허용이 필요해요.');
+function v5Short(sub){
+  if(sub?.tier!==3)return '';const u=usageOf(sub);
+  if(!u||u.percent===null||u.isNegative===null)return '<span class="ncs-v5-warn">V5 확인 못 함</span>';
+  if(u.isNegative)return '<span class="ncs-v5-warn">V5 쓸 수 없음</span>';
+  return `V5 <b>${esc(String(u.percent))}%</b>${u.purchasedPercent?` (+${esc(String(u.purchasedPercent))}%)`:''}`;
+}
+function v5Detail(sub){
+  const u=usageOf(sub);if(!u||u.percent===null||u.isNegative===null)return '확인하지 못했어요';
+  return `${u.isNegative?'지금 쓸 수 없어요 · ':''}${u.percent}%${u.purchasedPercent!==null?` · 추가 구매 ${u.purchasedPercent}%`:''}`;
+}
+function verdictOf(guard,model){
+  const sub=account.sub,tier=tierName(sub),m=modelShort(model),pre=tier?`${tier} · `:'';
+  if(!sub){if(account.checking&&!account.at)return {text:'계정 확인 중…',state:'neutral'};
+    if(account.failed)return {text:account.keyConfigured===false?'NAI 키가 없어요 · 설정에서 확인':'계정 확인 실패 · 다시 확인',state:'warn'};
+    return {text:'계정 확인 전',state:'neutral'};}
+  switch(guard.kind){
+    case 'free':return {text:`${pre}${m} 무료 조건에 해당해요 ✓`,state:'ok'};
+    case 'may':return {text:usageOf(sub)?.isNegative?`${pre}V5 사용량을 지금 쓸 수 없어요`:`${pre}V5 사용량으로 생성 (부족하면 Anlas)`,state:usageOf(sub)?.isNegative?'warn':'neutral'};
+    case 'inactive':return {text:`${pre}구독 비활성 · 무료 생성 대상 아님`,state:'warn'};
+    case 'uses':return {text:`${pre}${sub.tier===3?'기본 조건을 넘어 Anlas를 사용해요':'이 생성은 Anlas를 사용해요'}`,state:'neutral'};
+    default:return {text:guard.missing?'계정 정보에서 필요한 항목을 확인하지 못했어요':`${pre}무료 여부를 확인할 수 없어요`,state:'warn'};
+  }
+}
 function renderAccount(){
   if(!dialog)return;const box=$('ncs-anlas-balance'),total=anlasTotal(account.sub),button=dialog.querySelector('[data-action="refresh-anlas"]');
   button.disabled=!!account.checking;
+  const v5=v5Short(account.sub),time=account.at?new Date(account.at).toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'}):'';
   if(account.checking&&!account.at&&!account.failed)box.textContent='Anlas 확인 중…';
   else if(account.failed)box.textContent=account.keyConfigured===false?'NAI 키가 없어요 · 설정에서 확인':'잔액 확인 실패 · 다시 확인';
-  else if(total===null)box.textContent=account.at?'Anlas 잔액을 알 수 없어요':'Anlas 확인 전';
-  else{const time=new Date(account.at).toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'}),diff=account.previous!=null?total-account.previous:0;
-    box.innerHTML=`<b>Anlas ${total.toLocaleString()}</b> <small>· ${esc(time)} 확인${diff?` · 이전 조회보다 ${diff>0?'+':'−'}${Math.abs(diff).toLocaleString()}`:''}</small>`;}
-  const tier=account.sub?.tier,s=account.sub?.anlas;
-  $('ncs-status').textContent=account.failed?(account.message||'연결을 확인하지 못했어요.'):account.sub?
-    `서버 연결됨 · ${tier===3?'Opus':`구독 등급 ${tier}`} · Anlas ${total===null?'?':total.toLocaleString()} (구독 ${s?.subscription??'?'} + 구매 ${s?.purchased??'?'})`:$('ncs-status').textContent;
+  else if(total===null)box.innerHTML=account.at?`Anlas 잔액을 알 수 없어요${v5?` · ${v5}`:''} · ${esc(time)} 확인`:'Anlas 확인 전';
+  else{const diff=account.previous!=null?total-account.previous:0;
+    box.innerHTML=`Anlas <b>${total.toLocaleString()}</b>${v5?` · ${v5}`:''} · ${esc(time)} 확인${diff?` · 이전 조회보다 ${diff>0?'+':'−'}${Math.abs(diff).toLocaleString()}`:''}`;}
+  const sub=account.sub,tier=tierName(sub),s=sub?.anlas;
+  $('ncs-account-tier').textContent=sub?`${tier} · ${sub.active===true?'활성':sub.active===false?'비활성':'활성 여부 확인 못 함'}${sub.isGracePeriod===true?' · 유예 기간':''}`:'—';
+  $('ncs-v5-row').hidden=sub?.tier!==3;if(sub?.tier===3)$('ncs-v5-detail').textContent=v5Detail(sub);
+  const guard=costGuard(effectiveOptions(),sub);
+  $('ncs-status').textContent=account.failed?(account.message||'연결을 확인하지 못했어요.'):sub?
+    `서버 연결됨 · ${tier} · Anlas ${total===null?'?':total.toLocaleString()} (구독 ${s?.subscription??'?'} + 구매 ${s?.purchased??'?'})${sub.tier===3?` · V5 ${v5Detail(sub)}`:''}${guard.missing?' · 계정 정보에서 필요한 항목을 확인하지 못했어요.':''}`:$('ncs-status').textContent;
 }
-// The cost line under the balance, worded for the account; with consent off, a non-free generation is not sent.
+function toggleAccount(){
+  const more=dialog.querySelector('[data-action="toggle-account"]'),open=more.getAttribute('aria-expanded')!=='true';
+  more.setAttribute('aria-expanded',String(open));$('ncs-account-details').hidden=!open;more.querySelector('.ncs-anlas-caret').textContent=open?'▴':'▾';
+}
+// The cost line, worded for the account; with consent off, a non-free generation is not sent.
 function renderCost(){
-  // Blocked here only when the account is known; an unchecked account is left to the server, which checks it
-  // itself and answers anlas-consent if needed (then consentRefused shows the same note and button).
-  const guard=costGuard(effectiveOptions(),subscription),off=settings().allowAnlas!==true,blocked=off&&!guard.free&&guard.kind!=='unknown';
-  if(!off||guard.kind!=='unknown')consentRefused=false; // a known account decides here again
-  $('ncs-cost').textContent=stepsWord(guard.message);$('ncs-cost-link').hidden=guard.kind!=='may';
+  // Blocked here once the account is known (a missing field too); an unchecked account is left to the server, which
+  // checks it itself just before sending and answers anlas-consent if needed (then consentRefused shows the same note).
+  const guard=costGuard(effectiveOptions(),subscription),off=settings().allowAnlas!==true,blocked=off&&!guard.free&&!!subscription;
+  if(!off||subscription)consentRefused=false; // a known account decides here again
+  const v=verdictOf(guard,effectiveOptions().model);$('ncs-verdict').textContent=v.text;$('ncs-anlas-box').dataset.state=v.state;
+  $('ncs-cost').textContent=guard.missing?missingText():stepsWord(guard.message);$('ncs-cost-link').hidden=guard.kind!=='may';
   const show=blocked||(off&&consentRefused);$('ncs-consent-note').hidden=!show;dialog.querySelector('[data-action="goto-anlas"]').hidden=!show;
   return {guard,blocked};
 }
@@ -2034,6 +2073,7 @@ async function onAction(action,el) {
     case 'reset-final':changed();break;
     case 'status':await refreshStatus();break;
     case 'copy-shape':await copyShape();break;
+    case 'toggle-account':toggleAccount();break;
     case 'refresh-anlas':await refreshAccount().catch(()=>{});break;
     case 'goto-anlas':gotoAnlasSetting();break;
     // 프리셋 저장: overwrite the selected preset, or create one when none is selected.
@@ -2259,6 +2299,8 @@ async function initialize() {
   settings();dialog=document.createElement('dialog');dialog.id='naice-shot-dialog';
   const template=await fetch(new URL('panel.html',import.meta.url));if(!template.ok)throw new Error('NAIce Shot 패널 파일을 읽지 못했어요.');
   dialog.innerHTML=await template.text();document.body.append(dialog);
+  // The 챗샷/프리샷 switch sits in the title row now, outside the work fields; it waits with them (draft loading, server check).
+  {const work=$('ncs-work-fields'),sync=()=>{$('ncs-mode-fields').disabled=work.disabled;};new MutationObserver(sync).observe(work,{attributes:true,attributeFilter:['disabled']});sync();}
   dialog.addEventListener('close',()=>{closeMissingDialog();rememberDraft(workKey(),null,{flush:true});});
   dialog.addEventListener('cancel',event=>{if(event.target===dialog)rememberScroll();});
   dialog.querySelector('.ncs-content').addEventListener('scroll',rememberScroll,{passive:true});

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.67 — 2026-11-04 (extension + server v0.1.15)
+
+Fixes "Opus 무료 생성 특전을 확인하지 못했어요" on V4.5 and the block that came with it; shows V5 usage; moves 챗샷/프리샷 into the title row.
+
+- **Free check (shared with the server, which checks again just before sending):** the old `perks.unlimitedImageGeneration` is no longer read — the user's account reply had no such field and the current schema does not declare it. An **active Opus** gets V4.5 free within the default size, 28 steps or fewer and one image (text-to-image only), so it is sent with Anlas consent off. A grace period is "can't tell" (our cautious choice, checked first), `active:false` is "구독 비활성 · 무료 생성 대상 아님", and a missing or odd field is "계정 정보에서 필요한 항목을 확인하지 못했어요", never read as false or 0. V4.5 never needs the usage fields. **V5** shows its usage and always needs consent; 0%, "can't use now" (`isNegative`) and missing usage read differently.
+- **Account box (mockup D):** line 1 "tier · this generation" + ↻; line 2 "Anlas · V5 N% (+N%) · checked at" (V5 for Opus); tap for subscription state, the full cost line and V5 details. The settings check line shows the same.
+- **챗샷 / 프리샷** sits in the title row right after the title, as tall as title + subtitle, on 그리기 only; the bar that followed the page is gone. Below 360px the subtitle makes room.
+- The extension now asks for server 0.1.15 (an older server keeps blocking V4.5).
+- Tests: new `browser-v0167` (every account case, consent off, title row at 375/1100/340/320); older scripts use an active Opus with V5 usage; server tests for each account case.
+
 ## 0.1.66 — 2026-11-04 (extension + server v0.1.14)
 
 A first step to fix the "Opus 무료 생성 특전을 확인하지 못했어요" warning: see which fields NovelAI really sends.

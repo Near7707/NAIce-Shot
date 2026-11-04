@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DEFAULTS,clone,blankScene,assemble,buildPayload,parseExtraction,chooseMessages,sourceValid,extractionPrompt,resolveOutfit,textSignature,costGuard,validateProfiles,SIZE_PRESETS,sizePresetOf} from '../core.mjs';
+import {DEFAULTS,clone,blankScene,assemble,buildPayload,parseExtraction,chooseMessages,sourceValid,extractionPrompt,resolveOutfit,usageOf,textSignature,costGuard,validateProfiles,SIZE_PRESETS,sizePresetOf} from '../core.mjs';
 
 const profiles=[{id:'leo',name:'Leo',aliases:['레오'],subject:'boy',appearance:'brown hair',defaultOutfit:'white shirt, jeans',positive:'ring',negative:'black hair'},
   {id:'mira',name:'Mira',aliases:['미라'],subject:'girl',appearance:'pink hair',defaultOutfit:'hoodie',positive:'',negative:'brown hair'}];
@@ -56,19 +56,29 @@ test('model capacity is enforced; coordinates only when every slot is placed',()
   a.characters[1].position='right';const p=buildPayload(a,{...DEFAULTS.options,seed:0});assert.equal(p.parameters.use_coords,true);assert.equal(p.parameters.v4_prompt.caption.char_captions[0].centers[0].x,0.3);
   a.characters=Array.from({length:7},()=>({prompt:'boy',negative:'',position:'auto'}));assert.throws(()=>buildPayload(a,{...DEFAULTS.options,model:'nai-diffusion-4-5-full',seed:0}),/한도/);
 });
-test('cost guard never promises free V5 without known consumption and allowance',()=>{
-  const sub={tier:3,perks:{unlimitedImageGeneration:true}};
-  assert.equal(costGuard(DEFAULTS.options,sub).free,false);
-  assert.equal(costGuard({...DEFAULTS.options,model:'nai-diffusion-4-5-full'},sub).free,true);
-  assert.equal(costGuard({...DEFAULTS.options,steps:29},sub).free,false);
-  // Worded for the account: Opus V4.5 free, Opus V5 may, lower tiers use, unknown account unknown.
-  const v45={...DEFAULTS.options,model:'nai-diffusion-4-5-full'};
-  assert.deepEqual([costGuard(v45,sub).kind,costGuard(DEFAULTS.options,sub).kind],['free','may']);
-  assert.equal(costGuard(DEFAULTS.options,sub).message,'무료 사용량에 따라 Anlas가 차감될 수 있어요.');
-  for(const tier of [1,2]){const g=costGuard(v45,{tier,perks:{unlimitedImageGeneration:false}});assert.equal(g.free,false);assert.equal(g.kind,'uses');assert.equal(g.message,'이 생성은 Anlas를 사용해요.');}
-  assert.equal(costGuard(DEFAULTS.options,{tier:1,perks:{}}).kind,'uses','a lower tier on V5 uses Anlas, never "may"');
-  assert.deepEqual([costGuard(v45,null).kind,costGuard(v45,null).message],['unknown','비용 조건을 확인하지 못했어요.']);
-  assert.equal(costGuard({...v45,steps:29},sub).kind,'uses');
+test('cost guard (0.1.67): V4.5 free for an active Opus without the old perk; V5 uses its own usage and never free',()=>{
+  const opus={tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:100,isNegative:false,timeUntilNextPercent:60}};
+  const v45={...DEFAULTS.options,model:'nai-diffusion-4-5-full'},v5=DEFAULTS.options;
+  assert.ok(v5.model.startsWith('nai-diffusion-5'),'DEFAULTS use V5');
+  // V4.5: free with no perks at all (the field NovelAI no longer sends), within the usual conditions only.
+  assert.deepEqual(costGuard(v45,opus),{free:true,kind:'free',message:'Opus 무료 조건(기본 크기·28스텝 이하·1장)에 해당해요.'});
+  assert.equal(costGuard(v45,{...opus,perks:{unlimitedImageGeneration:false}}).free,true,'the old perk is not read');
+  assert.equal(costGuard({...v45,steps:29},opus).kind,'uses');assert.equal(costGuard({...v45,width:1216,height:1216},opus).kind,'uses');
+  assert.equal(costGuard(v45,{...opus,usage:undefined}).free,true,'V4.5 never needs usage');
+  // Grace period first (our conservative choice), even with active:false; inactive is its own kind; missing is never false.
+  assert.equal(costGuard(v45,{...opus,isGracePeriod:true}).kind,'unknown');assert.equal(costGuard(v45,{...opus,active:false,isGracePeriod:true}).kind,'unknown');
+  assert.deepEqual([costGuard(v45,{...opus,active:false}).kind,costGuard(v45,{...opus,active:false}).free],['inactive',false]);
+  for(const bad of [{active:undefined},{active:'true'},{isGracePeriod:undefined},{active:null}]){const g=costGuard(v45,{...opus,...bad});assert.equal(g.kind,'unknown');assert.equal(g.missing,true);assert.equal(g.free,false);}
+  // V5: never free; 0% is a value, missing usage is "unknown", isNegative is its own message.
+  assert.equal(costGuard(v5,opus).kind,'may');assert.equal(costGuard(v5,opus).message,'V5 사용량으로 생성해요. 부족하면 Anlas가 차감될 수 있어요.');
+  assert.equal(costGuard(v5,{...opus,usage:{percent:0,isNegative:false}}).kind,'may','0% is a real value');
+  assert.match(costGuard(v5,{...opus,usage:{percent:0,isNegative:true}}).message,/지금 쓸 수 없어요/);
+  for(const usage of [undefined,null,{},{percent:'82',isNegative:false},{percent:82}]){const g=costGuard(v5,{...opus,usage});assert.equal(g.missing,true);assert.equal(g.free,false);}
+  assert.equal(costGuard({...v5,steps:29},opus).kind,'uses');
+  // Lower tiers and an unchecked account.
+  for(const tier of [0,1,2]){for(const o of [v45,v5]){const g=costGuard(o,{tier,active:true,isGracePeriod:false});assert.deepEqual([g.free,g.kind,g.message],[false,'uses','이 생성은 Anlas를 사용해요.']);}}
+  assert.deepEqual([costGuard(v45,null).kind,costGuard(v45,null).message,costGuard(v45,null).missing],['unknown','비용 조건을 확인하지 못했어요.',undefined]);
+  assert.deepEqual(usageOf({usage:{percent:82,purchasedPercent:'x',isNegative:false}}),{percent:82,purchasedPercent:null,isNegative:false,timeUntilNextPercent:null});
 });
 test('profile validation preserves stable IDs and rejects duplicates',()=>{
   assert.equal(validateProfiles(profiles)[0].id,'leo');assert.throws(()=>validateProfiles([...profiles,profiles[0]]),/중복/);

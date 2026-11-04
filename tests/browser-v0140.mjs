@@ -29,7 +29,7 @@ try{
   await page.addInitScript(()=>{Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.copied=text;}}});});
   await page.route('**/api/plugins/naice-shot/**',async route=>{
    const url=new URL(route.request().url());requests.push(url.pathname);
-   if(url.pathname.endsWith('/status'))return route.fulfill({json:{keyConfigured:true,version:'0.1.8',features:['paged-history','delete','private-records','all-history','privacy-controls'],subscription:{tier:3,perks:{unlimitedImageGeneration:true}}}});
+   if(url.pathname.endsWith('/status'))return route.fulfill({json:{keyConfigured:true,version:'0.1.8',features:['paged-history','delete','private-records','all-history','privacy-controls'],subscription:{tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600},perks:{unlimitedImageGeneration:true}}}});
    if(url.pathname.endsWith('/generate')){const b=route.request().postDataJSON(),item={id:b.requestId,created:new Date().toISOString(),chatKey:b.chatKey,image:`/user/images/naice-shot/${b.requestId}.png`,seed:b.options.seed,assembled:b.assembled,options:b.options,snapshot:b.snapshot};items.unshift(item);return route.fulfill({json:item});}
    if(url.pathname.endsWith('/history')){const offset=Number(url.searchParams.get('offset')||0),limit=Number(url.searchParams.get('limit')||20);return route.fulfill({json:{items:items.slice(offset,offset+limit),total:items.length,hasMore:offset+limit<items.length}});}
    throw Error(`Unexpected request: ${url.pathname}`);

@@ -1,5 +1,14 @@
 # Installation and update checklist
 
+## v0.1.67
+
+**Update the server plugin first** (0.1.15), restart SillyTavern, then update the extension and refresh.
+
+1. Drawing tab, V4.5: the box above 이미지 생성 says "Opus · V4.5 무료 조건에 해당해요 ✓"; with Anlas consent **off**, 이미지 생성 works.
+2. Line 2 shows Anlas, V5 % and the time; tap it for details. Switch to V5: "V5 사용량으로 생성 (부족하면 Anlas)" and it asks for consent.
+3. 챗샷 / 프리샷 is next to the title; no bar follows the page.
+
+
 ## v0.1.66
 
 **Update the server plugin first**, restart SillyTavern, then update the extension and refresh.

@@ -26,7 +26,7 @@ const page=await browser.newPage({viewport:{width:1280,height:900}});
 page.on('pageerror',e=>errors.push(e.message));
 await page.route('**/api/plugins/naice-shot/**',async route=>{
  const req=route.request(),url=new URL(req.url());let data;
- if(url.pathname.endsWith('/status'))data={keyConfigured:true,version:'0.1.0',subscription:{tier:3,perks:{unlimitedImageGeneration:true},anlas:{subscription:10000,purchased:0}}};
+ if(url.pathname.endsWith('/status'))data={keyConfigured:true,version:'0.1.0',subscription:{tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600},perks:{unlimitedImageGeneration:true},anlas:{subscription:10000,purchased:0}}};
  else if(url.pathname.endsWith('/history'))data={items:items.filter(x=>x.chatKey===url.searchParams.get('chatKey')),total:items.length};
  else {
   generationCount++;const b=req.postDataJSON();

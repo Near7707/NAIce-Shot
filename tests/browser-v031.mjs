@@ -32,7 +32,7 @@ const items=[];
 await page.route('**/api/plugins/naice-shot/**',async route=>{
  const req=route.request(),url=new URL(req.url());
  if(url.pathname.endsWith('/history'))return route.fulfill({json:{items:items.filter(x=>x.chatKey===url.searchParams.get('chatKey')),total:items.length}});
- if(url.pathname.endsWith('/status'))return route.fulfill({json:{keyConfigured:true,version:'0.1.0',subscription:{tier:3,perks:{unlimitedImageGeneration:true}}}});
+ if(url.pathname.endsWith('/status'))return route.fulfill({json:{keyConfigured:true,version:'0.1.0',subscription:{tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600},perks:{unlimitedImageGeneration:true}}}});
  const b=req.postDataJSON();const item={id:b.requestId,created:new Date().toISOString(),chatKey:b.chatKey,image:`/user/images/naice-shot/${b.requestId}.png`,seed:b.options.seed,options:b.options,assembled:b.assembled,snapshot:b.snapshot};
  items.push(item);route.fulfill({json:item});
 });

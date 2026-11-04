@@ -34,7 +34,7 @@ async function open(width,{cardName,extra,seed,clock}={}){
   if(u.pathname.endsWith('/delete')){const q=r.request().postDataJSON(),ids=q.ids??[];for(const id of ids){const i=items.findIndex(x=>x.id===id);if(i>=0)items.splice(i,1);}return r.fulfill({json:{deleted:ids,skipped:[]}});}
   if(u.pathname.endsWith('/history'))return r.fulfill({json:{items,total:items.length,hasMore:false,scope:u.searchParams.get('scope')||'chat',kind:u.searchParams.get('kind')||'all',chats:[],imageCount:items.length,bytes:1}});
   if(u.pathname.endsWith('/draft'))return r.fulfill({json:r.request().method()==='GET'?{revision:null,work:null}:{revision:'r'}});
-  return r.fulfill({json:{keyConfigured:true,version:'0.1.13',features,minClient:'0.1.44',subscription:{tier:3,perks:{unlimitedImageGeneration:true},anlas:{subscription:1000,purchased:0}}}});});
+  return r.fulfill({json:{keyConfigured:true,version:'0.1.13',features,minClient:'0.1.44',subscription:{tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600},perks:{unlimitedImageGeneration:true},anlas:{subscription:1000,purchased:0}}}});});
  await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{mock.extensionSettings.naice_shot.allowAnlas=true;}));
  if(extra)await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{mock.extensionSettings.naice_shot.profiles.push({id:'mira',name:'Mira',aliases:[],subject:'girl',appearance:'long black hair',defaultOutfit:'',positive:'',negative:'',cardKey:''});}));
  if(cardName)await page.addInitScript(n=>document.addEventListener('DOMContentLoaded',()=>{mock.characters[0].name=n;mock.name2=n;}),cardName);
@@ -109,18 +109,16 @@ try{
    assert.deepEqual(r,{reached:0,open:false});
    assert.deepEqual(errors,[]);await page.close();
   }
-  {// (가) thin 챗샷/프리샷 switch: much lower, still two readable halves, still stays at the top.
+  {// (가) → 0.1.67 title row: the switch never scrolls away and keeps readable 32px+ buttons on one line.
    const {page,errors}=await open(width);ask(page);
-   const bar=await page.locator('.ncs-mode-bar').boundingBox(),btn=await page.locator('[data-mode="free"]').boundingBox();
-   assert.ok(bar.height<=44,`${width}px: the bar is ${bar.height}px high`);assert.ok(btn.height>=32,`${width}px: buttons stay ${btn.height}px`);
+   const btn=await page.locator('[data-mode="free"]').boundingBox();assert.ok(btn.height>=32,`${width}px: buttons stay ${btn.height}px`);
    assert.equal(await page.locator('[data-mode="chat"]').evaluate(e=>e.scrollWidth<=e.clientWidth+1),true,'one line');
    await page.evaluate(()=>document.querySelector('.ncs-content').scrollTop=900);await page.waitForTimeout(100);
-   const after=await page.locator('.ncs-mode-bar').boundingBox(),content=await page.locator('.ncs-content').boundingBox();
-   assert.ok(after.y>=content.y-1&&after.y<content.y+10,'stays at the top while scrolling');
+   const after=await page.locator('[data-mode="free"]').boundingBox(),content=await page.locator('.ncs-content').boundingBox();
+   assert.ok(after.y+after.height<=content.y+1,'stays at the top while scrolling');
    await page.locator('[data-mode="free"]').click();assert.equal(await page.locator('[data-mode="free"]').getAttribute('aria-pressed'),'true');
-   console.log(`  ${width}px: mode bar ${Math.round(bar.height)}px, buttons ${Math.round(btn.height)}px`);
    assert.deepEqual(errors,[]);await page.close();
   }
  }
- console.log('PASS: no lock left over after a slow gallery move (375/1100); Escape or ✕ after a tap drops the pending close and the next click works; tap-close still swallows its click; thin 챗샷/프리샷 switch stays at the top');
+ console.log('PASS: no lock left over after a slow gallery move (375/1100); Escape or ✕ after a tap drops the pending close and the next click works; tap-close still swallows its click; 챗샷/프리샷 switch stays at the top');
 }finally{await browser.close();server.close();}

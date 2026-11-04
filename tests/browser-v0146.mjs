@@ -27,7 +27,7 @@ try{
    if(u.pathname.endsWith('/status')){
     if(u.searchParams.get('quick')==='1')return route.fulfill({json:{keyConfigured:true,version:'0.1.12',features,minClient:'0.1.44'}});
     acct.statusCalls++;if(acct.statusFails)return route.fulfill({status:502,json:{error:'NAI 계정 확인 실패 (503).'}});
-    return route.fulfill({json:{keyConfigured:true,version:'0.1.12',features,subscription:{tier:acct.tier,perks:{unlimitedImageGeneration:acct.perk},anlas:{subscription:acct.fixed,purchased:acct.purchased}}}});
+    return route.fulfill({json:{keyConfigured:true,version:'0.1.12',features,subscription:{tier:acct.tier,active:true,isGracePeriod:false,usage:acct.usage,perks:{unlimitedImageGeneration:acct.perk},anlas:{subscription:acct.fixed,purchased:acct.purchased}}}});
    }
    if(u.pathname.endsWith('/draft'))return route.fulfill({json:route.request().method()==='GET'?{revision:null,work:null}:{revision:'r'}});
    if(u.pathname.endsWith('/history'))return route.fulfill({json:{items:[],total:0,hasMore:false}});
@@ -55,7 +55,7 @@ try{
   await page.locator('[data-action="generate"]').click();await page.locator('#ncs-result img').waitFor();assert.equal(acct.generated,1);
   await page.waitForFunction(()=>/^Anlas 985 · .+ 확인 · 이전 조회보다 −20$/.test(document.querySelector('#ncs-anlas-balance').textContent));
   assert.doesNotMatch(await balance.innerText(),/이번/,'never called the cost of this image');
-  await page.locator('[data-tab="settings"]').click();assert.match(await page.locator('#ncs-status').innerText(),/구독 등급 1 · Anlas 985 \(구독 980 \+ 구매 5\)/,'settings shares the same check');
+  await page.locator('[data-tab="settings"]').click();assert.match(await page.locator('#ncs-status').innerText(),/Tablet · Anlas 985 \(구독 980 \+ 구매 5\)/,'settings shares the same check');
   await page.locator('[data-tab="scene"]').click();
   // 3) The image is made but the balance check fails: still a success, and no old balance shown as current.
   acct.statusFails=true;await page.locator('[data-action="new-seed"]').click();await page.waitForFunction(()=>/잔액 확인 실패 · 다시 확인/.test(document.querySelector('#ncs-anlas-balance').textContent));
@@ -74,9 +74,9 @@ try{
   assert.equal(await go.isVisible(),true);assert.equal(await note.isVisible(),true);assert.equal(await allow.isChecked(),false);
   acct.generateError=null;acct.statusFails=false;
   // 5) Opus: V5 "may", with a link to NovelAI; V4.5 within limits is free and needs no consent.
-  acct.tier=3;acct.perk=true;await page.locator('[data-action="refresh-anlas"]').click();await page.waitForFunction(()=>/^Anlas /.test(document.querySelector('#ncs-anlas-balance').textContent));
+  acct.tier=3;acct.perk=true;acct.usage={percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600};await page.locator('[data-action="refresh-anlas"]').click();await page.waitForFunction(()=>/^Anlas /.test(document.querySelector('#ncs-anlas-balance').textContent));
   await page.locator('#ncs-gen-box > summary').click();await page.locator('[data-gen="model"]').selectOption('nai-diffusion-5-full');
-  assert.equal(await cost.innerText(),'무료 사용량에 따라 Anlas가 차감될 수 있어요.');assert.equal(await page.locator('#ncs-cost-link').isVisible(),true);
+  assert.equal(await cost.innerText(),'V5 사용량으로 생성해요. 부족하면 Anlas가 차감될 수 있어요.');assert.equal(await page.locator('#ncs-cost-link').isVisible(),true);
   assert.equal(await page.locator('#ncs-cost-link').getAttribute('rel'),'noopener noreferrer');assert.equal(await go.isVisible(),true,'Opus V5 still needs consent');
   await page.locator('[data-gen="model"]').selectOption('nai-diffusion-4-5-full');
   assert.match(await cost.innerText(),/^Opus 무료 조건/);assert.equal(await page.locator('#ncs-cost-link').isHidden(),true);assert.equal(await go.isHidden(),true);

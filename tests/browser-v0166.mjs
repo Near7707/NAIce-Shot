@@ -33,7 +33,7 @@ async function open(width,{cardName,extra,seed,clock}={}){
   if(u.pathname.endsWith('/delete')){const q=r.request().postDataJSON(),ids=q.ids??[];for(const id of ids){const i=items.findIndex(x=>x.id===id);if(i>=0)items.splice(i,1);}return r.fulfill({json:{deleted:ids,skipped:[]}});}
   if(u.pathname.endsWith('/history'))return r.fulfill({json:{items,total:items.length,hasMore:false,scope:u.searchParams.get('scope')||'chat',kind:u.searchParams.get('kind')||'all',chats:[],imageCount:items.length,bytes:1}});
   if(u.pathname.endsWith('/draft'))return r.fulfill({json:r.request().method()==='GET'?{revision:null,work:null}:{revision:'r'}});
-  return r.fulfill({json:{keyConfigured:true,version:'0.1.13',features,minClient:'0.1.44',subscription:{tier:3,perks:{unlimitedImageGeneration:true},anlas:{subscription:1000,purchased:0}}}});});
+  return r.fulfill({json:{keyConfigured:true,version:'0.1.13',features,minClient:'0.1.44',subscription:{tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600},perks:{unlimitedImageGeneration:true},anlas:{subscription:1000,purchased:0}}}});});
  await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{mock.extensionSettings.naice_shot.allowAnlas=true;}));
  if(extra)await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{mock.extensionSettings.naice_shot.profiles.push({id:'mira',name:'Mira',aliases:[],subject:'girl',appearance:'long black hair',defaultOutfit:'',positive:'',negative:'',cardKey:''});}));
  if(cardName)await page.addInitScript(n=>document.addEventListener('DOMContentLoaded',()=>{mock.characters[0].name=n;mock.name2=n;}),cardName);
@@ -59,7 +59,7 @@ const two={moments:[{title:'앉는 순간',characters:[{id:'leo',name:'Leo',expr
 const shown=page=>page.locator('#ncs-notice').isVisible();
 const reply=(page,text)=>page.evaluate(t=>{mock.generateRaw=async function(o){this.extractCalls=(this.extractCalls??0)+1;this.lastExtract=o;return t;};},text);
 const statusReply=(q,{shapeFeature=true}={})=>({keyConfigured:true,version:shapeFeature?'0.1.14':'0.1.13',features:[...features,...(shapeFeature?['account-shape']:[])],minClient:'0.1.44',
- subscription:{tier:3,perks:{unlimitedImageGeneration:true},anlas:{subscription:1000,purchased:0},...(shapeFeature&&q.get('shape')==='1'?{shape:['tier: number','active: boolean','perks.unlimitedImageGeneration: boolean','trainingStepsLeft.fixedTrainingStepsLeft: number']}:{})}});
+ subscription:{tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600},perks:{unlimitedImageGeneration:true},anlas:{subscription:1000,purchased:0},...(shapeFeature&&q.get('shape')==='1'?{shape:['tier: number','active: boolean','perks.unlimitedImageGeneration: boolean','trainingStepsLeft.fixedTrainingStepsLeft: number']}:{})}});
 try{
  for(const width of [375,1100]){
   const {page,errors}=await open(width);ask(page);

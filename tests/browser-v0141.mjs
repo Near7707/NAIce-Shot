@@ -31,7 +31,7 @@ try{
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>accept?d.accept():d.dismiss());
   await page.route('**/api/plugins/naice-shot/**',async route=>{
    const u=new URL(route.request().url());
-   if(u.pathname.endsWith('/status'))return route.fulfill({json:{keyConfigured:true,version:'0.1.11',features:['paged-history','delete','private-records','all-history','privacy-controls','draft-work','draft-delete','free-text','draft-tombstone'],subscription:{tier:3,perks:{unlimitedImageGeneration:true}}}});
+   if(u.pathname.endsWith('/status'))return route.fulfill({json:{keyConfigured:true,version:'0.1.11',features:['paged-history','delete','private-records','all-history','privacy-controls','draft-work','draft-delete','free-text','draft-tombstone'],subscription:{tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600},perks:{unlimitedImageGeneration:true}}}});
    if(u.pathname.endsWith('/draft')){
     if(route.request().method()==='GET'){const key=u.searchParams.get('chatKey');if(slowRead&&key.includes('B'))await slowRead;return route.fulfill({json:entries.get(key)??{revision:null,work:null}});}
     const b=route.request().postDataJSON();if(failed)return route.fulfill({status:500,json:{error:'mock save failed'}});

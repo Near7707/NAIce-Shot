@@ -1,3 +1,12 @@
+# v0.1.67 validation — 2026-11-04
+
+- Extension Node suite: **149 passed, 0 failed** (cost guard rewritten for every account case: V4.5 free without the old perk and without usage, grace period first, inactive, missing/odd fields, V5 0% / isNegative / missing usage, lower tiers, unchecked).
+- Server Node suite (v0.1.15): **28 passed, 0 failed**. New: an active Opus V4.5 without the old perk is **sent with consent off**; active missing or odd, inactive, grace period (also with inactive), Tablet, Scroll, V5, V5 isNegative and V5 without usage are refused with 428 before NovelAI and sent once consent is on; V4.5 without usage is sent; a failed account check with consent off sends nothing; `/status` forwards active, grace period and usage as they are, missing as null.
+- **56 of 56 Chromium browser scripts passed.** New `browser-v0167` at 375 and 1100px: active Opus V4.5 → "Opus · V4.5 무료 조건에 해당해요 ✓", Anlas · V5 · time line, generated with consent off; details unfold; V5 verdict and consent block (nothing sent); V5 0%, can't use, missing usage (V4.5 still free); active missing (settings line too), inactive, grace period, Tablet without a V5 line; a failed check turns the verdict into "계정 확인 실패"; switch right after the title (≤20px), about title + subtitle height, subtitle visible, ✕ at the far right, 그리기 only, waits with the work fields; at 340 and 320px the subtitle gives way and nothing overlaps. `browser-v0146`, `v0155`, `v0165` updated; the other scripts' account fixture is now an active Opus with V5 usage.
+- Visual check: title row and account box at 375 and 1100px (local screenshots only).
+- Publication diffs (both repositories) screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern, a real NovelAI generation with consent off, iPhone Safari.
+
 # v0.1.66 validation — 2026-11-04
 
 - Extension Node suite: **149 passed, 0 failed**.
