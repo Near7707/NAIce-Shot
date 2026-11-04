@@ -67,7 +67,7 @@ try{
   const {page,errors}=await open(width);const st=ask(page);
   for(let i=0;i<3;i++){await page.locator('[data-action="generate"]').click();await idle(page);}
   // Two pictures in message #1.
-  for(let i=0;i<2;i++){await page.locator('#ncs-result [data-image-target]').selectOption('1');await page.locator('[data-action="attach"]').click();await page.waitForTimeout(150);if(i===0){await page.locator('[data-action="generate"]').click();await idle(page);}}
+  for(let i=0;i<2;i++){await page.locator('[data-action="attach"]').click();await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();await page.waitForTimeout(150);if(i===0){await page.locator('[data-action="generate"]').click();await idle(page);}}
   await page.waitForFunction(()=>document.querySelectorAll('#chat .mes[mesid="1"] .ncs-inline-open').length===2);
   // --- History picture: layout.
   await page.locator('[data-tab="history"]').click();await page.waitForFunction(()=>document.querySelectorAll('.ncs-history-card').length>=3);

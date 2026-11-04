@@ -838,3 +838,9 @@
 #chat .ncs-inline-images[data-layout="slide"] .ncs-inline-image.ncs-missing {flex-direction:column;gap:8px;}
 /* Storage note: short lead lines between the lists. */
 #naice-shot-dialog .ncs-storage-info p {margin:6px 0 0;font-size:13px;line-height:1.55;}
+/* 0.1.72: 본문에 넣기 — the message list in its own box over the panel, newest first, 넣기 always in reach. */
+#naice-shot-dialog .ncs-attach-card {border-color:var(--ncs-edge);padding-bottom:0;}
+#naice-shot-dialog .ncs-attach-card > .ncs-target-count {padding:0 0 8px;margin:0;}
+#naice-shot-dialog .ncs-attach-card .ncs-target-list {margin-bottom:8px;}
+#naice-shot-dialog .ncs-attach-tag {display:inline-block;margin-left:6px;padding:0 6px;border-radius:var(--ncs-radius-pill);font-size:11.5px;line-height:1.6;color:var(--ncs-accent-text);border:1px solid var(--ncs-edge);}
+#naice-shot-dialog .ncs-attach-actions {position:sticky;bottom:0;margin:0 -18px;padding:12px 18px;background:inherit;border-top:1px solid var(--ncs-rule);justify-content:flex-end;}

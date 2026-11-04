@@ -3,7 +3,7 @@ import { DEFAULTS, MODELS, clone, PROFILE_SCHEMA, profileDraftPrompt, parseProfi
   BRAND, SIZE_PRESETS, sizePresetOf, VERSION, stripReasoningBlocks } from './core.mjs';
 import { CAMERA_ICON, BRAND_ICON, TAB_ICONS } from './icons.mjs';
 import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } from './skins.mjs';
-import { attachInlineImage, detachInlineImage, detachInlineImages, detachMessageImage, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, visibleInlineImages, SAVE_NOTES, INLINE_LAYOUTS, INLINE_SIZES } from './inline-images.mjs';
+import { attachInlineImages, detachInlineImage, detachInlineImages, detachMessageImage, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, visibleInlineImages, SAVE_NOTES, INLINE_LAYOUTS, INLINE_SIZES } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
 import { freeScenePrompt, freeSceneSchema, parseFreeScene } from './free-scene.mjs';
 import { planFreePeople, confirmText, applyFreePeople, migratePins } from './free-people.mjs';
@@ -90,24 +90,25 @@ function messageButtonTemplate(){
   document.documentElement.style.setProperty('--ncs-brand-icon-url',`url("data:image/svg+xml,${encodeURIComponent(BRAND_ICON)}")`);
   return messageButtonNode=button;
 }
-// Whether this theme shows dates; read once per pass from the first date found.
-let stampShown=null;
-const stampVisible=stamp=>stampShown??=getComputedStyle(stamp).display!=='none'&&getComputedStyle(stamp).visibility!=='hidden';
+// Whether a message shows its date is read for each message (UI-071-02: a theme may hide some dates only).
+// All reads happen first and all changes after, so the page is laid out once per pass.
+const stampVisible=stamp=>stamp.checkVisibility?stamp.checkVisibility({visibilityProperty:true}):stamp.offsetParent!==null;
 function decorateMessages(){
-  stampShown=null;
-  const root=document.getElementById('chat');if(!root)return;const chat=ctx().chat??[];
+  const root=document.getElementById('chat');if(!root)return;const chat=ctx().chat??[],plan=[];
   for(const el of root.querySelectorAll('.mes[mesid]')){
-    const m=chat[Number(el.getAttribute('mesid'))],ok=isSceneMessage(m);
-    const existing=el.querySelector('.ncs-mes-draw');
-    if(!ok){existing?.remove();continue;}
-    // 0.1.71: always visible, right after the message's date. Themes that hide the date get it at the end of the
+    const m=chat[Number(el.getAttribute('mesid'))],existing=el.querySelector('.ncs-mes-draw');
+    if(!isSceneMessage(m)){if(existing)plan.push({existing});continue;}
+    // 0.1.71: always visible, right after the message's date. Where the date is hidden, it goes to the end of the
     // extra button row instead (the 0.1.48 place). Checked again when the date shows or hides.
     const stamp=el.querySelector('.timestamp'),onDate=!!stamp&&stampVisible(stamp);
-    if(existing&&existing.classList.contains('ncs-mes-inline')===onDate)continue;existing?.remove();
+    if(existing&&(onDate?existing.previousElementSibling===stamp:!existing.classList.contains('ncs-mes-inline')))continue;
+    plan.push({el,existing,stamp,onDate,add:true});
+  }
+  for(const {el,existing,stamp,onDate,add} of plan){
+    existing?.remove();if(!add)continue;
     const button=messageButtonTemplate().cloneNode(true);
     if(onDate){button.classList.add('ncs-mes-inline');button.classList.remove('mes_button');stamp.after(button);continue;}
-    const holder=el.querySelector('.extraMesButtons');if(!holder)continue;
-    holder.append(button); // last in the row: themes that clip a crowded row cut from the start
+    el.querySelector('.extraMesButtons')?.append(button); // last in the row: themes that clip a crowded row cut from the start
   }
 }
 function setMessageButtons(on){
@@ -253,8 +254,7 @@ function viewerActions(item,{attachment=null}={}){
     {label:'챗샷으로 보내기',note:keyOf()?'지금 열린 채팅의 그리기창으로 가져와요.':'채팅을 먼저 열어 주세요.',disabled:!keyOf(),leave:true,run:send('chat')},
     {label:'프리샷으로 보내기',leave:true,run:send('free')},
     {label:'설정을 프리셋으로',note:'이력 카드에서 이름을 적어 저장해요.',leave:true,run:away(async()=>{const rec=await recordOf(item);if(!rec.options)throw new Error('이 그림에는 저장된 생성 설정이 없어요.');historyPresetTarget=rec.id;await goToHistoryCard(rec);})},
-    {label:'본문에 넣기',note:here?'':free?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.',disabled:!here,run:async()=>{const rec=await recordOf(item),target=preferredTarget(rec,{fallback:false});
-      if(target===null||target===undefined)throw new Error('그림을 만든 메시지를 찾지 못했어요. 이력 탭의 "그림을 넣을 메시지"에서 골라 넣어 주세요.');await putImageInChat(rec,target);}}];
+    {label:'본문에 넣기',note:here?'':free?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.',disabled:!here,leave:true,run:away(async()=>{const rec=await recordOf(item);await showPanel();openAttachPicker([rec]);})}];
   const count=here&&!attachment?attachedCount(item.id):0;
   if(count)actions.push({label:`채팅에서 이 그림 빼기${count>1?` (${count}곳)`:''}`,run:async()=>removeImageFromChat(await recordOf(item))});
   if(attachment)actions.push({label:'이력에서 보기',note:'이력 탭에서 이 그림 카드로 가요.',divider:true,leave:true,run:away(()=>goToHistoryCard(item))});
@@ -1678,7 +1678,6 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   }finally{generationDraft.pinned=false;stopProgress(ticket);if(busyOwner===ticket)setBusy(false);}
 }
 const chatRows=()=>ctx().chat.map((m,i)=>({m,i})).filter(({m})=>isSceneMessage(m));
-const rowOption=({m,i},selected=false)=>`<option value="${i}" ${selected?'selected':''}>#${i} · ${esc(m.name)}${isHiddenSceneMessage(m)?' · 숨김':''} · ${esc(m.mes.replace(/\s+/g,' ').slice(0,35))}</option>`;
 // Where an image goes by default: where it is already attached, else the message it was generated for, else the latest.
 function preferredTarget(item,{fallback=true}={}) {
   const chat=ctx().chat,existing=chat.findIndex(m=>m.extra?.naice_shot_images?.some(x=>x.id===item.id));
@@ -1689,8 +1688,8 @@ function preferredTarget(item,{fallback=true}={}) {
 function imageControls(item) {
   const save=saveMenu(item,`ncs-result-save-${item.id}`);
   if(isFree())return `<div class="ncs-row">${save.button}<button type="button" data-action="delete-result" class="ncs-danger-outline">삭제</button></div>${save.menu}`;
-  const attached=hasInlineImage(ctx().chat,item),preferred=preferredTarget(item);
-  return `<label>그림을 넣을 메시지<select data-image-target="${esc(item.id)}">${chatRows().map(row=>rowOption(row,row.i===preferred)).join('')}</select></label><div class="ncs-row"><button data-action="attach" class="ncs-primary">본문에 넣기</button>${attached?'<button data-action="detach">이미지 빼기</button>':''}${save.button}<button type="button" data-action="delete-result" class="ncs-danger-outline">삭제</button></div>${save.menu}`;
+  const attached=hasInlineImage(ctx().chat,item);
+  return `<div class="ncs-row"><button data-action="attach" class="ncs-primary">본문에 넣기</button>${attached?'<button data-action="detach">이미지 빼기</button>':''}${save.button}<button type="button" data-action="delete-result" class="ncs-danger-outline">삭제</button></div>${save.menu}`;
 }
 function renderResult() {
   $('ncs-result').innerHTML=result?`<button type="button" class="ncs-image-open" data-view-result aria-label="생성된 장면 크게 보기"><img src="${esc(result.image)}" alt="생성된 장면"></button>${imageControls(result)}<div class="ncs-row"><button data-action="same-seed">같은 seed로 생성</button><button data-action="new-seed">새 seed로 생성</button><button type="button" data-view-result>크게 보기</button></div><small>seed ${result.seed} · ${esc(MODELS[result.options.model]?.label)} · 메시지 본문은 유지되고, 첨부 그림은 본편 AI 입력에 포함되지 않아요.</small>`:'';
@@ -1698,7 +1697,7 @@ function renderResult() {
 }
 function updateAttachButtons() {
   const locked=busy||attaching;
-  for(const el of dialog.querySelectorAll('[data-action="attach"],[data-action="detach"],[data-history-free],[data-history-attach],[data-history-detach],[data-image-target],#ncs-history-target,[data-history-delete],[data-action="delete-result"],[data-history-pick]'))el.disabled=locked||el.dataset.unavailable==='true';
+  for(const el of dialog.querySelectorAll('[data-action="attach"],[data-action="detach"],[data-history-free],[data-history-attach],[data-history-detach],[data-history-delete],[data-action="delete-result"],[data-history-pick]'))el.disabled=locked||el.dataset.unavailable==='true';
   for(const el of document.querySelectorAll('[data-ncs-inline-remove]'))el.disabled=locked;
   updateHistoryTools();
 }
@@ -1761,7 +1760,10 @@ function updateHistoryTools() {
   const allScope=['chats','all'].includes(historyScope),singleKey=historyScope==='free'?FREE_KEY:keyOf();
   const clear=dialog.querySelector('[data-action="delete-chat-history"]');clear.disabled=locked||!historyTotal||!singleKey;clear.hidden=allScope;clear.textContent=historyScope==='free'?'프리샷 이력 전체 삭제':'이 채팅 이력 전체 삭제';
   const filterDelete=dialog.querySelector('[data-action="delete-filter-chat"]');filterDelete.hidden=!allScope||!historyFilter;filterDelete.disabled=locked||!historyTotal;
-  $('ncs-history-target-row').hidden=!keyOf();$('ncs-history-all-tools').hidden=!allScope;
+  $('ncs-history-all-tools').hidden=!allScope;
+  const attachSel=dialog.querySelector('[data-action="attach-selected"]'),mine=historyItems.filter(x=>selectedIds.has(x.id)&&x.chatKey&&x.chatKey===keyOf()).length;
+  attachSel.textContent=mine?`선택 본문에 넣기 (${mine})`:'선택 본문에 넣기';attachSel.disabled=locked||!mine;attachSel.hidden=historyScope==='free';
+  attachSel.title=mine?'':'지금 열린 채팅에서 만든 그림을 골라 주세요.';
   const help={chat:'지금 열린 채팅에서 만든 그림이에요.',chats:'모든 채팅에서 만든 그림이에요. 프리샷은 제외해요.',free:'채팅과 상관없이 프리샷에서 만든 그림이에요.',all:'모든 채팅과 프리샷의 그림을 함께 봐요.'};
   $('ncs-history-help').textContent=help[historyScope]+' 본문에 넣기는 지금 열린 채팅에서 만든 그림에만 사용할 수 있어요.';
   $('ncs-history-scope').value=historyScope;
@@ -1820,16 +1822,53 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
     return {deleted:[...deleted],skipped};
   }finally{attaching=false;updateAttachButtons();loadHistory().catch(e=>report(e.message,true));}
 }
-async function putImageInChat(item,targetIndex) {
-  if(!item||attaching||busy)return;assertChat();const startKey=keyOf();
-  if(item.chatKey!==startKey)throw new Error('현재 채팅의 이미지만 첨부할 수 있어요.');
+// --- 본문에 넣기 (0.1.72): pressing it opens the message list, newest first, with the message the picture was made
+// for marked and already chosen. 선택 본문에 넣기 uses the same list for several pictures.
+const ATTACH_STEP=20;
+let attachPick=null; // {items, skipped, target, shown}
+function openAttachPicker(list){
+  assertChat();const all=list.filter(Boolean),items=all.filter(x=>x.chatKey&&x.chatKey===keyOf());
+  if(!items.length)throw new Error('지금 열린 채팅에서 만든 그림만 넣을 수 있어요.');
+  if(!chatRows().length)throw new Error('그림을 넣을 RP 메시지가 없어요.');
+  items.sort((a,b)=>String(a.created??'').localeCompare(String(b.created??'')));
+  // Chosen beforehand: where the picture already is, else the message it was made for (for several pictures, only
+  // when they all share one). Otherwise nothing is chosen, so a quick 넣기 never lands on a guess (v0.1.51).
+  const made=[...new Set(items.map(x=>preferredTarget(x,{fallback:false})))];
+  const target=made.length===1&&Number.isInteger(made[0])?made[0]:null;
+  attachPick={items,skipped:all.length-items.length,target,shown:ATTACH_STEP};
+  renderAttachPicker();const box=$('ncs-attach-dialog');if(!box.open)box.showModal();
+  const row=target===null?null:box.querySelector(`[data-attach-target="${target}"]`);row?.scrollIntoView({block:'nearest'});
+  (target===null?box.querySelector('[data-attach-target]'):box.querySelector('[data-action="attach-confirm"]'))?.focus({preventScroll:true});
+}
+function closeAttachPicker(){attachPick=null;const box=$('ncs-attach-dialog');if(box?.open)box.close();}
+function renderAttachPicker(){
+  if(!attachPick)return;const chat=ctx().chat??[],{items,skipped}=attachPick,ids=new Set(items.map(x=>x.id));
+  const rows=chatRows().map(r=>r.i).reverse();if(!rows.includes(attachPick.target))attachPick.target=null;
+  const at=rows.indexOf(attachPick.target);attachPick.shown=Math.max(attachPick.shown,Math.ceil((at+1)/ATTACH_STEP)*ATTACH_STEP);
+  const chosen=attachPick.target!==null;
+  const shown=rows.slice(0,attachPick.shown),left=rows.length-shown.length;
+  const madeFor=new Set(items.map(x=>locateSource(x.snapshot?.scene?.source,chat).index).filter(Number.isInteger));
+  const text=i=>chat[i].mes.replace(/\s+/g,' ').trim().slice(0,90);
+  const tags=i=>[madeFor.has(i)?'만든 메시지':'',chat[i].extra?.naice_shot_images?.some(x=>ids.has(x.id))?'이미 넣음':''].filter(Boolean).map(t=>`<span class="ncs-attach-tag">${t}</span>`).join('');
+  const n=items.length,lead=n>1?`선택된 ${n}장을 넣어요.`:'고른 메시지에 그림을 넣어요.';
+  $('ncs-attach-dialog').querySelector('.ncs-attach-card').innerHTML=`<strong id="ncs-attach-title">그림을 넣을 메시지</strong>
+    <small>${lead} 본문 글은 바뀌지 않아요.${skipped?` 다른 채팅·프리샷 그림 ${skipped}장은 넣지 않아요.`:''}</small>
+    <p class="ncs-target-count">최신순 · ${rows.length}개 중 ${shown.length}개 표시</p>
+    <div class="ncs-target-list" role="group" aria-label="그림을 넣을 메시지 · 최신순">${shown.map(i=>`<button type="button" class="ncs-target-item" data-attach-target="${i}" aria-pressed="${i===attachPick.target}"><span class="ncs-target-meta">#${i} · ${esc(chat[i].name??'')}${isHiddenSceneMessage(chat[i])?' · 숨김':''}${tags(i)}</span><span class="ncs-target-preview">${esc(text(i))}</span></button>`).join('')}</div>
+    ${left>0?`<button type="button" class="ncs-target-more" data-action="attach-more">이전 메시지 ${Math.min(ATTACH_STEP,left)}개 더 보기</button>`:''}
+    <div class="ncs-row ncs-attach-actions"><button type="button" class="ncs-primary" data-action="attach-confirm" ${chosen?'':'disabled'}>${chosen?`#${attachPick.target}에 넣기`:'넣을 메시지를 골라 주세요'}</button><button type="button" data-action="attach-cancel">취소</button></div>`;
+}
+async function putImagesInChat(items,targetIndex) {
+  if(!items?.length||attaching||busy)return;assertChat();const startKey=keyOf();
+  if(items.some(x=>x.chatKey!==startKey))throw new Error('현재 채팅의 이미지만 첨부할 수 있어요.');
   if(ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 첨부해 주세요.');
   attaching=true;updateAttachButtons();
   try {
-    const added=await attachInlineImage(ctx(),item,{targetIndex,isCurrent:()=>keyOf()===startKey});
+    const done=await attachInlineImages(ctx(),items,{targetIndex,isCurrent:()=>keyOf()===startKey});
     if(keyOf()!==startKey)return;
     renderChatImages();renderResult();renderHistory();
-    notice(added.duplicate?'이 메시지에 이미 넣은 이미지예요.':'선택한 RP 메시지의 설정된 위치에 그림을 넣었어요. 본문은 그대로 유지돼요.');
+    const where=`#${targetIndex} 메시지`;
+    notice(!done.added?`${where}에 이미 넣은 그림이에요.`:`${where}에 ${items.length>1?`${done.added}장을 `:'그림을 '}넣었어요.${done.duplicates?` 이미 있던 ${done.duplicates}장은 그대로 뒀어요.`:''} 본문은 그대로예요.`);
   }finally{attaching=false;updateAttachButtons();}
 }
 async function removeImageFromChat(item) {
@@ -1843,12 +1882,6 @@ async function removeImageFromChat(item) {
     renderChatImages();renderResult();renderHistory();
     notice(removed.removed?'채팅의 이미지 첨부만 뺐어요. 원본과 생성 이력은 남아 있어요.':'이 이미지는 현재 채팅에 첨부되어 있지 않아요.');
   }finally{attaching=false;updateAttachButtons();}
-}
-// One shared target selector for all history cards keeps the DOM small in long chats.
-function renderHistoryTarget() {
-  if(!dialog)return;const select=$('ncs-history-target'),current=select.value;
-  select.innerHTML='<option value="">자동 · 넣은 메시지나 만든 메시지</option>'+chatRows().map(row=>rowOption(row)).join('');
-  if([...select.options].some(o=>o.value===current))select.value=current;
 }
 function renderHistoryFilter() {
   const select=$('ncs-history-filter'),current=keyOf();
@@ -2012,7 +2045,7 @@ async function copyRaw(){
 // Counted like removal does: a message counts once if the picture is on any of its swipes (UI-062-04).
 const attachedCount=id=>(ctx().chat??[]).filter(m=>[m?.extra,...(Array.isArray(m?.swipe_info)?m.swipe_info.map(x=>x?.extra):[])].some(e=>e?.naice_shot_images?.some?.(x=>x.id===id))).length;
 function renderHistory() {
-  closeImageMenu();rememberScroll();renderHistoryTarget();
+  closeImageMenu();rememberScroll();
   const chat=ctx().chat??[],current=keyOf(),multi=['chats','all'].includes(historyScope);
   if(multi)renderHistoryFilter();
   $('ncs-history').innerHTML=historyItems.length?historyItems.map(item=>{
@@ -2122,7 +2155,11 @@ async function onAction(action,el) {
     case 'missing-reenable':setSkipMissingWarning(false);renderSceneExtras();notice('이 채팅에서 생성 전 경고창을 다시 띄워요.');break;
     case 'same-seed':await generate('same');break;
     case 'new-seed':await generate('new');break;
-    case 'attach':await putImageInChat(result,Number($('ncs-result').querySelector('[data-image-target]')?.value));break;
+    case 'attach':openAttachPicker([result]);break;
+    case 'attach-selected':openAttachPicker(historyItems.filter(x=>selectedIds.has(x.id)));break;
+    case 'attach-more':attachPick.shown+=ATTACH_STEP;renderAttachPicker();break;
+    case 'attach-cancel':closeAttachPicker();break;
+    case 'attach-confirm':{if(!attachPick||attachPick.target===null)break;const {items,target}=attachPick;closeAttachPicker();await putImagesInChat(items,target);break;}
     case 'detach':await removeImageFromChat(result);break;
     case 'new-profile':case 'clear-profile-form':{
       if(extraction?.kind==='profile')cancelExtraction(''); // a late conversion result must not fill the emptied form
@@ -2240,9 +2277,8 @@ function bindEvents() {
       else if(el.dataset.historyPresetCancel!==undefined){historyPresetTarget=null;renderHistory();}
       else if(el.dataset.viewResult!==undefined)viewImage(result);
       else if(el.dataset.viewHistory)viewImage(historyItems.find(x=>x.id===el.dataset.viewHistory),{gallery:true});
-      else if(el.dataset.historyAttach){const item=historyItems.find(x=>x.id===el.dataset.historyAttach),chosen=$('ncs-history-target').value,target=chosen===''?preferredTarget(item,{fallback:false}):Number(chosen);
-        if(target===null||target===undefined){closeImageMenu();$('ncs-history-target').focus();throw new Error('그림을 만든 메시지를 찾지 못했어요. 위 "그림을 넣을 메시지"에서 넣을 메시지를 골라 주세요.');}
-        await putImageInChat(item,target);}
+      else if(el.dataset.historyAttach){closeImageMenu();openAttachPicker([historyItems.find(x=>x.id===el.dataset.historyAttach)]);}
+      else if(el.dataset.attachTarget!==undefined){attachPick.target=Number(el.dataset.attachTarget);renderAttachPicker();}
       else if(el.dataset.historyJump){const item=historyItems.find(x=>x.id===el.dataset.historyJump);await goToMessage(item,el.dataset.jumpIndex===undefined?null:Number(el.dataset.jumpIndex),el.dataset.jumpKind);}
       else if(el.dataset.historyDelete)await deleteImages({ids:[el.dataset.historyDelete]});
       else if(el.dataset.historyDetach)await removeImageFromChat(historyItems.find(x=>x.id===el.dataset.historyDetach));
@@ -2260,7 +2296,6 @@ function bindEvents() {
     try {
       if(el.closest('#ncs-work-fields'))dropUndo();
       if(el.dataset.historyPick){if(el.checked)selectedIds.add(el.dataset.historyPick);else selectedIds.delete(el.dataset.historyPick);el.closest('.ncs-history-card')?.classList.toggle('ncs-picked',el.checked);updateHistoryTools();return;}
-      if(el.id==='ncs-history-target')return;
       if(el.id==='ncs-history-scope'){setHistoryScope(el.value);return;}
       if(el.id==='ncs-history-filter'){historyFilter=el.value;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();loadHistory().catch(e=>notice(e.message,true));return;}
       if(el.name==='ncs-skin'){useSkin(el.value,{save:true}).catch(e=>notice(e.message,true));return;}
@@ -2331,7 +2366,7 @@ function bindEvents() {
   $('ncs-import').addEventListener('change',event=>importSettings(event.target.files[0]).catch(e=>notice(e.message,true)));
 }
 function chatChanged() {
-  closeImageMenu();
+  closeImageMenu();closeAttachPicker();
   const key=keyOf();if(key===chatKey)return;undoChatOutfit=null;historyImportToken++;
   const oldKey=chatKey;if(oldKey){const oldWork=isFree()?spare.chat:captureWork();if(oldWork)rememberDraft(oldKey,oldWork,{flush:true});}
   if(!isFree()){draftLoadToken++;draftLoading=false;$('ncs-work-fields').disabled=false;}
@@ -2380,10 +2415,11 @@ async function initialize() {
   dialog.innerHTML=await template.text();document.body.append(dialog);
   // The 챗샷/프리샷 switch sits in the title row now, outside the work fields; it waits with them (draft loading, server check).
   {const work=$('ncs-work-fields'),sync=()=>{$('ncs-mode-fields').disabled=work.disabled;};new MutationObserver(sync).observe(work,{attributes:true,attributeFilter:['disabled']});sync();}
-  dialog.addEventListener('close',()=>{closeMissingDialog();rememberDraft(workKey(),null,{flush:true});});
+  dialog.addEventListener('close',()=>{closeMissingDialog();closeAttachPicker();rememberDraft(workKey(),null,{flush:true});});
   dialog.addEventListener('cancel',event=>{if(event.target===dialog)rememberScroll();});
   dialog.querySelector('.ncs-content').addEventListener('scroll',rememberScroll,{passive:true});
   $('ncs-missing-dialog').addEventListener('cancel',()=>{missingPrompt=null;}); // Escape closes only this box
+  $('ncs-attach-dialog').addEventListener('close',()=>{attachPick=null;});
   for(const tab of dialog.querySelectorAll('[data-tab]')){const icon=document.createElement('span');icon.className='ncs-tab-icon';icon.innerHTML=TAB_ICONS[tab.dataset.tab]??'';tab.prepend(icon);}
   $('ncs-version').textContent=`v${VERSION}`;setProfileMode('direct');renderSettings();renderProfiles();editProfile();renderTargets();bindEvents();watchGenerateArea();chatKey=keyOf();renderProgress();renderModeUI();renderScene();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';
   const menu=document.getElementById('extensionsMenu');if(menu){const button=document.createElement('div');button.className='list-group-item flex-container flexGap5 ncs-menu-item';button.innerHTML=`<div class="extensionsMenuExtensionButton ncs-menu-icon">${CAMERA_ICON}</div><span data-brand>${esc(brand())}</span>`;button.tabIndex=0;button.setAttribute('role','button');button.addEventListener('click',()=>open().catch(e=>notice(e.message,true)));button.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open().catch(e=>notice(e.message,true));}});menu.append(button);}
@@ -2411,7 +2447,12 @@ async function initialize() {
   });
   const chatRoot=document.getElementById('chat');
   if(messageButtonsOn())setMessageButtons(true);
+  // Changes NAIce Shot makes itself in the chat (its picture strips and icons) do not start another pass (UI-071-03).
+  const ownNode=n=>n.nodeType===1&&(n.classList.contains('ncs-inline-images')||n.classList.contains('ncs-mes-draw'));
+  // A removal of NAIce Shot's own parts still counts: something else may have cleared them and they need to come back.
+  const ownChange=r=>r.type==='childList'&&(!!r.target.closest?.('.ncs-inline-images,.ncs-mes-draw')||(r.addedNodes.length>0&&!r.removedNodes.length&&[...r.addedNodes].every(ownNode)));
   if(chatRoot){let queued=false,hiddenChanged=false;new MutationObserver(records=>{
+    if(records.every(ownChange))return;
     hiddenChanged ||= records.some(r=>r.type==='attributes'&&r.attributeName==='is_system');
     if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;refreshChatImages();if(hiddenChanged&&dialog.open)renderTargets();hiddenChanged=false;});
   }).observe(chatRoot,{childList:true,subtree:true,attributes:true,attributeFilter:['mesid','is_system']});refreshChatImages();}

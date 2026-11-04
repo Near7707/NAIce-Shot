@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {attachInlineImage,detachInlineImage,visibleInlineImages,hasInlineImage,imageDownload,IMAGE_KEY} from '../inline-images.mjs';
+import {attachInlineImage,attachInlineImages,detachInlineImage,visibleInlineImages,hasInlineImage,imageDownload,IMAGE_KEY} from '../inline-images.mjs';
 import {chooseMessages} from '../core.mjs';
 const id='78c72e1e-e533-4188-9c93-a776da821ce3',item={id,image:`/user/images/naice-shot/${id}.png`};
 function context(){return {chat:[{name:'Mira',is_user:true,mes:'hello'},{name:'Leo',mes:'RP text',extra:{reasoning:'private',media:[{type:'image',url:'/existing.png'}]}}],saves:0,async saveChat(){this.saves++;}};}
@@ -55,4 +55,14 @@ test('message-scoped removal refuses a changed chat or source and rolls back a f
  message.mes='changed';await assert.rejects(detachMessageImage(ctx,item,options),/메시지나 리롤/);message.mes='RP text';
  const before=structuredClone(message);ctx.saveChat=async()=>{throw new Error('save failed');};
  await assert.rejects(detachMessageImage(ctx,item,options),/save failed/);assert.deepEqual(message,before);
+});
+test('several pictures go into one message with one save; duplicates stay once and the 20 limit changes nothing',async()=>{
+ const ids=['11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222'],items=ids.map(x=>({id:x,image:`/user/images/naice-shot/${x}.png`}));
+ const ctx=context();await attachInlineImage(ctx,item,{targetIndex:1});
+ const done=await attachInlineImages(ctx,[item,...items],{targetIndex:1});
+ assert.deepEqual([done.added,done.duplicates],[2,1]);assert.equal(ctx.saves,2,'one save for the batch');
+ assert.deepEqual(ctx.chat[1].extra[IMAGE_KEY].map(x=>x.id),[id,...ids]);
+ const full=context();full.chat[1].extra[IMAGE_KEY]=Array.from({length:19},(_,i)=>({id:`${String(i).padStart(8,'0')}-0000-4000-8000-000000000000`,image:'/x.png',swipeId:0,signature:'s'}));
+ const before=structuredClone(full.chat[1].extra);
+ await assert.rejects(attachInlineImages(full,items,{targetIndex:1}),/최대 20개/);assert.deepEqual(full.chat[1].extra,before);assert.equal(full.saves,0);
 });

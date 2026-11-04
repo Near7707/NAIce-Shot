@@ -66,7 +66,7 @@ const holder='#chat .mes[mesid="1"] .ncs-inline-images';
 const setting=async(page,id,value)=>{await page.locator('[data-tab="settings"]').click();await page.locator(`#${id}`).selectOption(value);await page.waitForFunction(([v])=>document.querySelector('#chat .mes[mesid="1"] .ncs-inline-images')?.dataset.layout&&true,[value]);};
 // Three pictures in message #1.
 async function threeInMessage(page){
- for(let i=0;i<3;i++){await page.locator('[data-action="generate"]').click();await idle(page);await page.locator('#ncs-result [data-image-target]').selectOption('1');await page.locator('[data-action="attach"]').click();await page.waitForTimeout(150);}
+ for(let i=0;i<3;i++){await page.locator('[data-action="generate"]').click();await idle(page);await page.locator('[data-action="attach"]').click();await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();await page.waitForTimeout(150);}
  await page.waitForFunction(()=>document.querySelectorAll('#chat .mes[mesid="1"] .ncs-inline-open').length===3);
 }
 try{

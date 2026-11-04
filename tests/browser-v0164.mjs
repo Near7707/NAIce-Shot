@@ -101,7 +101,7 @@ try{
  for(const width of [375,1100]){// UI-063-02: a tap on empty space closes only after its own click, which never reaches what lies underneath.
   const {page,errors}=await open(width);ask(page);
   await page.locator('[data-action="generate"]').click();await idle(page);
-  await page.locator('#ncs-result [data-image-target]').selectOption('1');await page.locator('[data-action="attach"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
+  await page.locator('[data-action="attach"]').click();await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
   await page.locator('[data-action="close"]').click();
   for(let round=0;round<3;round++){
    await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').click();await viewerReady(page);
@@ -136,7 +136,7 @@ try{
   await page.locator('#ncs-viewer [data-v="more"]').click();assert.equal(await last().isDisabled(),false,'a picture with a message: 메시지로 가기 works');await page.keyboard.press('Escape');
   // A chat picture is opened from its own message: ⋯ ends with 이력에서 보기, and row 2 has 이 메시지에서 빼기.
   await page.locator('[data-v="close"]').click();await page.locator('[data-tab="scene"]').click();
-  await page.locator('#ncs-result [data-image-target]').selectOption('1');await page.locator('[data-action="attach"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
+  await page.locator('[data-action="attach"]').click();await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
   await page.locator('[data-action="close"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').click();await viewerReady(page);
   await page.locator('#ncs-viewer [data-v="more"]').click();assert.match(await last().innerText(),/^이력에서 보기/);await page.keyboard.press('Escape');
   assert.equal(await page.locator('#ncs-viewer .ncsv-prompt-row [data-v="detach"]').isVisible(),true);

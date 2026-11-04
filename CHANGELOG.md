@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.72 — 2026-11-05 (extension only; server v0.1.17 unchanged)
+
+본문에 넣기 opens a message list, and GPT's review of 0.1.71.
+
+- **본문에 넣기:** the "그림을 넣을 메시지" boxes (under the result and at the top of History) are gone. Pressing 본문에 넣기 — under the result, in a history card's ⋯, or in the enlarged view's ⋯ — opens a list of the chat's messages, newest first (20 at a time). The message the picture was made for is marked and chosen; a message that already holds it is marked and comes first. When neither is known, nothing is chosen and the button waits ("넣을 메시지를 골라 주세요"). **[#N에 넣기] [취소]** stay at the bottom; Escape closes only the list. The notice names the message.
+- **선택 본문에 넣기 (N):** in History, tick pictures and put them into one message at once (one chat save). Only this chat's pictures count; others are left out with a note.
+- A sideways swipe anywhere on a message's 넘겨보기 strip — the count, the bar, a missing picture's note and its 빼기 — no longer reaches SillyTavern's reroll swipe (UI-071-01, P2).
+- The message icon decides for each message whether its date is shown (UI-071-02).
+- Sliding pictures no longer makes NAIce Shot look through the whole chat again; the count is only rewritten when it changes (UI-071-03).
+- Tests: new `browser-v0172` (375 and 1100px) and a unit test for putting several pictures in at once; 17 older scripts use the list instead of the dropdowns.
+
 ## 0.1.71 — 2026-11-05 (extension only; server v0.1.17 unchanged)
 
 GPT's review of 0.1.70, the message icon, and how pictures show inside a message.

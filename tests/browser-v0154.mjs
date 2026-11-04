@@ -55,8 +55,7 @@ try{
    mock.renderChat();},[where,drawn]);
   await openMore(page);
   assert.equal(await slot(page).first().isDisabled(),true,`${where}: not taken for the source`);
-  await page.locator('#ncs-history-target').selectOption('');await page.locator('.ncs-image-popup:popover-open [data-history-attach]').click();
-  await noticeMatches(page,/넣을 메시지를 골라 주세요/);
+  await page.locator('.ncs-image-popup:popover-open [data-history-attach]').click();await page.locator('#ncs-attach-dialog[open]').waitFor();assert.equal(await page.locator('#ncs-attach-dialog [aria-pressed="true"]').count(),0,'no message chosen for it');assert.equal(await page.locator('[data-action="attach-confirm"]').isDisabled(),true);await page.locator('[data-action="attach-cancel"]').click();
   assert.equal(await page.evaluate(()=>mock.chat.some(m=>m.extra?.naice_shot_images?.length)),false,`${where}: nothing attached`);
   assert.deepEqual(errors,[]);await page.close();
  }

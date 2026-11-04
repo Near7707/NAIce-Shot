@@ -70,7 +70,7 @@ try{
  {// Viewer rows and "채팅에서 이 그림 빼기".
   const {page,errors}=await open(375);ask(page);
   for(let i=0;i<2;i++){await page.locator('[data-action="generate"]').click();await idle(page);}
-  await page.locator('#ncs-result [data-image-target]').selectOption('1');await page.locator('[data-action="attach"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
+  await page.locator('[data-action="attach"]').click();await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
   await page.locator('[data-tab="history"]').click();await page.waitForFunction(()=>document.querySelectorAll('.ncs-history-card').length>=2);
   const detach=page.locator('[data-history-detach]').first();assert.equal(await detach.evaluate(e=>e.textContent),'채팅에서 이 그림 빼기');
   await page.locator('[data-view-history]').first().click();await page.locator('.ncsv-stage img').waitFor();

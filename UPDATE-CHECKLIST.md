@@ -1,5 +1,14 @@
 # Installation and update checklist
 
+## v0.1.72
+
+Update the extension and refresh. No server update is needed.
+
+1. Make a picture and press 본문에 넣기: a list of messages opens with the message it was made for already chosen. Press [#N에 넣기].
+2. History: tick two pictures → [선택 본문에 넣기 (2)] → choose a message.
+3. On a phone, swipe sideways on a message's pictures (also on the ‹ 1/3 › line): the pictures move and the message does not reroll.
+
+
 ## v0.1.71
 
 Update the extension and refresh. No server update is needed.

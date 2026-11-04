@@ -54,11 +54,11 @@ try{
   await page.waitForFunction(()=>document.querySelector('#chat .mes[mesid="1"]')?.classList.contains('ncs-jump-flash'));
   await page.waitForFunction(()=>!document.querySelector('#chat .ncs-jump-flash'),null,{timeout:4000});
   // Attached to the same message: still one line, saying so.
-  await reopen(page);await page.locator('#ncs-history-target').selectOption('1');await openMore(page);await page.locator('.ncs-image-popup:popover-open [data-history-attach]').click();
+  await reopen(page);await openMore(page);await page.locator('.ncs-image-popup:popover-open [data-history-attach]').click();await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();
   await page.waitForFunction(()=>mock.chat[1].extra?.naice_shot_images?.length===1);
   await openMore(page);assert.deepEqual(await lines(page),['메시지로 가기 #1 · 이 그림을 만들고 넣은 메시지']);await page.keyboard.press('Escape');
   // Attached elsewhere too: two lines to choose from; the attached one goes to that message.
-  await page.locator('#ncs-history-target').selectOption('0');await openMore(page);await page.locator('.ncs-image-popup:popover-open [data-history-attach]').click();
+  await openMore(page);await page.locator('.ncs-image-popup:popover-open [data-history-attach]').click();await page.locator('[data-attach-target="0"]').click();await page.locator('[data-action="attach-confirm"]').click();
   await page.waitForFunction(()=>mock.chat[0].extra?.naice_shot_images?.length===1);
   await page.evaluate(()=>{delete mock.chat[1].extra.naice_shot_images;mock.renderChat();});
   await openMore(page);assert.deepEqual(await lines(page),['넣은 메시지로 가기 #0 · 지금 그림이 들어 있는 곳','만든 메시지로 가기 #1 · 이 그림을 만든 메시지']);await page.keyboard.press('Escape');
@@ -76,8 +76,7 @@ try{
   // Gone: the line is greyed with the reason, and 본문에 넣기 (auto) asks for a message instead of using the last one.
   await page.evaluate(()=>{mock.chat.splice(1,1);mock.renderChat();});
   await openMore(page);assert.equal(await slot(page).first().isDisabled(),true);assert.match(await slot(page).first().innerText(),/찾지 못했어요/);
-  await page.locator('#ncs-history-target').selectOption('');await page.locator('.ncs-image-popup:popover-open [data-history-attach]').click();
-  await page.waitForFunction(()=>/넣을 메시지를 골라 주세요/.test(document.querySelector('#ncs-notice')?.innerText??''));
+  await page.locator('.ncs-image-popup:popover-open [data-history-attach]').click();await page.locator('#ncs-attach-dialog[open]').waitFor();assert.equal(await page.locator('#ncs-attach-dialog [aria-pressed="true"]').count(),0,'no message chosen for it');assert.equal(await page.locator('[data-action="attach-confirm"]').isDisabled(),true);await page.locator('[data-action="attach-cancel"]').click();
   assert.equal(await page.evaluate(()=>mock.chat.some(m=>m.extra?.naice_shot_images?.length)),false,'nothing attached silently');
   // Another chat: asks, opens it, then goes to the message.
   await page.evaluate(()=>{mock.chat.push({name:'Leo',mes:'Leo sits by the window. Scene Info: sunny afternoon.',send_date:'2026-01-01 1'});mock.savedChats={A:structuredClone(mock.chat)};mock.switchChat('B');});

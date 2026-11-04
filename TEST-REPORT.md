@@ -1,3 +1,12 @@
+# v0.1.72 validation — 2026-11-05
+
+- Extension Node suite: **150 passed, 0 failed** (new: several pictures into one message with one save; a duplicate stays once; going over 20 changes nothing and saves nothing).
+- Server Node suite: server unchanged.
+- **61 of 61 Chromium browser scripts passed.** New `browser-v0172` at 375 and 1100px: no message dropdowns; 본문에 넣기 under the result opens the list newest first (#2, #1, #0) with #2 marked 만든 메시지 and chosen, "#2에 넣기", the box and button inside the screen; Escape closes only the list; choosing #1 attaches there and the notice says "#1 메시지에 그림을 넣었어요"; opened again, #1 is chosen and marked 이미 넣음. 선택 본문에 넣기 (2) says "선택된 2장을 넣어요", puts both into #1 with one chat save. The enlarged view's ⋯ → 본문에 넣기 closes the view and opens the list over the panel. A picture whose message was removed: nothing chosen, the button disabled. Every element of a 넘겨보기 strip carries `data-swipe-ignore` and touch events on the count, bar, strip and picture never reach a page-level detector; a missing picture's note and 빼기 are marked too. Sliding the strip in eight steps runs no chat-wide search. With the date hidden on #0 only, #0's icon is in the button row and #1's after its date; showing #0's date moves its icon. Older scripts (smoke, v015, v017, v031, v040, v070, v0125, v0140, v0151, v0153, v0154, v0162–v0165, v0170, v0171) now use the list.
+- Visual check: the list at 375 and 1100px (local screenshots only).
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern (its real swipe gestures), iPhone Safari.
+
 # v0.1.71 validation — 2026-11-05
 
 - Extension Node suite: **149 passed, 0 failed**.

@@ -24,24 +24,32 @@ function syncActiveSwipe(message) {
  const swipe=message.swipe_info?.[message.swipe_id??0];
  if(swipe&&typeof swipe==='object')swipe.extra=clone(message.extra);
 }
-export async function attachInlineImage(context,item,{targetIndex,isCurrent=()=>true}={}) {
- imageDownload(item);
+export async function attachInlineImage(context,item,options={}) {
+ const {added,duplicates,targetIndex}=await attachInlineImages(context,[item],options);
+ return {duplicate:duplicates>0&&!added,targetIndex};
+}
+// 0.1.72: several pictures go into one message with one chat save (선택 본문에 넣기).
+export async function attachInlineImages(context,items,{targetIndex,isCurrent=()=>true}={}) {
+ for(const item of items)imageDownload(item);
  if(!isCurrent())throw new Error('채팅이 바뀌었어요. 현재 채팅에서 다시 선택해 주세요.');
  if(!Array.isArray(context.chat)||typeof context.saveChat!=='function')throw new Error('현재 채팅에 이미지를 저장할 수 없어요.');
  const message=context.chat[targetIndex];
  if(!Number.isInteger(targetIndex)||!isSceneMessage(message))throw new Error('그림을 넣을 RP 메시지를 선택해 주세요.');
- const old=Array.isArray(message.extra?.[IMAGE_KEY])?message.extra[IMAGE_KEY]:[];
- const entry={id:item.id,image:item.image,swipeId:message.swipe_id??0,signature:textSignature(message.mes)};
- // When it was made and its seed, so the enlarged view from the chat can show them (0.1.63). Nothing private.
- if(typeof item.created==='string'&&!Number.isNaN(Date.parse(item.created)))entry.created=item.created;
- if(Number.isInteger(item.seed))entry.seed=item.seed;
- const duplicate=old.some(x=>x.id===item.id&&x.signature===entry.signature&&x.swipeId===entry.swipeId);
- if(!duplicate){
-  if(old.length>=20&&!old.some(x=>x.id===item.id))throw new Error('한 메시지에는 이미지를 최대 20개까지 넣을 수 있어요.');
-  message.extra={...message.extra,[IMAGE_KEY]:[...old.filter(x=>x.id!==item.id),entry]};syncActiveSwipe(message);
+ let list=Array.isArray(message.extra?.[IMAGE_KEY])?message.extra[IMAGE_KEY]:[];
+ const swipeId=message.swipe_id??0,signature=textSignature(message.mes);let added=0,duplicates=0;
+ for(const item of items){
+  const entry={id:item.id,image:item.image,swipeId,signature};
+  // When it was made and its seed, so the enlarged view from the chat can show them (0.1.63). Nothing private.
+  if(typeof item.created==='string'&&!Number.isNaN(Date.parse(item.created)))entry.created=item.created;
+  if(Number.isInteger(item.seed))entry.seed=item.seed;
+  if(list.some(x=>x.id===item.id&&x.signature===signature&&x.swipeId===swipeId)){duplicates++;continue;}
+  if(!list.some(x=>x.id===item.id)&&list.length>=20)throw new Error('한 메시지에는 이미지를 최대 20개까지 넣을 수 있어요.');
+  list=[...list.filter(x=>x.id!==item.id),entry];added++;
  }
+ if(added){message.extra={...message.extra,[IMAGE_KEY]:list};syncActiveSwipe(message);}
  // No new messages, text edits, native media fields or RP generation events.
- await context.saveChat();return {duplicate,targetIndex};
+ if(added||items.length===1)await context.saveChat();
+ return {added,duplicates,targetIndex};
 }
 export async function detachInlineImage(context,item,options={}) {
  imageDownload(item);
@@ -87,14 +95,22 @@ export async function detachInlineImages(context,ids,{isCurrent=()=>true}={}) {
 // prompt processing. Rendering is display-only: placement 'above' or 'below' the RP text never touches message text.
 // 0.1.71: several pictures in one message show as 넘겨보기 (one at a time, ‹ › or a swipe), 격자 or 세로, in three sizes.
 export const INLINE_LAYOUTS=['slide','grid','stack'],INLINE_SIZES=['small','medium','large'];
-// Every part of the slide strip carries data-swipe-ignore so a sideways swipe on it does not also reroll the message.
+// A sideways swipe on the slide strip must not also reroll the message (UI-071-01). SillyTavern's swipe detector
+// checks only the element actually touched, so every element of the strip carries data-swipe-ignore, and its touch
+// events stop at the strip so the detector on the page never sees them. The strip's own sideways scroll is untouched.
 const noSwipe=el=>{el.dataset.swipeIgnore='true';return el;};
+const keepSwipe=event=>event.stopPropagation();
+function guardSwipes(holder){
+ for(const el of [holder,...holder.querySelectorAll('*')])noSwipe(el);
+ for(const type of ['touchstart','touchmove','touchend','touchcancel'])holder.addEventListener(type,keepSwipe,{passive:true});
+}
 function slideControls(holder,track,count){
  const bar=document.createElement('div');bar.className='ncs-inline-slide-bar';
  const make=(dir,label,text)=>{const b=noSwipe(document.createElement('button'));b.type='button';b.className=`ncs-inline-slide-${dir}`;b.setAttribute('aria-label',label);b.textContent=text;return b;};
  const prev=make('prev','이전 그림','‹'),next=make('next','다음 그림','›'),position=document.createElement('span');position.className='ncs-inline-slide-count';
  const current=()=>track.clientWidth?Math.round(track.scrollLeft/track.clientWidth):0;
- const update=()=>{const i=Math.min(count-1,Math.max(0,current()));position.textContent=`${i+1} / ${count}`;prev.disabled=i<=0;next.disabled=i>=count-1;};
+ // Written only when the number changes, so scrolling does not keep changing the chat (UI-071-03).
+ let shown=-1;const update=()=>{const i=Math.min(count-1,Math.max(0,current()));if(i===shown)return;shown=i;position.textContent=`${i+1} / ${count}`;prev.disabled=i<=0;next.disabled=i>=count-1;};
  const go=step=>event=>{event.preventDefault();event.stopPropagation();track.scrollTo({left:(current()+step)*track.clientWidth,behavior:'smooth'});};
  prev.addEventListener('click',go(-1));next.addEventListener('click',go(1));
  let frame=0;track.addEventListener('scroll',()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(update);},{passive:true});
@@ -120,14 +136,13 @@ export function renderInlineImages(context,root,chatKey,{placement='below',layou
    const open=document.createElement('button');open.type='button';open.className='ncs-inline-open';open.dataset.ncsInlineView=item.id;open.setAttribute('aria-label','생성된 장면 크게 보기');open.append(img);
    const remove=document.createElement('button');
    // A deleted or missing file shows a note instead of a broken image; the remove button stays.
-   img.addEventListener('error',()=>{tile.classList.add('ncs-missing');open.disabled=true;remove.hidden=false;const note=document.createElement('span');note.className='ncs-missing-note';note.textContent='삭제됐거나 찾을 수 없는 그림이에요.';open.replaceChildren(note);},{once:true});
+   img.addEventListener('error',()=>{tile.classList.add('ncs-missing');open.disabled=true;remove.hidden=false;const note=document.createElement('span');note.className='ncs-missing-note';note.textContent='삭제됐거나 찾을 수 없는 그림이에요.';if(holder.dataset.layout==='slide')noSwipe(note);open.replaceChildren(note);},{once:true});
    remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이 메시지에서 빼기';
    // 0.1.63: no ⋯ over the picture. Saving, removing and deleting live in the enlarged view (tap the picture);
    // only a picture whose file is gone shows a plain [이 메시지에서 빼기] under its note.
    remove.className='ncs-inline-remove';remove.hidden=true;tile.append(open,remove);track.append(tile);
-   if(mode==='slide')[tile,open,img].forEach(noSwipe);
   }
-  if(mode==='slide')slideControls(holder,track,items.length);
+  if(mode==='slide'){slideControls(holder,track,items.length);guardSwipes(holder);}
   const text=element.querySelector('.mes_text');
   if(text)where==='above'?text.before(holder):text.after(holder);else (element.querySelector('.mes_block')??element)[where==='above'?'prepend':'append'](holder);
  }

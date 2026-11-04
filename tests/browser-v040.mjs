@@ -74,7 +74,7 @@ try{
  await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===20);
  assert.match(await page.locator('#ncs-history-count').textContent(),/총 23장 · 20장/);
  assert.equal(await page.locator('#ncs-history [data-image-target]').count(),0,'no per-card message selector');
- assert.equal(await page.locator('#ncs-history-target option').count(),3,'one shared selector: auto + 2 chat messages');
+ assert.equal(await page.locator('#ncs-history-target').count(),0,'no shared selector either: the list opens on 본문에 넣기 (0.1.72)');
  await click('history-more');await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===23);
  assert.equal(await page.locator('[data-action="history-more"]').isHidden(),true);
 
@@ -82,10 +82,9 @@ try{
  // no source message, so 자동 asks for a message instead of quietly using the latest (v0.1.51).
  const newest=seeded.at(-1),second=seeded.at(-2);
  await pick(page,`[data-history-attach="${newest.id}"]`);
- await page.waitForFunction(()=>/넣을 메시지를 골라 주세요/.test(document.querySelector('#ncs-notice')?.innerText??''));
+ await page.locator('#ncs-attach-dialog[open]').waitFor();assert.equal(await page.locator('#ncs-attach-dialog [aria-pressed="true"]').count(),0,'no message chosen for it');assert.equal(await page.locator('[data-action="attach-confirm"]').isDisabled(),true);await page.locator('[data-action="attach-cancel"]').click();
  assert.equal(await page.evaluate(()=>mock.chat.some(m=>m.extra?.naice_shot_images?.length)),false);
- await page.locator('#ncs-history-target').selectOption('1');
- await pick(page,`[data-history-attach="${newest.id}"]`);
+ await pick(page,`[data-history-attach="${newest.id}"]`);await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();
  await page.waitForFunction(id=>mock.chat[1]?.extra?.naice_shot_images?.some(x=>x.id===id),newest.id);
  await page.locator('#chat .ncs-inline-images img').waitFor();
  await page.locator(`[data-history-pick="${newest.id}"]`).check();await page.locator(`[data-history-pick="${second.id}"]`).check();
@@ -110,7 +109,7 @@ try{
 
  // 4) Missing PNG (removed by hand) shows a note in chat instead of a broken image; viewer from chat can still delete.
  const fifth=seeded.at(-5);
- await page.locator('#ncs-history-target').selectOption('1');await pick(page,`[data-history-attach="${fifth.id}"]`);
+ await pick(page,`[data-history-attach="${fifth.id}"]`);await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();
  await page.locator('#chat .ncs-inline-images img').waitFor();
  await fs.unlink(path.join(directories.userImages,'naice-shot',`${fifth.id}.png`));
  // Chromium may reuse the image already decoded on this page even with no-store; bypass caches like a fresh load would.

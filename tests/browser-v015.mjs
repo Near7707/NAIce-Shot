@@ -32,7 +32,7 @@ try{
  await click('extract');await page.locator('[data-character="leo"]').waitFor();
  await page.locator('#ncs-allow-anlas').check();await click('generate');await page.locator('#ncs-result img').waitFor();
  const before=await page.evaluate(()=>JSON.stringify(mock.chat.map(m=>m.mes)));
- await click('attach');await page.waitForFunction(()=>document.querySelector('#chat .ncs-inline-images'));
+ await click('attach');await click('attach-confirm');await page.waitForFunction(()=>document.querySelector('#chat .ncs-inline-images'));
  assert.equal(await order(),'text-first','default is below the text');
 
  await page.locator('[data-tab="settings"]').click();

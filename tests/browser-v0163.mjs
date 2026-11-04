@@ -75,7 +75,7 @@ try{
  {// Viewer: date only, 메시지로 가기 beside 프롬프트 보기, readable notes, no flash; chat pictures: no ⋯, [삭제], date and seed.
   const {page,errors}=await open(375);ask(page);
   for(let i=0;i<2;i++){await page.locator('[data-action="generate"]').click();await idle(page);}
-  await page.locator('#ncs-result [data-image-target]').selectOption('1');await page.locator('[data-action="attach"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
+  await page.locator('[data-action="attach"]').click();await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
   assert.equal(await page.locator('#chat .ncs-inline-more').count(),0,'no ⋯ over the picture');
   const entry=await page.evaluate(()=>mock.chat[1].extra.naice_shot_images[0]);assert.ok(entry.created&&Number.isInteger(entry.seed),'date and seed stored with the attachment');
   await page.locator('[data-tab="history"]').click();await page.waitForFunction(()=>document.querySelectorAll('.ncs-history-card').length>=2);

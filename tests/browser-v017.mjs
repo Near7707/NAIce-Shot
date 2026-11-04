@@ -66,7 +66,7 @@ try{
  await page.locator('[data-tab="settings"]').click();await page.locator('.ncs-advanced > summary').click();await page.locator('#ncs-retain-raw').check();
  await page.locator('[data-tab="scene"]').click();await click('generate');await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===2);
  assert.equal(sent[1].retainRawExtraction,true);assert.doesNotMatch(sent[1].snapshot.rawExtraction,/PRIVATE_REASONING|<think>/);
- await click('attach');await click('close');
+ await click('attach');await click('attach-confirm');await click('close');
  await page.locator('#chat .ncs-inline-open').first().click();await page.locator('#ncs-viewer [data-v="save-menu"]').click();checkClean((await downloadBy(page.locator('#ncs-viewer [data-v="clean"]'))).bytes);await page.locator('#ncs-viewer [data-v="close"]').click();
  await page.locator('.ncs-launch-button').click();await page.locator('[data-tab="history"]').click();await click('select-all-history');
  await reveal(page,'[data-action="save-selected-clean"]');await page.locator('#ncs-save-zip').check();assert.match(await page.locator('[data-action="save-selected-clean"]').innerText(),/클린 ZIP/);const zip=await downloadBy(page.locator('[data-action="save-selected-clean"]'));assert.match(zip.name,/clean-.*-2\.zip$/);

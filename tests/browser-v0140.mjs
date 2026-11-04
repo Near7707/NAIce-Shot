@@ -73,8 +73,8 @@ try{
   await page.evaluate(()=>{navigator.clipboard.writeText=async()=>{throw Error('blocked');};document.execCommand=()=>false;});
   await copy.click();assert.equal(await copy.innerText(),'프롬프트 복사');assert.match(await page.locator('.ncsv-copy-status').innerText(),/복사하지 못/);
   await page.locator('#ncs-viewer [data-v="close"]').click();await page.locator('[data-tab="scene"]').click();
-  const target=page.locator('#ncs-result [data-image-target]');await target.selectOption('0');await page.locator('[data-action="attach"]').click();await page.locator('#chat .mes[mesid="0"] .ncs-inline-open').waitFor();
-  await target.selectOption('1');await page.locator('[data-action="attach"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
+  await page.locator('[data-action="attach"]').click();await page.locator('[data-attach-target="0"]').click();await page.locator('[data-action="attach-confirm"]').click();await page.locator('#chat .mes[mesid="0"] .ncs-inline-open').waitFor();
+  await page.locator('[data-action="attach"]').click();await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
   await page.locator('[data-action="close"]').click();
   const first=page.locator('#chat .mes[mesid="0"]');assert.equal(await first.locator('[data-ncs-inline-remove]').isVisible(),false);
   assert.equal(await first.locator('.ncs-inline-more').count(),0,'0.1.63: no ⋯ over chat pictures (actions are in the enlarged view)');

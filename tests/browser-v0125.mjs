@@ -61,8 +61,7 @@ try{
   assert.equal(sent[0].snapshot.scene.source.target,1);assert.equal(sent[0].snapshot.rawExtraction,undefined);
   assert.deepEqual(sent[0].snapshot.scene.source.fingerprints.map(f=>f.index),[0,1]);
   assert.ok(sent[0].snapshot.scene.source.fingerprints.every(f=>!('text' in f)));
-  assert.equal(await page.locator('#ncs-result [data-image-target]').inputValue(),'1','attachment defaults to selected hidden message');
-  await action('attach');await page.waitForFunction(()=>mock.chat[1].extra.naice_shot_images?.length===1);
+  await action('attach');assert.equal(await page.locator('[data-attach-target="1"]').getAttribute('aria-pressed'),'true','attachment defaults to selected hidden message');await page.locator('[data-action="attach-confirm"]').click();await page.waitForFunction(()=>mock.chat[1].extra.naice_shot_images?.length===1);
   assert.equal(await page.evaluate(()=>mock.chat[1].is_system),true);assert.equal(await page.locator('#chat .mes[mesid="1"] .ncs-inline-images img').count(),1);
   assert.equal(await page.evaluate(()=>JSON.parse(mock.savedChat)[1].is_system),true,'saved chat stays hidden too');
   assert.deepEqual(await page.evaluate(()=>mock.chat.map(m=>({text:m.mes,hidden:m.is_system}))),before.map(m=>({text:m.mes,hidden:m.is_system})));

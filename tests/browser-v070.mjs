@@ -63,7 +63,7 @@ try{
  assert.equal(await page.locator('#ncs-history-filter option').count(),4);
  assert.match(await page.locator('#ncs-history-filter').textContent(),/A · 지금 채팅 · 3장/);assert.match(await page.locator('#ncs-history-filter').textContent(),/Leo - old chat · 2장/);
  assert.equal(await page.locator('#ncs-history [data-history-attach]').count(),6,'attachment action stays in every menu');assert.equal(await page.locator('#ncs-history [data-history-attach]:disabled').count(),3,'other chats explain why attachment is unavailable');assert.equal(await page.locator('#ncs-history [data-history-id]').count(),6,'all images can be sent to the open chat from any scope');
- assert.equal(await page.locator('#ncs-history-target-row').isVisible(),true);assert.equal(await page.locator('[data-action="delete-chat-history"]').isHidden(),true);
+ assert.equal(await page.locator('#ncs-history-target-row').count(),0);assert.equal(await page.locator('[data-action="delete-chat-history"]').isHidden(),true);
  assert.equal(await page.locator('#ncs-history .ncs-chat-name').first().textContent(),'Leo - another chat');
 
  // 2) Filter to a chat that no longer exists and clear it entirely.
@@ -77,8 +77,7 @@ try{
 
  // 3) Attach one of this chat's images, then delete a cross-chat selection: one request per chat, attachment cleaned.
  await page.locator('#ncs-history-scope').selectOption('chat');await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===3);
- await page.locator('#ncs-history-target').selectOption('1'); // seeded images have no source message (v0.1.51: 자동 would ask)
- await pick(page,`[data-history-attach="${a[2].id}"]`);await page.waitForFunction(id=>mock.chat[1]?.extra?.naice_shot_images?.some(x=>x.id===id),a[2].id);
+ await pick(page,`[data-history-attach="${a[2].id}"]`);await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();await page.waitForFunction(id=>mock.chat[1]?.extra?.naice_shot_images?.some(x=>x.id===id),a[2].id);
  await page.locator('#ncs-history-scope').selectOption('all');await page.waitForFunction(()=>document.querySelectorAll('#ncs-history .ncs-history-card').length===4);
  await page.locator(`[data-history-pick="${a[2].id}"]`).check();await page.locator(`[data-history-pick="${c[0].id}"]`).check();
  await click('delete-selected');

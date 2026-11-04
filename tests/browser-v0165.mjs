@@ -86,7 +86,7 @@ try{
   {// UI-064-02: closing another way (Escape) right after a tap drops the pending tap-close; the next click is not swallowed.
    const {page,errors}=await open(width);ask(page);
    await page.locator('[data-action="generate"]').click();await idle(page);
-   await page.locator('#ncs-result [data-image-target]').selectOption('1');await page.locator('[data-action="attach"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
+   await page.locator('[data-action="attach"]').click();await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').waitFor();
    await page.locator('[data-action="close"]').click();
    for(const how of ['escape','close-button']){
     await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').click();await viewerReady(page);
