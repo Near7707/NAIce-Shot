@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.76 — 2026-11-05 (extension only; server v0.1.17 unchanged)
+
+@ profile references become chips, plus the 0.1.75 review fixes.
+
+- The 프리샷 situation and the 챗샷 추가 요청 are now chip fields. `@` opens the list (name · aliases · a short look: hair and eyes, usual outfit; the id is never shown; ↑↓ · Enter · Tab · click; Esc closes only the list; Enter while Hangul is being composed picks nothing; the chosen item stays in view when scrolling with the arrows). Picking puts an `@Name` pill into the text. The pill keeps the profile's **full id** inside and is one block: Backspace removes it whole and the link goes with it (no link kept outside the text). Ctrl+Z undoes a pick.
+- Copy and paste: between the two fields the chips keep their ids; to another app they are plain `@Name`; plain `@Name` pasted from elsewhere is a typed name, confirmed into a chip just before extraction when it fits exactly one profile (the notice says so), otherwise it stops. Length limits hold (situation 4000 characters of saved text, request 200 as shown).
+- Saved work, the last work and history keep the id (`@[Name](ref:ID)` in the saved text). Sending a history picture to 프리샷 or 챗샷 restores the chips; a profile deleted in the meantime comes back as a dashed yellow broken chip and extraction stops with "pick again". The 0.1.75 text `@Name#shortid` is shown as a broken chip and is not linked automatically. Profile ids are never changed by importing a backup.
+- Review fixes (GPT review of 0.1.75): UI-075-01 malformed or old marks such as `@Ada#a`, `@Ada#a3`, `@Ada#` stop instead of being sent; UI-075-02 the chat's name connection no longer overrides a Leo picked with `@` (the action stays on the picked one); UI-075-03 two picked people with the same name both stay; UI-075-04 a required person left over from an earlier scene but missing from the new answer is ticked with the old expression and action cleared, and the notice says so; UI-075-06 the arrow keys keep the chosen item in view; UI-075-07 picking in the middle of an existing reference leaves no tail (a chip is one block); UI-075-08 a required person added only to another candidate is named again when that candidate is chosen; UI-072-01 when saving the chat fails in 본문에 넣기 the message and its current swipe go back to how they were (one picture or several).
+- 본문에 넣기: one line under the position row — pictures that already have a place stay there even when 기본 위치 is chosen.
+- Tests: new `browser-v0176` (375 and 1100px) replaces `browser-v0175`; new unit tests for chips, old marks, looks, reconcile with picked twins and the attach rollback; older scripts read the two fields through `value`.
+
 ## 0.1.75 — 2026-11-05 (extension only; server v0.1.17 unchanged)
 
 @ profile references.

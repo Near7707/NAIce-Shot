@@ -50,9 +50,21 @@ export async function attachInlineImages(context,items,{targetIndex,placement=nu
   if(!list.some(x=>x.id===item.id)&&list.length>=20)throw new Error('한 메시지에는 이미지를 최대 20개까지 넣을 수 있어요.');
   list=[...list.filter(x=>x.id!==item.id),entry];added++;
  }
- if(added||moved){message.extra={...message.extra,[IMAGE_KEY]:list};syncActiveSwipe(message);}
+ // 0.1.76 (UI-072-01): when saving the chat fails, the message and its current swipe go back to how they were, so a
+ // picture that was never saved does not stay attached on screen (one picture or several).
+ const before={extra:message.extra,swipe:message.swipe_info?.[swipeId],swipeHad:false,swipeExtra:undefined};
+ if(before.swipe&&typeof before.swipe==='object'){before.swipeHad=Object.hasOwn(before.swipe,'extra');before.swipeExtra=before.swipe.extra;}
+ let next=null;
+ if(added||moved){next={...message.extra,[IMAGE_KEY]:list};message.extra=next;syncActiveSwipe(message);}
  // No new messages, text edits, native media fields or RP generation events.
- if(added||moved||items.length===1)await context.saveChat();
+ try{if(added||moved||items.length===1)await context.saveChat();}
+ catch(e){
+  if(next&&message.extra===next){
+   message.extra=before.extra;
+   if(before.swipe&&typeof before.swipe==='object'){if(before.swipeHad)before.swipe.extra=before.swipeExtra;else delete before.swipe.extra;}
+  }
+  throw e;
+ }
  return {added,duplicates,moved,targetIndex};
 }
 export async function detachInlineImage(context,item,options={}) {

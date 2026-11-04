@@ -173,13 +173,14 @@ Extraction can be cancelled. Image generation has no cancellation button once su
 
 ## @ profile references
 
-In the 프리샷 situation and the 챗샷 추가 요청 field, type `@` to open a list of your profiles (names, aliases and a short id). Picking one writes `@Name#id` into the text — for example `@Leo#a3f2` — so the link to that exact profile survives renames, sorting and copy-paste. A name typed by hand (`@Leo`, `@레오랑`) is confirmed into the `@Name#id` form just before extraction when it fits exactly one profile, and the notice says so.
+In the 프리샷 situation and the 챗샷 추가 요청 field, type `@` to open a list of your profiles (name, aliases and a short look — hair, eyes, usual outfit — so people with the same name can be told apart). Picking one puts a pill-shaped **chip** like `@Leo` into the text. The chip keeps that exact profile's full id inside, so the link survives renames, sorting and reordering. A chip is one block: Backspace removes it whole, and removing it removes the link (nothing is kept outside the text). A name typed by hand (`@Leo`, `@레오랑`) or pasted from another app is confirmed into a chip just before extraction when it fits exactly one profile, and the notice says so.
 
-- A profile picked with `@` is always in the extracted people and wins over a request to leave it out. Deleting the `@` only removes that requirement; check the people ticks before generating.
+- A profile picked with `@` is always in the extracted people and wins over a request to leave it out. Deleting the chip only removes that requirement; check the people ticks before generating.
 - In 챗샷 this can add someone who is not in the message.
-- Nothing is linked by guessing: an unknown name, a name shared by several profiles, letters stuck to a name or id (`@Leo가방`), or an id that is gone or now shared all stop the extraction with a note. Up to two particles may follow a name or id (`@Leo에게는`). An `@` inside a word (an email address) is not a reference.
+- Copying between the two fields keeps the chips; copying to another app gives `@Leo` as plain text. Saved work and history keep the full id, and sending a history picture back to the drawing panel brings the chips back. A profile deleted in the meantime shows as a dashed yellow **broken chip**; extraction stops until you remove it and pick again. The old 0.1.75 form `@Name#id` is shown as a broken chip too.
+- Nothing is linked by guessing: an unknown name, a name shared by several profiles, letters stuck to a typed name (`@Leo가방`), a broken chip or a malformed `@Name#…` mark all stop the extraction with a note. Up to two particles may follow a typed name (`@Leo에게는`). An `@` inside a word (an email address) is not a reference.
 - More required people than the model allows (V4.5: 6, V5: 22; the same profile counts once) stops the extraction.
-- The extraction AI receives each reference as the profile's current name with its full id; no `@` or `#id` reaches NovelAI. When the AI leaves a required person out, the card is added anyway and the notice says its expression and action are empty.
+- The extraction AI receives each reference as the profile's current name with its full id; no `@` or id reaches NovelAI. When the AI leaves a required person out, the card is added anyway (with the old expression and action cleared) and the notice says its expression and action are empty.
 
 ## Extraction connection
 

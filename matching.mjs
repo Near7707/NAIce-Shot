@@ -80,11 +80,14 @@ export function reconcileCharacters(scene,matching) {
  const records=[...scene.characters,...(scene.unregisteredDetails??[]),...(scene.unregistered??[]).filter(identityKey).map(emptyPerson)];
  for(const c of records){
   if(!c.entityName)throw new Error('추출 인물의 name 필드가 없어요. 실제 인물 이름을 함께 반환해야 해요.');
-  const named=identityKey(c.entityName);if(seenNames.has(named))continue;seenNames.add(named);
+  const named=identityKey(c.entityName);
+  // 0.1.76 (UI-075-02/03): a person picked with @ is known by the id the AI was given, when that profile carries the
+  // name the AI wrote. That checked id comes before the chat's name connection, and two picked people with the same
+  // name stay two people (they are told apart by id, not by name).
+  const picked=matching.required?.has(c.id)?profiles.find(p=>p.id===c.id&&namesOf(p).includes(named)):null;
+  if(!picked){if(seenNames.has(named))continue;seenNames.add(named);}
   const mappedIds=unique(matching.mappings.filter(m=>identityKey(m.name)===named).map(m=>m.profileId));
-  let matches=mappedIds.length?profiles.filter(p=>mappedIds.includes(p.id)):namedProfiles(profiles,c.entityName);
-  // 0.1.75: a person picked with @ is told apart by the id the AI was given, when that profile carries the name.
-  if(matches.length>1&&matching.required?.has(c.id)&&matches.some(p=>p.id===c.id))matches=matches.filter(p=>p.id===c.id);
+  let matches=picked?[picked]:mappedIds.length?profiles.filter(p=>mappedIds.includes(p.id)):namedProfiles(profiles,c.entityName);
   if(matches.length!==1){
    unregistered.push(c.entityName);unregisteredDetails.push({...c,id:'',manualOutfit:null});
    warnings.push(`${c.entityName}: 프로필을 확정하지 못해 자동 적용하지 않았어요. 장면 정보는 보관했어요.`);continue;

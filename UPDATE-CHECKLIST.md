@@ -1,5 +1,14 @@
 # Installation and update checklist
 
+## v0.1.76
+
+Update the extension and refresh. No server update is needed.
+
+1. 프리샷: type `@` in the situation box → the list shows name, aliases and a short look; pick one → an `@Name` pill goes in. Backspace removes the whole pill.
+2. Write a situation with two pills and press 장면 추출: both are ticked in the result. Two profiles with the same name can both be picked.
+3. 챗샷: in 추가 요청, pick someone who is not in the message → they are added to the scene.
+4. A situation saved before this version with `@Name#…` shows a dashed yellow pill; remove it and pick again.
+
 ## v0.1.75
 
 Update the extension and refresh. No server update is needed.

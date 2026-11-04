@@ -79,3 +79,19 @@ test('a picture keeps its own place; putting it in again elsewhere moves it; pla
  await placeMessageImage(ctx,b,{...at,placement:null});assert.equal('placement' in m.extra[IMAGE_KEY][1],false);
  await assert.rejects(placeMessageImage(ctx,b,{...at,signature:'other'}),/다시 열어/);
 });
+test('0.1.76: when the chat cannot be saved the message and its swipe go back, for one picture and for several (UI-072-01)',async()=>{
+ for(const count of [1,3]){
+  const ctx=context(),message=ctx.chat[1];message.swipe_info=[{extra:{keep:true},send_date:'x'}];message.swipe_id=0;
+  const extraBefore=structuredClone(message.extra),swipeBefore=structuredClone(message.swipe_info[0]);
+  ctx.saveChat=async()=>{throw new Error('save failed');};
+  const list=Array.from({length:count},(_,i)=>{const x=`${item.id.slice(0,-1)}${i}`;return {...item,id:x,image:`/user/images/naice-shot/${x}.png`};});
+  await assert.rejects(()=>attachInlineImages(ctx,list,{targetIndex:1}),/save failed/);
+  assert.deepEqual(message.extra,extraBefore,`message extra restored (${count})`);assert.deepEqual(message.swipe_info[0],swipeBefore,`swipe restored (${count})`);
+  assert.equal(hasInlineImage(ctx.chat,list[0]),false);
+  // Nothing is left half-way: saving works the next time.
+  ctx.saveChat=async()=>{};await attachInlineImages(ctx,list,{targetIndex:1});assert.equal(hasInlineImage(ctx.chat,list[0]),true);
+ }
+ // A swipe without extra stays without extra.
+ const ctx=context(),message=ctx.chat[1];message.swipe_info=[{send_date:'x'}];message.swipe_id=0;ctx.saveChat=async()=>{throw new Error('nope');};
+ await assert.rejects(()=>attachInlineImage(ctx,item,{targetIndex:1}),/nope/);assert.equal(Object.hasOwn(message.swipe_info[0],'extra'),false);
+});

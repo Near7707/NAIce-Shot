@@ -852,11 +852,23 @@
 #naice-shot-dialog .ncs-attach-place > span {font-size:13px;color:var(--ncs-muted);margin-right:2px;}
 #naice-shot-dialog .ncs-attach-place button {padding:6px 10px;font-size:13px;min-height:36px;}
 #naice-shot-dialog .ncs-attach-place button[aria-pressed="true"] {border-color:var(--ncs-edge);background-color:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);font-weight:650;}
+/* 0.1.76: @프로필 참조 — a text box that holds @name chips. The chip keeps the profile's id inside; broken chips are dashed yellow. */
+#naice-shot-dialog .ncs-chipfield {display:block;width:100%;min-width:0;max-width:100%;margin-top:6px;padding:10px;min-height:42px;box-sizing:border-box;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;cursor:text;
+ color:var(--ncs-fg);background-color:var(--ncs-control);border:var(--ncs-border-width) solid var(--ncs-border);border-radius:var(--ncs-radius-control);}
+#naice-shot-dialog .ncs-chipfield-multi {min-height:calc(4 * 1.5em + 22px);max-height:40dvh;overflow:auto;}
+#naice-shot-dialog .ncs-chipfield:focus {border-color:var(--ncs-edge);outline:2px solid var(--ncs-focus);outline-offset:2px;}
+#naice-shot-dialog .ncs-chipfield:empty::before {content:attr(data-placeholder);color:var(--ncs-muted);pointer-events:none;}
+#naice-shot-dialog fieldset:disabled .ncs-chipfield {opacity:.6;pointer-events:none;}
+#naice-shot-dialog .ncs-chip {display:inline-block;margin:0 1px;padding:0 9px;border-radius:var(--ncs-radius-pill);border:var(--ncs-border-width) solid var(--ncs-edge);background:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);font-weight:650;line-height:1.45;white-space:nowrap;user-select:all;cursor:default;}
+#naice-shot-dialog .ncs-chip-broken {border-style:dashed;border-color:var(--ncs-warning);background:color-mix(in srgb,var(--ncs-warning) 16%,var(--ncs-bg));color:var(--ncs-fg);font-weight:500;}
 /* 0.1.75: @프로필 참조 — the list under the field while typing "@…". */
 #naice-shot-dialog .ncs-ref-list {position:fixed;z-index:30;display:grid;gap:2px;max-height:min(280px,50dvh);overflow:auto;padding:4px;border:var(--ncs-border-width) solid var(--ncs-edge);border-radius:var(--ncs-radius-control);background:var(--ncs-bg);box-shadow:0 8px 28px #0006;}
 #naice-shot-dialog .ncs-ref-item {display:flex;align-items:baseline;gap:8px;width:100%;padding:8px 10px;border:0;border-radius:6px;background:transparent;text-align:left;min-height:40px;}
 #naice-shot-dialog .ncs-ref-item[aria-selected="true"],#naice-shot-dialog .ncs-ref-item:hover {background:var(--ncs-tab-active-bg);}
 #naice-shot-dialog .ncs-ref-item .ncs-ref-aliases {color:var(--ncs-muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;}
-#naice-shot-dialog .ncs-ref-item small {margin-left:auto;color:var(--ncs-muted);font-variant-numeric:tabular-nums;}
+#naice-shot-dialog .ncs-ref-item {flex-wrap:wrap;}
+#naice-shot-dialog .ncs-ref-item .ncs-ref-look {flex:1 0 100%;color:var(--ncs-muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 #naice-shot-dialog .ncs-ref-help {display:block;margin-top:4px;}
 #naice-shot-dialog .ncs-ref-help code {font-size:12px;}
+/* 0.1.76: one line under the 본문에 넣기 position row. */
+#naice-shot-dialog .ncs-attach-place-note {display:block;margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--ncs-muted);}

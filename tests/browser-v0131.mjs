@@ -82,9 +82,9 @@ try{
   await page.evaluate(d=>{mock.extraction={...d,requestMatched:false};},three);await extract();
   assert.match(await page.evaluate(()=>mock.lastExtract.prompt),/USER REQUEST for this picture \(data\): "식탁에서 밥 먹는 순간"/);
   assert.match(await page.locator('#ncs-notice').innerText(),/찾지 못해서 마지막 순간으로 골랐어요/);assert.equal(await pressed(),'2');
-  assert.equal(await page.locator('#ncs-moment-wish').inputValue(),'식탁에서 밥 먹는 순간');
+  assert.equal(await page.locator('#ncs-moment-wish').evaluate(f=>f.value),'식탁에서 밥 먹는 순간');
   await page.evaluate(()=>{document.querySelector('#ncs-target-picker').open=true;});await page.locator('#ncs-target-list [data-message-index]').first().click();
-  assert.equal(await page.locator('#ncs-moment-wish').inputValue(),'');
+  assert.equal(await page.locator('#ncs-moment-wish').evaluate(f=>f.value),'');
   // A single scene shows no picker.
   await page.evaluate(()=>{mock.extraction={characters:[{id:'mira',name:'Mira',expression:'',action:'reading',position:'auto',outfitMode:'unchanged',outfit:''}],unregistered:[],interaction:'',location:'library',lighting:'',camera:''};});
   await extract();assert.equal(await page.locator('#ncs-moments').isHidden(),true);assert.equal(await action('mira').inputValue(),'reading');

@@ -80,7 +80,7 @@ try{
   await page.locator('#ncs-free-text').fill('A quiet garden');await page.locator('#ncs-location').fill('free garden');
   await page.evaluate(()=>mock.switchChat('B'));assert.equal(await value(),'free garden');
   await page.locator('[data-mode="chat"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);assert.equal(await value(),'B river');
-  await page.locator('[data-mode="free"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);assert.equal(await page.locator('#ncs-free-text').inputValue(),'A quiet garden');
+  await page.locator('[data-mode="free"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);assert.equal(await page.locator('#ncs-free-text').evaluate(f=>f.value),'A quiet garden');
   // A failed save keeps editable work and retries the same bucket.
   failed=true;await page.locator('#ncs-location').fill('unsaved garden');await page.waitForFunction(()=>document.querySelector('#ncs-draft-status').textContent.includes('mock save failed'));
   assert.equal(await value(),'unsaved garden');failed=false;await page.locator('#ncs-draft-retry').click();await saved();
@@ -158,7 +158,7 @@ try{
   await page.locator('[data-action="delete-filter-chat"]').click();await page.waitForFunction(()=>/삭제했어요/.test(document.querySelector('#ncs-notice').textContent));
   assert.equal(hasWork(freeKey),false);
   await page.locator('[data-tab="scene"]').click();await page.locator('[data-mode="free"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
-  assert.equal(await page.locator('#ncs-free-text').inputValue(),'');assert.equal(await value(),'');
+  assert.equal(await page.locator('#ncs-free-text').evaluate(f=>f.value),'');assert.equal(await value(),'');
   await page.waitForTimeout(1200);assert.equal(hasWork(freeKey),false,'nothing comes back and no empty work is saved');
   await page.locator('[data-mode="chat"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
   // Saving uses one small menu: 클린 / 원본 with notes, no extra warning and no "don't ask again".

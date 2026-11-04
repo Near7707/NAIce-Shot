@@ -6,7 +6,8 @@ import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } fr
 import { attachInlineImages, detachInlineImage, detachInlineImages, detachMessageImage, placeMessageImage, orderedInlineImages, placementOf, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, visibleInlineImages, SAVE_NOTES, INLINE_LAYOUTS, INLINE_SIZES } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
 import { freeScenePrompt, freeSceneSchema, parseFreeScene } from './free-scene.mjs';
-import { confirmRefs, refsForExtraction, plainNames, stripRefMarks, refText, queryAt, suggestions, shortIds } from './mentions.mjs';
+import { confirmRefs, refsForExtraction, plainNames, stripRefMarks, suggestions, displayLength } from './mentions.mjs';
+import { setupChipField } from './chipfield.mjs';
 import { planFreePeople, confirmText, applyFreePeople, migratePins } from './free-people.mjs';
 import { momentExtractionPrompt, momentExtractionSchema, parseMoments, looksCut, foreignFields, dropLookWords } from './scene-extraction.mjs';
 import { isSceneMessage, isHiddenSceneMessage, chooseSceneMessages } from './scene-messages.mjs';
@@ -1016,7 +1017,9 @@ function switchMoment(index){
   const temps=scene.characters.filter(c=>c.temp);
   syncMoment();Object.assign(scene,{request:null},clone(list[index].scene));scene.momentIndex=index;carryTemps(temps,scene);
   lastLink=null;linkTarget=null;changed();renderScene({forceFinal:true});
-  notice(`"${list[index].title||`후보 ${index+1}`}" 순간으로 바꿨어요. 후보마다 고친 내용은 따로 남아 있어요.`);
+  // UI-075-08: people picked with @ who were only added to this candidate (still without a pose) are named again.
+  const bare=(list[index].filled??[]).filter(name=>scene.characters.some(c=>!c.temp&&settings().profiles.find(p=>p.id===c.id)?.name===name&&!c.expression&&!c.action));
+  notice(`"${list[index].title||`후보 ${index+1}`}" 순간으로 바꿨어요. 후보마다 고친 내용은 따로 남아 있어요.${bare.length?` ${emptyNote(bare)}`:''}`,false,'scene',{keep:bare.length>0});
 }
 function renderMoments(){
   const list=scene.moments??[],box=$('ncs-moments');box.hidden=list.length<2;placeRequest();if(list.length<2){box.innerHTML='';return;}
@@ -1320,51 +1323,61 @@ function prepareRefs(el,label){
   if(c.confirmed.length){el.value=c.text;el.dispatchEvent(new Event('input',{bubbles:true}));}
   const x=refsForExtraction(c.text,profiles),limit=MODELS[effectiveOptions().model]?.limit??6;
   if(x.required.length>limit)throw new Error(`@로 지정한 필수 인물이 ${x.required.length}명이라 지금 모델의 한도(${limit}명)를 넘어요. 일부의 @를 지워 주세요.`);
-  return {text:x.text,required:x.required,note:c.confirmed.length?`${c.confirmed.map(x=>`${x.from} → ${x.to}`).join(', ')}로 확정했어요. `:''};
+  return {text:x.text,required:x.required,note:c.confirmed.length?`${c.confirmed.map(x=>x.from).join(', ')}을(를) 칩으로 확정했어요. `:''};
 }
-// Leftover @Name#id marks never reach a card or NovelAI.
+// Leftover reference marks never reach a card or NovelAI.
 const unmark=value=>JSON.parse(JSON.stringify(value),(k,v)=>typeof v==='string'?stripRefMarks(v):v);
-// A required person missing from the result gets a card anyway (ticked); returns the names whose pose is still empty.
-function ensureRequired(part,required){
+// A required person missing from the result gets a card anyway (ticked). present: ids of the profiles this response really
+// returned (UI-075-04): a card that was only left over from an earlier scene is ticked but loses its old expression and action.
+// Returns the names whose pose is empty now.
+function ensureRequired(part,required,present=null){
   const empty=[];
   for(const p of required){
     let c=part.characters.find(c=>!c.temp&&c.id===p.id);
     if(!c){c=attachSceneProfile(part,p,[p.name]).character;c.pinned??=false;if(!c.expression&&!c.action)empty.push(p.name);}
+    else if(present&&!present.has(p.id)){c.expression='';c.action='';empty.push(p.name);}
     c.included=true;
   }
   return empty;
 }
 const emptyNote=names=>names.length?`결과에 없던 필수 인물을 넣었어요: ${names.join(', ')}. 표정·행동이 비어 있어요. 직접 채우거나 다시 추출해 주세요.`:'';
-// The list under the field while typing "@…": names with their aliases and short id; picking inserts @Name#id.
-let refList=null; // {field,start,items,active}
+// The list under the field while typing "@…": names with aliases and a short look (hair, eyes, usual outfit) to tell
+// people with the same name apart. The id is never shown. Picking puts a chip in.
+let refList=null; // {field,q,items,active}
 function closeRefList(){refList=null;const box=$('ncs-ref-list');if(box)box.hidden=true;}
 function updateRefList(field){
   const box=$('ncs-ref-list');if(!box)return;
-  const q=queryAt(field.value,field.selectionStart??field.value.length);
+  const q=field.caretQuery?.();
   if(!q||document.activeElement!==field){closeRefList();return;}
-  const profiles=settings().profiles,items=suggestions(profiles,q.query),short=shortIds(profiles);
+  const items=suggestions(settings().profiles,q.query);
   if(!items.length){closeRefList();return;}
-  const active=refList&&refList.field===field&&refList.start===q.start?Math.min(refList.active,items.length-1):0;
-  refList={field,start:q.start,items,active};
-  box.innerHTML=items.map((it,i)=>`<button type="button" role="option" class="ncs-ref-item" data-ref-pick="${i}" aria-selected="${i===active}"><b>${esc(it.name)}</b>${it.aliases.length?`<span class="ncs-ref-aliases">${esc(it.aliases.join(', '))}</span>`:''}<small>#${esc(short.get(String(it.id)))}</small></button>`).join('');
+  const same=refList&&refList.field===field&&refList.q.node===q.node&&refList.q.start===q.start;
+  const active=same?Math.min(refList.active,items.length-1):0;
+  refList={field,q,items,active};
+  box.innerHTML=items.map((it,i)=>`<button type="button" role="option" class="ncs-ref-item" data-ref-pick="${i}" aria-selected="${i===active}"><b>${esc(it.name)}</b>${it.aliases.length?`<span class="ncs-ref-aliases">${esc(it.aliases.join(', '))}</span>`:''}${it.look?`<span class="ncs-ref-look">${esc(it.look)}</span>`:''}</button>`).join('');
   const r=field.getBoundingClientRect(),width=Math.min(Math.max(r.width,220),360);
   box.style.width=`${width}px`;box.style.left=`${Math.max(8,Math.min(r.left,innerWidth-width-8))}px`;
   box.hidden=false;const h=box.offsetHeight;
   box.style.top=`${r.bottom+4+h<=innerHeight-8?r.bottom+4:Math.max(8,r.top-4-h)}px`;
+  // UI-075-06: the chosen item stays inside the list when the arrow keys go past what fits.
+  const row=box.querySelector('[aria-selected="true"]');
+  if(row){if(row.offsetTop<box.scrollTop)box.scrollTop=row.offsetTop-4;else if(row.offsetTop+row.offsetHeight>box.scrollTop+box.clientHeight)box.scrollTop=row.offsetTop+row.offsetHeight-box.clientHeight+4;}
 }
 function pickRef(i){
-  if(!refList)return;const {field,start,items}=refList,it=items[i];if(!it)return;
-  const profiles=settings().profiles,p=profiles.find(x=>x.id===it.id),caret=field.selectionStart??field.value.length,text=refText(p,profiles);
-  field.value=field.value.slice(0,start)+text+field.value.slice(caret);
-  const at=start+text.length;field.setSelectionRange(at,at);closeRefList();field.dispatchEvent(new Event('input',{bubbles:true}));field.focus();
+  if(!refList)return;const {field,q,items}=refList,it=items[i];if(!it)return;
+  const p=settings().profiles.find(x=>x.id===it.id);if(!p)return;
+  closeRefList();field.insertChip(q,p);field.dispatchEvent(new Event('input',{bubbles:true}));
 }
 function bindRefFields(){
+  const lengths={'ncs-free-text':{limit:4000,measure:v=>v.length},'ncs-moment-wish':{limit:200,measure:displayLength,singleLine:true}};
   for(const id of ['ncs-free-text','ncs-moment-wish']){
     const field=$(id);if(!field)continue;
-    const refresh=event=>{if(event?.isComposing)return updateRefList(field);updateRefList(field);};
+    setupChipField(field,{getProfiles:()=>settings().profiles,...lengths[id]});
+    const refresh=()=>updateRefList(field);
     field.addEventListener('input',refresh);field.addEventListener('compositionend',refresh);field.addEventListener('click',refresh);
     field.addEventListener('keyup',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key))refresh();});
     field.addEventListener('blur',()=>setTimeout(()=>{if(refList?.field===field&&document.activeElement!==field)closeRefList();},150));
+    field.addEventListener('ncs-field-full',()=>notice(id==='ncs-free-text'?'상황 글이 너무 길어서 붙여 넣지 못했어요.':'추가 요청이 너무 길어서 붙여 넣지 못했어요.',true,'scene'));
     field.addEventListener('keydown',event=>{
       if(!refList||refList.field!==field||event.isComposing||event.keyCode===229)return;
       const n=refList.items.length;
@@ -1435,7 +1448,7 @@ function freeIdentity(c,appearance,profiles,selectedIds,requiredIds=new Set()){
   if(selectedIds.has(p.id)&&!String(appearance??'').trim())return {profile:p};
   return {};
 }
-function applyFree(parsed,foreign=[],plan=planFreePeople(scene.characters,$('ncs-free-text').value,settings().profiles),before=null,refs={required:[],note:''}){
+function applyFree(parsed,foreign=[],plan=planFreePeople(scene.characters,plainNames($('ncs-free-text').value,settings().profiles),settings().profiles),before=null,refs={required:[],note:''}){
   const s=settings(),names=[...s.profiles.flatMap(p=>[p.name,...p.aliases]),...parsed.characters.map(c=>c.name)];
   const generic=genericizeScene({...parsed,unregistered:[],characters:parsed.characters.map(c=>({...c,outfitMode:c.outfit?'replace':'unchanged'}))},names,s.format).scene;
   const fixed=[],unsure=[],selectedIds=new Set(plan.present.filter(x=>!x.temp).map(x=>x.id));
@@ -1447,7 +1460,7 @@ function applyFree(parsed,foreign=[],plan=planFreePeople(scene.characters,$('ncs
     return {profile:who.profile??null,name:c.name,subject:c.subject,appearance,outfit:c.outfitMode==='replace'?c.outfit:'',expression:c.expression,action:c.action,position:c.position};
   });
   const out=applyFreePeople(scene.characters,plan,people,{makeTemp:tempPerson});
-  const emptyRequired=ensureRequired({characters:out.cards},refs.required);out.notShown=out.notShown.filter(c=>!refs.required.some(p=>p.id===c.id));
+  const emptyRequired=ensureRequired({characters:out.cards},refs.required,new Set(people.filter(x=>x.profile).map(x=>x.profile.id)));out.notShown=out.notShown.filter(c=>!refs.required.some(p=>p.id===c.id));
   for(const k of ['location','lighting','camera','interaction'])scene[k]=generic[k]??'';
   scene.characters=out.cards;scene.unregistered=[];scene.unregisteredDetails=[];scene.source=null;
   finalOverride=null;optionsOverride=null;restoredFinal=null;revision++;
@@ -1523,7 +1536,7 @@ async function extract() {
           if(request&&i===parsed.defaultIndex){part.request=request;applyRequestOutfits(part,parsed.request.outfits,request);}
           const empty=ensureRequired(part,refs.required);if(i===parsed.defaultIndex)emptyRequired=empty;
           carryTemps(keptTemps,part);
-          return {title:m.title,scene:part};
+          return {title:m.title,scene:part,...(empty.length?{filled:empty}:{})}; // UI-075-08: who was added to which candidate
         });
         raw=response;
         scene={...blankScene(),...clone(moments[parsed.defaultIndex].scene),source:selection.source,moments:moments.length>1?moments:[],momentIndex:moments.length>1?parsed.defaultIndex:0,momentWish:wish,momentsPartial:parsed.partial};
@@ -1959,7 +1972,7 @@ function renderAttachPicker(){
     <p class="ncs-target-count">최신순 · ${rows.length}개 중 ${shown.length}개 표시</p>
     <div class="ncs-target-list" role="group" aria-label="그림을 넣을 메시지 · 최신순">${shown.map(i=>`<button type="button" class="ncs-target-item" data-attach-target="${i}" aria-pressed="${i===attachPick.target}"><span class="ncs-target-meta">#${i} · ${esc(chat[i].name??'')}${isHiddenSceneMessage(chat[i])?' · 숨김':''}${tags(i)}</span><span class="ncs-target-preview">${esc(text(i))}</span></button>`).join('')}</div>
     ${left>0?`<button type="button" class="ncs-target-more" data-action="attach-more">이전 메시지 ${Math.min(ATTACH_STEP,left)}개 더 보기</button>`:''}
-    <div class="ncs-row ncs-attach-actions"><div class="ncs-attach-place" role="group" aria-label="넣을 위치"><span>넣을 위치</span>${[['',`기본 위치 (글 ${imagePlacement()==='above'?'위':'아래'})`],['above','글 위'],['below','글 아래']].map(([v,l])=>`<button type="button" data-attach-place="${v}" aria-pressed="${attachPick.placement===v}">${l}</button>`).join('')}</div><button type="button" class="ncs-primary" data-action="attach-confirm" ${chosen?'':'disabled'}>${chosen?`#${attachPick.target}에 넣기`:'넣을 메시지를 골라 주세요'}</button><button type="button" data-action="attach-cancel">취소</button></div>`;
+    <span class="ncs-attach-place-note">이미 위치를 정한 그림은 '기본 위치'를 골라도 그 자리에 있어요.</span><div class="ncs-row ncs-attach-actions"><div class="ncs-attach-place" role="group" aria-label="넣을 위치"><span>넣을 위치</span>${[['',`기본 위치 (글 ${imagePlacement()==='above'?'위':'아래'})`],['above','글 위'],['below','글 아래']].map(([v,l])=>`<button type="button" data-attach-place="${v}" aria-pressed="${attachPick.placement===v}">${l}</button>`).join('')}</div><button type="button" class="ncs-primary" data-action="attach-confirm" ${chosen?'':'disabled'}>${chosen?`#${attachPick.target}에 넣기`:'넣을 메시지를 골라 주세요'}</button><button type="button" data-action="attach-cancel">취소</button></div>`;
 }
 async function putImagesInChat(items,targetIndex,placement=null) {
   if(!items?.length||attaching||busy)return;assertChat();const startKey=keyOf();

@@ -93,3 +93,20 @@ test('profile identity matching tolerates name separators and Korean spacing wit
   const ctx=context();ctx.chat[1].mes=text;assert.ok(matching(ctx,p).profiles.some(p=>p.id==='sun'),text);
  }
 });
+test('0.1.76: a profile picked with @ beats the chat connection by name; two picked people with one name both stay (UI-075-02/03)',()=>{
+ const A={id:'leo-a',name:'Leo',aliases:[],cardKey:'',appearance:'brown hair',defaultOutfit:''},B={id:'leo-b',name:'Leo',aliases:[],cardKey:'',appearance:'blond hair',defaultOutfit:''};
+ const chat={allProfiles:[A,B],profiles:[A,B],mappings:[{name:'Leo',profileId:'leo-a',profileName:'Leo',role:'character'}],warnings:[]};
+ // Without a pick the chat's connection decides (Leo → A), as before.
+ assert.equal(reconcileCharacters(scene('Leo','leo-b'),chat).scene.characters[0].id,'leo-a');
+ // Picked B: the action stays on B and is not moved to A.
+ const picked=reconcileCharacters(scene('Leo','leo-b'),{...chat,required:new Set(['leo-b'])});
+ assert.deepEqual(picked.scene.characters.map(c=>[c.id,c.action]),[['leo-b','standing']]);assert.deepEqual(picked.scene.unregistered,[]);
+ // An id that does not carry the written name is not trusted.
+ assert.equal(reconcileCharacters(scene('Mira','leo-b'),{...chat,required:new Set(['leo-b'])}).scene.characters.length,0);
+ // Both picked: both stay, in the order the AI gave them; the second is not dropped for its name.
+ const both={...scene('Leo','leo-a'),characters:[{...scene('Leo','leo-a').characters[0],action:'reading'},{...scene('Leo','leo-b').characters[0],action:'waving'}]};
+ const r=reconcileCharacters(both,{...chat,required:new Set(['leo-a','leo-b'])});
+ assert.deepEqual(r.scene.characters.map(c=>[c.id,c.action]),[['leo-a','reading'],['leo-b','waving']]);
+ // The same name twice without picks is still one person.
+ assert.equal(reconcileCharacters(both,chat).scene.characters.length,1);
+});

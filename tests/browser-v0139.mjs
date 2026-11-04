@@ -77,7 +77,7 @@ try{
   assert.equal(await page.locator('.ncs-temp [data-temp="appearance"]').inputValue(),'long red hair');assert.equal(await page.locator('#ncs-location').inputValue(),'convenience store');
   // Each mode keeps its own work while the other is in use.
   await page.locator('[data-mode="chat"]').click();assert.equal(await page.locator('[data-character]').count(),chatPeople);assert.equal(await page.locator('#ncs-chat-source').isVisible(),true);
-  await page.locator('[data-mode="free"]').click();assert.equal(await page.locator('[data-character]').count(),2);assert.match(await page.locator('#ncs-free-text').inputValue(),/비 오는 밤/);
+  await page.locator('[data-mode="free"]').click();assert.equal(await page.locator('[data-character]').count(),2);assert.match(await page.locator('#ncs-free-text').evaluate(f=>f.value),/비 오는 밤/);
   // Works with no chat open, into its own history bucket; no chat clothes touched.
   await page.evaluate(()=>{mock.chatId=null;mock.emit('chat');});
   assert.equal(await page.locator('[data-character]').count(),2,'a chat change leaves 프리샷 alone');
@@ -87,16 +87,16 @@ try{
   await page.locator('[data-tab="history"]').click();assert.equal(await page.locator('#ncs-history-scope option[value="chat"]').innerText(),'이 채팅');await page.locator('#ncs-history-scope').selectOption('free');
   await page.locator('[data-history-id]').first().waitFor({state:'attached'});assert.equal(await page.locator('[data-history-attach]').first().isDisabled(),true);
   // Clearing 프리샷 clears only 프리샷; history restore brings the text back.
-  await page.locator('[data-tab="scene"]').click();await freeClear.click();assert.equal(await page.locator('#ncs-free-text').inputValue(),'');
-  await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-free]');assert.match(await page.locator('#ncs-free-text').inputValue(),/비 오는 밤/);
+  await page.locator('[data-tab="scene"]').click();await freeClear.click();assert.equal(await page.locator('#ncs-free-text').evaluate(f=>f.value),'');
+  await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-free]');assert.match(await page.locator('#ncs-free-text').evaluate(f=>f.value),/비 오는 밤/);
   // 이력 → 프리샷으로 보내기 from 챗샷, with the old 프리샷 work one 되돌리기 away.
   await page.evaluate(()=>{mock.chatId='A';mock.emit('chat');});
   await page.locator('[data-tab="scene"]').click();await page.locator('[data-mode="chat"]').click();
   await page.locator('[data-tab="history"]').click();await page.locator('#ncs-history-scope').selectOption('chat');await pick(page,'[data-history-free]');
-  assert.equal(await page.locator('[data-mode="free"]').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#ncs-free-text').inputValue(),'');
+  assert.equal(await page.locator('[data-mode="free"]').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#ncs-free-text').evaluate(f=>f.value),'');
   assert.match(await page.locator('[data-character="leo"] [data-field="action"]').inputValue(),/sitting/);assert.equal(await page.locator('.ncs-moment').count(),0,'one moment only');
   assert.equal(await page.locator('.ncs-clear-slot .ncs-import-undo').innerText(),'↶ 가져오기 취소');assert.equal(await freeClear.innerText(),'그리기창 비우기','clearing stays available after an import');
-  await page.locator('[data-action="undo-clear"]').click();assert.match(await page.locator('#ncs-free-text').inputValue(),/비 오는 밤/);
+  await page.locator('[data-action="undo-clear"]').click();assert.match(await page.locator('#ncs-free-text').evaluate(f=>f.value),/비 오는 밤/);
   assert.ok(await page.locator('.ncs-content').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
   assert.deepEqual(errors,[]);await page.close();
  }
