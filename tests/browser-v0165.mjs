@@ -71,7 +71,7 @@ try{
    await page.locator('[data-tab="history"]').click();await page.waitForFunction(()=>document.querySelectorAll('.ncs-history-card').length>=2);
    await page.locator('[data-view-history]').first().click();await viewerReady(page);
    await holdDecode(page);await page.locator('[data-v="next"]').click();
-   await page.waitForFunction(()=>/불러오는 중/.test(document.querySelector('.ncsv-position').textContent));
+   await page.waitForFunction(()=>/불러오는 중/.test(document.querySelector('.ncsv-toast').textContent)&&!document.querySelector('.ncsv-toast').hidden);
    assert.equal(await page.locator('#ncs-viewer [data-v="more"]').isDisabled(),true,'⋯ locked while the slow move runs');
    await page.locator('[data-v="close"]').click();
    await page.locator('[data-tab="scene"]').click();await page.locator('#ncs-result .ncs-image-open').click();await viewerReady(page);

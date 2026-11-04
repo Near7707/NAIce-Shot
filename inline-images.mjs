@@ -85,16 +85,35 @@ export async function detachInlineImages(context,ids,{isCurrent=()=>true}={}) {
 
 // Independent display metadata keeps generated images out of native media
 // prompt processing. Rendering is display-only: placement 'above' or 'below' the RP text never touches message text.
-export function renderInlineImages(context,root,chatKey,{placement='below'}={}) {
+// 0.1.71: several pictures in one message show as 넘겨보기 (one at a time, ‹ › or a swipe), 격자 or 세로, in three sizes.
+export const INLINE_LAYOUTS=['slide','grid','stack'],INLINE_SIZES=['small','medium','large'];
+// Every part of the slide strip carries data-swipe-ignore so a sideways swipe on it does not also reroll the message.
+const noSwipe=el=>{el.dataset.swipeIgnore='true';return el;};
+function slideControls(holder,track,count){
+ const bar=document.createElement('div');bar.className='ncs-inline-slide-bar';
+ const make=(dir,label,text)=>{const b=noSwipe(document.createElement('button'));b.type='button';b.className=`ncs-inline-slide-${dir}`;b.setAttribute('aria-label',label);b.textContent=text;return b;};
+ const prev=make('prev','이전 그림','‹'),next=make('next','다음 그림','›'),position=document.createElement('span');position.className='ncs-inline-slide-count';
+ const current=()=>track.clientWidth?Math.round(track.scrollLeft/track.clientWidth):0;
+ const update=()=>{const i=Math.min(count-1,Math.max(0,current()));position.textContent=`${i+1} / ${count}`;prev.disabled=i<=0;next.disabled=i>=count-1;};
+ const go=step=>event=>{event.preventDefault();event.stopPropagation();track.scrollTo({left:(current()+step)*track.clientWidth,behavior:'smooth'});};
+ prev.addEventListener('click',go(-1));next.addEventListener('click',go(1));
+ let frame=0;track.addEventListener('scroll',()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(update);},{passive:true});
+ bar.append(prev,position,next);holder.append(bar);update();
+}
+export function renderInlineImages(context,root,chatKey,{placement='below',layout='slide',size='medium'}={}) {
  const where=placement==='above'?'above':'below';
+ const shape=INLINE_LAYOUTS.includes(layout)?layout:'slide',scale=INLINE_SIZES.includes(size)?size:'medium';
  if(!root)return;
  for(const element of root.querySelectorAll('.mes[mesid]')){
   const index=Number(element.getAttribute('mesid')),message=context.chat?.[index];
-  const items=visibleInlineImages(message),signature=JSON.stringify([where,items]);
+  const items=visibleInlineImages(message),signature=JSON.stringify([where,shape,scale,items]);
   let holder=element.querySelector('.ncs-inline-images');
   if(!items.length){holder?.remove();continue;}
   if(holder?.dataset.signature===signature&&holder.dataset.chatKey===chatKey)continue;
   holder?.remove();holder=document.createElement('div');holder.className='ncs-inline-images';holder.dataset.signature=signature;holder.dataset.chatKey=chatKey;holder.dataset.placement=where;
+  // One picture is simply shown; the layouts only matter for two or more.
+  const mode=items.length>1?shape:'stack';holder.dataset.layout=mode;holder.dataset.size=scale;
+  const track=mode==='slide'?noSwipe(document.createElement('div')):holder;if(mode==='slide'){track.className='ncs-inline-track';holder.append(track);}
   for(const item of items){
    const tile=document.createElement('figure');tile.className='ncs-inline-image';
    const img=document.createElement('img');img.src=item.image;img.alt='생성된 장면';img.loading='lazy';
@@ -105,8 +124,10 @@ export function renderInlineImages(context,root,chatKey,{placement='below'}={}) 
    remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이 메시지에서 빼기';
    // 0.1.63: no ⋯ over the picture. Saving, removing and deleting live in the enlarged view (tap the picture);
    // only a picture whose file is gone shows a plain [이 메시지에서 빼기] under its note.
-   remove.className='ncs-inline-remove';remove.hidden=true;tile.append(open,remove);holder.append(tile);
+   remove.className='ncs-inline-remove';remove.hidden=true;tile.append(open,remove);track.append(tile);
+   if(mode==='slide')[tile,open,img].forEach(noSwipe);
   }
+  if(mode==='slide')slideControls(holder,track,items.length);
   const text=element.querySelector('.mes_text');
   if(text)where==='above'?text.before(holder):text.after(holder);else (element.querySelector('.mes_block')??element)[where==='above'?'prepend':'append'](holder);
  }

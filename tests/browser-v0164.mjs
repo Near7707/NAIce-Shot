@@ -76,12 +76,12 @@ try{
   // The next picture is slow to arrive (the history thumbnails already hold the file, so its decoding is held back).
   await page.evaluate(()=>{const real=HTMLImageElement.prototype.decode;window.__hold=new Promise(r=>window.__release=r);
    HTMLImageElement.prototype.decode=async function(){const h=window.__hold;await real.call(this);if(h)await h;};});
-  await page.locator('[data-v="next"]').click();await page.waitForFunction(()=>/불러오는 중/.test(document.querySelector('.ncsv-position').textContent));
+  await page.locator('[data-v="next"]').click();await page.waitForFunction(()=>/불러오는 중/.test(document.querySelector('.ncsv-toast').textContent)&&!document.querySelector('.ncsv-toast').hidden);
   const waiting=await shownImg(page);
   assert.equal(waiting.src,a.src,'the shown picture stays');assert.equal(waiting.href,a.href,'save link still the shown picture');assert.equal(waiting.seed,a.seed,'seed still the shown picture');
   assert.equal(await page.locator('[data-v="delete"]').isDisabled(),true,'삭제 waits while the next picture loads');
   await page.locator('[data-v="delete"]').evaluate(b=>b.click());await page.waitForTimeout(100);assert.equal(deletes.length,0,'no delete sent for a picture not shown');
-  await page.evaluate(()=>{const r=window.__release;window.__hold=null;r();});await page.waitForFunction(()=>!/불러오는 중/.test(document.querySelector('.ncsv-position').textContent));
+  await page.evaluate(()=>{const r=window.__release;window.__hold=null;r();});await page.waitForFunction(()=>document.querySelector('.ncsv-toast').hidden);
   const b=await shownImg(page);assert.notEqual(b.src,a.src);assert.notEqual(b.href,a.href);assert.notEqual(b.seed,a.seed);
   // Deleting now takes the shown picture.
   await page.locator('[data-v="delete"]').click();await page.waitForFunction(()=>document.querySelector('.ncsv-position').textContent.endsWith('/ 2'));

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.71 — 2026-11-05 (extension only; server v0.1.17 unchanged)
+
+GPT's review of 0.1.70, the message icon, and how pictures show inside a message.
+
+- **Enlarged view:** "불러오는 중…" now shows in the note spot above row 1, and ‹ n/m › keeps a fixed width, so ⋯, ‹ n/m › and 저장 · 삭제 never touch at 320–375px (UI-070-01). 저장 ▾, ⋯ and notes sit above an open 프롬프트 보기 (UI-070-02). A failed delete is told inside the view (UI-070-04).
+- **Drawing tab:** switching a card to another profile drops the old person's look edit for this picture (UI-070-03).
+- **Message icon:** when "메시지에 그리기 버튼 표시" is on, a small, muted icon sits right after each message's date and is always visible. Themes that hide the date get it at the end of the message button row, as before.
+- **Pictures in a message** (Settings → 채팅 속 그림): **넘겨보기** (default; one at a time, ‹ n/m › or a sideways swipe) / **격자** (2 per row on a phone, 3 on PC) / **세로**, in **작게 · 보통 · 크게** (about 200 / 320 / 480px). Pictures are never cropped. One picture is simply shown. A swipe on the strip is marked so it does not also reroll the message.
+- **History tab:** "ⓘ 그림과 기록은 어디에 저장되나요?" is shorter: the three folders, what file names hold, and what each delete removes.
+- Tests: new `browser-v0171` (320/360/375 for the viewer row, 375 and 1100px for the rest); `browser-v0157` follows the new storage note; `v0164`/`v0165` check the loading note in its new spot.
+
 ## 0.1.70 — 2026-11-05 (extension only; server v0.1.17 unchanged)
 
 The enlarged view in the user's own layout, chat pictures that move within their message, and drawing-tab polish.

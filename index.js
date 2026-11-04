@@ -3,7 +3,7 @@ import { DEFAULTS, MODELS, clone, PROFILE_SCHEMA, profileDraftPrompt, parseProfi
   BRAND, SIZE_PRESETS, sizePresetOf, VERSION, stripReasoningBlocks } from './core.mjs';
 import { CAMERA_ICON, BRAND_ICON, TAB_ICONS } from './icons.mjs';
 import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } from './skins.mjs';
-import { attachInlineImage, detachInlineImage, detachInlineImages, detachMessageImage, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, visibleInlineImages, SAVE_NOTES } from './inline-images.mjs';
+import { attachInlineImage, detachInlineImage, detachInlineImages, detachMessageImage, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, visibleInlineImages, SAVE_NOTES, INLINE_LAYOUTS, INLINE_SIZES } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
 import { freeScenePrompt, freeSceneSchema, parseFreeScene } from './free-scene.mjs';
 import { planFreePeople, confirmText, applyFreePeople, migratePins } from './free-people.mjs';
@@ -64,7 +64,9 @@ function freeOptions(o){
 }
 const imagePlacement=()=>{const local=ctx().chatMetadata?.[KEY]?.imagePlacement;return ['above','below'].includes(local)?local:settings().imagePlacement==='above'?'above':'below';};
 function renderPlacement(){const local=$('ncs-chat-image-placement');local.disabled=!keyOf();local.value=ctx().chatMetadata?.[KEY]?.imagePlacement??'';}
-function renderChatImages(){renderInlineImages(ctx(),document.getElementById('chat'),keyOf(),{placement:imagePlacement()});if(messageButtonsOn())decorateMessages();}
+const inlineLayout=()=>INLINE_LAYOUTS.includes(settings().inlineLayout)?settings().inlineLayout:'slide';
+const inlineSize=()=>INLINE_SIZES.includes(settings().inlineSize)?settings().inlineSize:'medium';
+function renderChatImages(){renderInlineImages(ctx(),document.getElementById('chat'),keyOf(),{placement:imagePlacement(),layout:inlineLayout(),size:inlineSize()});if(messageButtonsOn())decorateMessages();}
 // --- Message draw button: "메시지에 그리기 버튼 표시" (off by default) -------------------------------
 // Off: no listener, no scan — the only cost is the boolean check above. On: one delegated listener on
 // the chat and a pass that skips messages already decorated.
@@ -88,15 +90,24 @@ function messageButtonTemplate(){
   document.documentElement.style.setProperty('--ncs-brand-icon-url',`url("data:image/svg+xml,${encodeURIComponent(BRAND_ICON)}")`);
   return messageButtonNode=button;
 }
+// Whether this theme shows dates; read once per pass from the first date found.
+let stampShown=null;
+const stampVisible=stamp=>stampShown??=getComputedStyle(stamp).display!=='none'&&getComputedStyle(stamp).visibility!=='hidden';
 function decorateMessages(){
+  stampShown=null;
   const root=document.getElementById('chat');if(!root)return;const chat=ctx().chat??[];
   for(const el of root.querySelectorAll('.mes[mesid]')){
     const m=chat[Number(el.getAttribute('mesid'))],ok=isSceneMessage(m);
     const existing=el.querySelector('.ncs-mes-draw');
     if(!ok){existing?.remove();continue;}
-    if(existing)continue;
+    // 0.1.71: always visible, right after the message's date. Themes that hide the date get it at the end of the
+    // extra button row instead (the 0.1.48 place). Checked again when the date shows or hides.
+    const stamp=el.querySelector('.timestamp'),onDate=!!stamp&&stampVisible(stamp);
+    if(existing&&existing.classList.contains('ncs-mes-inline')===onDate)continue;existing?.remove();
+    const button=messageButtonTemplate().cloneNode(true);
+    if(onDate){button.classList.add('ncs-mes-inline');button.classList.remove('mes_button');stamp.after(button);continue;}
     const holder=el.querySelector('.extraMesButtons');if(!holder)continue;
-    holder.append(messageButtonTemplate().cloneNode(true)); // last in the row: themes that clip a crowded row cut from the start
+    holder.append(button); // last in the row: themes that clip a crowded row cut from the start
   }
 }
 function setMessageButtons(on){
@@ -259,7 +270,8 @@ function imageViewerOptions(item,{attachment=null}={}){
     actions:viewerActions(item,{attachment}),onPanel:()=>showPanel(),
     onDetach:attachment?()=>removeMessageImage(item,attachment):null,
     // Also from the chat (0.1.63): deleteImages asks first and takes the picture out of every message it is in.
-    onDelete:()=>deleteImages({ids:[item.id],owners:item.chatKey?{[item.id]:item.chatKey}:null}).then(r=>!!r?.deleted?.includes(item.id),e=>{say(e.message,true);return false;})};
+    // UI-070-04: a failure is thrown to the enlarged view, which shows it where the person is looking.
+    onDelete:()=>deleteImages({ids:[item.id],owners:item.chatKey?{[item.id]:item.chatKey}:null}).then(r=>!!r?.deleted?.includes(item.id))};
 }
 // Opens the panel (the tab it was on, or the one asked for).
 async function showPanel(tab=null){await (panelReady??Promise.resolve());await open();if(tab&&activeTab()!==tab)showTab(tab);}
@@ -613,7 +625,7 @@ function renderSettings() {
   for(const [id,k] of [['model','model'],['steps','steps'],['scale','scale'],['seed','seed'],['cfg','cfgRescale'],['sampler','sampler']])$(`ncs-${id}`).value=s.options[k];
   renderRawRetention();
   $('ncs-include-user').checked=s.includeUser;$('ncs-schema').checked=s.structuredOutput;$('ncs-retain-raw').checked=s.retainRawExtraction===true;$('ncs-allow-anlas').checked=s.allowAnlas;
-  $('ncs-image-placement').value=s.imagePlacement==='above'?'above':'below';renderPlacement();$('ncs-message-button').checked=messageButtonsOn();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
+  $('ncs-image-placement').value=s.imagePlacement==='above'?'above':'below';renderPlacement();$('ncs-message-button').checked=messageButtonsOn();$('ncs-inline-layout').value=inlineLayout();$('ncs-inline-size').value=inlineSize();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
   renderImagePresets();renderExtractionProfiles();$('ncs-extraction-max-tokens').value=s.extractionMaxTokens;$('ncs-extraction-temperature').value=extractionTemperature()??'';
 }
 // --- Generation settings box in the scene tab: the same values as the settings tab, edited in place.
@@ -2073,6 +2085,8 @@ async function importSettings(file) {
   const clean={};for(const k of Object.keys(DEFAULTS))clean[k]=next[k];
   clean.imagePlacement=next.imagePlacement==='above'?'above':'below';
   clean.messageButton=next.messageButton===true;
+  clean.inlineLayout=INLINE_LAYOUTS.includes(next.inlineLayout)?next.inlineLayout:'slide';
+  clean.inlineSize=INLINE_SIZES.includes(next.inlineSize)?next.inlineSize:'medium';
   if(typeof next.extractionTemperature==='number'&&next.extractionTemperature>=0&&next.extractionTemperature<=2)clean.extractionTemperature=next.extractionTemperature;
   clean.retainRawExtraction=false; // importing a backup must not enable raw response retention
   clean.allowAnlas=false; // a shared backup must never switch on paid generation by itself
@@ -2276,7 +2290,7 @@ function bindEvents() {
         const oldId=el.closest('[data-character]').dataset.character;
         if(scene.characters.some(c=>c.id===el.value&&c.id!==oldId)){el.value=oldId;throw new Error('이미 장면에 있는 프로필이에요.');}
         const c=scene.characters.find(c=>c.id===oldId);c.id=el.value;c.entityName=settings().profiles.find(p=>p.id===c.id)?.name??'';
-        c.manualOutfit=null;c.outfitMode='unchanged';c.outfit='';changed();renderScene();return;
+        c.manualOutfit=null;c.outfitMode='unchanged';c.outfit='';delete c.look;changed();renderScene();return; // UI-070-03: the old person's look edit does not follow
       }
       if(el.dataset.lookField){const box=el.closest('[data-character]'),c=scene.characters.find(c=>c.id===box.dataset.character),p=settings().profiles.find(p=>p.id===c?.id);if(!c)return;
         const k=el.dataset.lookField;c.look={...(c.look??{})};if(el.value===(p?.[k]??''))delete c.look[k];else c.look[k]=el.value;if(!Object.keys(c.look).length)delete c.look;
@@ -2292,7 +2306,8 @@ function bindEvents() {
       if(el.hasAttribute('data-wear-once')){if(el.value)wearOnce(el.closest('[data-character]').dataset.character,el.value);return;}
       if(el.hasAttribute('data-lock')){const id=el.closest('[data-character]').dataset.character;saveOutfit(id,el.checked).catch(e=>notice(e.message,true));return;}
       for(const field of ['location','lighting','camera','interaction'])if(el.id===`ncs-${field}`){scene[field]=el.value;changed();return;}
-      if(el.id==='ncs-message-button'){settings().messageButton=el.checked;ctx().saveSettingsDebounced();setMessageButtons(el.checked);notice(el.checked?'메시지의 추가 메뉴(…)에 그리기 버튼을 넣었어요.':'메시지의 그리기 버튼을 뺐어요.');return;}
+      if(el.id==='ncs-message-button'){settings().messageButton=el.checked;ctx().saveSettingsDebounced();setMessageButtons(el.checked);notice(el.checked?'메시지 날짜 옆에 그리기 아이콘을 넣었어요.':'메시지의 그리기 아이콘을 뺐어요.');return;}
+      if(el.id==='ncs-inline-layout'||el.id==='ncs-inline-size'){settings()[el.id==='ncs-inline-layout'?'inlineLayout':'inlineSize']=el.value;ctx().saveSettingsDebounced();renderChatImages();return;}
       if(el.id==='ncs-chat-image-placement'){assertChat();const c=ctx();c.chatMetadata[KEY]??={};if(el.value)c.chatMetadata[KEY].imagePlacement=el.value;else delete c.chatMetadata[KEY].imagePlacement;c.saveMetadata().catch(e=>notice(e.message,true,'settings'));renderChatImages();notice('이 채팅의 그림 표시 위치를 바꿨어요.');return;}
       if(el.id==='ncs-image-placement'){settings().imagePlacement=el.value==='above'?'above':'below';ctx().saveSettingsDebounced();renderChatImages();notice(el.value==='above'?'채팅 속 그림을 메시지 글 위에 보여줘요.':'채팅 속 그림을 메시지 글 아래에 보여줘요.');return;}
       if(el.id==='ncs-save-zip'){settings().saveAsZip=el.checked;ctx().saveSettingsDebounced();renderSelectionSave();return;}

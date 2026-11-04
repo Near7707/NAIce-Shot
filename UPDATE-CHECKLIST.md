@@ -1,5 +1,14 @@
 # Installation and update checklist
 
+## v0.1.71
+
+Update the extension and refresh. No server update is needed.
+
+1. Settings → 채팅 속 그림: pick 넘겨보기 / 격자 / 세로 and a size; a message with several pictures changes at once.
+2. Turn on "메시지에 그리기 버튼 표시": a small icon appears right after each message's date.
+3. On a phone, open a picture large and move to the next one: ⋯, ‹ n/m › and 저장 · 삭제 stay apart.
+
+
 ## v0.1.70
 
 Update the extension and refresh. No server update is needed.

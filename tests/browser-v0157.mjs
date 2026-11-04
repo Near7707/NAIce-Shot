@@ -76,7 +76,7 @@ try{
   await all.click();assert.match(await all.innerText(),/모두 선택/);assert.equal(await page.locator('[data-history-pick]:checked').count(),0);
   assert.equal(await page.locator('[data-action="history"]').innerText(),'↻ 새로고침');
   assert.equal(await page.locator('.ncs-history-more').first().evaluate(d=>d.open),false);
-  assert.match(await page.locator('.ncs-storage-info').evaluate(e=>e.textContent),/naice-shot-records[\s\S]*함께 지워져요[\s\S]*폴더에서 직접 지워야 해요/);
+  assert.match(await page.locator('.ncs-storage-info').evaluate(e=>e.textContent),/naice-shot-records[\s\S]*함께 지워요[\s\S]*마지막 작업만 지워요/);
   assert.equal(await page.locator('.ncs-png-info').isVisible(),true,'the PNG warning stays open');
   assert.deepEqual(errors,[]);await page.close();
  }

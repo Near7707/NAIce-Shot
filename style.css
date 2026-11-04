@@ -792,3 +792,49 @@
 #naice-shot-dialog .ncs-fixed-look > small {display:block;margin-top:6px;font-size:12px;color:var(--ncs-muted);}
 #naice-shot-dialog .ncs-look-edited {margin-left:6px;font-size:11.5px;font-weight:650;color:var(--ncs-accent-text);}
 #naice-shot-dialog .ncs-look-actions [hidden] {display:none;}
+
+/* 0.1.71 — UI-070-01: the middle cell keeps a fixed width, the sides never spill into it; narrow phones shrink the buttons.
+   UI-070-02: menus and messages sit above the opened 프롬프트 보기. */
+#ncs-viewer .ncsv-tools .ncsv-navigation {width:max-content;max-width:132px;}
+#ncs-viewer .ncsv-tools .ncsv-position {white-space:nowrap;text-align:center;}
+#ncs-viewer .ncsv-tools .ncsv-save-group,#ncs-viewer .ncsv-tools .ncsv-more-wrap {min-width:0;}
+#ncs-viewer .ncsv-tools .ncsv-save-menu,#ncs-viewer .ncsv-more-menu,#ncs-viewer .ncsv-jump-menu {z-index:8;}
+#ncs-viewer .ncsv-toast {z-index:9;}
+#ncs-viewer .ncsv-tools {z-index:5;}
+#ncs-viewer .ncsv-prompt-row {z-index:4;}
+@media(max-width:360px){
+ #ncs-viewer .ncsv-tools {padding:6px 6px;gap:3px;}
+ #ncs-viewer .ncsv-tools .ncsv-navigation button {min-width:30px;width:30px;}
+ #ncs-viewer .ncsv-tools .ncsv-position {min-width:34px;font-size:12px;}
+ #ncs-viewer .ncsv-tools .ncs-save-toggle,#ncs-viewer .ncsv-tools .ncsv-delete {padding:5px 6px;font-size:12.5px;}
+ #ncs-viewer .ncsv-more {width:34px;min-width:34px;}
+}
+/* 0.1.71: the message draw icon sits right after the message date, small and muted, always visible. */
+#chat .ncs-mes-draw.ncs-mes-inline {display:inline-flex;margin-left:6px;padding:2px;border-radius:4px;cursor:pointer;opacity:.55;vertical-align:middle;line-height:0;}
+#chat .ncs-mes-draw.ncs-mes-inline:hover,#chat .ncs-mes-draw.ncs-mes-inline:focus-visible {opacity:1;}
+#chat .ncs-mes-draw.ncs-mes-inline .ncs-mes-draw-icon {width:1.05em!important;height:1.05em!important;flex-basis:1.05em;}
+/* 0.1.71: pictures in a message — 넘겨보기 / 격자 / 세로, in three sizes. */
+#chat .ncs-inline-images {--ncs-inline-h:320px;--ncs-inline-tile:180px;}
+#chat .ncs-inline-images[data-size="small"] {--ncs-inline-h:200px;--ncs-inline-tile:120px;}
+#chat .ncs-inline-images[data-size="large"] {--ncs-inline-h:480px;--ncs-inline-tile:260px;}
+#chat .ncs-inline-images[data-layout="stack"] .ncs-inline-image img {max-height:min(var(--ncs-inline-h),70vh);}
+#chat .ncs-inline-images[data-layout="slide"] {position:relative;display:block;}
+#chat .ncs-inline-track {display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;border-radius:10px;background:rgba(128,128,128,.14);}
+#chat .ncs-inline-track::-webkit-scrollbar {display:none;}
+#chat .ncs-inline-images[data-layout="slide"] .ncs-inline-image {flex:0 0 100%;width:100%;height:min(var(--ncs-inline-h),70vh);display:flex;align-items:center;justify-content:center;scroll-snap-align:center;}
+#chat .ncs-inline-images[data-layout="slide"] .ncs-inline-open {display:flex;align-items:center;justify-content:center;width:100%;height:100%;}
+#chat .ncs-inline-images[data-layout="slide"] .ncs-inline-image img {max-width:100%;max-height:100%;border-radius:0;}
+#chat .ncs-inline-slide-bar {display:flex;align-items:center;justify-content:center;gap:10px;margin-top:6px;}
+#chat .ncs-inline-slide-bar button {width:36px;height:32px;padding:0;border:1px solid rgba(128,128,128,.45);border-radius:8px;background:transparent;color:inherit;font-size:20px;line-height:1;cursor:pointer;}
+#chat .ncs-inline-slide-bar button:disabled {opacity:.35;cursor:default;}
+#chat .ncs-inline-slide-count {min-width:44px;text-align:center;font-size:13px;opacity:.8;font-variant-numeric:tabular-nums;}
+#chat .ncs-inline-images[data-layout="grid"] {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
+@media (min-width:700px){#chat .ncs-inline-images[data-layout="grid"] {grid-template-columns:repeat(3,minmax(0,1fr));}}
+#chat .ncs-inline-images[data-layout="grid"] .ncs-inline-image {width:100%;height:var(--ncs-inline-tile);border-radius:8px;background:rgba(128,128,128,.14);overflow:hidden;}
+#chat .ncs-inline-images[data-layout="grid"] .ncs-inline-open {display:flex;align-items:center;justify-content:center;width:100%;height:100%;}
+#chat .ncs-inline-images[data-layout="grid"] .ncs-inline-image img {width:100%;height:100%;max-height:none;object-fit:contain;border-radius:0;}
+#chat .ncs-inline-images[data-layout="slide"] .ncs-inline-image.ncs-missing .ncs-inline-open,#chat .ncs-inline-images[data-layout="grid"] .ncs-inline-image.ncs-missing .ncs-inline-open {width:auto;height:auto;}
+#chat .ncs-inline-images[data-layout="grid"] .ncs-inline-image.ncs-missing {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:6px;}
+#chat .ncs-inline-images[data-layout="slide"] .ncs-inline-image.ncs-missing {flex-direction:column;gap:8px;}
+/* Storage note: short lead lines between the lists. */
+#naice-shot-dialog .ncs-storage-info p {margin:6px 0 0;font-size:13px;line-height:1.55;}

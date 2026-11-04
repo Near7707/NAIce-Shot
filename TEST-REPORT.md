@@ -1,3 +1,12 @@
+# v0.1.71 validation — 2026-11-05
+
+- Extension Node suite: **149 passed, 0 failed**.
+- Server Node suite: server unchanged.
+- **60 of 60 Chromium browser scripts passed.** New `browser-v0171`: at 320, 360 and 375px ⋯, ‹ n/m › and 저장 · 삭제 do not overlap, idle or while the next picture is held (with "불러오는 중…" showing in the note spot). At 375 and 1100px: 클린 PNG is clickable with 프롬프트 보기 open and its failure note sits on the higher layer; a failed delete (HTTP 500) is told inside the view, which stays open; Leo's look edit does not follow a switch to Mira. Three pictures in one message: 넘겨보기 by default (1 / 3, ‹ disabled, 보통 = 320px frame, `data-swipe-ignore` on the strip), › and a scroll move to 2 / 3 and 3 / 3, a tap opens the view on 2 / 3; 격자 shows 2 per row at 375 and 3 at 1100 with 120px tiles for 작게 and uncropped pictures; 세로 + 크게 caps at 480px; the choices are saved. The storage note has the nine agreed lines. The message icon sits right after the date, visible without a menu, only once, and opens the panel; with dates hidden it moves to the end of the button row; off removes it.
+- Visual check: 넘겨보기 and 격자 at 375 and 1100px with the icon on the date line (local screenshots only).
+- Publication diff screened for credentials, personal paths and private character/lore data; none found.
+- Not exercised: a live SillyTavern (real date line and swipe gestures), iPhone Safari.
+
 # v0.1.70 validation — 2026-11-05
 
 - Extension Node suite: **149 passed, 0 failed**.

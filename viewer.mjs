@@ -58,7 +58,7 @@ function build() {
 
   const stage = dialog.querySelector('.ncsv-stage');let img = stage.querySelector('img');
   const zoomLabel = dialog.querySelector('.ncsv-zoom'), meta = dialog.querySelector('.ncsv-meta'), save = dialog.querySelector('.ncsv-save');
-  const toastBox=dialog.querySelector('.ncsv-toast');let toastTimer=0;
+  const toastBox=dialog.querySelector('.ncsv-toast');let toastTimer=0,loadingShown=false;
   const say=(text,{stay=false}={})=>{clearTimeout(toastTimer);toastBox.textContent=text;toastBox.hidden=!text;if(text&&!stay)toastTimer=setTimeout(()=>{toastBox.hidden=true;},5000);};
   const state = { loadToken:0, nat: { w: 0, h: 0 }, view: { scale: 1, x: 0, y: 0 }, mode: 'fit', caption: '', seed: null, onDelete: null, onDetach:null, actions:[], onPanel:null, jumps:[], loadPrompt:null, promptText:'', epoch:0, item: null, gallery:null, index:0, navBusy:false, actionBusy:false };
   const jumpButton=dialog.querySelector('[data-v="jump"]'),jumpMenu=dialog.querySelector('.ncsv-jump-menu');
@@ -122,7 +122,10 @@ function build() {
     // left from an earlier gallery never carries over to a single picture (UI-064-01).
     deleteButton.disabled=state.navPage||state.actionBusy;detachButton.disabled=state.navPage;jumpButton.disabled=state.navPage;moreButton.disabled=state.navPage;
     const g=state.gallery;navigation.hidden=!g;if(!g)return;
-    position.textContent=`${state.index+1} / ${g.total}${state.navPage?' · 불러오는 중…':''}`;
+    position.textContent=`${state.index+1} / ${g.total}`;
+    // UI-070-01: "불러오는 중…" goes to the message spot above row 1, so the centred ‹ n/m › never grows into 저장.
+    if(state.navPage&&!loadingShown){loadingShown=true;say('불러오는 중…',{stay:true});}else if(!state.navPage&&loadingShown){loadingShown=false;if(toastBox.textContent==='불러오는 중…')say('');}
+    dialog.querySelector('.ncsv-navigation').dataset.busy=state.navPage?'true':'false';
     dialog.querySelector('[data-v="previous"]').disabled=state.navPage||state.actionBusy||state.index<=0;
     dialog.querySelector('[data-v="next"]').disabled=state.navPage||state.actionBusy||(!g.hasMore&&state.index>=g.items.length-1);
 
@@ -161,7 +164,7 @@ function build() {
       if(epoch!==state.epoch||!dialog.open)return;
       const next=Math.min(index,g.items.length-1);
       if(next<0)dialog.close();else await show(g.items[next],{...g.describe(g.items[next]),gallery:g,index:next,focus:false});
-    }catch(e){if(epoch===state.epoch)say(e.message);}
+    }catch(e){if(epoch===state.epoch)say(e.message,{stay:true});}
     finally{if(epoch===state.epoch){state.actionBusy=false;deleteButton.disabled=false;updateNavigation();}}
   }
   const stageSize = () => { const r = stage.getBoundingClientRect(); return { w: r.width, h: r.height }; };
@@ -271,7 +274,7 @@ function build() {
   // Everything about one picture changes together: image, date, seed, prompt, save link and the delete/detach target.
   // While the next picture of the gallery loads, the current one and all its buttons stay as they are (UI-063-01).
   function present(item,file,{caption='',seed=null,onDelete=null,onDetach=null,loadPrompt=null,loadInfo=null,gallery=null,index=0,focus=true,jumps=[],noJump='',actions=[],onPanel=null}={},ready=null){
-      dropTap();state.epoch++;pointers.clear();gesture=null;lastTap=null;state.gallery=gallery;state.index=index;state.navBusy=false;state.navPage=false;state.actionBusy=false;state.item = item;state.caption = caption;showSaveMenu(false);showMoreMenu(false);say('');
+      dropTap();state.epoch++;pointers.clear();gesture=null;lastTap=null;state.gallery=gallery;state.index=index;state.navBusy=false;state.navPage=false;state.actionBusy=false;state.item = item;state.caption = caption;showSaveMenu(false);showMoreMenu(false);loadingShown=false;say('');
       state.seed=seed===null||seed===undefined||seed===''?null:seed;seedButton.hidden=state.seed===null;if(state.seed!==null)seedButton.textContent=seedLabel();
       state.loadPrompt=typeof loadPrompt==='function'?loadPrompt:null;state.promptText='';
       promptBox.open=false;promptBox.hidden=false; /* 0.1.70: date and seed live here too */delete promptBox.dataset.loaded;promptContent.textContent='';copyButton.disabled=true;copyButton.textContent='프롬프트 복사';copyStatus.textContent='';
