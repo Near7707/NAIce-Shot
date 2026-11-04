@@ -1,5 +1,14 @@
 # Installation and update checklist
 
+## v0.1.68
+
+**Update the server plugin first** (0.1.16), restart SillyTavern, then update the extension and refresh.
+
+1. Tap anywhere on the account box: it unfolds. On V5, "NovelAI에서 확인" is under the V5 line at the right.
+2. The 챗샷 / 프리샷 switch shows on every tab and leaves you on the same tab.
+3. Change a preset with [변경 저장]: the preset list keeps its order.
+
+
 ## v0.1.67
 
 **Update the server plugin first** (0.1.15), restart SillyTavern, then update the extension and refresh.

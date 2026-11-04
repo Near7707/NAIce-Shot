@@ -78,6 +78,11 @@ test('cost guard (0.1.67): V4.5 free for an active Opus without the old perk; V5
   // Lower tiers and an unchecked account.
   for(const tier of [0,1,2]){for(const o of [v45,v5]){const g=costGuard(o,{tier,active:true,isGracePeriod:false});assert.deepEqual([g.free,g.kind,g.message],[false,'uses','이 생성은 Anlas를 사용해요.']);}}
   assert.deepEqual([costGuard(v45,null).kind,costGuard(v45,null).message,costGuard(v45,null).missing],['unknown','비용 조건을 확인하지 못했어요.',undefined]);
+  // 0.1.68: the state comes first for every tier (UI-067-02); a reply without a usable tier is "missing" (UI-067-03).
+  assert.equal(costGuard(v45,{tier:1,active:false,isGracePeriod:false}).kind,'inactive');assert.equal(costGuard(v45,{tier:2,active:true,isGracePeriod:true}).kind,'unknown');
+  assert.equal(costGuard(v45,{tier:2,active:false,isGracePeriod:true}).message,'구독 유예 기간이라 무료 생성 여부를 확인할 수 없어요.');
+  for(const tier of [null,undefined,'3']){const g=costGuard(v45,{...opus,tier});assert.deepEqual([g.free,g.kind,g.missing],[false,'unknown',true]);}
+  assert.equal(costGuard(v45,{tier:1}).missing,true,'a lower tier without its state is missing too, never free');
   assert.deepEqual(usageOf({usage:{percent:82,purchasedPercent:'x',isNegative:false}}),{percent:82,purchasedPercent:null,isNegative:false,timeUntilNextPercent:null});
 });
 test('profile validation preserves stable IDs and rejects duplicates',()=>{

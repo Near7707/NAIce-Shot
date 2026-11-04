@@ -120,7 +120,7 @@ try{
   assert.equal(await page.locator('.ncs-header small').isVisible(),true,'subtitle not covered');
   assert.ok(await page.locator('.ncs-header').evaluate(e=>e.scrollWidth<=e.clientWidth+1),'title row fits');
   assert.equal(await page.locator('.ncs-mode-bar').count(),0,'no separate bar any more');
-  await page.locator('[data-tab="settings"]').click();assert.equal(await page.locator('#ncs-mode-fields').isHidden(),true,'other tabs: no switch');
+  await page.locator('[data-tab="settings"]').click();assert.equal(await page.locator('#ncs-mode-fields').isVisible(),true,'0.1.68: on every tab');
   await page.locator('[data-tab="scene"]').click();assert.equal(await page.locator('#ncs-mode-fields').isVisible(),true);
   // It waits with the work fields.
   await page.evaluate(()=>document.getElementById('ncs-work-fields').disabled=true);await page.waitForFunction(()=>document.getElementById('ncs-mode-fields').disabled);
@@ -133,7 +133,7 @@ try{
   const sw=await page.locator('#ncs-mode-fields').boundingBox(),close=await page.locator('.ncs-header [data-action="close"]').boundingBox();
   assert.ok(close.x>=sw.x+sw.width,`${narrow}px: ✕ does not cover the switch`);await page.locator('[data-mode="free"]').click();
   assert.equal(await page.locator('.ncs-header small').isHidden(),true);assert.ok(await page.locator('.ncs-header').evaluate(e=>e.scrollWidth<=e.clientWidth+1),`fits at ${narrow}px`);
-  await page.locator('[data-tab="history"]').click();assert.equal(await page.locator('.ncs-header small').isVisible(),true,'subtitle back on other tabs');
+  await page.locator('[data-tab="history"]').click();assert.equal(await page.locator('.ncs-header small').isHidden(),true,'0.1.68: the switch is on every tab, so the subtitle stays out of the way here too');
   assert.deepEqual(errors,[]);await page.close();
  }
  console.log('PASS: account box D for active Opus V4.5 (free, sent with consent off), V5 usage, 0% / isNegative / missing usage, active missing, inactive, grace period first, Tablet, failed check; title-row switch right after the title, subtitle kept, 그리기 only, waits with the work fields; 340/320px (375/1100)');

@@ -1,3 +1,11 @@
+# v0.1.68 validation — 2026-11-04
+
+- Extension Node suite: **149 passed, 0 failed** (cost guard: inactive Tablet, grace-period Scroll, missing or text tier).
+- Server Node suite (v0.1.16): **29 passed, 0 failed**. New: the state comes first for every tier; null or text tier is refused as missing; a failed account check answers 502 `nai-account` and sends nothing.
+- **57 of 57 Chromium browser scripts passed.** New `browser-v0168` (fails on 0.1.67 code) at 375 and 1100px: line 1 and the details open/close the box, ↻ does not; on V5 the link sits under the V5 row at the right edge and is under 150px wide, and a click beside it opens nothing; a 428 refusal after the account turned inactive removes "무료 조건", keeps the consent note and the re-check shows "구독 비활성"; a 502 `nai-account` shows "계정 확인 실패" with the note kept until a successful re-check clears it; the switch on 설정/이력/프로필, pressing it stays on that tab; the field list after a failed check is marked "이전 조회" and cannot be copied, help text present; three presets keep their order after [변경 저장].
+- Publication diffs (both repositories) screened for credentials, personal paths and private character/lore data; none found.
+- User check on 0.1.67: an Opus V4.5 image generated with Anlas consent off in a live SillyTavern. Not exercised here: a live SillyTavern, iPhone Safari.
+
 # v0.1.67 validation — 2026-11-04
 
 - Extension Node suite: **149 passed, 0 failed** (cost guard rewritten for every account case: V4.5 free without the old perk and without usage, grace period first, inactive, missing/odd fields, V5 0% / isNegative / missing usage, lower tiers, unchecked).

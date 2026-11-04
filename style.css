@@ -690,6 +690,12 @@
 #naice-shot-dialog .ncs-account-row[hidden] {display:none;}
 #naice-shot-dialog .ncs-account-details #ncs-cost {display:inline;color:var(--ncs-fg);}
 #naice-shot-dialog .ncs-account-note {font-size:12px;line-height:1.5;color:var(--ncs-muted);}
+/* 0.1.68: the whole box unfolds on tap; the NovelAI link sits under the V5 row, only its words are a link. */
+#naice-shot-dialog .ncs-anlas-box {cursor:pointer;}
+#naice-shot-dialog .ncs-anlas-box .ncs-consent-row {cursor:default;}
+#naice-shot-dialog .ncs-account-link {display:flex;justify-content:flex-end;margin-top:-4px;}
+#naice-shot-dialog .ncs-account-link:has(#ncs-cost-link[hidden]) {display:none;}
+#naice-shot-dialog .ncs-account-link #ncs-cost-link {flex:none;display:inline;width:auto;}
 
 /* 0.1.67 — 챗샷/프리샷 in the title row, right after the title (user's choice A): as tall as title + subtitle, never
    covers the subtitle, shown on 그리기 only. No separate bar follows the content any more. */
@@ -715,3 +721,6 @@
  #naice-shot-dialog .ncs-header {gap:6px;}
  #naice-shot-dialog .ncs-header > [data-action="close"] {flex:none;min-width:40px;width:40px;padding:0;}
 }
+
+#naice-shot-dialog .ncs-shape-help p {margin:6px 0;font-size:12.5px;line-height:1.55;color:var(--ncs-muted);}
+#naice-shot-dialog .ncs-shape-help b {color:var(--ncs-fg);}

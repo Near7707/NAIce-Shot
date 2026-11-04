@@ -76,7 +76,9 @@ try{
   // 5) Opus: V5 "may", with a link to NovelAI; V4.5 within limits is free and needs no consent.
   acct.tier=3;acct.perk=true;acct.usage={percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600};await page.locator('[data-action="refresh-anlas"]').click();await page.waitForFunction(()=>/^Anlas /.test(document.querySelector('#ncs-anlas-balance').textContent));
   await page.locator('#ncs-gen-box > summary').click();await page.locator('[data-gen="model"]').selectOption('nai-diffusion-5-full');
-  assert.equal(await cost.innerText(),'V5 사용량으로 생성해요. 부족하면 Anlas가 차감될 수 있어요.');assert.equal(await page.locator('#ncs-cost-link').isVisible(),true);
+  assert.equal(await cost.innerText(),'V5 사용량으로 생성해요. 부족하면 Anlas가 차감될 수 있어요.');
+  await page.locator('[data-action="toggle-account"]').click(); // 0.1.68: the NovelAI link sits in the unfolded details
+  assert.equal(await page.locator('#ncs-cost-link').isVisible(),true);
   assert.equal(await page.locator('#ncs-cost-link').getAttribute('rel'),'noopener noreferrer');assert.equal(await go.isVisible(),true,'Opus V5 still needs consent');
   await page.locator('[data-gen="model"]').selectOption('nai-diffusion-4-5-full');
   assert.match(await cost.innerText(),/^Opus 무료 조건/);assert.equal(await page.locator('#ncs-cost-link').isHidden(),true);assert.equal(await go.isHidden(),true);

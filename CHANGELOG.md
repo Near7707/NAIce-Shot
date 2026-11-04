@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.68 — 2026-11-04 (extension + server v0.1.16)
+
+GPT's review of 0.1.67, and polish from the user's check (the user confirmed V4.5 generates with Anlas consent off).
+
+- When the server refuses a generation (consent needed) or cannot check the account just before sending, the box drops its old verdict at once and checks again; the consent note stays until a fresh check succeeds (UI-067-01, P2). The server answers a failed account check with `code:'nai-account'`.
+- The subscription state comes first for every tier: an inactive or grace-period Tablet/Scroll says so instead of "uses Anlas" (UI-067-02). A reply without a usable tier gets the "필요한 항목을 확인하지 못했어요" wording (UI-067-03).
+- [서버·NAI 연결 확인] failing after a successful field list marks the list as the earlier result and stops [목록 복사] (UI-066-01). The folded box now explains what the list is for and that it carries no values.
+- **챗샷 / 프리샷 switch on every tab**; pressing it on another tab changes the mode and stays there.
+- **Account box:** a tap anywhere on it unfolds or folds it (not ↻ or the link). "NovelAI에서 확인" sits under the V5 row at the right; only its words are a link.
+- **Image presets keep their order** after [변경 저장] (it used to move the preset to the end).
+- The extension now asks for server 0.1.16.
+- Tests: new `browser-v0168` (375 and 1100px); `browser-v0146` and `v0167` updated.
+
 ## 0.1.67 — 2026-11-04 (extension + server v0.1.15)
 
 Fixes "Opus 무료 생성 특전을 확인하지 못했어요" on V4.5 and the block that came with it; shows V5 usage; moves 챗샷/프리샷 into the title row.

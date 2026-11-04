@@ -393,7 +393,6 @@ function showTab(tab) {
   for(const el of dialog.querySelectorAll('[data-page]'))el.hidden=el.dataset.page!==tab;
   for(const el of dialog.querySelectorAll('[data-tab]'))el.classList.toggle('ncs-active',el.dataset.tab===tab);
   for(const el of dialog.querySelectorAll('[data-tab]'))el.setAttribute('aria-selected',String(el.dataset.tab===tab));
-  $('ncs-mode-fields').hidden=tab!=='scene'; // 0.1.67: 챗샷/프리샷 lives in the title row, on 그리기 only
   renderNotice();restoreScroll();
   if(tab==='history')loadHistory().catch(e=>notice(e.message,true));
 }
@@ -629,7 +628,8 @@ function saveImagePreset(overwrite=false,typedName=null) {
   if(overwrite&&!old)throw new Error('덮어쓸 프리셋을 먼저 선택해 주세요.');
   if(s.imagePresets.some(p=>p.id!==old?.id&&p.name.toLowerCase()===name.toLowerCase()))throw new Error('같은 이름의 프리셋이 있어요. 다른 이름으로 저장하거나 해당 프리셋을 선택해 덮어써 주세요.');
   const id=old?.id??uuid(),p=captureImagePreset(s,id,name);
-  s.imagePresets=validateImagePresets([...s.imagePresets.filter(p=>p.id!==id),p]);s.imagePresetId=id;
+  // 0.1.68: [변경 저장] keeps the preset where it was; only a new preset goes to the end.
+  s.imagePresets=validateImagePresets(old?s.imagePresets.map(x=>x.id===id?p:x):[...s.imagePresets,p]);s.imagePresetId=id;
   ctx().saveSettingsDebounced();renderImagePresets();notice(overwrite?`"${name}" 프리셋에 지금 값을 저장했어요.`:`지금 값을 새 프리셋 "${name}"(으)로 저장했어요.`);
 }
 function renderExtractionProfiles() {
@@ -1459,21 +1459,21 @@ function renderCompat() {
 let account={sub:null,at:0,failed:false,message:'',previous:null,checking:null,keyConfigured:null};
 const anlasTotal=sub=>{const a=sub?.anlas;if(!a||(a.subscription==null&&a.purchased==null))return null;return (Number(a.subscription)||0)+(Number(a.purchased)||0);};
 // [NAI 연결 확인] also asks for the account reply's field names (no values; server 0.1.14 'account-shape').
-let accountShape=null,shapeUnsupported=false;
+let accountShape=null,shapeUnsupported=false,shapeAt=0,shapeStale=false;
 function refreshAccount({shape=false}={}){
   if(account.checking)return account.checking;
   account.checking=(async()=>{
     renderAccount();
     try{
       const data=await api(shape?'/status?shape=1':'/status'),before=anlasTotal(account.sub)??account.previous;
-      if(shape){accountShape=data.keyConfigured&&Array.isArray(data.subscription?.shape)?data.subscription.shape.filter(x=>typeof x==='string'):null;
+      if(shape){accountShape=data.keyConfigured&&Array.isArray(data.subscription?.shape)?data.subscription.shape.filter(x=>typeof x==='string'):null;shapeAt=Date.now();shapeStale=false;
         shapeUnsupported=!!data.keyConfigured&&!accountShape&&!(data.features??[]).includes('account-shape');renderShape();}
       const {shape:_names,...sub}=data.subscription??{};
-      subscription=data.keyConfigured&&data.subscription?sub:null;
+      subscription=data.keyConfigured&&data.subscription?sub:null;consentRefused=false; // a fresh check decides again
       account={...account,sub:subscription,at:Date.now(),failed:!data.keyConfigured,keyConfigured:!!data.keyConfigured,
         message:data.keyConfigured?'':'NAI 키가 없어요. 실리태번 API 연결 화면에서 저장해 주세요.',previous:before};
       return data;
-    }catch(e){subscription=null;account={...account,sub:null,failed:true,message:e.message};throw e;}
+    }catch(e){subscription=null;account={...account,sub:null,failed:true,message:e.message};if(shape&&accountShape){shapeStale=true;renderShape();}throw e;}
     finally{account.checking=null;renderAccount();if(dialog)updateFinal();}
   })();
   return account.checking;
@@ -1523,6 +1523,8 @@ function renderAccount(){
   $('ncs-status').textContent=account.failed?(account.message||'연결을 확인하지 못했어요.'):sub?
     `서버 연결됨 · ${tier} · Anlas ${total===null?'?':total.toLocaleString()} (구독 ${s?.subscription??'?'} + 구매 ${s?.purchased??'?'})${sub.tier===3?` · V5 ${v5Detail(sub)}`:''}${guard.missing?' · 계정 정보에서 필요한 항목을 확인하지 못했어요.':''}`:$('ncs-status').textContent;
 }
+// A refusal from the server means the shown verdict may be old: forget it until the next check comes back.
+function dropAccount(){subscription=null;account={...account,sub:null,at:0,failed:false,message:''};if(dialog)renderAccount();}
 function toggleAccount(){
   const more=dialog.querySelector('[data-action="toggle-account"]'),open=more.getAttribute('aria-expanded')!=='true';
   more.setAttribute('aria-expanded',String(open));$('ncs-account-details').hidden=!open;more.querySelector('.ncs-anlas-caret').textContent=open?'▴':'▾';
@@ -1532,7 +1534,7 @@ function renderCost(){
   // Blocked here once the account is known (a missing field too); an unchecked account is left to the server, which
   // checks it itself just before sending and answers anlas-consent if needed (then consentRefused shows the same note).
   const guard=costGuard(effectiveOptions(),subscription),off=settings().allowAnlas!==true,blocked=off&&!guard.free&&!!subscription;
-  if(!off||subscription)consentRefused=false; // a known account decides here again
+  if(!off)consentRefused=false; // only consent or a fresh successful check (refreshAccount) clears a server refusal
   const v=verdictOf(guard,effectiveOptions().model);$('ncs-verdict').textContent=v.text;$('ncs-anlas-box').dataset.state=v.state;
   $('ncs-cost').textContent=guard.missing?missingText():stepsWord(guard.message);$('ncs-cost-link').hidden=guard.kind!=='may';
   const show=blocked||(off&&consentRefused);$('ncs-consent-note').hidden=!show;dialog.querySelector('[data-action="goto-anlas"]').hidden=!show;
@@ -1552,7 +1554,9 @@ async function refreshStatus() {
 function renderShape(){
   if(!dialog)return;const box=$('ncs-account-shape');box.hidden=!accountShape&&!shapeUnsupported;
   $('ncs-shape-list').textContent=accountShape?accountShape.join('\n'):'서버 플러그인을 0.1.14 이상으로 업데이트하면 보여요.';
-  dialog.querySelector('[data-action="copy-shape"]').disabled=!accountShape;$('ncs-shape-status').textContent='';
+  dialog.querySelector('[data-action="copy-shape"]').disabled=!accountShape||shapeStale;
+  // UI-066-01: after a failed check the old list stays readable but is marked and cannot be copied as current.
+  $('ncs-shape-status').textContent=shapeStale?`이전 조회(${new Date(shapeAt).toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'})}) 결과예요. 이번 확인은 실패해서 복사할 수 없어요.`:'';
 }
 async function copyShape(){
   if(!accountShape)return;try{await copyText(accountShape.join('\n'),dialog);$('ncs-shape-status').textContent='복사했어요.';}catch(e){$('ncs-shape-status').textContent=e.message;}
@@ -1602,7 +1606,9 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
     refreshAccount().catch(()=>{}); // a failed balance check never turns a finished image into a failure
   }catch(e){
     // The server's own consent block shows the switch; NovelAI's Anlas or key errors re-check the balance.
-    if(e.code==='anlas-consent'){consentRefused=true;renderCost();gotoAnlasSetting();}
+    // UI-067-01: the server refused (consent) or could not check the account just before sending: the last "free"
+    // verdict is dropped at once and checked again; the refusal note stays until a fresh check succeeds.
+    if(e.code==='anlas-consent'||e.code==='nai-account'){consentRefused=true;dropAccount();renderCost();if(e.code==='anlas-consent')gotoAnlasSetting();refreshAccount().catch(()=>{});}
     else if(e.code==='nai-anlas'||e.code==='nai-auth')refreshAccount().catch(()=>{});
     throw e;
   }finally{generationDraft.pinned=false;stopProgress(ticket);if(busyOwner===ticket)setBusy(false);}
@@ -2130,6 +2136,8 @@ function bindEvents() {
   $('ncs-target-label').addEventListener('click',()=>{rememberTargetScroll();targetListRendered=false;}); // before the native details toggle
   $('ncs-target-scroll').addEventListener('scroll',rememberTargetScroll,{passive:true});
   $('ncs-target-picker').addEventListener('toggle',()=>renderTargets());
+  // 0.1.68: a tap anywhere on the account box unfolds it, except ↻, the NovelAI link and the consent row.
+  $('ncs-anlas-box').addEventListener('click',event=>{if(!event.target.closest('a,button,input,label,.ncs-consent-row'))toggleAccount();});
   dialog.addEventListener('click',event=>{
     const el=event.target.closest('button,a');if(!el)return;
     const originTab=activeTab();
