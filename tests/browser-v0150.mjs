@@ -90,7 +90,7 @@ try{
  }
  {// The card character has no profile and the extraction did not list them: make/link buttons still appear.
   const {page,errors}=await open(375,{cardName:'Robin'});
-  const box=page.locator('#ncs-missing-main .ncs-missing-main');await box.waitFor();
+  const box=page.locator('#ncs-missing-main .ncs-missing-main').filter({hasText:'캐릭터'}); // 0.1.78: the user without a profile has their own box tooawait box.waitFor();
   assert.match(await box.innerText(),/"Robin"에 연결된 프로필이 없어요[\s\S]*AI가 찾지 못했어요/);
   assert.equal(await box.locator('[data-missing-do="direct"]').count(),1);assert.equal(await box.locator('[data-missing-do="source"]').count(),1);
   assert.doesNotMatch(await page.locator('#ncs-left-out').innerText(),/Robin/,'not counted as left out of this picture');

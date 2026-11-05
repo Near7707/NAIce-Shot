@@ -1,3 +1,11 @@
+# v0.1.78 validation — 2026-11-05
+
+- Extension Node suite: **172 passed, 0 failed** (no unit changes).
+- **66 of 66 Chromium browser scripts passed.** New `browser-v0178` at 375 and 1100px: no seed in the banner; the content does not move when a notice appears; the profile form reopens on 직접 입력; 챗샷/프리샷 get their own preset back after switching; tapping the chosen mode goes to 그리기; a 프리샷 picture is deleted even when the loaded history does not hold it; a profile made after extraction is in the other candidates with no warning. The candidate, delete and preset checks were confirmed to fail with the fix reverted. Updated for intended changes: `browser-smoke`, `v031`, `v0150`, `v0152`, `v0153`, `v0160`.
+- Not checked: the unpainted 챗샷 toggle (3) could not be reproduced here — a fill is now kept while the toggle is disabled, which is the likely cause; the blue frame (8) on a real iPhone; a real SillyTavern.
+
+---
+
 # v0.1.77 validation — 2026-11-05
 
 - Extension Node suite: **172 passed, 0 failed** (+13): `save-verify.test.mjs` (saved / swallowed save / threw but stored / mixed / neither / changed target (text, reroll, date, missing) / failed or odd read-back / partial restore with later changes kept / place / detach / without reader), length ceilings and empty chip names in `mentions.test.mjs`, ambiguous same-name detail in `matching.test.mjs`, visible length in `free-scene.test.mjs`. The save-check cases were broken on purpose once to see them fail.

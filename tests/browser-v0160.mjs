@@ -57,7 +57,8 @@ try{
   // UI-059-02: a description not turned into tags yet is protected too.
   await page.locator('[data-tab="profiles"]').click();await page.locator('[data-action="new-profile"]').first().click().catch(()=>{});
   st.answer=true;await page.evaluate(()=>{document.querySelector('[data-profile-mode="describe"]').click();});
-  await page.locator('[data-profile="leo"]').click(); // reopen Leo (clean)
+  await page.locator('[data-profile="leo"]').click(); // reopen Leo (clean); 0.1.78: it opens on 직접 입력, so choose 설명으로 만들기 again
+  await page.evaluate(()=>{document.querySelector('[data-profile-mode="describe"]').click();});
   await page.locator('#ncs-profile-appearance').fill('brown hair, green eyes');await page.locator('#ncs-profile-describe').fill('갈색 머리에 키 큰 남자');
   await page.evaluate(()=>{mock.extensionSettings.naice_shot.profiles.push({id:'mira',name:'Mira',aliases:[],subject:'girl',appearance:'',defaultOutfit:'',positive:'',negative:'',cardKey:''});});
   await page.locator('[data-tab="scene"]').click();await page.locator('[data-tab="profiles"]').click();

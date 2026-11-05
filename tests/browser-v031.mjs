@@ -53,7 +53,7 @@ try{
  assert.equal(await page.locator('[data-action="extract"]').textContent(),'장면 추출 중…');
  assert.equal(await page.locator('[data-action="extract"]').isDisabled(),true);
  const banner=await page.locator('#ncs-progress').evaluate(el=>{const r=el.getBoundingClientRect(),c=document.querySelector('.ncs-content').getBoundingClientRect();return {top:r.top,contentTop:c.top,cancel:getComputedStyle(document.querySelector('#ncs-progress-cancel')).display};});
- assert.ok(banner.top<banner.contentTop,'banner sits above the scrolling content');assert.notEqual(banner.cancel,'none');
+ assert.ok(banner.top<=banner.contentTop+1,'banner floats at the top of the content (0.1.78: it no longer pushes it down)');assert.notEqual(banner.cancel,'none');
  await page.waitForFunction(()=>/1초|2초/.test(document.querySelector('#ncs-progress-detail').textContent),null,{timeout:4000});
  await page.locator('#ncs-progress-cancel').click();
  await page.locator('#ncs-progress').waitFor({state:'hidden'});

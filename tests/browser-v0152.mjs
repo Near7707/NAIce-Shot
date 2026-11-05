@@ -55,14 +55,14 @@ try{
   await page.locator('[data-action="add-temp"]').click();await page.locator('[data-temp="name"]').last().fill('Robin');
   await page.locator('[data-temp="appearance"]').last().fill('long red hair');
   assert.deepEqual(await names(page),['Leo','Robin']);
-  const box=page.locator('#ncs-missing-main .ncs-missing-main');await box.waitFor();
+  const box=page.locator('#ncs-missing-main .ncs-missing-main').filter({hasText:'캐릭터'}); // 0.1.78: the user without a profile has their own box tooawait box.waitFor();
   if(how==='direct'){
    await box.locator('[data-missing-do="direct"]').click();await page.locator('#ncs-profile-name').waitFor();
    await page.locator('#ncs-profile-appearance').fill('long red hair, freckles');await page.locator('#ncs-profile-submit').click();
   }else{
    await box.locator('[data-missing-do="link"]').click();await page.locator('#ncs-link-profile').selectOption('kai');await page.locator('[data-missing-do="link-confirm"]').click();
   }
-  await page.waitForFunction(()=>!document.querySelector('#ncs-missing-main .ncs-missing-main'));
+  await page.waitForFunction(()=>![...document.querySelectorAll('#ncs-missing-main .ncs-missing-main')].some(e=>e.textContent.includes('캐릭터')));
   const after=await names(page);assert.equal(after.length,2,`${how}: still two people, got ${after}`);
   assert.equal(await page.locator('[data-character] [data-temp="name"]').count(),0,`${how}: the temporary card became the profile`);
   if(how==='link'){await page.locator('[data-missing-do="link-undo"]').click();assert.deepEqual(await names(page),['Leo','Robin'],'undo brings the temporary person back');}
@@ -71,10 +71,10 @@ try{
  {// UI-050-05
   const twin=n=>({id:`robin-${n}`,name:'Robin',aliases:[],subject:'girl',appearance:`look ${n}`,defaultOutfit:'',positive:'',negative:'',cardKey:''});
   const {page,errors}=await open(375,{cardName:'Robin',profiles:[twin(1),twin(2)]});
-  const box=page.locator('#ncs-missing-main .ncs-missing-main');await box.waitFor();
+  const box=page.locator('#ncs-missing-main .ncs-missing-main').filter({hasText:'캐릭터'}); // 0.1.78: the user without a profile has their own box tooawait box.waitFor();
   assert.match(await box.innerText(),/이름이 같은 프로필이 여러 개라 연결하지 못했어요[\s\S]*기존 프로필 연결하기/);
   await box.locator('[data-missing-do="link"]').click();await page.locator('#ncs-link-profile').selectOption('robin-2');await page.locator('[data-missing-do="link-confirm"]').click();
-  await page.waitForFunction(()=>!document.querySelector('#ncs-missing-main .ncs-missing-main'));
+  await page.waitForFunction(()=>![...document.querySelectorAll('#ncs-missing-main .ncs-missing-main')].some(e=>e.textContent.includes('캐릭터')));
   assert.equal(await page.evaluate(()=>mock.chatMetadata.naice_shot.bindings.characterProfileId),'robin-2');
   assert.deepEqual(errors,[]);await page.close();
  }

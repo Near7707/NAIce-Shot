@@ -872,3 +872,14 @@
 #naice-shot-dialog .ncs-ref-help code {font-size:12px;}
 /* 0.1.76: one line under the 본문에 넣기 position row. */
 #naice-shot-dialog .ncs-attach-place-note {display:block;margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--ncs-muted);}
+
+/* 0.1.78: the notice and the progress banner float over the top of the content instead of pushing it, so the panel
+   no longer jumps up and down when they appear and go. */
+#naice-shot-dialog .ncs-banner-slot {position:relative;height:0;z-index:6;flex-shrink:0;}
+#naice-shot-dialog .ncs-banner-slot > .ncs-notice,#naice-shot-dialog .ncs-banner-slot > .ncs-progress {position:absolute;left:0;right:0;top:0;box-shadow:0 6px 16px rgba(0,0,0,.18);box-sizing:border-box;}
+#naice-shot-dialog .ncs-banner-slot > [hidden] {display:none;}
+#chat .ncs-mes-draw:focus:not(:focus-visible),#chat .ncs-inline-images button:focus:not(:focus-visible){outline:none;box-shadow:none;}
+/* 0.1.78: the chosen 챗샷/프리샷 keeps its fill while the toggle is disabled (e.g. a busy panel or no chat), so the tab never looks unpainted. */
+#naice-shot-dialog .ncs-mode button[aria-pressed="true"]:disabled,#naice-shot-dialog fieldset:disabled .ncs-mode button[aria-pressed="true"] {background:var(--ncs-primary-bg,var(--ncs-tab-active-bg));color:var(--ncs-primary-fg,var(--ncs-tab-active-fg));border-color:var(--ncs-primary-border,var(--ncs-tab-active-border,var(--ncs-edge)));opacity:.75;}
+@keyframes ncs-card-flash {0%,100% {box-shadow:none;} 30% {box-shadow:0 0 0 3px var(--ncs-focus,var(--ncs-edge));}}
+#naice-shot-dialog .ncs-card-flash {animation:ncs-card-flash 1.4s ease-out 2;}

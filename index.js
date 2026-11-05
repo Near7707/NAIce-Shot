@@ -119,6 +119,12 @@ function setMessageButtons(on){
   if(root&&messageClickBound){root.removeEventListener('click',onMessageButton,true);root.removeEventListener('keydown',onMessageButton,true);}
   messageClickBound=false;for(const b of document.querySelectorAll('.ncs-mes-draw'))b.remove();
 }
+// 0.1.78: closing the panel or the enlarged view hands focus back to the message icon that opened it; on a phone that
+// showed a blue frame until the next tap. The icon is released again (the keyboard keeps working: Tab starts anew).
+document.addEventListener('close',event=>{
+  if(event.target?.id!=='naice-shot-dialog'&&event.target?.id!=='ncs-viewer')return;
+  requestAnimationFrame(()=>{const a=document.activeElement;if(a?.classList?.contains('ncs-mes-draw')||a?.closest?.('.ncs-inline-images'))a.blur();});
+},true);
 async function drawFromMessage(index){
   await (panelReady??Promise.resolve());
   if(busy||attaching||draftLoading){await open();notice('진행 중인 작업이 끝난 뒤 선택해 주세요.',true);return;}
@@ -543,11 +549,22 @@ function renderModeUI(){
   placeRequest();
   dialog.dataset.workMode=mode;renderUndo();
 }
+// 0.1.78 (item 9): 챗샷 and 프리샷 each remember their own image preset, common positive/negative and generation settings.
+// The live values (imagePresetId, positive, negative, options) always belong to settings.genActive; the other mode's are kept aside.
+function syncGen(next){
+  const s=settings();s.genByMode??={};const from=s.genActive??next;
+  if(from!==next){
+    s.genByMode[from]={imagePresetId:s.imagePresetId,positive:s.positive,negative:s.negative,options:clone(s.options)};
+    const t=s.genByMode[next];
+    if(t){s.imagePresetId=s.imagePresets.some(p=>p.id===t.imagePresetId)?t.imagePresetId:'';s.positive=t.positive;s.negative=t.negative;s.options=clone(t.options);}
+  }
+  s.genActive=next;ctx().saveSettingsDebounced();
+}
 async function setMode(next){
   if(next===mode)return;if(busy||attaching||draftLoading||outfitSaving)throw new Error('진행 중인 작업이 끝난 뒤 바꿔 주세요.');
-  rememberDraft(workKey(),null,{flush:true});rememberScroll();spare[mode]=captureWork();mode=next;loadWork(spare[mode]??blankWork());delete spare[mode];
+  rememberDraft(workKey(),null,{flush:true});rememberScroll();spare[mode]=captureWork();mode=next;syncGen(next);loadWork(spare[mode]??blankWork());delete spare[mode];
   historyPresetTarget=null;
-  revision++;renderModeUI();renderTargets();renderScene({forceFinal:true});renderResult();renderPlacement();if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true));
+  revision++;renderSettings();renderModeUI();renderTargets();renderScene({forceFinal:true});renderResult();renderPlacement();if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true));
   notice(isFree()?'프리샷이에요. 채팅과 상관없이 자유롭게 그려요.':'챗샷이에요. 열린 채팅의 장면을 그려요.');
   await recallDraft();
 }
@@ -752,7 +769,7 @@ function editProfile(id='') {
   profileFormSession++;quickProfileName='';
   const p=settings().profiles.find(p=>p.id===id)??{id:'',name:'',aliases:[],subject:'boy',appearance:'',defaultOutfit:'',positive:'',negative:'',cardKey:''};
   profileFormBase=p.id?clone(p):null;
-  if(!p.id&&dialog)setProfileMode('direct'); // a new profile starts on 직접 입력
+  if(dialog)setProfileMode('direct'); // every profile form opens on 직접 입력 (new or existing); 설명으로 만들기 is one tap away
   for(const [key,field] of [['id','id'],['name','name'],['subject','subject'],['appearance','appearance'],['outfit','defaultOutfit'],['positive','positive'],['negative','negative']])$(`ncs-profile-${key}`).value=p[field];
   $('ncs-profile-aliases').value=p.aliases.join(', ');$('ncs-binding').textContent=p.cardKey?`연결된 카드: ${p.cardKey}`:'연결된 카드 없음';$('ncs-binding').dataset.cardKey=p.cardKey;
   $('ncs-profile-editing').textContent=p.id?`${p.name} 프로필 편집 중`:'새 프로필 작성 중';$('ncs-profile-describe').value='';
@@ -769,6 +786,21 @@ function addWardrobeRow(w={id:uuid(),name:'',outfit:''}){
 function readWardrobeForm(){
   return [...$('ncs-wardrobe-list').querySelectorAll('.ncs-wardrobe-item')].map(row=>({id:row.dataset.wardrobeId,name:row.querySelector('[data-w="name"]').value,outfit:row.querySelector('[data-w="outfit"]').value}))
     .filter(w=>w.name.trim()||w.outfit.trim());
+}
+// 0.1.78: every other 장면 후보 carries its own copy of the scene. A profile made or linked for a person who is still
+// "without a profile" in those copies is attached there too, so switching candidates no longer warns about a card that exists now.
+function attachToOtherMoments(profile,names){
+  const keys=new Set([profile.name,...(profile.aliases??[]),...names].map(identityKey).filter(Boolean));
+  (scene.moments??[]).forEach((m,k)=>{
+    if(k===scene.momentIndex||!m?.scene)return;
+    const has=(m.scene.unregistered??[]).some(n=>keys.has(identityKey(n)))||(m.scene.unregisteredDetails??[]).some(c=>keys.has(identityKey(c.entityName)));
+    if(has)attachSceneProfile(m.scene,profile,names);
+  });
+}
+// Brings the person's new card into view (the card list sits far below the profile form) and flashes it once.
+function showCard(id){
+  requestAnimationFrame(()=>{const el=dialog?.querySelector(`[data-character="${CSS.escape(id)}"]`);if(!el)return;
+    el.scrollIntoView({block:'center',behavior:'smooth'});el.classList.remove('ncs-card-flash');void el.offsetWidth;el.classList.add('ncs-card-flash');});
 }
 function saveProfile() {
   if(profileContext==='scene-edit'&&!confirm(`"${$('ncs-profile-name').value}" 프로필을 지금 내용으로 바꿔요.\n이 프로필은 모든 채팅에서 함께 쓰여서, 다른 채팅에서 만드는 그림에도 바뀐 외형이 적용돼요.\n\n계속할까요?`))return;
@@ -791,7 +823,8 @@ function saveProfile() {
   if(profileContext==='scene'){
     if(fromTemp)convertTemp(s.profiles.find(x=>x.id===id));
     const saved=s.profiles.find(x=>x.id===id),{restored}=attachSceneProfile(scene,saved,[draftName,...profileSceneNames(saved)]);
-    placeProfileForm('profiles');changed();renderScene();notice(`${saved.name} 프로필을 저장하고 장면에 넣었어요.${restored?' 추출해 둔 표정·행동·복장도 채웠어요.':' 장면 정보가 비어 있으면 장면 추출을 다시 눌러 확인할 수 있어요.'}`);
+    attachToOtherMoments(saved,[draftName,...profileSceneNames(saved)]);
+    placeProfileForm('profiles');changed();renderScene();showCard(saved.id);notice(`${saved.name} 프로필을 저장하고 장면에 넣었어요.${restored?' 추출해 둔 표정·행동·복장도 채웠어요.':' 장면 정보가 비어 있으면 장면 추출을 다시 눌러 확인할 수 있어요.'}`);
   }else if(profileContext==='scene-edit'){placeProfileForm('profiles');renderScene();notice(`"${p.name}" 프로필을 저장했어요. 모든 채팅의 그림에 함께 적용돼요.`);}
   else notice('프로필을 저장했어요.');
 }
@@ -839,6 +872,7 @@ function openQuickProfile(name='') {
   if(!leaveProfileForm('새 프로필 만들기'))return false; // the caller stops too (UI-059-01)
   editProfile();quickProfileName=name;if(name)$('ncs-profile-name').value=name;
   placeProfileForm('scene');if(dialog.querySelector('[data-tab="scene"]').getAttribute('aria-selected')!=='true')showTab('scene');
+  requestAnimationFrame(()=>$('ncs-scene-profile-slot').scrollIntoView({block:'start',behavior:'smooth'})); // the form sits below the cards: bring it into view
   return true;
 }
 // --- People left out of the image (no profile) -------------------------------------------------
@@ -852,6 +886,12 @@ function missingState(){
   if(card&&scene.source&&!state.main.some(m=>m.person===card)){
     const m=matchChatProfiles(ctx(),settings().profiles,[],chatBindings());
     if(m.characterName&&!m.characterProfileId&&!scene.characters.some(c=>c.id&&c.id===chatBindings().characterProfileId))state.absent.push({name:m.characterName,person:card});
+  }
+  // The same for the user (0.1.78): no profile and not listed among the visible people → offer to make or link one too.
+  const user=people.find(p=>p.role==='user');
+  if(user&&scene.source&&!state.main.some(m=>m.person===user)){
+    const m=matchChatProfiles(ctx(),settings().profiles,[],chatBindings());
+    if(m.userName&&!m.userProfileId&&!scene.characters.some(c=>c.id&&c.id===chatBindings().userProfileId))state.absent.push({name:m.userName,person:user});
   }
   return state;
 }
@@ -914,10 +954,11 @@ function linkMissing(name,person){
     else{pendingTempConvert={id:temp.id,session:profileFormSession,chatKey:keyOf()};convertTemp(p);}
   }
   const {restored}=attachSceneProfile(scene,p,[name,...profileSceneNames(p)]);
+  attachToOtherMoments(p,[name,...profileSceneNames(p)]);
   undo.addedCards=scene.characters.filter(c=>!before.has(c));undo.addedToScene=undo.addedCards.length>0;
   undo.removedNames=beforeNames.filter(n=>!scene.unregistered.includes(n));
   undo.removedDetails=beforeDetails.filter(c=>!scene.unregisteredDetails.some(d=>identityKey(d.entityName)===identityKey(c.entityName)));
-  lastLink=undo;linkTarget=null;changed();renderScene();renderProfiles();renderMatching();
+  lastLink=undo;linkTarget=null;changed();renderScene();renderProfiles();renderMatching();showCard(p.id);
   notice(`"${name}"을(를) ${p.name} 프로필로 연결하고 장면에 넣었어요.${addAlias?' 별칭에도 추가해서 다음부터 자동으로 알아봐요.':' 별칭은 추가하지 않아서 다음 추출에서는 다시 확인이 필요할 수 있어요.'}${restored?' 추출해 둔 표정·행동·복장도 채웠어요.':' 장면 정보가 비어 있으면 장면 추출을 다시 눌러 확인할 수 있어요.'}`);
 }
 function undoLink(){
@@ -1803,7 +1844,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
     if(resetFinal)finalOverride=null;
     if(optionsOverride===submittedOptions)optionsOverride=null;
     revision++;updateFinal({force:resetFinal});
-    result=item;renderResult();report(`생성했어요 · seed ${item.seed} · 그림을 누르면 크게 볼 수 있어요.`);loadHistory().catch(()=>{});
+    result=item;renderResult();report('생성했어요 · 그림을 누르면 크게 볼 수 있어요.');loadHistory().catch(()=>{});
     refreshAccount().catch(()=>{}); // a failed balance check never turns a finished image into a failure
   }catch(e){
     // The server's own consent block shows the switch; NovelAI's Anlas or key errors re-check the balance.
@@ -1928,7 +1969,7 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
   const target=all?(allOf??current):null;
   if(all&&!target)throw new Error('먼저 캐릭터 채팅을 열어 주세요.');
   if(!all&&!ids.length)return null;
-  const ownerOf=id=>owners?.[id]??historyItems.find(x=>x.id===id)?.chatKey??current;
+  const ownerOf=id=>owners?.[id]??historyItems.find(x=>x.id===id)?.chatKey??(isFree()?FREE_KEY:current); // a 프리샷 picture belongs to the 프리샷 key, not to the open chat
   const groups=new Map();
   if(all)groups.set(target,'all');else for(const id of ids){const key=ownerOf(id);if(!key)continue;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(id);}
   const here=all?target===current:false,localIds=all?[]:ids.filter(id=>ownerOf(id)===current);
@@ -2366,7 +2407,7 @@ async function onAction(action,el) {
     case 'delete-selected':await deleteImages({ids:[...selectedIds]});break;
     case 'delete-chat-history':await deleteImages({all:true,chatKey:historyScope==='free'?FREE_KEY:keyOf()});break;
     case 'delete-filter-chat':if(historyFilter)await deleteImages({all:true,chatKey:historyFilter});break;
-    case 'delete-result':if(result)await deleteImages({ids:[result.id]});break;
+    case 'delete-result':if(result)await deleteImages({ids:[result.id],owners:result.chatKey?{[result.id]:result.chatKey}:null});break;
     case 'export':exportSettings();break;
   }
 }
@@ -2390,7 +2431,8 @@ function bindEvents() {
       else if(el.dataset.action)await onAction(el.dataset.action,el);
       else if(el.dataset.historyScope)setHistoryScope(el.dataset.historyScope);
       else if(el.dataset.profileMode)setProfileMode(el.dataset.profileMode);
-      else if(el.dataset.mode)await setMode(el.dataset.mode);
+      else if(el.dataset.mode){if(el.dataset.mode===mode)showTab('scene'); // the chosen 챗샷/프리샷 tapped again goes to 그리기
+        else await setMode(el.dataset.mode);}
       else if(el.dataset.historyFree)await sendToFree(el.dataset.historyFree);
       else if(el.dataset.moment!==undefined)switchMoment(Number(el.dataset.moment));
       else if(el.dataset.tempFrom!==undefined)addTemp(el.dataset.tempFrom);
@@ -2563,7 +2605,7 @@ async function initialize() {
   $('ncs-missing-dialog').addEventListener('cancel',()=>{missingPrompt=null;}); // Escape closes only this box
   $('ncs-attach-dialog').addEventListener('close',()=>{attachPick=null;});
   for(const tab of dialog.querySelectorAll('[data-tab]')){const icon=document.createElement('span');icon.className='ncs-tab-icon';icon.innerHTML=TAB_ICONS[tab.dataset.tab]??'';tab.prepend(icon);}
-  $('ncs-version').textContent=`v${VERSION}`;setProfileMode('direct');renderSettings();renderProfiles();editProfile();renderTargets();bindEvents();bindRefFields();watchGenerateArea();chatKey=keyOf();renderProgress();renderModeUI();renderScene();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';
+  $('ncs-version').textContent=`v${VERSION}`;setProfileMode('direct');syncGen(mode);renderSettings();renderProfiles();editProfile();renderTargets();bindEvents();bindRefFields();watchGenerateArea();chatKey=keyOf();renderProgress();renderModeUI();renderScene();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';
   const menu=document.getElementById('extensionsMenu');if(menu){const button=document.createElement('div');button.className='list-group-item flex-container flexGap5 ncs-menu-item';button.innerHTML=`<div class="extensionsMenuExtensionButton ncs-menu-icon">${CAMERA_ICON}</div><span data-brand>${esc(brand())}</span>`;button.tabIndex=0;button.setAttribute('role','button');button.addEventListener('click',()=>open().catch(e=>notice(e.message,true)));button.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open().catch(e=>notice(e.message,true));}});menu.append(button);}
   renderBrand();
   // Apply the saved skin right away when it is the built-in one; file skins wait for detection.

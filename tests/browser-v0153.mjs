@@ -91,7 +91,7 @@ try{
   await page.locator('[data-action="add-temp"]').click();await page.locator('[data-temp="name"]').last().fill('Robin');
   const names=()=>page.evaluate(()=>JSON.parse(document.querySelector('#ncs-final').value).characters.map(c=>c.name));
   assert.deepEqual(await names(),['Leo','Robin']);
-  const box=page.locator('#ncs-missing-main .ncs-missing-main');await box.waitFor();
+  const box=page.locator('#ncs-missing-main .ncs-missing-main').filter({hasText:'캐릭터'}); // 0.1.78: the user without a profile has their own box tooawait box.waitFor();
   await box.locator('[data-missing-do="link"]').click();await page.locator('#ncs-link-profile').selectOption('leo');await page.locator('[data-missing-do="link-confirm"]').click();
   await page.locator('[data-missing-do="link-undo"]').waitFor();
   assert.deepEqual(await names(),['Leo'],'merged into the Leo card already there');assert.equal(await page.locator('[data-character="leo"]').count(),1);

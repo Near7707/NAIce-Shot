@@ -1,5 +1,13 @@
 # Installation and update checklist
 
+## v0.1.78
+
+Update the extension and refresh (server 0.1.18 from v0.1.77 is still needed).
+
+1. Generate: the banner says 생성했어요 without the seed and the panel does not jump when it appears.
+2. Switch 챗샷 ↔ 프리샷 after choosing different presets: each comes back with its own.
+3. In a chat whose card and user have no profile, extract, make a profile from the box, then pick another 장면 후보: no "no card" warning.
+
 ## v0.1.77
 
 **Update the server plugin first** (0.1.18), restart SillyTavern, then update the extension and refresh. The extension needs server 0.1.18 or newer.

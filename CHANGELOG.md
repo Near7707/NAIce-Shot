@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.78 — 2026-11-05 (extension only; server v0.1.18 unchanged)
+
+Fixes from the user's own check of 0.1.76.
+
+- The generation banner no longer shows the seed (the enlarged view and history still do).
+- The notice and progress banners float over the top of the panel instead of pushing it down, so the panel no longer jumps when they come and go.
+- The profile form always opens on 직접 입력, also when an existing profile is opened after using 설명으로 만들기.
+- The @ help under both fields is one short line.
+- 챗샷 and 프리샷 each remember their own image preset, common positive/negative and generation settings (the first visit to the other mode starts from the current values).
+- Tapping the chosen 챗샷/프리샷 again goes to 그리기.
+- Deleting a 프리샷 picture no longer says "삭제한 그림이 없어요 · 찾지 못한 1장" when the loaded history did not hold it (the picture's own 프리샷 key is used).
+- A profile made or linked after extraction is also added to the other 장면 후보 that listed that person without a profile, so switching candidates no longer warns about a missing card. A user without a profile now gets the same make/link box as the character. Opening the form scrolls it into view; after saving or linking, the new card is scrolled to and flashes once.
+- Closing the panel or the enlarged view no longer leaves a blue frame on the message icon (phones).
+- The chosen 챗샷/프리샷 keeps its fill while the toggle is disabled.
+- Tests: new `browser-v0178` (375 and 1100px); older scripts updated for the intended changes (no seed in the banner, 직접 입력 on reopen, floating banner, the user's own missing-profile box).
+
 ## 0.1.77 — 2026-11-05 (extension + server v0.1.18 — update the server first)
 
 Fixes for the GPT review of 0.1.76.

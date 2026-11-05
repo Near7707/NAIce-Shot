@@ -74,7 +74,7 @@ try {
  const [download]=await Promise.all([page.waitForEvent('download'),pick(page,'#ncs-result a[download]')]);
  assert.equal(download.suggestedFilename(),`naice-shot-${first.id}.png`);assert.deepEqual(await fs.readFile(await download.path()),Buffer.from(png,'base64'));
  await click('attach');await click('attach-confirm');assert.equal(await page.locator('#chat img').count(),1);assert.equal(await page.evaluate(()=>mock.chat.length),2);
- await click('detach');await page.waitForFunction(()=>!mock.chat[1].extra?.naice_shot_images);assert.equal(await page.locator('#chat img').count(),0);
+ await click('detach');await page.waitForFunction(()=>!mock.chat[1].extra?.naice_shot_images&&!document.querySelector('#chat img')); // 0.1.77+: the chat redraws after the save is checked
  assert.equal(items.length,1,'removing from chat must keep the generated image history');
  await click('attach');await click('attach-confirm');await page.evaluate(()=>{mock.chat=JSON.parse(mock.savedChat);mock.renderChat();});await page.locator('#chat .ncs-inline-images img').waitFor();
  assert.deepEqual(await page.locator('#chat .mes_text').allTextContents(),textBefore);
@@ -84,7 +84,8 @@ try {
  await page.locator('[data-tab="history"]').click();await pick(page,'[data-history-id]');
  assert.match(await page.locator('#ncs-final').inputValue(),/brown hair/);assert.doesNotMatch(await page.locator('#ncs-final').inputValue(),/green hair/);
  assert.equal(await page.evaluate(()=>JSON.stringify(mock.chatMetadata)),metadataBefore);
- await click('same-seed');await page.waitForFunction(seed=>document.querySelector('#ncs-notice').textContent.includes(`seed ${seed}`),first.seed);
+ {const before=items.length;await click('same-seed');for(let t=0;items.length===before&&t<600;t++)await page.waitForTimeout(50);} // 0.1.78: the banner no longer shows the seed
+ await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&document.querySelector('#ncs-notice').textContent.startsWith('생성했어요'));assert.doesNotMatch(await page.locator('#ncs-notice').textContent(),/seed/);
  assert.equal(items.at(-1).seed,first.seed);assert.equal(items.at(-1).assembled.characters[0].prompt,first.assembled.characters[0].prompt);
  await page.waitForFunction(()=>document.querySelector('#ncs-final-badge').hidden);
  assert.match(await page.locator('#ncs-final').inputValue(),/green hair/,'a successful generation consumes the historical prompt once');
