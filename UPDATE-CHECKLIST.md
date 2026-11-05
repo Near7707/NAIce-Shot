@@ -1,5 +1,9 @@
 # Installation and update checklist
 
+## v0.1.81
+
+Update the extension and refresh (server 0.1.19 still needed). Nothing new to try: a length fix for profile names with brackets.
+
 ## v0.1.80
 
 **Update the server plugin first** (0.1.19), restart SillyTavern, then update the extension and refresh.

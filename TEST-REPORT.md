@@ -1,3 +1,11 @@
+# v0.1.81 validation — 2026-11-05
+
+- Extension Node suite: **176 passed, 0 failed** (+1: 168 letters + three `Leo (Main)` chips = 201 seen and refused; brackets, `]` and double spaces keep the name's length; fails with the old rule). One older check now expects only a blank name to become "이름 없음".
+- **68 of 68 Chromium browser scripts passed** (`browser-v0112` timed out once while all ran in parallel and passed alone).
+- Not checked: a real SillyTavern, iPhone Safari, a phone Hangul keyboard.
+
+---
+
 # v0.1.80 validation — 2026-11-05
 
 - Extension Node suite: **175 passed, 0 failed** (+1: a 70-letter chip name counts in full, 216 seen for three).

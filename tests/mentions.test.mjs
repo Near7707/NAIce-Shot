@@ -65,7 +65,7 @@ test('0.1.77 lengths: the limit is what a person sees; ceilings; a chip name is 
  // a 3,961-character text with chips is fine (the old check counted "(roster id …)" and blocked it)
  const text=`${chip(P[0])}`+'가'.repeat(3955);assert.ok(displayLength(text)<=4000);assert.equal(lengthProblem(text,'free'),null);
  assert.match(lengthProblem('가'.repeat(4001),'free'),/\(지금 4,001자\)/);
- assert.equal(chipToken('',P[0].id),`@[${EMPTY_NAME}](ref:${P[0].id})`);assert.equal(chipToken('  [()]  ',P[0].id),`@[${EMPTY_NAME}](ref:${P[0].id})`);
+ assert.equal(chipToken('',P[0].id),`@[${EMPTY_NAME}](ref:${P[0].id})`);assert.equal(chipToken(' \n ',P[0].id),`@[${EMPTY_NAME}](ref:${P[0].id})`); // 0.1.81: only a blank name becomes 이름 없음 (brackets are real letters)
  assert.equal(displayLength(`@[](ref:${P[0].id})`),EMPTY_NAME.length+1);
 });
 test('0.1.80 (UI-076-02): a long profile name stays whole in the chip, so its length is counted as seen',async()=>{
@@ -76,4 +76,12 @@ test('0.1.80 (UI-076-02): a long profile name stays whole in the chip, so its le
  assert.equal(tokenize(three).filter(x=>x.type==='chip')[0].name.length,70);
  assert.equal(chipToken('나'.repeat(250),p.id).match(/^@\[(.*)\]/)[1].length,200,'at most 200, the longest profile name');
  assert.deepEqual(readRefs(three,[p]).refs.map(r=>r.id),[p.id,p.id,p.id]);
+});
+test('0.1.81 (UI-076-02): a name with brackets or double spaces keeps its length in the chip',async()=>{
+ const {lengthProblem}=await import('../mentions.mjs');
+ const p={id:'f0000000-0000-4000-8000-000000000000',name:'Leo (Main)',aliases:[]};
+ const text='가'.repeat(168)+[1,2,3].map(()=>chipToken(p.name,p.id)).join(''); // 168 + 3 x "@Leo (Main)" = 201 seen
+ assert.equal(displayLength(text),168+3*11);assert.match(lengthProblem(text,'wish'),/200자/);
+ for(const name of ['Leo (Main)','[Q] (z)','a  b','a]b']){const t=chipToken(name,p.id);assert.equal(displayLength(t),name.length+1,name);assert.deepEqual(readRefs(t,[{...p,name}]).refs.map(r=>r.id),[p.id],name);}
+ assert.equal(tokenize(chipToken('a]b',p.id))[0].name,'a］b','] is swapped one for one, so the chip text stays whole');
 });

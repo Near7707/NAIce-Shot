@@ -28,7 +28,10 @@ export function boundaryAfter(text,at){
 
 // --- The chip as text -------------------------------------------------------------------------------------------------
 export const EMPTY_NAME='이름 없음';
-const safeName=name=>String(name??'').replace(/[\[\]()\n]/g,' ').replace(/\s+/g,' ').trim().slice(0,200)||EMPTY_NAME; // 0.1.80: the whole name (a profile name has at most 200), so the length seen is the length checked // a chip name is never empty
+// 0.1.81 (UI-076-02): the name keeps its length — only the characters that would break the chip text are swapped one for
+// one (] → ］, a line break → a space). Brackets and spaces stay, so "Leo (Main)" is counted as it looks. At most 200 letters
+// (the longest profile name); a chip name is never empty.
+const safeName=name=>{const n=String(name??'').replace(/\]/g,'］').replace(/[\r\n]/g,' ').slice(0,200);return n.trim()?n:EMPTY_NAME;};
 export const chipToken=(name,id)=>`@[${safeName(name)}](ref:${String(id??'').replace(/[^A-Za-z0-9_-]/g,'')})`;
 const TOKEN=/@\[([^\]\n]{0,200})\]\(ref:([A-Za-z0-9_-]*)\)/gu;
 // The 0.1.75 form "@Name#short": it cannot be trusted, so it shows as a broken chip. The name may hold spaces but does not

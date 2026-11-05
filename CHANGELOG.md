@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.81 — 2026-11-05 (extension only; server v0.1.19 unchanged)
+
+- Chip names keep their length (UI-076-02, P3): brackets and spaces are no longer removed from the name inside the chip text, so `Leo (Main)` is counted as it looks. Only `]` (→ `］`) and line breaks (→ space) are swapped, one for one. Older chips keep working.
+- Tests: a unit test for names with brackets and double spaces (fails with the old rule).
+
 ## 0.1.80 — 2026-11-05 (extension + server v0.1.19 — update the server first)
 
 Fixes for the GPT review of 0.1.79.
