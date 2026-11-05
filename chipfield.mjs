@@ -90,10 +90,14 @@ export function setupChipField(el,{getProfiles,limit=Infinity,measure=v=>v.lengt
       if(data.slice(q.end,q.end+rest.length).toLowerCase()===rest&&boundaryAfter(data,q.end+rest.length)>=0)best=Math.max(best,rest.length);
     }
     end+=best;
+    // 0.1.79 (UI-076-02): the chip must fit. Measured as seen: the typed "@que" goes, "@name" (and a space) comes.
+    const space0=/\s/.test(data[end]??'')?0:1,grow=(profile.name.length+1+space0)-(end-q.start);
+    if(grow>0&&room()-grow<0){el.dispatchEvent(new CustomEvent('ncs-field-full',{bubbles:true,detail:{chip:true}}));return false;}
     const range=document.createRange();range.setStart(q.node,q.start);range.setEnd(q.node,end);
     const sel=getSelection();sel.removeAllRanges();sel.addRange(range);
     const next=data[end]??'',space=/\s/.test(next)?'':'&nbsp;';
     document.execCommand('insertHTML',false,chipHtml(profile.name,profile.id,profile)+space);
+    return true;
   };
   const room=(extra='')=>{
     const sel=getSelection();let selected='';

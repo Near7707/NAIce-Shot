@@ -167,7 +167,14 @@ const tabNotices=new Map();
 // Each notice folds on its own timer, so one tab's notice never cancels another tab's folding (UI-062-03).
 // A warning the user must act on (keep) stays like an error (UI-062-01).
 function renderNotice(){if(!dialog)return;const n=tabNotices.get(activeTab()),box=$('ncs-notice');
-  box.hidden=!n?.message||!!progress||(!!n.until&&Date.now()>=n.until);box.textContent=n?.message??'';box.classList.toggle('ncs-error',n?.error===true);}
+  box.hidden=!n?.message||!!progress||(!!n.until&&Date.now()>=n.until);
+  // 0.1.79 (UI-078-03): the text sits in its own part next to a × button, and a long note scrolls inside a short box.
+  if(typeof box.querySelector!=='function'){box.textContent=n?.message??'';box.classList?.toggle?.('ncs-error',n?.error===true);return;} // minimal test pages
+  let text=box.querySelector(':scope > .ncs-notice-text');
+  if(!text){box.textContent='';text=document.createElement('span');text.className='ncs-notice-text';
+    const close=document.createElement('button');close.type='button';close.className='ncs-notice-close';close.setAttribute('aria-label','알림 닫기');close.title='알림 닫기';
+    close.addEventListener('click',()=>{tabNotices.delete(activeTab());renderNotice();});box.append(text,close);}
+  text.textContent=n?.message??'';box.scrollTop=0;box.classList.toggle('ncs-error',n?.error===true);}
 // The shared core (also on the server) still says 스텝; the panel calls it Steps like Guidance and Seed (0.1.62).
 const stepsWord=text=>String(text??'').replace(/(\d+)스텝/g,'$1 Steps').replace(/스텝은/g,'Steps는').replace(/스텝/g,'Steps');
 function notice(message,error=false,tab=activeTab(),{keep=false}={}){
@@ -267,7 +274,7 @@ function viewerActions(item,{attachment=null}={}){
   if(count)actions.push({label:`채팅에서 이 그림 빼기${count>1?` (${count}곳)`:''}`,run:async()=>removeImageFromChat(await recordOf(item))});
   // 0.1.74: a chat picture can move above or below the text on its own, or go back to the default place.
   if(attachment){const entry=visibleInlineImages(attachment.message).find(x=>x.id===item.id),fallback=imagePlacement(),now=placementOf(entry,fallback),other=now==='above'?'below':'above';
-    const move=(placement,done)=>away(async()=>{await placeChatImage(item,attachment,placement);toast(done);});
+    const move=(placement,done)=>away(async()=>{const r=await placeChatImage(item,attachment,placement);if(!r?.unverified)toast(done);}); // UI-072-01: no success note when the save could not be checked
     actions.push({label:other==='above'?'글 위로 옮기기':'글 아래로 옮기기',note:'이 그림만 옮겨요.',divider:true,leave:true,run:move(other,other==='above'?'그림을 글 위로 옮겼어요.':'그림을 글 아래로 옮겼어요.')});
     if(entry?.placement)actions.push({label:'기본 위치로 되돌리기',note:`지금 기본: 글 ${fallback==='above'?'위':'아래'}`,leave:true,run:move(null,'그림을 기본 위치로 되돌렸어요.')});}
   if(attachment)actions.push({label:'이력에서 보기',note:'이력 탭에서 이 그림 카드로 가요.',divider:true,leave:true,run:away(()=>goToHistoryCard(item))});
@@ -371,10 +378,15 @@ function bindImageMenus(){
 }
 // Reads the chat file back from SillyTavern to check that a save really happened (0.1.77). The route is SillyTavern's own
 // chat-read route; if its answer is not what is expected, the result is "cannot tell", never "saved".
-async function readSavedChat(){
-  const c=ctx(),inGroup=c.groupId!==null&&c.groupId!==undefined,id=c.getCurrentChatId?.() ?? c.chatId;
+// 0.1.79 (UI-072-01): the chat is fixed when the change starts, so moving to another chat meanwhile never reads that one.
+function savedReader(){
+  const c=ctx(),inGroup=c.groupId!==null&&c.groupId!==undefined,id=c.getCurrentChatId?.() ?? c.chatId,card=c.characters?.[c.characterId];
+  const fixed={inGroup,id,card:card?{name:card.name,avatar:card.avatar}:null,groupId:c.groupId};
+  return ()=>readSavedChat(fixed);
+}
+async function readSavedChat({inGroup,id,card}){
+  const c=ctx();
   if(!id)throw new Error('no chat');
-  const card=c.characters?.[c.characterId];
   const response=inGroup
     ?await fetch('/api/chats/group/get',{method:'POST',headers:c.getRequestHeaders(),body:JSON.stringify({id})})
     :await fetch('/api/chats/get',{method:'POST',headers:c.getRequestHeaders(),body:JSON.stringify({ch_name:card?.name,file_name:String(id).replace(/\.jsonl$/,''),avatar_url:card?.avatar})});
@@ -392,7 +404,7 @@ async function placeChatImage(item,attachment,placement){
   if(busy||attaching)throw new Error('진행 중인 작업이 끝난 뒤 옮겨 주세요.');
   if(ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 옮겨 주세요.');
   const startKey=attachment.chatKey;attaching=true;updateAttachButtons();
-  try{const done=await placeMessageImage(ctx(),item,{...attachment,placement,readSaved:readSavedChat,isCurrent:()=>keyOf()===startKey});if(keyOf()===startKey)renderChatImages();if(done?.unverified)say(UNVERIFIED,true);}
+  try{const done=await placeMessageImage(ctx(),item,{...attachment,placement,readSaved:savedReader(),isCurrent:()=>keyOf()===startKey});if(keyOf()===startKey)renderChatImages();if(done?.unverified)say(UNVERIFIED,true);return done;}
   finally{attaching=false;updateAttachButtons();}
 }
 async function removeMessageImage(item,attachment){
@@ -401,7 +413,7 @@ async function removeMessageImage(item,attachment){
   const context=ctx(),startKey=attachment.chatKey;
   attaching=true;updateAttachButtons();
   try{
-    const done=await detachMessageImage(context,item,{...attachment,readSaved:readSavedChat,isCurrent:()=>keyOf()===startKey});
+    const done=await detachMessageImage(context,item,{...attachment,readSaved:savedReader(),isCurrent:()=>keyOf()===startKey});
     if(keyOf()===startKey){renderChatImages();renderResult();renderHistory();}
     if(done?.unverified)say(`그림을 뺐지만 ${UNVERIFIED}`,true);
     else say('이 메시지에서 그림을 뺐어요. 원본과 생성 이력은 그대로예요.');return true;
@@ -790,12 +802,13 @@ function readWardrobeForm(){
 // 0.1.78: every other 장면 후보 carries its own copy of the scene. A profile made or linked for a person who is still
 // "without a profile" in those copies is attached there too, so switching candidates no longer warns about a card that exists now.
 function attachToOtherMoments(profile,names){
-  const keys=new Set([profile.name,...(profile.aliases??[]),...names].map(identityKey).filter(Boolean));
+  const keys=new Set([profile.name,...(profile.aliases??[]),...names].map(identityKey).filter(Boolean)),touched=[];
   (scene.moments??[]).forEach((m,k)=>{
     if(k===scene.momentIndex||!m?.scene)return;
     const has=(m.scene.unregistered??[]).some(n=>keys.has(identityKey(n)))||(m.scene.unregisteredDetails??[]).some(c=>keys.has(identityKey(c.entityName)));
-    if(has)attachSceneProfile(m.scene,profile,names);
+    if(has){touched.push({k,before:clone(m.scene)});attachSceneProfile(m.scene,profile,names);}
   });
+  return touched; // what each changed candidate was before, so a link can be undone there too (UI-078-02)
 }
 // Brings the person's new card into view (the card list sits far below the profile form) and flashes it once.
 function showCard(id){
@@ -954,7 +967,7 @@ function linkMissing(name,person){
     else{pendingTempConvert={id:temp.id,session:profileFormSession,chatKey:keyOf()};convertTemp(p);}
   }
   const {restored}=attachSceneProfile(scene,p,[name,...profileSceneNames(p)]);
-  attachToOtherMoments(p,[name,...profileSceneNames(p)]);
+  undo.otherMoments=attachToOtherMoments(p,[name,...profileSceneNames(p)]);undo.momentsRef=scene.moments;
   undo.addedCards=scene.characters.filter(c=>!before.has(c));undo.addedToScene=undo.addedCards.length>0;
   undo.removedNames=beforeNames.filter(n=>!scene.unregistered.includes(n));
   undo.removedDetails=beforeDetails.filter(c=>!scene.unregisteredDetails.some(d=>identityKey(d.entityName)===identityKey(c.entityName)));
@@ -974,6 +987,8 @@ function undoLink(){
     scene.unregistered=[...new Set([...(scene.unregistered??[]),...(u.removedNames??[u.name])])];
     scene.unregisteredDetails??=[];
     for(const detail of u.removedDetails??[])if(!scene.unregisteredDetails.some(c=>identityKey(c.entityName)===identityKey(detail.entityName)))scene.unregisteredDetails.push(clone(detail));
+    // UI-078-02: the other 장면 후보 the link reached go back as well (switching candidates clears the undo, so they are untouched since).
+    if(scene.moments&&scene.moments===u.momentsRef)for(const {k,before} of u.otherMoments??[])if(scene.moments[k])scene.moments[k].scene=before;
   }
   lastLink=null;changed();renderScene();renderProfiles();renderMatching();
   notice(`"${u.name}" 연결을 되돌렸어요.${u.aliasAdded?' 추가했던 별칭도 지웠어요.':''}`);
@@ -1378,6 +1393,8 @@ function prepareRefs(el,label){
   const tooLong=lengthProblem(el.value,el.id==='ncs-free-text'?'free':'wish');if(tooLong)throw new Error(tooLong);
   const profiles=settings().profiles,c=confirmRefs(el.value,profiles);
   if(c.problems.length)throw new Error(`${label}의 @참조를 확인해 주세요. ${c.problems.map(p=>p.message).join(' ')}`);
+  // 0.1.79 (UI-076-02): a typed short alias can become a chip with a longer name — the result is checked again.
+  {const after=lengthProblem(c.text,el.id==='ncs-free-text'?'free':'wish');if(after)throw new Error(`@이름을 칩으로 바꾸면 ${after}`);}
   if(c.confirmed.length){el.value=c.text;el.dispatchEvent(new Event('input',{bubbles:true}));}
   const x=refsForExtraction(c.text,profiles),limit=MODELS[effectiveOptions().model]?.limit??6;
   if(x.required.length>limit)throw new Error(`@로 지정한 필수 인물이 ${x.required.length}명이라 지금 모델의 한도(${limit}명)를 넘어요. 일부의 @를 지워 주세요.`);
@@ -1426,7 +1443,7 @@ function updateRefList(field){
 function pickRef(i){
   if(!refList)return;const {field,q,items}=refList,it=items[i];if(!it)return;
   const p=settings().profiles.find(x=>x.id===it.id);if(!p)return;
-  closeRefList();field.insertChip(q,p);field.dispatchEvent(new Event('input',{bubbles:true}));
+  closeRefList();if(field.insertChip(q,p)===false)return;field.dispatchEvent(new Event('input',{bubbles:true}));
 }
 function bindRefFields(){
   const lengths={'ncs-free-text':{limit:LENGTH_LIMITS.free.visible,measure:displayLength},'ncs-moment-wish':{limit:LENGTH_LIMITS.wish.visible,measure:displayLength,singleLine:true}};
@@ -1437,7 +1454,7 @@ function bindRefFields(){
     field.addEventListener('input',refresh);field.addEventListener('compositionend',refresh);field.addEventListener('click',refresh);
     field.addEventListener('keyup',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key))refresh();});
     field.addEventListener('blur',()=>setTimeout(()=>{if(refList?.field===field&&document.activeElement!==field)closeRefList();},150));
-    field.addEventListener('ncs-field-full',()=>notice(id==='ncs-free-text'?'상황 글이 너무 길어서 붙여 넣지 못했어요.':'추가 요청이 너무 길어서 붙여 넣지 못했어요.',true,'scene'));
+    field.addEventListener('ncs-field-full',event=>notice(`${id==='ncs-free-text'?'상황 글':'추가 요청'}이 너무 길어서 ${event.detail?.chip?'칩을 넣지':'붙여 넣지'} 못했어요.`,true,'scene'));
     field.addEventListener('ncs-field-over',()=>notice(`${id==='ncs-free-text'?'상황 글':'추가 요청'}이 글자 수 한도를 넘었어요. 줄이기 전에는 추출하거나 생성할 수 없어요.`,true,'scene'));
     field.addEventListener('keydown',event=>{
       if(!refList||refList.field!==field||event.isComposing||event.keyCode===229)return;
@@ -1503,6 +1520,8 @@ function freeIdentity(c,appearance,profiles,selectedIds,requiredIds=new Set()){
   if(byName.length>1&&c.id&&requiredIds.has(c.id)&&byName.some(p=>p.id===c.id))return {profile:byName.find(p=>p.id===c.id)};
   if(byName.length===1)return {profile:byName[0],corrected:!!c.id&&c.id!==byName[0].id};
   // Several profiles answer to this name: the AI's id is not proof. Only a card the user already has in this work decides (UI-059-05).
+  // 0.1.79 (UI-076-01): two picked people share this name and the id is not checked: nobody gets it, even with a card already there.
+  if(byName.filter(p=>requiredIds.has(p.id)).length>1)return {ambiguous:true};
   if(byName.length>1){const mine=byName.filter(p=>selectedIds.has(p.id));return mine.length===1?{profile:mine[0]}:{ambiguous:true};}
   const p=c.id?profiles.find(p=>p.id===c.id):null;if(!p)return {};
   if(!key)return {profile:p};
@@ -1991,12 +2010,18 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
       for(const id of response.deleted??[])deleted.add(id);skipped.push(...(response.skipped??[]));
     }
     // Clean attachments of the open chat in one save; other chats keep a "missing image" note.
-    if(deleted.size&&current&&keyOf()===current)unverifiedDetach=!!(await detachInlineImages(ctx(),deleted,{readSaved:readSavedChat,isCurrent:()=>keyOf()===current})).unverified;
+    // 0.1.79 (UI-078-04): the originals are gone at this point. If taking them out of the chat is not saved, the rest
+    // (result, selection, history) is still cleaned up and the note says exactly what happened.
+    let detachFailed=false;
+    if(deleted.size&&current&&keyOf()===current){
+      try{unverifiedDetach=!!(await detachInlineImages(ctx(),deleted,{readSaved:savedReader(),isCurrent:()=>keyOf()===current})).unverified;}
+      catch{detachFailed=true;}
+    }
     if(result&&deleted.has(result.id))result=null;
     for(const id of deleted)selectedIds.delete(id);
     if(current&&keyOf()===current){renderChatImages();renderResult();}
     const skippedText=skipped.length?` 찾지 못한 ${skipped.length}장은 지우지 않았어요.`:'';
-    say(deleted.size?`그림 ${deleted.size}장을 삭제했어요.${skippedText}${unverifiedDetach?` 다만 채팅에서 그림을 뺀 것이 ${UNVERIFIED}`:''}`:`삭제한 그림이 없어요.${skippedText}`,!deleted.size||unverifiedDetach,originTab);
+    say(deleted.size?`그림 ${deleted.size}장을 삭제했어요.${skippedText}${detachFailed?' 다만 채팅에서 그림을 빼는 저장은 실패해서, 채팅에는 \'찾을 수 없는 그림\' 표시가 남아요. 그 표시의 [이 메시지에서 빼기]로 정리할 수 있어요.':unverifiedDetach?` 다만 채팅에서 그림을 뺀 것이 ${UNVERIFIED}`:''}`:`삭제한 그림이 없어요.${skippedText}`,!deleted.size||unverifiedDetach||detachFailed,originTab);
     return {deleted:[...deleted],skipped};
   }finally{attaching=false;updateAttachButtons();loadHistory().catch(e=>report(e.message,true));}
 }
@@ -2042,7 +2067,7 @@ async function putImagesInChat(items,targetIndex,placement=null) {
   if(ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 첨부해 주세요.');
   attaching=true;updateAttachButtons();
   try {
-    const done=await attachInlineImages(ctx(),items,{targetIndex,placement,readSaved:readSavedChat,isCurrent:()=>keyOf()===startKey});
+    const done=await attachInlineImages(ctx(),items,{targetIndex,placement,readSaved:savedReader(),isCurrent:()=>keyOf()===startKey});
     if(keyOf()!==startKey)return;
     renderChatImages();renderResult();renderHistory();
     const where=`#${targetIndex} 메시지${placement?` 글 ${placement==='above'?'위':'아래'}`:''}`,moved=done.moved?` 이미 있던 ${done.moved}장은 글 ${placement==='above'?'위':'아래'}로 옮겼어요.`:'';
@@ -2056,7 +2081,7 @@ async function removeImageFromChat(item) {
   if(ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 이미지를 빼 주세요.');
   attaching=true;updateAttachButtons();
   try{
-    const removed=await detachInlineImage(ctx(),item,{readSaved:readSavedChat,isCurrent:()=>keyOf()===startKey});
+    const removed=await detachInlineImage(ctx(),item,{readSaved:savedReader(),isCurrent:()=>keyOf()===startKey});
     if(keyOf()!==startKey)return;
     renderChatImages();renderResult();renderHistory();
     if(removed.unverified)notice(`채팅의 이미지 첨부를 뺐지만 ${UNVERIFIED}`,true);
@@ -2306,8 +2331,16 @@ async function importSettings(file) {
   clean.allowAnlas=false; // a shared backup must never switch on paid generation by itself
   if(typeof clean.skin!=='string'||!skinById(clean.skin))clean.skin=DEFAULT_SKIN;
   if(!['describe','direct'].includes(clean.profileInputMode))clean.profileInputMode=DEFAULTS.profileInputMode;
+  // 0.1.79 (UI-078-01): each mode's own generation settings come back too. Checked like the main ones; a bad entry is dropped.
+  if(['chat','free'].includes(next.genActive))clean.genActive=next.genActive;
+  if(next.genByMode&&typeof next.genByMode==='object'){
+    clean.genByMode={};
+    for(const m of ['chat','free']){const g=next.genByMode[m];if(!g||typeof g!=='object'||typeof g.positive!=='string'||typeof g.negative!=='string'||typeof g.imagePresetId!=='string')continue;
+      try{const options=freeOptions({...DEFAULTS.options,...g.options,scheduler:DEFAULTS.options.scheduler});buildPayload({base:'test',negative:'',characters:[]},{...options,seed:options.seed===-1?0:options.seed});
+        clean.genByMode[m]={imagePresetId:clean.imagePresets.some(p=>p.id===g.imagePresetId)?g.imagePresetId:'',positive:g.positive,negative:g.negative,options};}catch{}}
+  }
   if(!confirm('현재 프로필과 공통 설정을 이 백업으로 바꿀까요? 현재 설정을 내보낸 뒤 진행할 수 있어요.'))return;
-  ctx().extensionSettings[KEY]=clean;ctx().saveSettingsDebounced();renderChatImages();scene=blankScene();finalOverride=null;optionsOverride=null;revision++;renderSettings();renderProfiles();editProfile();renderScene();useSkin(clean.skin).catch(()=>{});notice('백업을 가져왔어요. Anlas 사용 가능성 허용과 추출 원문 보관은 꺼진 상태로 가져왔어요.');
+  ctx().extensionSettings[KEY]=clean;syncGen(mode);ctx().saveSettingsDebounced();renderChatImages();scene=blankScene();finalOverride=null;optionsOverride=null;revision++;renderSettings();renderProfiles();editProfile();renderScene();useSkin(clean.skin).catch(()=>{});notice('백업을 가져왔어요. Anlas 사용 가능성 허용과 추출 원문 보관은 꺼진 상태로 가져왔어요.');
 }
 function dismissKeyboard(){if(document.activeElement?.matches?.('input,textarea'))document.activeElement.blur();}
 async function onAction(action,el) {

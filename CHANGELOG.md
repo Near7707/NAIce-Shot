@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.79 — 2026-11-05 (extension only; server v0.1.18 unchanged)
+
+Fixes for the GPT review of 0.1.77–0.1.78.
+
+- Save check (UI-072-01): the chat is fixed when the change starts, so moving to another chat meanwhile never reads that one. Pictures that are already in the message are saved and checked again (an earlier save may not have been confirmed); while the file still lacks them the answer stays "cannot tell", never "saved". A move that could not be checked no longer also shows "옮겼어요".
+- Same names (UI-076-01): when two or more people picked with @ share a name and the AI gives no checked id, nobody gets that person's action — not through the chat's name connection (챗샷) and not through a card already in the work (프리샷).
+- Length (UI-076-02): after typed names become chips the text is checked again before anything is sent; a list pick that would go over the limit is refused with a note.
+- Backups (UI-078-01) bring back each mode's own generation settings (checked like the main ones).
+- Link undo (UI-078-02) also undoes the link in the other 장면 후보.
+- Notes (UI-078-03) are at most about four lines, scroll inside, and have a × to close them.
+- Delete (UI-078-04): when the originals were deleted but taking them out of the chat was not saved, the result, selection and history are still cleared, and the note says the chat keeps a "찾을 수 없는 그림" mark that can be removed.
+- Tests: new `browser-v0179` (375 and 1100px) and unit tests for same-name people and re-saving; every fix was checked to fail with it reverted. The test page records which chat file is read.
+
 ## 0.1.78 — 2026-11-05 (extension only; server v0.1.18 unchanged)
 
 Fixes from the user's own check of 0.1.76.

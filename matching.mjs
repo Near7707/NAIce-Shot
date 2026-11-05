@@ -85,6 +85,10 @@ export function reconcileCharacters(scene,matching) {
   // name the AI wrote. That checked id comes before the chat's name connection, and two picked people with the same
   // name stay two people (they are told apart by id, not by name).
   const picked=matching.required?.has(c.id)?profiles.find(p=>p.id===c.id&&namesOf(p).includes(named)):null;
+  // 0.1.79 (UI-076-01): two or more people picked with @ share this name and the AI gave no checked id: whose action
+  // this is cannot be known, so it is given to nobody (not even through the chat's name connection or an existing card).
+  const twins=picked?[]:[...(matching.required??[])].map(id=>profiles.find(p=>p.id===id)).filter(p=>p&&namesOf(p).includes(named));
+  if(twins.length>1){unregistered.push(c.entityName);unregisteredDetails.push({...c,id:'',manualOutfit:null});warnings.push(`${c.entityName}: @로 고른 같은 이름의 인물이 여러 명이라 누구인지 알 수 없어 비워 뒀어요.`);continue;}
   if(!picked){if(seenNames.has(named))continue;seenNames.add(named);}
   const mappedIds=unique(matching.mappings.filter(m=>identityKey(m.name)===named).map(m=>m.profileId));
   let matches=picked?[picked]:mappedIds.length?profiles.filter(p=>mappedIds.includes(p.id)):namedProfiles(profiles,c.entityName);

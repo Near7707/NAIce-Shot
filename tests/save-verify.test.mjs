@@ -84,3 +84,11 @@ test('without a reader the old rule holds: a thrown save restores, a quiet one i
  const ctx=world({mode:'throw'});await assert.rejects(()=>attachInlineImages(ctx,[A],{targetIndex:1}),/disk full/);assert.equal(hasInlineImage(ctx.chat,A),false);
  ctx.mode='swallow';const r=await attachInlineImages(ctx,[A],{targetIndex:1});assert.equal(r.unverified,false);
 });
+test('0.1.79: pictures that are already here are saved and checked again (an earlier save may not have been confirmed)',async()=>{
+ const ctx=world();ctx.mode='swallow';ctx.readSaved=async()=>{throw new Error('offline');};
+ let r=await attachInlineImages(ctx,[A,B],{targetIndex:1,readSaved:ctx.readSaved});assert.equal(r.unverified,true);
+ const saves=ctx.saves;ctx.readSaved=async()=>structuredClone(ctx.disk); // the file still has nothing
+ r=await attachInlineImages(ctx,[A,B],{targetIndex:1,readSaved:ctx.readSaved});
+ assert.equal(ctx.saves,saves+1,'saved again');assert.equal(r.unverified,true,'never reported as saved while the file does not have them');assert.deepEqual(ids(msg(ctx)),[A.id,B.id]);
+ ctx.mode='ok';r=await attachInlineImages(ctx,[A,B],{targetIndex:1,readSaved:ctx.readSaved});assert.equal(r.unverified,false);
+});

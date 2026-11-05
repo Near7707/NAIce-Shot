@@ -1,3 +1,11 @@
+# v0.1.79 validation — 2026-11-05
+
+- Extension Node suite: **174 passed, 0 failed** (+2: same-name picked people with a chat connection; pictures already there are saved and checked again).
+- **67 of 67 Chromium browser scripts passed.** New `browser-v0179`: a long error note stays under 150px, scrolls inside and closes with ×, and the field under it takes taps again; `@Q` that becomes a 120-letter chip stops extraction with no call; a list pick that would not fit puts no chip in; a backup brings back 프리샷's own prompt and Guidance; link undo leaves no card in the other candidate; switching chats during a save still reads the first chat; an unchecked move shows no "옮겼어요"; deleting with a silently failed chat save clears the result and says so. Each fix was reverted once to see its check fail.
+- Not checked: a real SillyTavern (chat-read route), iPhone Safari, a phone Hangul keyboard.
+
+---
+
 # v0.1.78 validation — 2026-11-05
 
 - Extension Node suite: **172 passed, 0 failed** (no unit changes).

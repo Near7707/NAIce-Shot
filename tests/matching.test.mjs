@@ -119,3 +119,14 @@ test('0.1.77 (UI-076-01): a required person whose name is shared gets no leftove
  const twin=mk(),r2=attachSceneProfile(twin,p,['Leo'],{ambiguous:true});
  assert.equal(r2.character.action,'');assert.equal(r2.character.expression,'');assert.equal(twin.unregisteredDetails.length,1,'the other person\'s detail is kept');
 });
+test('0.1.79 (UI-076-01): two picked people with one name and no checked id — nobody gets the action, also with a chat connection',()=>{
+ const A={id:'leo-a',name:'Leo',aliases:[],cardKey:'',appearance:'brown hair',defaultOutfit:''},B={id:'leo-b',name:'Leo',aliases:[],cardKey:'',appearance:'blond hair',defaultOutfit:''};
+ const chat={allProfiles:[A,B],profiles:[A,B],mappings:[{name:'Leo',profileId:'leo-a',profileName:'Leo',role:'character'}],warnings:[]};
+ for(const id of ['','other-id']){
+  const r=reconcileCharacters({...scene('Leo',id),characters:[{...scene('Leo',id).characters[0],action:'reading'}]},{...chat,required:new Set(['leo-a','leo-b'])});
+  assert.equal(r.scene.characters.length,0,'not given to A through the chat connection');assert.ok(r.scene.unregistered.includes('Leo'));
+  assert.match(r.warnings.join(' '),/누구인지 알 수 없어/);
+ }
+ // only one of them picked: the usual rules still apply
+ assert.equal(reconcileCharacters(scene('Leo',''),{...chat,required:new Set(['leo-b'])}).scene.characters[0].id,'leo-a');
+});

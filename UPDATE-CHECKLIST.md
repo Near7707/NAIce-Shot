@@ -1,5 +1,12 @@
 # Installation and update checklist
 
+## v0.1.79
+
+Update the extension and refresh (server 0.1.18 still needed).
+
+1. Make an error note appear (e.g. many unknown `@names`): it stays short, scrolls, and × closes it.
+2. Settings → backup export, then import: switch to 프리샷 — its own prompt and settings are back.
+
 ## v0.1.78
 
 Update the extension and refresh (server 0.1.18 from v0.1.77 is still needed).

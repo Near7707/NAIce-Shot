@@ -125,7 +125,8 @@ export async function attachInlineImages(context,items,{targetIndex,placement=nu
  // No new messages, text edits, native media fields or RP generation events.
  // 0.1.77 (UI-072-01): the chat file is read back; see saveChecked for the three outcomes.
  let unverified=false;
- if(added||moved||items.length===1)({unverified}=await saveChecked(context,touches,readSaved));
+ // 0.1.79: also when every picture is already here — an earlier save may not have been confirmed, so it is saved and checked again.
+ if(touches.length)({unverified}=await saveChecked(context,touches,readSaved));
  return {added,duplicates,moved,targetIndex,unverified};
 }
 export async function detachInlineImage(context,item,options={}) {

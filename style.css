@@ -883,3 +883,10 @@
 #naice-shot-dialog .ncs-mode button[aria-pressed="true"]:disabled,#naice-shot-dialog fieldset:disabled .ncs-mode button[aria-pressed="true"] {background:var(--ncs-primary-bg,var(--ncs-tab-active-bg));color:var(--ncs-primary-fg,var(--ncs-tab-active-fg));border-color:var(--ncs-primary-border,var(--ncs-tab-active-border,var(--ncs-edge)));opacity:.75;}
 @keyframes ncs-card-flash {0%,100% {box-shadow:none;} 30% {box-shadow:0 0 0 3px var(--ncs-focus,var(--ncs-edge));}}
 #naice-shot-dialog .ncs-card-flash {animation:ncs-card-flash 1.4s ease-out 2;}
+/* 0.1.79 (UI-078-03): a long note never covers the panel: at most about four lines, scrolling inside, with a × to close it. */
+#naice-shot-dialog .ncs-notice {display:flex;align-items:flex-start;gap:8px;max-height:calc(4 * 1.5em + 18px);overflow-y:auto;overscroll-behavior:contain;}
+#naice-shot-dialog .ncs-notice[hidden] {display:none;}
+#naice-shot-dialog .ncs-notice-text {flex:1;min-width:0;}
+#naice-shot-dialog .ncs-notice-close {position:sticky;top:0;flex:none;width:32px;height:32px;min-height:32px;margin:-4px -6px -4px 0;padding:0;border:0;border-radius:999px;background:transparent;color:inherit;font-size:20px;line-height:1;cursor:pointer;}
+#naice-shot-dialog .ncs-notice-close::before {content:'×';}
+#naice-shot-dialog .ncs-notice-close:hover,#naice-shot-dialog .ncs-notice-close:focus-visible {background:color-mix(in srgb,currentColor 12%,transparent);}
