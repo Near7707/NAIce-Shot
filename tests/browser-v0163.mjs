@@ -88,12 +88,13 @@ try{
   assert.ok(seen.every(([v,t])=>v==='hidden'||t),'never an unfitted picture on screen');
   await page.locator('[data-v="close"]').click();await page.locator('[data-action="close"]').click();
   // An attachment from before 0.1.63 (no date or seed): looked up from history.
-  await page.evaluate(()=>{const e=mock.chat[1].extra.naice_shot_images[0];delete e.created;delete e.seed;});
+  await page.evaluate(()=>{const e=mock.chat[1].extra.naice_shot_images[0];delete e.created;delete e.seed;mock.savedChat=JSON.stringify(mock.chat);});
   await page.locator('#chat .mes[mesid="1"] .ncs-inline-open').click();await page.locator('#ncs-viewer[open]').waitFor();
   await page.waitForFunction(()=>/\d{4}\./.test(document.querySelector('#ncs-viewer .ncsv-meta').textContent));
   await page.waitForFunction(()=>!document.querySelector('#ncs-viewer [data-v="seed"]').hidden);
   const del=page.locator('#ncs-viewer [data-v="delete"]');assert.equal(await del.isVisible(),true,'삭제 from the chat');
   const st=ask(page);await del.click();await page.waitForFunction(()=>!document.getElementById('ncs-viewer').open);
+  await page.waitForFunction(()=>!mock.chat[1].extra?.naice_shot_images?.length);
   assert.match(st.asked.at(-1),/삭제할까요[\s\S]*함께 빠져요/);assert.equal(await page.evaluate(()=>(mock.chat[1].extra?.naice_shot_images??[]).length),0,'taken out of the message');
   assert.deepEqual(errors,[]);await page.close();
  }

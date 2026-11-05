@@ -50,7 +50,7 @@ try{
   assert.equal(await card.locator('[data-outfit-hold] [data-save-outfit]').isDisabled(),true,'chat controls stay held');
   assert.equal(await page.locator('#ncs-work-fields').isDisabled(),false,'the drawing window is not held');
   await once.fill('green scarf');
-  await page.evaluate(()=>mock.failMetadata());await page.waitForFunction(()=>!document.querySelector('.ncs-outfit-saving'));
+  await page.waitForFunction(()=>typeof mock.failMetadata==='function');await page.evaluate(()=>mock.failMetadata());await page.waitForFunction(()=>!document.querySelector('.ncs-outfit-saving'));
   assert.equal(await once.inputValue(),'green scarf','later edit kept after the failed save');
   assert.equal(await page.evaluate(()=>mock.chatMetadata.naice_shot?.outfits?.leo?.value),undefined,'failed save rolled back');
   assert.equal(await card.locator('[data-outfit-hold] [data-save-outfit]').isDisabled(),false);

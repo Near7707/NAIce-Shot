@@ -26,3 +26,11 @@ export async function attachImage(context,item,{displayName='NAIce Shot',isCurre
   if(isCurrent())context.scrollOnMediaLoad?.();
   return {duplicate:false};
 }
+
+// Compare the JSON that SillyTavern saves, independent of the order of object keys.
+export function stableChatJson(state){
+ return JSON.stringify(state,(_key,value)=>{
+  if(!value||typeof value!=='object'||Array.isArray(value))return value;
+  return Object.fromEntries(Object.keys(value).sort().map(key=>[key,value[key]]));
+ });
+}

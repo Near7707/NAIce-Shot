@@ -58,9 +58,10 @@ try{
  assert.equal(await page.locator('#ncs-target').inputValue(),'4');assert.match(await page.locator('#ncs-target-label').innerText(),/^#4 · Leo · He looks out at the rain\./);
  assert.match(await page.locator('#ncs-notice').innerText(),/#4 메시지를 대상으로 골랐어요/);
  assert.equal(await page.evaluate(()=>mock.extractCalls??0),0,'no automatic extraction');
- // Keyboard works too.
+ // Keyboard works too. Wait for the modal to close before moving focus back to the chat.
  await page.locator('[data-action="close"]').first().click();
- await page.locator('#chat .mes[mesid="0"] .ncs-mes-draw').focus();await page.keyboard.press('Enter');
+ await page.locator('#naice-shot-dialog').waitFor({state:'hidden'});
+ await page.locator('#chat .mes[mesid="0"] .ncs-mes-draw').press('Enter');
  await page.waitForFunction(()=>document.querySelector('#ncs-target').value==='0');
 
  // While an extraction runs, the target does not change.

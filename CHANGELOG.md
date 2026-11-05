@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.82 — 2026-11-05 (extension + server v0.1.20)
+
+- Before changing attachments or per-chat settings, compare the open chat with the saved messages and metadata. Stop if the chat is changing, a host save is in progress, or the file cannot be confirmed.
+- **같은 요청으로 다시 확인** retrieves an interrupted generation using its original request ID. If the server already received the image, it can retry local storage.
+- History deletion reports any partial failure and refreshes the list of available images.
+
 ## 0.1.81 — 2026-11-05 (extension only; server v0.1.19 unchanged)
 
 - Chip names keep their length (UI-076-02, P3): brackets and spaces are no longer removed from the name inside the chip text, so `Leo (Main)` is counted as it looks. Only `]` (→ `］`) and line breaks (→ space) are swapped, one for one. Older chips keep working.

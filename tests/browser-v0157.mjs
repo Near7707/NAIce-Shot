@@ -61,10 +61,10 @@ try{
   assert.match(await card.locator('.ncs-outfit-image').innerText(),/이번 그림 복장[\s\S]*이 복장을/);
   assert.equal(await card.locator('.ncs-outfit-image .ncs-outfit-to [data-save-outfit]').count(),1);assert.equal(await card.locator('.ncs-outfit-chat [data-save-outfit]').count(),0);
   assert.equal(await card.locator('.ncs-lock-help').evaluate(d=>d.open),false);
-  await page.evaluate(()=>{mock.normalSave=mock.saveMetadata;mock.saveMetadata=()=>new Promise(r=>mock.finishMetadata=r);});
+  await page.evaluate(()=>{mock.normalSave=mock.saveMetadata;mock.saveMetadata=()=>new Promise(r=>{const metadata=structuredClone(mock.chatMetadata),chatId=mock.chatId;mock.finishMetadata=()=>{if(mock.chatId===chatId)mock.savedMetadata=metadata;r();};});});
   await card.locator('[data-save-outfit]').click();await card.locator('.ncs-outfit-saving').waitFor();
   assert.equal(await card.locator('.ncs-outfit-to [data-to-wardrobe]').isDisabled(),true,'"이 복장을" is held while saving');
-  await page.evaluate(()=>mock.finishMetadata());await page.waitForFunction(()=>!document.querySelector('.ncs-outfit-saving'));await page.evaluate(()=>{mock.saveMetadata=mock.normalSave;});
+  await page.waitForFunction(()=>typeof mock.finishMetadata==='function');await page.evaluate(()=>mock.finishMetadata());await page.waitForFunction(()=>!document.querySelector('.ncs-outfit-saving'));await page.evaluate(()=>{mock.saveMetadata=mock.normalSave;});
   assert.match(await card.locator('[data-save-outfit]').innerText(),/✓ 이 채팅 기본 복장/);
   // 0.1.59: the card no longer edits the fixed look itself ([프로필 편집] opens the one editor; see browser-v0159).
   // ---- History: two images, select all ↔ clear all

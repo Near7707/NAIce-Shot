@@ -79,10 +79,10 @@ try{
   await historyTab(page);await openMore(page);await page.locator('.ncs-image-popup:popover-open [data-history-id]').click();
   await page.locator('[data-character="leo"]').waitFor();await page.locator('#ncs-gen-override').waitFor({state:'visible'}).catch(()=>{});
   const card=page.locator('[data-character="leo"]');
-  await page.evaluate(()=>{mock.normalSave=mock.saveMetadata;mock.saveMetadata=()=>new Promise(r=>mock.finishMetadata=r);});
+  await page.evaluate(()=>{mock.normalSave=mock.saveMetadata;mock.saveMetadata=()=>new Promise(r=>{const metadata=structuredClone(mock.chatMetadata),chatId=mock.chatId;mock.finishMetadata=()=>{if(mock.chatId===chatId)mock.savedMetadata=metadata;r();};});});
   await card.locator('[data-save-outfit]').click();await card.locator('.ncs-outfit-saving').waitFor();
   await page.locator('#ncs-gen-box > summary').click();const scale=page.locator('[data-gen="scale"]');await scale.fill('9');await scale.dispatchEvent('change');
-  await page.evaluate(()=>mock.finishMetadata());await page.waitForFunction(()=>!document.querySelector('.ncs-outfit-saving'));
+  await page.waitForFunction(()=>typeof mock.finishMetadata==='function');await page.evaluate(()=>mock.finishMetadata());await page.waitForFunction(()=>!document.querySelector('.ncs-outfit-saving'));
   assert.equal(await scale.inputValue(),'9','one-off Guidance edited while saving is kept');
   await page.evaluate(()=>{mock.saveMetadata=mock.normalSave;});assert.deepEqual(errors,[]);await page.close();
  }
@@ -96,6 +96,7 @@ try{
   await page.locator('[data-missing-do="link-undo"]').waitFor();
   assert.deepEqual(await names(),['Leo'],'merged into the Leo card already there');assert.equal(await page.locator('[data-character="leo"]').count(),1);
   await page.locator('[data-missing-do="link-undo"]').click();
+  await page.locator('[data-missing-do="link-undo"]').waitFor({state:'hidden'});
   assert.deepEqual(await names(),['Leo','Robin'],'undo brings the temporary card back and keeps Leo');
   assert.deepEqual(errors,[]);await page.close();
  }

@@ -73,10 +73,10 @@ try {
  assert.equal(await page.evaluate(()=>mock.chat[1].extra.media),undefined);assert.equal(await page.evaluate(()=>mock.chatSaves),1);
  const [download]=await Promise.all([page.waitForEvent('download'),pick(page,'#ncs-result a[download]')]);
  assert.equal(download.suggestedFilename(),`naice-shot-${first.id}.png`);assert.deepEqual(await fs.readFile(await download.path()),Buffer.from(png,'base64'));
- await click('attach');await click('attach-confirm');assert.equal(await page.locator('#chat img').count(),1);assert.equal(await page.evaluate(()=>mock.chat.length),2);
+ await click('attach');await click('attach-confirm');await page.locator('#chat img').waitFor();assert.equal(await page.locator('#chat img').count(),1);assert.equal(await page.evaluate(()=>mock.chat.length),2);
  await click('detach');await page.waitForFunction(()=>!mock.chat[1].extra?.naice_shot_images&&!document.querySelector('#chat img')); // 0.1.77+: the chat redraws after the save is checked
  assert.equal(items.length,1,'removing from chat must keep the generated image history');
- await click('attach');await click('attach-confirm');await page.evaluate(()=>{mock.chat=JSON.parse(mock.savedChat);mock.renderChat();});await page.locator('#chat .ncs-inline-images img').waitFor();
+ await click('attach');await click('attach-confirm');await page.locator('#chat .ncs-inline-images img').waitFor();await page.evaluate(()=>{mock.chat=JSON.parse(mock.savedChat);mock.renderChat();});await page.locator('#chat .ncs-inline-images img').waitFor();
  assert.deepEqual(await page.locator('#chat .mes_text').allTextContents(),textBefore);
  const metadataBefore=await page.evaluate(()=>JSON.stringify(mock.chatMetadata));
  await page.locator('[data-tab="profiles"]').click();await page.locator('[data-profile="leo"]').click();

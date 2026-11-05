@@ -138,8 +138,8 @@ try{
   await page.locator('#ncs-result [data-action="attach"]').click();await page.locator('#ncs-attach-dialog[open]').waitFor();await page.locator('[data-attach-target="0"]').click();
   await page.evaluate(()=>{mock.chatReads=[];window.__save=mock.saveChat;mock.saveChat=async function(){await window.__save.call(this);this.chatId='B';};});
   await page.locator('#ncs-attach-dialog [data-action="attach-confirm"]').click();
-  await page.waitForFunction(()=>mock.chatReads.length>0);
-  assert.deepEqual(await page.evaluate(()=>mock.chatReads.map(r=>r.file_name??r.id)),['A'],'read the chat the change started in');
+  await page.waitForFunction(()=>mock.chatReads.length===2);
+  assert.deepEqual(await page.evaluate(()=>mock.chatReads.map(r=>r.file_name??r.id)),['A','A'],'read the chat the change started in before and after saving');
   await page.evaluate(()=>{mock.saveChat=window.__save;mock.chatId='A';});
   await page.locator('[data-action="close"]').click();
   await page.evaluate(()=>{mock.chatReadFails=true;});
@@ -158,6 +158,58 @@ try{
   assert.match(await noteText(page),/채팅에서 그림을 빼는 저장은 실패/);
   assert.equal(await page.locator('#ncs-result [data-action="delete-result"]').count(),0,'the result is cleared');
   assert.deepEqual(errors,[]);await page.close();
+ }
+ // A second client edits a middle message, with the same message count and last message.
+ {
+  const {page,errors}=await open(375);
+  await page.locator('[data-action="generate"]').click();await idle(page);
+  await page.evaluate(()=>{
+    const newer=structuredClone(mock.chat);newer[0].mes='A newer edit saved by another tab.';
+    mock.savedChat=JSON.stringify(newer);
+  });
+  await page.locator('#ncs-result [data-action="attach"]').click();
+  await page.locator('[data-attach-target="1"]').click();
+  await page.locator('#ncs-attach-dialog [data-action="attach-confirm"]').click();
+  await page.waitForFunction(()=>/서버의 채팅과 화면/.test(document.querySelector('#ncs-notice').innerText));
+  assert.equal(await page.evaluate(()=>mock.chatSaves??0),0);
+  assert.equal(await page.evaluate(()=>mock.chat.some(m=>m.extra?.naice_shot_images)),false);
+  await page.evaluate(()=>{
+    mock.savedChat=JSON.stringify(mock.chat);
+    mock.savedMetadata={anotherTab:{updated:true}};
+    const placement=document.querySelector('#ncs-chat-image-placement');
+    placement.value='below';placement.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  await page.waitForFunction(()=>document.querySelector('#ncs-chat-image-placement').value==='');
+  assert.equal(await page.evaluate(()=>mock.saves??0),0);
+  assert.equal(await page.evaluate(()=>mock.chatMetadata.naice_shot),undefined);
+  assert.deepEqual(errors,[]);await page.close();
+ }
+ // A browser that lost the generation reply can reload and retrieve the exact request.
+ {
+  const {page,errors}=await open(375);let request,calls=0,checks=0,saves=0;
+  await page.route('**/api/plugins/naice-shot/**',async r=>{
+   const url=new URL(r.request().url()),{pathname}=url;
+   if(pathname.endsWith('/status'))return r.fulfill({json:{keyConfigured:true,version:'0.1.20',features:[...features,'generation-recovery'],subscription:{tier:3,active:true,isGracePeriod:false}}});
+   if(pathname.endsWith('/generate')){request=r.request().postDataJSON();calls++;return r.abort('failed');}
+   if(pathname.endsWith('/generation')){
+    if(r.request().method()==='GET'){
+     checks++;assert.equal(url.searchParams.get('requestId'),request.requestId);
+     return r.fulfill({json:{state:'save-failed'}});
+    }
+    saves++;assert.equal(r.request().postDataJSON().requestId,request.requestId);
+    return r.fulfill({json:{state:'complete',item:{id:request.requestId,chatKey:request.chatKey,
+     image:`/user/images/naice-shot/${request.requestId}.png`,seed:request.options.seed,options:request.options}}});
+   }
+   return r.fallback();
+  });
+  await page.reload();await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
+  await page.locator('[data-action="extract"]').click();await idle(page);
+  await page.locator('[data-action="generate"]').click();
+  await page.waitForFunction(()=>/생성 결과를 받지 못했어요/.test(document.querySelector('#ncs-notice').innerText));
+  await page.reload();await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
+  await page.locator('[data-action="generation-check"]').click();
+  await page.locator('#ncs-result [data-view-result]').first().waitFor();
+  assert.equal(calls,1);assert.equal(checks,1);assert.equal(saves,1);assert.deepEqual(errors,[]);await page.close();
  }
  console.log('PASS: closable short notes; typed names checked again after becoming chips; a pick that does not fit is refused; backups keep each mode; link undo reaches other candidates; no success note for an unchecked move; delete cleans up after a failed chat save');
 }finally{await browser.close();server.close();}

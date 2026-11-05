@@ -136,10 +136,10 @@ try{
   await page.evaluate(()=>{window.__save=mock.saveChat;mock.saveChat=async function(){};});
   await attach(1);await noticeHas(/저장되지 않아/);assert.equal(await count(),0);
   // the chat cannot be read back: kept as is, and the person is told it could not be checked
-  await page.evaluate(()=>{mock.saveChat=window.__save;mock.chatReadFails=true;});
+  await page.evaluate(()=>{mock.saveChat=async function(){await window.__save.call(this);mock.chatReadFails=true;};});
   await attach(1);await noticeHas(/확인하지 못했어요/);assert.equal(await count(),1);
   // a normal save: plain success
-  await page.evaluate(()=>{mock.chatReadFails=false;mock.chat[1].extra={};});
+  await page.evaluate(()=>{mock.chatReadFails=false;mock.saveChat=window.__save;mock.chat[1].extra={};mock.savedChat=JSON.stringify(mock.chat);});
   await attach(1);await noticeHas(/#1 메시지에 그림을 넣었어요/);assert.equal(await count(),1);
   assert.deepEqual(errors,[]);await page.close();
  }

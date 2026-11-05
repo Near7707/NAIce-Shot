@@ -69,7 +69,7 @@ try{
  await t.click('generate');await page.locator('#ncs-missing-skip').check();await t.click('missing-proceed');await page.locator('#ncs-result img').waitFor();
  assert.equal(await page.evaluate(()=>mock.chatMetadata.naice_shot.skipMissingWarning),true);
  assert.match(await page.locator('#ncs-left-out').innerText(),/생성 전 경고창을 띄우지 않아요/);
- await t.click('missing-reenable');assert.equal(await page.evaluate(()=>mock.chatMetadata.naice_shot.skipMissingWarning),undefined);
+ await t.click('missing-reenable');await page.waitForFunction(()=>mock.chatMetadata.naice_shot.skipMissingWarning===undefined);
  await t.click('generate');await page.waitForFunction(()=>document.querySelector('#ncs-missing-dialog').open);
  assert.match(await page.locator('#ncs-missing-dialog').innerText(),/원문 앞부분\(최대 4,000자\)|Leo · 대화 중인 캐릭터/);
  await t.click('missing-cancel');

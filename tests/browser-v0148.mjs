@@ -41,7 +41,7 @@ try{for(const width of [1100,375,320]){
  });
  await page.goto(`http://127.0.0.1:${host.address().port}/`);await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();if(fontRoot){await page.addStyleTag({content:'@import url("/test-font/400.css"); @import url("/test-font/700.css"); body {font-family:"Noto Sans KR",sans-serif}'});await page.evaluate(()=>document.fonts.ready);}
  const tab=async name=>page.locator(`[data-tab="${name}"]`).click(),action=async name=>page.locator(`[data-action="${name}"]`).click();
- const idle=()=>page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled&&document.querySelector('#ncs-progress').hidden);
+ const idle=()=>page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled&&document.querySelector('#ncs-progress').hidden&&!document.querySelector('.ncs-outfit-saving'));
  const range=async name=>{await page.locator('#ncs-history-scope').selectOption(name);await page.waitForFunction(()=>!document.querySelector('[data-action="history-more"]').disabled);};
  const card=page.locator('[data-character="leo"]'),once=card.locator('[data-field="manualOutfit"]');
  // Stepper association and momentary touch feedback, without focusing the numeric keyboard.
@@ -61,9 +61,9 @@ try{for(const width of [1100,375,320]){
  await card.locator('[data-save-outfit]').click();await idle();await card.locator('[data-undo-chat-outfit]').waitFor();
  if(process.env.NAICE_SCREENSHOT_DIR){await once.scrollIntoViewIfNeeded();await page.screenshot({path:`${process.env.NAICE_SCREENSHOT_DIR}/outfit-${width}.png`});}
  // Save completion after a chat switch cannot repaint or write into the new chat.
- await page.evaluate(()=>{mock.saveMetadata=()=>new Promise(r=>mock.finishMetadata=r);});
+ await page.evaluate(()=>{mock.saveMetadata=()=>new Promise(r=>{const metadata=structuredClone(mock.chatMetadata),chatId=mock.chatId;mock.finishMetadata=()=>{if(mock.chatId===chatId)mock.savedMetadata=metadata;r();};});});
  await card.locator('[data-undo-chat-outfit]').click();await page.waitForFunction(()=>!!document.querySelector('[data-outfit-chat="leo"] .ncs-outfit-saving'));assert.equal(await page.locator('#ncs-work-fields').evaluate(f=>f.disabled),false,'only the card holds, not the whole window');
- await page.evaluate(()=>{mock.switchChat('B');mock.finishMetadata();mock.saveMetadata=mock.normalSave;});await idle();
+ await page.waitForFunction(()=>typeof mock.finishMetadata==='function');await page.evaluate(()=>{mock.switchChat('B');mock.finishMetadata();mock.saveMetadata=mock.normalSave;});await idle();
  assert.equal(await page.evaluate(()=>mock.chatMetadata.naice_shot?.outfits?.leo),undefined);
  
  await page.evaluate(()=>mock.switchChat('B'));await idle();assert.equal(await page.locator('[data-undo-chat-outfit]').count(),0);assert.equal(await page.evaluate(()=>mock.chatMetadata.naice_shot?.outfits?.leo),undefined);

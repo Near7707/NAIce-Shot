@@ -38,11 +38,11 @@ const names=page=>page.evaluate(()=>JSON.parse(document.querySelector('#ncs-fina
 try{
  {// UI-050-03
   const {page,errors}=await open(375);const card=page.locator('[data-character="leo"]');
-  await page.evaluate(()=>{mock.normalSave=mock.saveMetadata;mock.saveMetadata=()=>new Promise(r=>mock.finishMetadata=r);});
+  await page.evaluate(()=>{mock.normalSave=mock.saveMetadata;mock.saveMetadata=()=>new Promise(r=>{const metadata=structuredClone(mock.chatMetadata),chatId=mock.chatId;mock.finishMetadata=()=>{if(mock.chatId===chatId)mock.savedMetadata=metadata;r();};});});
   await card.locator('[data-save-outfit]').click();await card.locator('.ncs-outfit-saving').waitFor();
   await page.locator('#ncs-final-box > summary').click();const base=page.locator('[data-final="base"]');
   await base.fill('my own base words');await page.locator('#ncs-final-badge').waitFor();
-  await page.evaluate(()=>mock.finishMetadata());await page.waitForFunction(()=>!document.querySelector('.ncs-outfit-saving'));
+  await page.waitForFunction(()=>typeof mock.finishMetadata==='function');await page.evaluate(()=>mock.finishMetadata());await page.waitForFunction(()=>!document.querySelector('.ncs-outfit-saving'));
   assert.equal(await base.inputValue(),'my own base words','final prompt edited while saving is kept');
   assert.equal(await page.locator('#ncs-final-badge').isVisible(),true);
   assert.equal(await page.evaluate(()=>mock.chatMetadata.naice_shot.outfits.leo.value),'white shirt, jeans','the outfit was saved');
@@ -65,7 +65,7 @@ try{
   await page.waitForFunction(()=>![...document.querySelectorAll('#ncs-missing-main .ncs-missing-main')].some(e=>e.textContent.includes('캐릭터')));
   const after=await names(page);assert.equal(after.length,2,`${how}: still two people, got ${after}`);
   assert.equal(await page.locator('[data-character] [data-temp="name"]').count(),0,`${how}: the temporary card became the profile`);
-  if(how==='link'){await page.locator('[data-missing-do="link-undo"]').click();assert.deepEqual(await names(page),['Leo','Robin'],'undo brings the temporary person back');}
+  if(how==='link'){await page.locator('[data-missing-do="link-undo"]').click();await page.locator('[data-missing-do="link-undo"]').waitFor({state:'hidden'});assert.deepEqual(await names(page),['Leo','Robin'],'undo brings the temporary person back');}
   assert.deepEqual(errors,[]);await page.close();
  }
  {// UI-050-05
