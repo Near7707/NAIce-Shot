@@ -28,9 +28,9 @@ export function boundaryAfter(text,at){
 
 // --- The chip as text -------------------------------------------------------------------------------------------------
 export const EMPTY_NAME='이름 없음';
-const safeName=name=>String(name??'').replace(/[\[\]()\n]/g,' ').replace(/\s+/g,' ').trim().slice(0,60)||EMPTY_NAME; // a chip name is never empty
+const safeName=name=>String(name??'').replace(/[\[\]()\n]/g,' ').replace(/\s+/g,' ').trim().slice(0,200)||EMPTY_NAME; // 0.1.80: the whole name (a profile name has at most 200), so the length seen is the length checked // a chip name is never empty
 export const chipToken=(name,id)=>`@[${safeName(name)}](ref:${String(id??'').replace(/[^A-Za-z0-9_-]/g,'')})`;
-const TOKEN=/@\[([^\]\n]{0,60})\]\(ref:([A-Za-z0-9_-]*)\)/gu;
+const TOKEN=/@\[([^\]\n]{0,200})\]\(ref:([A-Za-z0-9_-]*)\)/gu;
 // The 0.1.75 form "@Name#short": it cannot be trusted, so it shows as a broken chip. The name may hold spaces but does not
 // end in one, so "@Leo #1 fan" is not an old mark.
 const LEGACY=/(^|[^\p{L}\p{N}_])@([^@#\n\[\]]{0,59}[^@#\n\[\]\s])#[A-Za-z0-9_-]*/gu;
@@ -85,7 +85,7 @@ export function readRefs(text,profiles){
     // Position of the piece in the text: tokenize drops nothing, so searching from the running offset is exact.
     const start=at;let end;
     if(piece.legacy){const m=/^@[^#\n]*#[A-Za-z0-9_-]*/u.exec(value.slice(start));end=start+(m?m[0].length:1);}
-    else{const m=/^@\[[^\]\n]{0,60}\]\(ref:[A-Za-z0-9_-]*\)/u.exec(value.slice(start));end=start+(m?m[0].length:1);}
+    else{const m=/^@\[[^\]\n]{0,200}\]\(ref:[A-Za-z0-9_-]*\)/u.exec(value.slice(start));end=start+(m?m[0].length:1);}
     at=end;claimed.push([start,end]);
     const shown=piece.name||'이름 없음';
     if(piece.legacy){problems.push({start,end,raw,message:`@${shown}: 예전 형식(@이름#ID)이거나 잘못된 형식이에요. 지우고 @를 쳐서 목록에서 다시 골라 주세요.`});continue;}

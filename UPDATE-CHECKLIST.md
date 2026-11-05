@@ -1,5 +1,11 @@
 # Installation and update checklist
 
+## v0.1.80
+
+**Update the server plugin first** (0.1.19), restart SillyTavern, then update the extension and refresh.
+
+1. A profile with a long name (over 60 letters) as a chip: the request box counts its whole name.
+
 ## v0.1.79
 
 Update the extension and refresh (server 0.1.18 still needed).

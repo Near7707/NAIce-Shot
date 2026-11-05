@@ -806,9 +806,15 @@ function attachToOtherMoments(profile,names){
   (scene.moments??[]).forEach((m,k)=>{
     if(k===scene.momentIndex||!m?.scene)return;
     const has=(m.scene.unregistered??[]).some(n=>keys.has(identityKey(n)))||(m.scene.unregisteredDetails??[]).some(c=>keys.has(identityKey(c.entityName)));
-    if(has){touched.push({k,before:clone(m.scene)});attachSceneProfile(m.scene,profile,names);}
+    if(!has)return;
+    // 0.1.80 (UI-078-02): only what this link changes is remembered — the card it adds and the "no profile" marks it
+    // takes away — so an undo puts back exactly that and leaves later changes (another profile made since) alone.
+    const cards=new Set(m.scene.characters),names0=[...(m.scene.unregistered??[])],details0=[...(m.scene.unregisteredDetails??[])];
+    attachSceneProfile(m.scene,profile,names);
+    touched.push({k,scene:m.scene,addedCards:m.scene.characters.filter(c=>!cards.has(c)),
+      removedNames:names0.filter(n=>!(m.scene.unregistered??[]).includes(n)),removedDetails:details0.filter(d=>!(m.scene.unregisteredDetails??[]).includes(d))});
   });
-  return touched; // what each changed candidate was before, so a link can be undone there too (UI-078-02)
+  return touched;
 }
 // Brings the person's new card into view (the card list sits far below the profile form) and flashes it once.
 function showCard(id){
@@ -988,7 +994,13 @@ function undoLink(){
     scene.unregisteredDetails??=[];
     for(const detail of u.removedDetails??[])if(!scene.unregisteredDetails.some(c=>identityKey(c.entityName)===identityKey(detail.entityName)))scene.unregisteredDetails.push(clone(detail));
     // UI-078-02: the other 장면 후보 the link reached go back as well (switching candidates clears the undo, so they are untouched since).
-    if(scene.moments&&scene.moments===u.momentsRef)for(const {k,before} of u.otherMoments??[])if(scene.moments[k])scene.moments[k].scene=before;
+    if(scene.moments&&scene.moments===u.momentsRef)for(const t of u.otherMoments??[]){
+      const part=scene.moments[t.k]?.scene;if(!part||part!==t.scene)continue;
+      part.characters=part.characters.filter(c=>!t.addedCards.includes(c));
+      part.unregistered=[...new Set([...(part.unregistered??[]),...t.removedNames])];
+      part.unregisteredDetails??=[];
+      for(const d of t.removedDetails)if(!part.unregisteredDetails.some(c=>identityKey(c.entityName)===identityKey(d.entityName)))part.unregisteredDetails.push(d);
+    }
   }
   lastLink=null;changed();renderScene();renderProfiles();renderMatching();
   notice(`"${u.name}" 연결을 되돌렸어요.${u.aliasAdded?' 추가했던 별칭도 지웠어요.':''}`);
@@ -1521,7 +1533,7 @@ function freeIdentity(c,appearance,profiles,selectedIds,requiredIds=new Set()){
   if(byName.length===1)return {profile:byName[0],corrected:!!c.id&&c.id!==byName[0].id};
   // Several profiles answer to this name: the AI's id is not proof. Only a card the user already has in this work decides (UI-059-05).
   // 0.1.79 (UI-076-01): two picked people share this name and the id is not checked: nobody gets it, even with a card already there.
-  if(byName.filter(p=>requiredIds.has(p.id)).length>1)return {ambiguous:true};
+  if(byName.filter(p=>requiredIds.has(p.id)).length>1)return {ambiguous:true,twinRequired:true};
   if(byName.length>1){const mine=byName.filter(p=>selectedIds.has(p.id));return mine.length===1?{profile:mine[0]}:{ambiguous:true};}
   const p=c.id?profiles.find(p=>p.id===c.id):null;if(!p)return {};
   if(!key)return {profile:p};
@@ -1531,16 +1543,20 @@ function freeIdentity(c,appearance,profiles,selectedIds,requiredIds=new Set()){
 function applyFree(parsed,foreign=[],plan=planFreePeople(scene.characters,plainNames($('ncs-free-text').value,settings().profiles),settings().profiles),before=null,refs={required:[],note:''}){
   const s=settings(),names=[...s.profiles.flatMap(p=>[p.name,...p.aliases]),...parsed.characters.map(c=>c.name)];
   const generic=genericizeScene({...parsed,unregistered:[],characters:parsed.characters.map(c=>({...c,outfitMode:c.outfit?'replace':'unchanged'}))},names,s.format).scene;
-  const fixed=[],unsure=[],selectedIds=new Set(plan.present.filter(x=>!x.temp).map(x=>x.id));
+  const fixed=[],unsure=[],unknownTwins=[],selectedIds=new Set(plan.present.filter(x=>!x.temp).map(x=>x.id));
   const people=generic.characters.map((c,i)=>{
     const appearance=parsed.characters[i]?.appearance??'';
     // UI-054-02: the returned id is checked against the name (names and aliases of saved profiles).
     const who=freeIdentity(c,appearance,s.profiles,selectedIds,new Set(refs.required.map(p=>p.id)));
-    if(who.corrected)fixed.push(c.name);if(who.ambiguous)unsure.push(c.name);
+    if(who.corrected)fixed.push(c.name);
+    // 0.1.80 (UI-076-01): one of two or more picked people with this name, but which one is unknown. It is not a new
+    // person either, so no temporary card is made for it (the picked people keep their own, empty, cards).
+    if(who.twinRequired){unknownTwins.push(c.name);return null;}
+    if(who.ambiguous)unsure.push(c.name);
     return {profile:who.profile??null,name:c.name,subject:c.subject,appearance,outfit:c.outfitMode==='replace'?c.outfit:'',expression:c.expression,action:c.action,position:c.position};
   });
-  const out=applyFreePeople(scene.characters,plan,people,{makeTemp:tempPerson});
-  const emptyRequired=ensureRequired({characters:out.cards},refs.required,new Set(people.filter(x=>x.profile).map(x=>x.profile.id)));out.notShown=out.notShown.filter(c=>!refs.required.some(p=>p.id===c.id));
+  const out=applyFreePeople(scene.characters,plan,people.filter(Boolean),{makeTemp:tempPerson});
+  const emptyRequired=ensureRequired({characters:out.cards},refs.required,new Set(people.filter(x=>x?.profile).map(x=>x.profile.id)));out.notShown=out.notShown.filter(c=>!refs.required.some(p=>p.id===c.id));
   for(const k of ['location','lighting','camera','interaction'])scene[k]=generic[k]??'';
   scene.characters=out.cards;scene.unregistered=[];scene.unregisteredDetails=[];scene.source=null;
   finalOverride=null;optionsOverride=null;restoredFinal=null;revision++;
@@ -1555,6 +1571,7 @@ function applyFree(parsed,foreign=[],plan=planFreePeople(scene.characters,plainN
     out.notShown.length?`글에 이름은 있지만 이번 장면엔 보이지 않아 체크를 풀었어요: ${out.notShown.map(label).join(', ')}.`:'',
     out.refreshed.length?`임시 인물 외형을 새 결과로 바꿨어요: ${out.refreshed.map(label).join(', ')}.`:'',
     fixed.length?`이름에 맞는 프로필로 바로잡았어요: ${fixed.join(', ')}.`:'',
+    unknownTwins.length?`@로 고른 같은 이름의 인물이 여러 명이라 누구인지 알 수 없어 비워 뒀어요: ${[...new Set(unknownTwins)].join(', ')}. 표정·행동을 직접 채워 주세요.`:'',
     unsure.length?`같은 이름·별칭의 프로필이 여러 개라 임시 인물로 넣었어요: ${unsure.join(', ')}. 맞는 프로필로 바꿔 주세요.`:'',
     emptyLooks?'외형이 비어 있는 임시 인물은 직접 채워 주세요.':'',
     foreign.length?`영어로 바뀌지 않은 칸이 있어요(${foreign.join(', ')}).`:'',

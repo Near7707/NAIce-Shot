@@ -1,3 +1,12 @@
+# v0.1.80 validation — 2026-11-05
+
+- Extension Node suite: **175 passed, 0 failed** (+1: a 70-letter chip name counts in full, 216 seen for three).
+- Server Node suite (v0.1.19): **31 passed, 0 failed** (a 150-letter chip name counts as seen; fails with the old 60-letter rule).
+- **68 of 68 Chromium browser scripts passed.** New `browser-v0180`: two picked Leos and an id-less "Leo / reading" give two people (not three) and nobody gets the action; the third 70-letter chip is refused in the 200-letter request; link Visitor → Kai, make Robin, undo: the other candidate keeps Robin and drops Kai. Each check was seen to fail with its fix reverted.
+- Not checked: a real SillyTavern, iPhone Safari, a phone Hangul keyboard.
+
+---
+
 # v0.1.79 validation — 2026-11-05
 
 - Extension Node suite: **174 passed, 0 failed** (+2: same-name picked people with a chat connection; pictures already there are saved and checked again).

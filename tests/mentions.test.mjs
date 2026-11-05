@@ -68,3 +68,12 @@ test('0.1.77 lengths: the limit is what a person sees; ceilings; a chip name is 
  assert.equal(chipToken('',P[0].id),`@[${EMPTY_NAME}](ref:${P[0].id})`);assert.equal(chipToken('  [()]  ',P[0].id),`@[${EMPTY_NAME}](ref:${P[0].id})`);
  assert.equal(displayLength(`@[](ref:${P[0].id})`),EMPTY_NAME.length+1);
 });
+test('0.1.80 (UI-076-02): a long profile name stays whole in the chip, so its length is counted as seen',async()=>{
+ const {lengthProblem}=await import('../mentions.mjs');
+ const p={id:'e0000000-0000-4000-8000-000000000000',name:'가'.repeat(70),aliases:[]};
+ const three=`${chipToken(p.name,p.id)} ${chipToken(p.name,p.id)} ${chipToken(p.name,p.id)}`;
+ assert.equal(displayLength(three),3*71+2,'216 seen');assert.match(lengthProblem(three,'wish'),/200자/);
+ assert.equal(tokenize(three).filter(x=>x.type==='chip')[0].name.length,70);
+ assert.equal(chipToken('나'.repeat(250),p.id).match(/^@\[(.*)\]/)[1].length,200,'at most 200, the longest profile name');
+ assert.deepEqual(readRefs(three,[p]).refs.map(r=>r.id),[p.id,p.id,p.id]);
+});

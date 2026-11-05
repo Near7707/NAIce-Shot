@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.80 — 2026-11-05 (extension + server v0.1.19 — update the server first)
+
+Fixes for the GPT review of 0.1.79.
+
+- 프리샷 same names (UI-076-01): when one of two or more people picked with @ under the same name comes back without a checked id, it is no longer added as a third, temporary person; the picked people keep their own empty cards and the note says so.
+- Long chip names (UI-076-02): a chip keeps the whole profile name (up to 200 letters, the longest profile name) instead of cutting it at 60, so the length seen is the length checked. Server 0.1.19 measures it the same way; the extension needs it.
+- Link undo (UI-078-02): in the other 장면 후보 only what that link changed is taken back (its card, and the "no profile" marks it removed); a profile made afterwards stays.
+- Tests: new `browser-v0180` (375 and 1100px) and a unit test for long names; each fix was checked to fail with it reverted.
+
 ## 0.1.79 — 2026-11-05 (extension only; server v0.1.18 unchanged)
 
 Fixes for the GPT review of 0.1.77–0.1.78.
