@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.84 — 2026-11-06 (extension + server v0.1.22 — update the server first)
+
+- History: each card has a ☆/★ (favorite) on its date line, and **⋯ → 태그 편집** gives a picture up to 10 tags (comma separated, 30 letters each). Both are kept in the extension settings by the picture's own ID, so deleting or reordering other pictures never moves them. 프리샷 pictures take no tags (they have no character).
+- History: **☆ 즐겨찾기만** next to ↻ lists only the favorites of the chosen range (server 0.1.22 filters by ID). "Delete all" still counts every picture of the chat.
+- 태그 추천 팝업 (Settings, off by default, on per chat): when a character reply contains a tag, one tagged picture of the same character (or group) is picked at random and shown in a popup over the chat. It stays until closed, never writes the chat, and **넣기** opens the usual 본문에 넣기 list with that reply chosen (pictures from another chat can only be viewed). Korean tags match anywhere in the text; Latin tags match whole words. No popup for greetings, the user's own messages, or while the panel is open.
+- Deleting: the question says how many favorites go with it ("즐겨찾기한 그림 N장도 함께 삭제돼요."). Tags and stars are removed only for pictures the server confirmed deleted.
+- P3-2 (server 0.1.22): "delete all" counts request records that never became a picture apart from deleted pictures. One whose result was never known keeps its 확인 필요 mark, and checking it says it may still have been charged.
+- Backups leave tags, stars and popup switches out (they contain chat names); importing a backup keeps the current ones.
+- Tests: new `image-marks.test.mjs` (9) and `browser-v0184` (375 and 1100px); each fix was checked to fail with it reverted.
+
 ## 0.1.83 — 2026-11-05 (extension + server v0.1.21)
 
 - New chats can save attachments and per-chat settings when the only absent disk metadata is a matching SillyTavern Author’s Note default. Recognized legacy headers are also supported.

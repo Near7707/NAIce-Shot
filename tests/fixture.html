@@ -24,11 +24,11 @@ window.mock={
  saveChat:async function(){this.chatSaves=(this.chatSaves??0)+1;this.savedChat=JSON.stringify(this.chat);this.savedMetadata=structuredClone(this.chatMetadata);},
  renderChat(){const root=document.getElementById('chat');root.replaceChildren();this.chat.forEach((message,index)=>{const row=document.createElement('article');row.className='mes';row.setAttribute('mesid',String(index));row.setAttribute('is_system',String(!!message.is_system));const block=document.createElement('div');block.className='mes_block';const buttons=document.createElement('div');buttons.className='mes_buttons';buttons.innerHTML='<div class="extraMesButtons"><div class="mes_button" title="Translate">T</div></div><div class="mes_button extraMesButtonsHint">…</div>';block.append(buttons);const text=document.createElement('div');text.className='mes_text';text.textContent=message.mes;block.append(text);row.append(block);root.append(row);});},
  scrollOnMediaLoad(){},
- eventTypes:{CHAT_CHANGED:'chat',MESSAGE_RECEIVED:'received',MESSAGE_SENT:'sent',MESSAGE_SWIPED:'swiped',MESSAGE_DELETED:'deleted',MESSAGE_EDITED:'edited'},
+ eventTypes:{CHAT_CHANGED:'chat',MESSAGE_RECEIVED:'received',MESSAGE_SENT:'sent',MESSAGE_SWIPED:'swiped',MESSAGE_DELETED:'deleted',MESSAGE_EDITED:'edited',CHARACTER_MESSAGE_RENDERED:'rendered'},
  eventSource:{on(type,fn){(listeners[type]??=[]).push(fn);}},
  generateRaw:async function(options){this.extractCalls=(this.extractCalls??0)+1;this.lastExtract=options;if(this.extractionDeferred)return await this.extractionDeferred;return JSON.stringify(this.extraction);},
  extraction:{characters:[{id:'leo',name:'Leo',expression:'smile',action:'sitting on a chair',position:'auto',outfitMode:'replace',outfit:'white shirt, jeans'}],unregistered:[],location:'cafe',lighting:'sunlight',camera:'medium shot',interaction:''},
- emit(type){for(const fn of listeners[type]??[])fn();},
+ emit(type,...args){for(const fn of listeners[type]??[])fn(...args);},
  switchChat(id){this.chatId=id;this.characters[0].chat=id;this.chatMetadata={};this.savedChat=undefined;this.savedMetadata=undefined;this.chat=[{name:'Leo',mes:'Walking along the river.'}];this.renderChat();this.emit('chat');},
  // SillyTavern's character selection: tests can make it refuse (mock.refuseSelect), as SillyTavern does while saving or generating.
  selectCharacterById(id){this.selected=(this.selected??[]).concat(id);if(this.refuseSelect)return Promise.resolve();this.characterId=Number(id);this.name2=this.characters[this.characterId]?.name??'';return Promise.resolve();},

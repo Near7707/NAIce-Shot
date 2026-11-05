@@ -1,3 +1,13 @@
+# v0.1.84 validation — 2026-11-06 (server v0.1.22)
+
+- Extension Node suite: **188 passed, 0 failed** (+9: `image-marks.test.mjs` — tags split and limited, marks kept by picture ID (deleting one never moves another's tag or star), the 3,000-picture ceiling, broken saved marks dropped, owner = card or group (프리샷 none), Korean anywhere / Latin whole words, matches only from the same character, random pick that avoids the last picture).
+- Server Node suite (v0.1.22): **39 passed, 0 failed** (+2: delete all reports a lost and a refused request in `cleared` (the lost one also `unconfirmed`, kept in its marker and in the status check) and the picture alone in `deleted`, and the cleared ID still refuses a retry; `POST /history` with `ids` pages only those pictures in the range, keeps `unfilteredCount`, refuses bad lists, and GET ignores `ids`). Each fails with its fix reverted.
+- **69 of 69 Chromium browser scripts passed.** New `browser-v0184` (375 and 1100px): ☆ → ★ on the date line, ★ only through the ID filter ("즐겨찾기 1장", delete all still asks about 3), tags from ⋯ with Enter, too many tags refused, 프리샷 cards cannot take tags; deleting names the favorites and forgets marks only for pictures the server deleted (a failed one keeps its star; delete all forgets that chat's marks only); request records counted apart, an unknown one keeps 확인 필요 and its check says it may have been charged; the popup is off by default, on per chat, not for greetings, user messages or while the panel is open, random among the same character's pictures (never another character's), stays until closed, view-only for another chat's picture, [넣기] opens the list with the reply chosen and inserts, [이 채팅에서 팝업 끄기], a picture that does not load gives way, "rain" does not match "train", a chat switch closes it; backups leave marks out and importing keeps them; an older server disables ★ only. Twelve fixes were each reverted once and the script failed every time.
+- Older scripts updated for the intended layout change: `browser-v0140` (card buttons now start with ☆; ⋯ menu has 태그 편집) and `browser-v0150` (⋯ menu order). `tests/fixture.html` can now send `CHARACTER_MESSAGE_RENDERED` with arguments.
+- Not checked: a real SillyTavern (the render event in group chats and after a stopped stream), iPhone Safari, a phone Hangul keyboard (Enter while composing is ignored by design), a real NovelAI account.
+
+---
+
 # v0.1.81 validation — 2026-11-05
 
 - Extension Node suite: **176 passed, 0 failed** (+1: 168 letters + three `Leo (Main)` chips = 201 seen and refused; brackets, `]` and double spaces keep the name's length; fails with the old rule). One older check now expects only a blank name to become "이름 없음".

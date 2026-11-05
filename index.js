@@ -24,6 +24,7 @@ import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, 
 import { cleanImageFile, saveCleanImage } from './downloads.mjs';
 import { jumpTargets, locateSource, locateAttached } from './message-jump.mjs';
 import {stableChatJson,comparableSavedMetadata,splitSavedChat} from './chat.mjs';
+import {parseTags,cleanMarks,cleanPopupChats,setMark,forgetIds,forgetChat,starredIds,ownerOf,tagMatches,pickMatch,taggedFor,TAG_LIMIT,TAG_LENGTH} from './image-marks.mjs';
 
 const KEY='naice_shot',API='/api/plugins/naice-shot';
 // 챗샷 draws from the open chat; 프리샷 draws from free text with no chat at all. Each mode keeps its own work.
@@ -36,6 +37,9 @@ let dialog,scene=blankScene(),raw='',finalOverride=null,revision=0,busy=false,ta
 let profileContext='profiles',busyOwner=0,extraction=null,progress=null,optionsOverride=null,historyTotal=0,historyHasMore=false,historyLoading=false;
 const selectedIds=new Set(),HISTORY_PAGE=20;
 let historyScope='chat',historyFilter='',historyChats=[],historyPending=[],historyPendingBytes=0,historyBytes=0,historyImageCount=0,historyRequest=0;
+// 0.1.84: ★ only (the history view lists favorites through the server's ID filter); the unfiltered count is kept for
+// "delete all" questions. historyTagEdit: the card whose tag editor is open.
+let historyStarOnly=false,historyUnfiltered=null,historyTagEdit=null;
 let availableSkins=SKINS.filter(s=>!s.file),skinsDetected=false;
 let serverFeatures=[],draftsEnabled=false,draftLoading=false,pauseDraftCapture=false,draftLoadToken=0,draftSource=null,draftNote='';
 const $=id=>dialog.querySelector(`#${id}`);
@@ -237,18 +241,25 @@ async function promptForImage(item) {
 }
 // 2026. 10. 27. 오후 12:27 — minutes, no seconds.
 function shortDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?'':d.toLocaleString('ko-KR',{year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'});}
+// One history page for a range. With ★ only, the favorites' IDs go to the server, which keeps its own range rules.
+function marks(){const s=settings();if(!s.imageMarks||typeof s.imageMarks!=='object')s.imageMarks={};return s.imageMarks;}
+function historyPage({scope,filter,key,offset,limit,starOnly}){
+  const all=['chats','all'].includes(scope);
+  if(starOnly)return api('/history',{method:'POST',body:{...(all?{scope:'all',...(scope==='chats'?{kind:'chat'}:{}),...(filter?{chatKey:filter}:{})}:{chatKey:key}),ids:starredIds(marks()),offset,limit}});
+  const query=all?`scope=all${scope==='chats'?'&kind=chat':''}${filter?`&chatKey=${encodeURIComponent(filter)}`:''}`:`chatKey=${encodeURIComponent(key)}`;
+  return api(`/history?${query}&offset=${offset}&limit=${limit}`);
+}
 // A viewer owns its range and page cursor; background refreshes cannot mix in another range.
 function historyGallery(){
-  const scope=historyScope,filter=historyFilter,key=scope==='free'?FREE_KEY:keyOf(),all=['chats','all'].includes(scope);
+  const scope=historyScope,filter=historyFilter,key=scope==='free'?FREE_KEY:keyOf(),all=['chats','all'].includes(scope),starOnly=historyStarOnly;
   let offset=historyItems.length,pending=null;
   const gallery={items:[...historyItems],total:historyTotal,hasMore:historyHasMore,
     describe:item=>imageViewerOptions(item),
     waitForPage:()=>pending??Promise.resolve(),
     loadMore(){
       if(pending)return pending;if(!gallery.hasMore)return Promise.resolve();
-      const query=all?`scope=all${scope==='chats'?'&kind=chat':''}${filter?`&chatKey=${encodeURIComponent(filter)}`:''}`:`chatKey=${encodeURIComponent(key)}`;
       pending=(async()=>{
-        const data=await api(`/history?${query}&offset=${offset}&limit=${HISTORY_PAGE}`);
+        const data=await historyPage({scope,filter,key,offset,limit:HISTORY_PAGE,starOnly});
         if(all&&(data.scope!=='all'||scope==='chats'&&data.kind!=='chat'))throw new Error('이력 범위를 확인하지 못했어요. 다시 열어 주세요.');
         const items=Array.isArray(data.items)?data.items:[];offset+=items.length;
         gallery.items.push(...items.filter(x=>!gallery.items.some(y=>y.id===x.id)));
@@ -305,7 +316,8 @@ async function showPanel(tab=null){await (panelReady??Promise.resolve());await o
 async function goToHistoryCard(item){
   await showPanel('history');
   const scope=item.chatKey===FREE_KEY?'free':item.chatKey&&item.chatKey===keyOf()?'chat':'all';
-  if(historyScope!==scope||historyFilter){closeImageMenu();historyScope=scope;historyFilter='';historyItems=[];historyPending=[];historyPendingBytes=0;historyTotal=0;historyHasMore=false;selectedIds.clear();}
+  // ★ only would hide a picture without a star: the card is looked for in the full range.
+  if(historyScope!==scope||historyFilter||(historyStarOnly&&!marks()[item.id]?.star)){closeImageMenu();historyScope=scope;historyFilter='';historyStarOnly=false;historyItems=[];historyPending=[];historyPendingBytes=0;historyTotal=0;historyHasMore=false;selectedIds.clear();}
   await loadHistory();
   for(let i=0;i<60&&!historyItems.some(x=>x.id===item.id)&&historyHasMore;i++){if(historyLoading)await new Promise(r=>setTimeout(r,60));else await loadHistory({append:true});}
   const card=dialog.querySelector(`[data-view-history="${CSS.escape(item.id)}"]`)?.closest('.ncs-history-card');
@@ -772,7 +784,7 @@ async function useSkin(id,{save=false}={}) {
   return applied.id;
 }
 function renderSettings() {
-  const s=settings();
+  const s=settings();renderTagPopupSetting();
   $('ncs-model').innerHTML=Object.entries(MODELS).map(([id,m])=>`<option value="${id}">${m.label}</option>`).join('');
   for(const [id,k] of [['positive','positive'],['negative','negative'],['recent','recent'],['format','format']])$(`ncs-${id}`).value=s[k];
   for(const [id,k] of [['model','model'],['steps','steps'],['scale','scale'],['seed','seed'],['cfg','cfgRescale'],['sampler','sampler']])$(`ncs-${id}`).value=s.options[k];
@@ -1978,6 +1990,8 @@ async function checkGeneration(entry=null){
       refreshAccount().catch(()=>{});notice(entry?'그림을 생성 이력에 저장했어요.':'같은 요청의 그림을 불러왔어요.',false,entry?'history':'scene');return;
     }
     const tab=entry?'history':'scene';
+    // 0.1.22 server (P3-2): cleared by "delete all" before its result was known — the 확인 필요 mark stays.
+    if(reply.state==='discarded'&&reply.unconfirmed===true){notice('이 요청 기록은 이력 전체 삭제 때 정리됐지만, 생성·차감 여부는 확인하지 못했어요. NovelAI에서 확인한 뒤 [확인 표시 지우기]를 눌러 주세요. 새 생성 요청은 보내지 않았어요.',true,tab);return;}
     if(['rejected','discarded'].includes(reply.state)){
       if(pendingGenerations.get(key)===requestId)rememberGeneration(key,null);
       notice(reply.state==='rejected'?'NovelAI가 이 요청을 거절했어요.':'이 그림의 복구 기록을 지웠어요.',false,tab);
@@ -2080,7 +2094,7 @@ function renderResult() {
 }
 function updateAttachButtons() {
   const locked=busy||attaching||checkingGeneration;
-  for(const el of dialog.querySelectorAll('[data-action="attach"],[data-action="detach"],[data-history-free],[data-history-attach],[data-history-detach],[data-history-delete],[data-pending-save],[data-pending-discard],[data-action="delete-result"],[data-history-pick]'))el.disabled=locked||el.dataset.unavailable==='true';
+  for(const el of dialog.querySelectorAll('[data-action="attach"],[data-action="detach"],[data-history-free],[data-history-attach],[data-history-detach],[data-history-delete],[data-pending-save],[data-pending-discard],[data-action="delete-result"],[data-history-pick],[data-history-star],[data-history-tag-save]'))el.disabled=locked||el.dataset.unavailable==='true';
   for(const el of document.querySelectorAll('[data-ncs-inline-remove]'))el.disabled=locked;
   updateHistoryTools();renderGenerationCheck();
 }
@@ -2141,8 +2155,12 @@ function updateHistoryTools() {
   const all=dialog.querySelector('[data-action="select-all-history"]'),every=historyItems.length>0&&historyItems.every(x=>selectedIds.has(x.id));
   const any=selectedIds.size>0;all.innerHTML=any?'모두 해제':'<span class="ncs-wide-only">표시된 항목 </span>모두 선택';all.title=any?`고른 ${selectedIds.size}장의 선택을 모두 풀어요`:'표시된 항목 모두 선택';all.disabled=locked||!historyItems.length;
   const allScope=['chats','all'].includes(historyScope),singleKey=historyScope==='free'?FREE_KEY:keyOf();
-  const clear=dialog.querySelector('[data-action="delete-chat-history"]');clear.disabled=locked||!(historyTotal+historyPending.length)||!singleKey;clear.hidden=allScope;clear.textContent=historyScope==='free'?'프리샷 이력 전체 삭제':'이 채팅 이력 전체 삭제';
-  const filterDelete=dialog.querySelector('[data-action="delete-filter-chat"]');filterDelete.hidden=!allScope||!historyFilter;filterDelete.disabled=locked||!(historyTotal+historyPending.length);
+  const scopeCount=historyUnfiltered??historyTotal+historyPending.length; // ★ only lists fewer, but "delete all" means all
+  const star=dialog.querySelector('[data-action="history-star-only"]'),canStar=serverFeatures.includes('history-ids');
+  star.setAttribute('aria-pressed',String(historyStarOnly));star.textContent=historyStarOnly?'★ 즐겨찾기만':'☆ 즐겨찾기만';
+  star.disabled=locked||!canStar;star.title=canStar?(historyStarOnly?'모든 그림 보기로 돌아가요':'즐겨찾기(★)한 그림만 보여줘요'):'서버 플러그인 v0.1.22 이상이 필요해요';
+  const clear=dialog.querySelector('[data-action="delete-chat-history"]');clear.disabled=locked||!scopeCount||!singleKey;clear.hidden=allScope;clear.textContent=historyScope==='free'?'프리샷 이력 전체 삭제':'이 채팅 이력 전체 삭제';
+  const filterDelete=dialog.querySelector('[data-action="delete-filter-chat"]');filterDelete.hidden=!allScope||!historyFilter;filterDelete.disabled=locked||!scopeCount;
   $('ncs-history-all-tools').hidden=!allScope;
   const attachSel=dialog.querySelector('[data-action="attach-selected"]'),mine=historyItems.filter(x=>selectedIds.has(x.id)&&x.chatKey&&x.chatKey===keyOf()).length;
   attachSel.textContent=mine?`선택 본문에 넣기 (${mine})`:'선택 본문에 넣기';attachSel.disabled=locked||!mine;attachSel.hidden=historyScope==='free';
@@ -2153,7 +2171,7 @@ function updateHistoryTools() {
   $('ncs-history-storage').textContent=allScope?`이 범위의 그림 ${historyImageCount}장 · ${formatBytes(historyBytes)}`:'';
   const more=dialog.querySelector('[data-action="history-more"]');more.hidden=!historyHasMore;more.disabled=historyLoading;
   more.textContent=historyLoading?'불러오는 중…':`더 보기 (${historyItems.length} / ${historyTotal})`;
-  $('ncs-history-count').textContent=[historyTotal?`총 ${historyTotal}장 · ${historyItems.length}장 표시 중`:'',historyPending.length?`저장 대기 ${historyPending.length}장 · ${formatBytes(historyPendingBytes)}`:''].filter(Boolean).join(' · ');
+  $('ncs-history-count').textContent=[historyTotal?`${historyStarOnly?'즐겨찾기':'총'} ${historyTotal}장 · ${historyItems.length}장 표시 중`:'',historyPending.length?`저장 대기 ${historyPending.length}장 · ${formatBytes(historyPendingBytes)}`:''].filter(Boolean).join(' · ');
 }
 const formatBytes=n=>n>=1073741824?`${(n/1073741824).toFixed(2)} GB`:n>=1048576?`${(n/1048576).toFixed(1)} MB`:`${Math.max(0,Math.round(n/1024))} KB`;
 // Readable name for a chat key: the chat file name (which usually starts with the character name).
@@ -2161,7 +2179,7 @@ function chatLabel(key) {
   try{const o=JSON.parse(key);if(o.free)return '프리샷';const name=String(o.chat??o.card??'').trim()||'알 수 없는 채팅';return o.group?`그룹 · ${name}`:name;}catch{return '알 수 없는 채팅';}
 }
 function setHistoryScope(scope) {
-  closeImageMenu();historyScope=['chat','chats','free','all'].includes(scope)?scope:'chat';historyFilter='';historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;selectedIds.clear();
+  closeImageMenu();historyScope=['chat','chats','free','all'].includes(scope)?scope:'chat';historyFilter='';historyTagEdit=null;historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;selectedIds.clear();
   loadHistory().catch(e=>notice(e.message,true));
 }
 async function requestImageDeletion(key,list,knownIds){
@@ -2202,13 +2220,16 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
   const here=all?target===current:false,localIds=all?[]:ids.filter(id=>ownerOf(id)===current);
   const attached=here?countInlineImages(chat):localIds.filter(id=>hasInlineImage(chat,{id})).length;
   const elsewhere=all?target!==current:ids.some(id=>ownerOf(id)!==current);
-  const allCount=['chats','all'].includes(historyScope)?historyChats.find(c=>c.chatKey===target)?.count??historyTotal+historyPending.length:historyTotal+historyPending.length;
+  const scopeCount=historyUnfiltered??historyTotal+historyPending.length;
+  const allCount=['chats','all'].includes(historyScope)?historyChats.find(c=>c.chatKey===target)?.count??scopeCount:scopeCount;
+  // 0.1.84: favorites go too; the question says how many.
+  const starred=all?Object.values(marks()).filter(m=>m.star&&m.chatKey===target).length:[...new Set(ids)].filter(id=>marks()[id]?.star).length;
   const what=all?(here?`이 채팅에서 만든 그림 ${allCount}장을 모두`:`"${chatLabel(target)}" 채팅의 그림 ${allCount}장을 모두`):ids.length===1?'이 그림을':`선택한 그림 ${ids.length}장을`;
-  if(!confirm(`${what} 삭제할까요?\n원본 PNG와 생성 기록이 서버에서 지워지며 되돌릴 수 없어요.${attached?`\n지금 채팅 본문 아래에 붙인 그림 ${attached}장도 함께 빠져요.`:''}${elsewhere?'\n다른 채팅에 붙여 둔 그림이 있었다면 그 채팅에서는 "찾을 수 없는 그림" 안내로 바뀌어요.':''}${all&&serverFeatures.includes('draft-delete')?'\n이 채팅의 마지막 작업 기억(그리기창 작업)도 함께 지워져요.':''}`))return null;
+  if(!confirm(`${what} 삭제할까요?\n원본 PNG와 생성 기록이 서버에서 지워지며 되돌릴 수 없어요.${starred?`\n즐겨찾기한 그림 ${starred}장도 함께 삭제돼요.`:''}${attached?`\n지금 채팅 본문 아래에 붙인 그림 ${attached}장도 함께 빠져요.`:''}${elsewhere?'\n다른 채팅에 붙여 둔 그림이 있었다면 그 채팅에서는 "찾을 수 없는 그림" 안내로 바뀌어요.':''}${all&&serverFeatures.includes('draft-delete')?'\n이 채팅의 마지막 작업 기억(그리기창 작업)도 함께 지워져요.':''}`))return null;
   report('그림을 삭제하고 있어요…');
   attaching=true;updateAttachButtons();
   try {
-    const deleted=new Set(),skipped=[],failed=[];let unverifiedDetach=false,workDeleteFailed=false,requestUnverified=false,draftHeld=false,allGone=false,unsent=groups.size,deleteError='';
+    const deleted=new Set(),skipped=[],failed=[],cleared=[],unconfirmed=new Set();let unverifiedDetach=false,workDeleteFailed=false,requestUnverified=false,draftHeld=false,allGone=false,unsent=groups.size,deleteError='';
     for(const [key,list] of groups){
       unsent--;
       const knownIds=list==='all'?[...new Set([
@@ -2227,6 +2248,8 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
         break;
       }
       for(const id of response.deleted??[])deleted.add(id);skipped.push(...(response.skipped??[]));
+      // 0.1.22 server (P3-2): request records with no picture are counted apart; unknown results stay to be checked.
+      cleared.push(...(response.cleared??[]));for(const id of response.unconfirmed??[])unconfirmed.add(id);
       failed.push(...(response.failed??[]));workDeleteFailed||=response.workDeleteFailed===true;
       if(response.unverified){requestUnverified=true;draftHeld=response.draftHeld===true;allGone=response.allGone===true;break;}
     }
@@ -2240,15 +2263,22 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
     }
     if(result&&deleted.has(result.id))result=null;
     for(const id of deleted){selectedIds.delete(id);for(const [key,pending] of pendingGenerations)if(pending===id)rememberGeneration(key,null);}
+    for(const id of cleared)if(!unconfirmed.has(id))for(const [key,pending] of pendingGenerations)if(pending===id)rememberGeneration(key,null);
+    // 0.1.84: tags and stars of pictures the server confirmed gone. A whole chat confirmed empty forgets all of its marks.
+    {let next=forgetIds(marks(),deleted),changedMarks=next.changed;
+      if(all&&(allGone||!requestUnverified&&!failed.length&&!deleteError)){const chatGone=forgetChat(next.marks,target);next=chatGone;changedMarks||=chatGone.changed;}
+      if(changedMarks){storeMarks(next.marks);renderTagPopupSetting();}}
     if(current&&keyOf()===current){renderChatImages();renderResult();}
     const skippedText=(skipped.length?` 찾지 못한 ${skipped.length}장은 지우지 않았어요.`:'')+
       (failed.length?` ${failed.length}장은 삭제가 끝나지 않았어요. 이력에서 다시 삭제해 주세요.`:'')+
       (workDeleteFailed?' 마지막 작업 기억은 지우지 못했어요.':'')+
+      (cleared.length?` 그림이 없는 생성 요청 기록 ${cleared.length}건도 정리했어요.`:'')+
+      (unconfirmed.size?` 그중 ${unconfirmed.size}건은 결과를 끝내 확인하지 못한 요청이라 Anlas가 차감됐을 수 있어요. NovelAI에서 확인해 주세요.`:'')+
       (requestUnverified?(allGone?' 삭제 응답을 받지 못했지만 이 채팅 이력에 남은 그림이 없는 것을 확인했어요.':' 삭제 응답을 받지 못했어요. 확인된 그림만 반영했으니 이력을 다시 확인해 주세요.'):'')+
       (draftHeld?' 작업 기억을 확인할 때까지 자동 저장을 멈췄어요.':'')+
       (deleteError?` 삭제 요청 실패. ${deleteError}`:'')+
       (unsent?` 나머지 ${unsent}개 채팅에는 삭제 요청을 보내지 않았어요.`:'');
-    say(deleted.size?`그림 ${deleted.size}장을 삭제했어요.${skippedText}${detachFailed?' 다만 채팅에서 그림을 빼는 저장은 실패해서, 채팅에는 \'찾을 수 없는 그림\' 표시가 남아요. 그 표시의 [이 메시지에서 빼기]로 정리할 수 있어요.':unverifiedDetach?` 다만 채팅에서 그림을 뺀 것이 ${UNVERIFIED}`:''}` :`${requestUnverified?(allGone?'이력 확인을 마쳤어요.':'삭제 결과를 전부 확인하지 못했어요.'):'삭제한 그림이 없어요.'}${skippedText}`,!deleted.size||unverifiedDetach||detachFailed||failed.length>0||workDeleteFailed||requestUnverified||!!deleteError,originTab);
+    say(deleted.size?`그림 ${deleted.size}장을 삭제했어요.${skippedText}${detachFailed?' 다만 채팅에서 그림을 빼는 저장은 실패해서, 채팅에는 \'찾을 수 없는 그림\' 표시가 남아요. 그 표시의 [이 메시지에서 빼기]로 정리할 수 있어요.':unverifiedDetach?` 다만 채팅에서 그림을 뺀 것이 ${UNVERIFIED}`:''}` :`${requestUnverified?(allGone?'이력 확인을 마쳤어요.':'삭제 결과를 전부 확인하지 못했어요.'):'삭제한 그림이 없어요.'}${skippedText}`,!deleted.size||unverifiedDetach||detachFailed||failed.length>0||workDeleteFailed||requestUnverified||!!deleteError||unconfirmed.size>0,originTab);
     return {deleted:[...deleted],skipped,issue:skippedText.trim()};
   }finally{attaching=false;updateAttachButtons();loadHistory().catch(e=>report(e.message,true));}
 }
@@ -2256,7 +2286,7 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
 // for marked and already chosen. 선택 본문에 넣기 uses the same list for several pictures.
 const ATTACH_STEP=20;
 let attachPick=null; // {items, skipped, target, shown}
-function openAttachPicker(list){
+function openAttachPicker(list,{prefer=null}={}){
   assertChat();const all=list.filter(Boolean),items=all.filter(x=>x.chatKey&&x.chatKey===keyOf());
   if(!items.length)throw new Error('지금 열린 채팅에서 만든 그림만 넣을 수 있어요.');
   if(!chatRows().length)throw new Error('그림을 넣을 RP 메시지가 없어요.');
@@ -2264,7 +2294,9 @@ function openAttachPicker(list){
   // Chosen beforehand: where the picture already is, else the message it was made for (for several pictures, only
   // when they all share one). Otherwise nothing is chosen, so a quick 넣기 never lands on a guess (v0.1.51).
   const made=[...new Set(items.map(x=>preferredTarget(x,{fallback:false})))];
-  const target=made.length===1&&Number.isInteger(made[0])?made[0]:null;
+  let target=made.length===1&&Number.isInteger(made[0])?made[0]:null;
+  // 0.1.84: from the tag popup, the reply that showed it — only while that message is unchanged and still listed.
+  if(prefer&&ctx().chat[prefer.index]===prefer.message&&textSignature(prefer.message?.mes??'')===prefer.signature&&chatRows().some(r=>r.i===prefer.index))target=prefer.index;
   attachPick={items,skipped:all.length-items.length,target,message:target===null?null:ctx().chat[target],signature:target===null?null:textSignature(ctx().chat[target].mes),shown:ATTACH_STEP,placement:''};
   renderAttachPicker();const box=$('ncs-attach-dialog');if(!box.open)box.showModal();
   const row=target===null?null:box.querySelector(`[data-attach-target="${target}"]`);row?.scrollIntoView({block:'nearest'});
@@ -2327,15 +2359,23 @@ function renderHistoryFilter() {
 // --- History → preset: saves this image's generation options as a new preset without touching current work.
 let historyPresetTarget=null;
 const historyPresetControls=item=>item.options?(historyPresetTarget===item.id?`<div class="ncs-wardrobe-save ncs-preset-form"><label>새 프리셋 이름<input id="ncs-history-preset-name" maxlength="80" placeholder="예: 이 그림 설정"></label><small>이 그림의 생성 설정·공통 태그를 저장해요. 인물·장면은 제외하고 seed는 새로 뽑아요.</small>${commonPositiveOf(item)===null?'<small>공통 Positive는 현재 설정값을 사용해요.</small>':''}<div class="ncs-row ncs-form-actions"><button type="button" class="ncs-primary" data-history-preset-save="${esc(item.id)}">저장</button><button type="button" data-history-preset-cancel>취소</button></div></div>`:''):'';
+// 0.1.84: the date line carries the ☆/★ toggle; tags show under it as small #chips.
+function historyMarks(item){
+  const m=marks()[item.id],star=m?.star===true,tags=m?.tags??[];
+  return `<div class="ncs-history-meta"><button type="button" class="ncs-star" data-history-star="${esc(item.id)}" aria-pressed="${star}" aria-label="${star?'즐겨찾기 해제':'즐겨찾기'}" title="${star?'즐겨찾기 해제':'즐겨찾기'}">${star?'★':'☆'}</button><small class="ncs-history-date">${esc(shortDate(item.created))}</small></div>${tags.length?`<div class="ncs-history-tags" aria-label="태그">${tags.map(t=>`<span class="ncs-tag-chip">#${esc(t)}</span>`).join('')}</div>`:''}`;
+}
+const historyTagControls=item=>historyTagEdit===item.id?`<div class="ncs-wardrobe-save ncs-tag-form"><label>태그 · 쉼표로 구분<input id="ncs-history-tag-input" maxlength="400" value="${esc((marks()[item.id]?.tags??[]).join(', '))}" placeholder="예: 웃음, 비 오는 날"></label><small>AI 답변에 이 단어가 나오면 이 그림을 팝업으로 보여줘요. 같은 캐릭터의 채팅에서만 떠요. 그림마다 ${TAG_LIMIT}개, 태그마다 ${TAG_LENGTH}자까지예요.</small><div class="ncs-row ncs-form-actions"><button type="button" class="ncs-primary" data-history-tag-save="${esc(item.id)}">저장</button><button type="button" data-history-tag-cancel>취소</button></div></div>`:'';
 function historyActions(item,{editable=false,attached=false}={}){
   const id=esc(item.id),menu=`ncs-history-menu-${id}`,save=saveMenu(item,`ncs-history-save-${item.id}`);
   // Order (docs/DESIGN.md): 챗샷으로 보내기 · 프리샷으로 보내기 · 설정을 프리셋으로 · 본문에 넣기.
   const more=[`<button type="button" data-history-id="${id}" ${keyOf()?'':'disabled'}>챗샷으로 보내기<small>${keyOf()?'지금 열린 채팅의 그리기창으로 가져와요.':'채팅을 먼저 열어 주세요.'}</small></button>`,`<button type="button" data-history-free="${id}">프리샷으로 보내기</button>`,
     item.options?`<button type="button" data-history-preset="${id}">설정을 프리셋으로</button>`:'',`<button type="button" data-history-attach="${id}" ${item.chatKey===keyOf()?'':'disabled data-unavailable="true"'}>본문에 넣기${item.chatKey===keyOf()?'':`<small>${item.chatKey===FREE_KEY?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.'}</small>`}</button>`,
     editable&&attached?`<button type="button" data-history-detach="${id}">채팅에서 이 그림 빼기${attachedCount(item.id)>1?` (${attachedCount(item.id)}곳)`:''}</button>`:'',
+    // 0.1.84: 태그 편집 — 프리샷 pictures have no character, so tag suggestions never show them.
+    item.chatKey&&item.chatKey!==FREE_KEY?`<button type="button" data-history-tags="${id}">태그 편집</button>`:`<button type="button" data-history-tags="${id}" disabled data-unavailable="true">태그 편집<small>프리샷 그림은 캐릭터가 없어서 태그 추천에 쓰이지 않아요.</small></button>`,
     `<hr><div class="ncs-jump-slot" data-jump-slot="${id}"></div>`].join('');
   // 0.1.73: ⋯ first, like the enlarged view's row 1 (⋯ | … | 저장 · 삭제).
-  return `<div class="ncs-history-actions"><button type="button" data-image-more="${menu}" aria-controls="${menu}" aria-expanded="false" aria-haspopup="true" aria-label="이력 그림 더 보기">⋯</button>${save.button}<button type="button" data-history-delete="${id}" class="ncs-danger-outline">삭제</button></div>${save.menu}<div id="${menu}" class="ncs-image-popup" popover="manual" hidden role="group" aria-label="이력 그림 작업">${more}</div>${historyPresetControls(item)}`;
+  return `<div class="ncs-history-actions"><button type="button" data-image-more="${menu}" aria-controls="${menu}" aria-expanded="false" aria-haspopup="true" aria-label="이력 그림 더 보기">⋯</button>${save.button}<button type="button" data-history-delete="${id}" class="ncs-danger-outline">삭제</button></div>${save.menu}<div id="${menu}" class="ncs-image-popup" popover="manual" hidden role="group" aria-label="이력 그림 작업">${more}</div>${historyPresetControls(item)}${historyTagControls(item)}`;
 }
 // --- 메시지로 가기: the attached message and the message the image was made from (docs/ROADMAP.md 0.1.51).
 const JUMP_STATE={swipe:' · 다른 스와이프에서 만들었어요',edited:' · 그림을 만든 뒤 내용이 바뀌었어요',moved:''};
@@ -2456,6 +2496,21 @@ function commonPositiveOf(item){
   if(!tail)return base;if(base===tail)return '';if(base.endsWith(`, ${tail}`))return base.slice(0,-(tail.length+2));
   return null;
 }
+// 0.1.84: ☆/★ and tags live in the extension settings, keyed by the picture's own ID.
+function storeMarks(next){settings().imageMarks=next;ctx().saveSettingsDebounced();}
+function toggleStar(id){
+  const item=historyItems.find(x=>x.id===id);if(!item)return;
+  const on=!marks()[id]?.star;storeMarks(setMark(marks(),item,{star:on}));
+  if(historyStarOnly&&!on){loadHistory().catch(e=>notice(e.message,true));return;}
+  const button=dialog.querySelector(`[data-history-star="${CSS.escape(id)}"]`);
+  if(button){const label=on?'즐겨찾기 해제':'즐겨찾기';button.textContent=on?'★':'☆';button.setAttribute('aria-pressed',String(on));button.title=label;button.setAttribute('aria-label',label);}
+}
+function saveTags(id){
+  const item=historyItems.find(x=>x.id===id);if(!item)return;
+  const tags=parseTags($('ncs-history-tag-input')?.value??'');
+  storeMarks(setMark(marks(),item,{tags}));historyTagEdit=null;renderHistory();renderTagPopupSetting();
+  notice(tags.length?`태그 ${tags.length}개를 저장했어요: ${tags.map(t=>'#'+t).join(' ')}`:'이 그림의 태그를 모두 지웠어요.',false,'history');
+}
 function saveHistoryPreset(id){
   const item=historyItems.find(x=>x.id===id);if(!item?.options)return;
   const s=settings(),name=($('ncs-history-preset-name')?.value??'').trim();if(!name)throw new Error('새 프리셋 이름을 적어 주세요.');
@@ -2493,20 +2548,21 @@ function renderHistory() {
     <button type="button" data-pending-discard="${esc(entry.id)}" class="ncs-danger-outline">버리기</button></div>`).join('')}`:'';
   $('ncs-history').innerHTML=historyItems.length?historyItems.map(item=>{
     const id=esc(item.id),here=item.chatKey===current,editable=here||item.chatKey===FREE_KEY;
-    return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button>${multi?`<small class="ncs-chat-name${here?' ncs-here':''}">${esc(chatLabel(item.chatKey))}${here?' · 지금 채팅':''}</small>`:''}<small class="ncs-history-date">${esc(shortDate(item.created))}</small>${historyActions(item,{editable,attached:here&&hasInlineImage(chat,item)})}</article>`;
-  }).join(''):'<p>이 범위에 저장된 그림이 없어요.</p>';
+    return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button>${multi?`<small class="ncs-chat-name${here?' ncs-here':''}">${esc(chatLabel(item.chatKey))}${here?' · 지금 채팅':''}</small>`:''}${historyMarks(item)}${historyActions(item,{editable,attached:here&&hasInlineImage(chat,item)})}</article>`;
+  }).join(''):historyStarOnly?'<p>이 범위에 즐겨찾기(★)한 그림이 없어요. 이력 카드의 ☆를 눌러 표시해요.</p>':'<p>이 범위에 저장된 그림이 없어요.</p>';
   updateAttachButtons();restoreScroll();
 }
 async function loadHistory({append=false}={}) {
-  const scope=historyScope,startKey=scope==='free'?FREE_KEY:keyOf(),allScope=['chats','all'].includes(scope),filter=historyFilter;
+  const scope=historyScope,startKey=scope==='free'?FREE_KEY:keyOf(),allScope=['chats','all'].includes(scope),filter=historyFilter,starOnly=historyStarOnly;
   if(!startKey&&!allScope){historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>채팅을 먼저 열어 주세요. 다른 보기에서는 채팅 없이도 이력을 볼 수 있어요.</p>';updateHistoryTools();return;}
   if(append&&historyLoading)return;
   const offset=append?historyItems.length:0,limit=append?HISTORY_PAGE:Math.min(100,Math.max(HISTORY_PAGE,historyItems.length));
   const request=++historyRequest;historyLoading=true;updateHistoryTools();
   try {
-    const query=allScope?`scope=all${scope==='chats'?'&kind=chat':''}${filter?`&chatKey=${encodeURIComponent(filter)}`:''}`:`chatKey=${encodeURIComponent(startKey)}`;
-    const data=await api(`/history?${query}&offset=${offset}&limit=${limit}`);
-    if(request!==historyRequest||historyScope!==scope||historyFilter!==filter||(!allScope&&scope!=='free'&&keyOf()!==startKey))return;
+    const data=await historyPage({scope,filter,key:startKey,offset,limit,starOnly});
+    if(request!==historyRequest||historyScope!==scope||historyFilter!==filter||historyStarOnly!==starOnly||(!allScope&&scope!=='free'&&keyOf()!==startKey))return;
+    if(starOnly&&data.filtered!==true){historyItems=[];historyTotal=0;historyHasMore=false;historyUnfiltered=null;$('ncs-history').innerHTML='<p>즐겨찾기 보기는 서버 플러그인 v0.1.22 이상이 필요해요. 서버를 업데이트하고 실리태번을 재시작해 주세요.</p>';return;}
+    historyUnfiltered=starOnly&&Number.isInteger(data.unfilteredCount)?data.unfilteredCount:null;
     if(allScope&&(data.scope!=='all'||scope==='chats'&&data.kind!=='chat')){historyItems=[];historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>이 보기는 서버 플러그인 v0.1.13 이상이 필요해요. 서버를 업데이트하고 실리태번을 재시작해 주세요.</p>';return;}
     if(allScope){historyChats=Array.isArray(data.chats)?data.chats:[];historyBytes=Number(data.bytes)||0;historyImageCount=Number(data.imageCount)||0;
       if(historyFilter&&!historyChats.some(c=>c.chatKey===historyFilter)){historyFilter='';historyItems=[];historyLoading=false;return loadHistory();}}
@@ -2547,7 +2603,9 @@ async function importHistory(id,nextMode,record=null){
   notice(`${foreign?'다른 채팅의 그림이에요. ':''}장면·최종 프롬프트·생성 설정(seed 포함)을 ${name}으로 가져왔어요.${!sameChat&&nextMode==='chat'?' 대상 메시지는 최신 메시지로 초기화했어요. 생성 전에 다시 확인해 주세요.':''} 원본 출처·채팅 기본 복장·설정 탭 값은 유지돼요. 원래 작업은 되돌리기로 돌아와요.`);
 }
 function exportSettings() {
-  const blob=new Blob([JSON.stringify(settings(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob);
+  // 0.1.84: tags/★ and the popup switches stay out — they point at this server's pictures and chat names.
+  const {imageMarks:_marks,tagPopupChats:_popup,...shared}=settings();
+  const blob=new Blob([JSON.stringify(shared,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='naice-shot-settings.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 async function importSettings(file) {
@@ -2578,6 +2636,7 @@ async function importSettings(file) {
         clean.genByMode[m]={imagePresetId:clean.imagePresets.some(p=>p.id===g.imagePresetId)?g.imagePresetId:'',positive:g.positive,negative:g.negative,options};}catch{}}
   }
   if(!confirm('현재 프로필과 공통 설정을 이 백업으로 바꿀까요? 현재 설정을 내보낸 뒤 진행할 수 있어요.'))return;
+  clean.imageMarks=cleanMarks(settings().imageMarks);clean.tagPopupChats=cleanPopupChats(settings().tagPopupChats); // 0.1.84: kept, never taken from a backup
   ctx().extensionSettings[KEY]=clean;syncGen(mode);ctx().saveSettingsDebounced();renderChatImages();scene=blankScene();finalOverride=null;optionsOverride=null;revision++;renderSettings();renderProfiles();editProfile();renderScene();useSkin(clean.skin).catch(()=>{});notice('백업을 가져왔어요. Anlas 사용 가능성 허용과 추출 원문 보관은 꺼진 상태로 가져왔어요.');
 }
 function dismissKeyboard(){if(document.activeElement?.matches?.('input,textarea'))document.activeElement.blur();}
@@ -2670,6 +2729,7 @@ async function onAction(action,el) {
     case 'delete-all-work':await deleteAllWork();break;
     case 'history':await loadHistory();break;
     case 'history-more':await loadHistory({append:true});break;
+    case 'history-star-only':closeImageMenu();historyStarOnly=!historyStarOnly;historyItems=[];historyPending=[];historyPendingBytes=0;historyTotal=0;historyHasMore=false;historyUnfiltered=null;selectedIds.clear();await loadHistory();break;
     case 'select-all-history':{
       // [모두 선택] ↔ [모두 해제]: once anything is picked, the button clears the picks.
       if(selectedIds.size)selectedIds.clear();else for(const x of historyItems)selectedIds.add(x.id);
@@ -2695,6 +2755,9 @@ function bindEvents() {
   $('ncs-target-picker').addEventListener('toggle',()=>renderTargets());
   // 0.1.68: a tap anywhere on the account box unfolds it, except ↻, the NovelAI link and the consent row.
   $('ncs-anlas-box').addEventListener('click',event=>{if(!event.target.closest('a,button,input,label,.ncs-consent-row'))toggleAccount();});
+  // 0.1.84: Enter in the tag field saves (not while a Korean syllable is still being composed).
+  dialog.addEventListener('keydown',event=>{if(event.target?.id!=='ncs-history-tag-input'||event.key!=='Enter'||event.isComposing)return;
+    event.preventDefault();const save=dialog.querySelector('[data-history-tag-save]');if(save&&!save.disabled)save.click();});
   dialog.addEventListener('click',event=>{
     const el=event.target.closest('button,a');if(!el)return;
     const originTab=activeTab();
@@ -2730,6 +2793,10 @@ function bindEvents() {
       else if(el.dataset.historyPreset){historyPresetTarget=el.dataset.historyPreset;renderHistory();}
       else if(el.dataset.historyPresetSave)saveHistoryPreset(el.dataset.historyPresetSave);
       else if(el.dataset.historyPresetCancel!==undefined){historyPresetTarget=null;renderHistory();}
+      else if(el.dataset.historyStar)toggleStar(el.dataset.historyStar);
+      else if(el.dataset.historyTags){closeImageMenu();historyTagEdit=el.dataset.historyTags;renderHistory();$('ncs-history-tag-input')?.focus({preventScroll:true});}
+      else if(el.dataset.historyTagSave)saveTags(el.dataset.historyTagSave);
+      else if(el.dataset.historyTagCancel!==undefined){historyTagEdit=null;renderHistory();}
       else if(el.dataset.viewResult!==undefined)viewImage(result);
       else if(el.dataset.viewHistory)viewImage(historyItems.find(x=>x.id===el.dataset.viewHistory),{gallery:true});
       else if(el.dataset.historyAttach){closeImageMenu();openAttachPicker([historyItems.find(x=>x.id===el.dataset.historyAttach)]);}
@@ -2801,6 +2868,11 @@ function bindEvents() {
       if(el.hasAttribute('data-wear-once')){if(el.value)wearOnce(el.closest('[data-character]').dataset.character,el.value);return;}
       if(el.hasAttribute('data-lock')){const id=el.closest('[data-character]').dataset.character;saveOutfit(id,el.checked).catch(e=>notice(e.message,true));return;}
       for(const field of ['location','lighting','camera','interaction'])if(el.id===`ncs-${field}`){scene[field]=el.value;changed();return;}
+      if(el.id==='ncs-tag-popup'){
+        const s=settings(),key=keyOf();if(!key){el.checked=false;return;}
+        const next=cleanPopupChats(s.tagPopupChats);if(el.checked)next[key]=true;else delete next[key];
+        s.tagPopupChats=next;ctx().saveSettingsDebounced();if(!el.checked)closeTagPopup();renderTagPopupSetting();
+        notice(el.checked?'이 채팅에서 태그 추천 팝업을 켰어요.':'이 채팅에서 태그 추천 팝업을 껐어요.');return;}
       if(el.id==='ncs-message-button'){settings().messageButton=el.checked;ctx().saveSettingsDebounced();setMessageButtons(el.checked);renderChatImageSummary();notice(el.checked?'메시지 날짜 옆에 그리기 아이콘을 넣었어요.':'메시지의 그리기 아이콘을 뺐어요.');return;}
       if(el.id==='ncs-inline-layout'||el.id==='ncs-inline-size'){settings()[el.id==='ncs-inline-layout'?'inlineLayout':'inlineSize']=el.value;ctx().saveSettingsDebounced();renderChatImages();renderChatImageSummary();return;}
       if(el.id==='ncs-chat-image-placement'){
@@ -2831,8 +2903,57 @@ function bindEvents() {
   });
   $('ncs-import').addEventListener('change',event=>importSettings(event.target.files[0]).catch(e=>notice(e.message,true)));
 }
+// --- 0.1.84 태그 추천 팝업: a character reply that contains a tag shows one tagged picture of the same character (or
+// group), picked at random. It never writes the chat; [넣기] opens the usual 본문에 넣기 list with that reply chosen.
+let tagPop=null,lastTagPop=null;
+const popupOn=key=>!!key&&settings().tagPopupChats?.[key]===true;
+function renderTagPopupSetting(){
+  if(!dialog)return;const box=$('ncs-tag-popup');if(!box)return;const key=keyOf(),owner=key?ownerOf(key):null;
+  box.checked=popupOn(key);box.disabled=!owner;
+  $('ncs-tag-popup-state').textContent=!key?'채팅을 열면 켤 수 있어요.':!owner?'이 채팅의 캐릭터를 확인하지 못해서 켤 수 없어요.':
+    `${owner.startsWith('group:')?'이 그룹':'이 캐릭터'}의 태그 붙은 그림 ${taggedFor(marks(),key)}장${popupOn(key)?' · 켜짐':''}`;
+}
+function closeTagPopup(){document.getElementById('ncs-tag-pop')?.remove();tagPop=null;}
+function suggestTaggedImage(index,type){
+  if(['first_message','impersonate'].includes(type)||!Number.isInteger(index))return;
+  const key=keyOf();if(!popupOn(key))return;
+  const message=ctx().chat?.[index];if(!message||message.is_user||message.is_system)return;
+  // The panel and the enlarged view are modal: a popup would sit behind them, so none shows while they are open.
+  if(dialog?.open||document.getElementById('ncs-viewer')?.open)return;
+  showTagPopup(tagMatches(marks(),key,message.mes),{key,index,message,signature:textSignature(message.mes??'')});
+}
+function showTagPopup(list,where){
+  const choice=pickMatch(list,{avoid:lastTagPop});
+  if(!choice){return;}
+  closeTagPopup();lastTagPop=choice.id;
+  const here=choice.chatKey===where.key,box=document.createElement('div');
+  tagPop={...choice,...where};
+  box.id='ncs-tag-pop';box.className='ncs-tag-pop';box.setAttribute('role','dialog');box.setAttribute('aria-label','태그 추천 그림');
+  box.innerHTML=`<div class="ncs-tag-pop-head"><span class="ncs-tag-pop-tags">${choice.tags.map(t=>'#'+esc(t)).join(' ')}</span><button type="button" class="ncs-tag-pop-close" data-tag-pop="close" aria-label="닫기" title="닫기">✕</button></div>
+    <img alt="태그 추천 그림" src="/user/images/naice-shot/${esc(choice.id)}.png">
+    <button type="button" class="ncs-tag-pop-insert" data-tag-pop="insert" ${here?'':'disabled'}>넣기</button>
+    ${here?'':'<small>다른 채팅에서 만든 그림이라 보기만 할 수 있어요.</small>'}<button type="button" class="ncs-tag-pop-off" data-tag-pop="off">이 채팅에서 팝업 끄기</button>`;
+  // A picture that no longer loads (deleted elsewhere) gives way to another match, or the popup closes.
+  box.querySelector('img').addEventListener('error',()=>{if(tagPop?.id!==choice.id)return;closeTagPopup();showTagPopup(list.filter(x=>x.id!==choice.id),where);},{once:true});
+  box.addEventListener('keydown',event=>{if(event.key==='Escape'){event.stopPropagation();closeTagPopup();}});
+  box.addEventListener('click',event=>{
+    const act=event.target.closest('[data-tag-pop]')?.dataset.tagPop;if(!act)return;
+    if(act==='close')closeTagPopup();
+    else if(act==='off'){const s=settings(),next=cleanPopupChats(s.tagPopupChats);delete next[where.key];s.tagPopupChats=next;ctx().saveSettingsDebounced();closeTagPopup();renderTagPopupSetting();say('이 채팅에서 태그 추천 팝업을 껐어요. 설정 탭에서 다시 켤 수 있어요.');}
+    else if(act==='insert')insertTagPopup().catch(e=>say(e.message,true));
+  });
+  document.body.append(box);
+}
+async function insertTagPopup(){
+  const pop=tagPop;if(!pop)return;
+  if(keyOf()!==pop.key||pop.chatKey!==pop.key)throw new Error('지금 열린 채팅에서 만든 그림만 넣을 수 있어요.');
+  closeTagPopup();
+  const rec=await recordOf({id:pop.id,chatKey:pop.chatKey});
+  if(keyOf()!==pop.key)throw new Error('채팅이 바뀌어서 넣지 않았어요.');
+  await showPanel();openAttachPicker([rec],{prefer:pop});
+}
 function chatChanged() {
-  closeImageMenu();closeAttachPicker();
+  closeImageMenu();closeAttachPicker();closeTagPopup();renderTagPopupSetting();
   const key=keyOf();if(key===chatKey)return;undoChatOutfit=null;historyImportToken++;
   const oldKey=chatKey;if(oldKey){const oldWork=isFree()?spare.chat:captureWork();if(oldWork)rememberDraft(oldKey,oldWork,{flush:true});}
   if(!isFree()){draftLoadToken++;draftLoading=false;$('ncs-work-fields').disabled=false;}
@@ -2876,7 +2997,8 @@ function mountSettingsDrawer() {
 async function initialize() {
   if(document.getElementById('naice-shot-dialog'))return;
   mountSettingsDrawer();
-  settings();dialog=document.createElement('dialog');dialog.id='naice-shot-dialog';
+  {const s=settings();s.imageMarks=cleanMarks(s.imageMarks);s.tagPopupChats=cleanPopupChats(s.tagPopupChats);} // 0.1.84: read once, broken entries dropped
+  dialog=document.createElement('dialog');dialog.id='naice-shot-dialog';
   const template=await fetch(new URL('panel.html',import.meta.url));if(!template.ok)throw new Error('NAIce Shot 패널 파일을 읽지 못했어요.');
   dialog.innerHTML=await template.text();document.body.append(dialog);
   // The 챗샷/프리샷 switch sits in the title row now, outside the work fields; it waits with them (draft loading, server check).
@@ -2899,6 +3021,8 @@ async function initialize() {
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')rememberDraft(workKey(),null,{flush:true});});
   const c=ctx(),events=c.eventTypes??c.event_types;c.eventSource.on(events.CHAT_CHANGED,()=>{chatLoadEpoch++;chatChanged();});
   const refreshChatImages=()=>renderChatImages();
+  // 0.1.84: tag suggestions read a character reply after it is rendered (after streaming ends). Never a greeting.
+  if(events.CHARACTER_MESSAGE_RENDERED)c.eventSource.on(events.CHARACTER_MESSAGE_RENDERED,(id,type)=>{try{suggestTaggedImage(Number(id),type);}catch(e){console.error('[NAIce Shot]',e.message);}});
   for(const type of ['MESSAGE_RECEIVED','MESSAGE_SENT','MESSAGE_SWIPED','MESSAGE_DELETED','MESSAGE_EDITED'])if(events[type])c.eventSource.on(events[type],()=>{refreshChatImages();if(dialog.open){renderTargets();renderMatching();renderResult();renderHistory();updateFinal();}});
   document.getElementById('chat')?.addEventListener('click',event=>{
     const clean=event.target.closest('[data-ncs-inline-clean]');

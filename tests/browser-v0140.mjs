@@ -49,12 +49,12 @@ try{
   await page.locator('[data-action="generate"]').click();await page.locator('#ncs-result img').waitFor();
   await page.locator('[data-tab="history"]').click();const card=page.locator('.ncs-history-card').first();await card.waitFor();
   assert.equal(await card.locator('[data-prompt-view]').count(),0);
-  assert.deepEqual(await card.locator('button:visible').allTextContents(),['','⋯','저장','삭제']);
+  assert.deepEqual(await card.locator('button:visible').allTextContents(),['','☆','⋯','저장','삭제']); // 0.1.84: ☆ on the date line
   assert.doesNotMatch(await card.innerText(),/seed|:\d\d:\d\d/,'card shows the date to the minute, no seed');
   await card.scrollIntoViewIfNeeded();
   if(fontRoot)await page.screenshot({path:`/tmp/naice-stage1/history-${width}.png`});
   const more=card.locator('[data-image-more]:not(.ncs-save-toggle)');await more.click();const popup=card.locator('.ncs-image-popup:not(.ncs-save-popup)');
-  assert.deepEqual((await popup.locator('button').allInnerTexts()).map(t=>t.split('\n')[0]),['챗샷으로 보내기','프리샷으로 보내기','설정을 프리셋으로','본문에 넣기','메시지로 가기']);await page.keyboard.press('Escape');
+  assert.deepEqual((await popup.locator('button').allInnerTexts()).map(t=>t.split('\n')[0]),['챗샷으로 보내기','프리샷으로 보내기','설정을 프리셋으로','본문에 넣기','태그 편집','메시지로 가기']); // 0.1.84await page.keyboard.press('Escape');
   const saveToggle=card.locator('.ncs-save-toggle'),savePopup=card.locator('.ncs-save-popup');await saveToggle.click();assert.equal(await saveToggle.getAttribute('aria-expanded'),'true');
   assert.deepEqual((await savePopup.locator('button,a').allInnerTexts()).map(t=>t.split('\n')[0]),['클린 PNG','원본 PNG']);await saveToggle.click();assert.equal(await savePopup.isHidden(),true,'the button folds it again');
   await saveToggle.click();await page.mouse.click(2,2);assert.equal(await savePopup.isHidden(),true,'a click elsewhere closes it');

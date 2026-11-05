@@ -1,5 +1,14 @@
 # Installation and update checklist
 
+## v0.1.84
+
+**Update the server plugin first** (0.1.22), restart SillyTavern, then update the extension and refresh. The extension needs server 0.1.22 or newer.
+
+1. History: tap ☆ on a picture — it turns ★. Tap **☆ 즐겨찾기만** — only that picture is listed. Tap it again to see all.
+2. History ⋯ → **태그 편집**: type `웃음, 비` and press Enter — `#웃음 #비` show under the date.
+3. Settings → **태그 추천 팝업** → 이 채팅에서 켜기. Close the panel and get an AI reply with one of the tags: a picture pops up at the top right. **넣기** opens the message list with that reply chosen; ✕ closes it.
+4. Delete a ★ picture: the question has "즐겨찾기한 그림 1장도 함께 삭제돼요."
+
 ## v0.1.81
 
 Update the extension and refresh (server 0.1.19 still needed). Nothing new to try: a length fix for profile names with brackets.

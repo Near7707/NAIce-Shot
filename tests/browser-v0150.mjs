@@ -67,7 +67,7 @@ try{
   assert.equal(await page.locator('#tab-settings .ncs-png-info, [data-panel="settings"] .ncs-png-info').count(),0);
   const more=page.locator('.ncs-history-card [data-image-more]:not(.ncs-save-toggle)').first();await more.click();
   const order=await page.locator('.ncs-image-popup:popover-open button').evaluateAll(b=>b.map(x=>x.firstChild.textContent.trim()));
-  assert.deepEqual(order,['챗샷으로 보내기','프리샷으로 보내기','설정을 프리셋으로','본문에 넣기','메시지로 가기']);await page.keyboard.press('Escape');
+  assert.deepEqual(order,['챗샷으로 보내기','프리샷으로 보내기','설정을 프리셋으로','본문에 넣기','태그 편집','메시지로 가기']); // 0.1.84: 태그 편집 before the dividerawait page.keyboard.press('Escape');
   await page.locator('.ncs-history-card .ncs-save-toggle').first().click();
   const first=page.locator('.ncs-image-popup:popover-open .ncs-popup-primary');
   assert.match(await first.innerText(),/^클린 PNG\s*프롬프트·seed 등 메타데이터를 제거한 사본이에요\./);
