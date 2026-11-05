@@ -45,9 +45,9 @@ const server=http.createServer(async(req,res)=>{try{
  const url=new URL(req.url,'http://localhost'),rel=url.pathname;
  if(rel.startsWith('/api/plugins/naice-shot/')){
   const route=rel.slice('/api/plugins/naice-shot/'.length),chunks=[];for await(const c of req)chunks.push(c);
-  const name={status:'status',history:'history',generate:'generate',delete:'delete',draft:'draft'}[route];
+  const name={status:'status',history:'history',generate:'generate',delete:'delete',draft:'draft',generation:'generation','delete-check':'deleteCheck'}[route];
   if(!name){res.writeHead(404).end('not found');return;}
-  const out=await call(name,{query:Object.fromEntries(url.searchParams),body:chunks.length?JSON.parse(Buffer.concat(chunks)):null});
+  const out=await call(name,{method:req.method,query:Object.fromEntries(url.searchParams),body:chunks.length?JSON.parse(Buffer.concat(chunks)):null});
   res.writeHead(out.status,{'Content-Type':'application/json'}).end(JSON.stringify(out.body));return;
  }
  const m=rel.match(/^\/user\/images\/naice-shot\/([0-9a-f-]+\.png)$/);

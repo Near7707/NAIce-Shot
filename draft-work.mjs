@@ -40,7 +40,7 @@ export function unpackWork(data){
 // Each entry has a generation. Deleting the saved work starts a new generation, and replies to reads or
 // writes sent before it are ignored, so they can never bring back deleted work or an old revision.
 export class DraftQueue {
-  constructor({read,write,onState=()=>{},delay=650}){Object.assign(this,{read,write,onState,delay});this.entries=new Map();this.paused=false;}
+  constructor({read,write,onState=()=>{},delay=650}){Object.assign(this,{read,write,onState,delay});this.entries=new Map();this.paused=false;this.held=new Set();}
   entry(key){
     let e=this.entries.get(key);if(!e)e={loaded:false,data:null,revision:null,dirty:false,version:0,error:null,gen:0};
     this.entries.delete(key);this.entries.set(key,e);
@@ -60,8 +60,14 @@ export class DraftQueue {
   resume(){
     this.paused=false;
     // A snapshot: onState may touch entries, which reorders the Map while it is being walked.
-    for(const [key,e] of [...this.entries])if(e.loaded&&e.dirty&&!e.saving){clearTimeout(e.timer);e.timer=setTimeout(()=>this.flush(key),this.delay);this.onState(key,e);}
+    for(const [key,e] of [...this.entries])if(e.loaded&&e.dirty&&!e.saving&&e.error?.status!==409&&!this.held.has(key)){clearTimeout(e.timer);e.timer=setTimeout(()=>this.flush(key),this.delay);this.onState(key,e);}
   }
+  hold(key){
+    this.held.add(key);
+    const e=this.entry(key);
+    clearTimeout(e.timer);e.timer=null;
+  }
+  release(key){this.held.delete(key);}
   // After the server deleted a saved work: start a new generation and read again. The server leaves a
   // marker with a fresh revision, so the next save must be based on that read, never on an older one.
   reset(key){const e=this.entry(key);clearTimeout(e.timer);e.gen++;
@@ -74,11 +80,11 @@ export class DraftQueue {
     e.reading=reading;return reading;
   }
   put(key,data){const e=this.entry(key);if(!e.loaded)return;const json=JSON.stringify(data);if(json===JSON.stringify(e.data))return;
-    e.data=JSON.parse(json);e.version++;e.dirty=true;e.error=null;clearTimeout(e.timer);if(!this.paused)e.timer=setTimeout(()=>this.flush(key),this.delay);this.onState(key,e);}
+    e.data=JSON.parse(json);e.version++;e.dirty=true;e.error=null;clearTimeout(e.timer);if(!this.paused&&!this.held.has(key))e.timer=setTimeout(()=>this.flush(key),this.delay);this.onState(key,e);}
   async flush(key){
-    const e=this.entry(key);clearTimeout(e.timer);if(e.saving)return e.saving;if(!e.loaded||!e.dirty||this.paused)return;
+    const e=this.entry(key);clearTimeout(e.timer);if(e.saving)return e.saving;if(!e.loaded||!e.dirty||this.paused||this.held.has(key))return;
     const gen=e.gen;
-    const saving=(async()=>{while(e.dirty&&gen===e.gen&&!this.paused){const version=e.version,work=e.data;
+    const saving=(async()=>{while(e.dirty&&gen===e.gen&&!this.paused&&!this.held.has(key)){const version=e.version,work=e.data;
       try{const r=await this.write(key,{work,expectedRevision:e.revision});if(gen!==e.gen)return;e.revision=r.revision;e.error=null;if(version===e.version)e.dirty=false;}
       catch(error){if(gen===e.gen)e.error=error;break;}
     }})().finally(()=>{if(e.saving===saving)e.saving=null;this.onState(key,e);});

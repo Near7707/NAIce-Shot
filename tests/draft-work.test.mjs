@@ -52,3 +52,12 @@ test('resume survives an onState callback that touches entries (no endless loop)
  await q.ensure('A');await q.ensure('B');await q.pause();q.put('A',{value:1});q.put('B',{value:2});q.resume();
  assert.equal(q.entry('A').dirty,true);assert.equal(q.entry('B').dirty,true);await q.flush('A');await q.flush('B');assert.equal(q.entry('A').dirty,false);
 });
+
+test('an unverified deletion keeps the affected draft from auto-saving while other drafts resume',async()=>{
+ const sent=[],q=new DraftQueue({delay:100000,read:async()=>({revision:'old',work:{}}),write:async key=>{sent.push(key);return {revision:'next'};}});
+ await q.ensure('A');await q.ensure('B');await q.pause();
+ q.put('A',{value:1});q.put('B',{value:2});q.hold('A');q.resume();
+ await q.flush('A');await q.flush('B');
+ assert.deepEqual(sent,['B']);assert.equal(q.entry('A').dirty,true);
+ q.release('A');await q.flush('A');assert.deepEqual(sent,['B','A']);
+});

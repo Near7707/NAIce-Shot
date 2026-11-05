@@ -34,3 +34,33 @@ export function stableChatJson(state){
   return Object.fromEntries(Object.keys(value).sort().map(key=>[key,value[key]]));
  });
 }
+
+// ST assigns these values when loading a chat. Ignore an absent disk key only
+// when memory contains the same value ST would initialize.
+export function comparableSavedMetadata(saved,local,note={}){
+ const metadata={...saved};
+ if(!Object.hasOwn(metadata,'integrity')&&local.integrity)metadata.integrity=local.integrity;
+ const defaults={note_prompt:note.default??'',note_interval:note.defaultInterval??1,
+  note_position:note.defaultPosition??1,note_depth:note.defaultDepth??4,note_role:note.defaultRole??0};
+ for(const [key,value] of Object.entries(defaults)){
+  if(!Object.hasOwn(metadata,key)&&local[key]===value)metadata[key]=value;
+ }
+ return metadata;
+}
+
+export function splitSavedChat(data,{inGroup=false}={}){
+ if(!Array.isArray(data)||!data.length)throw new Error('missing chat');
+ const [header,...messages]=data;
+ if(!header||typeof header!=='object'||Array.isArray(header))throw new Error('missing chat header');
+ if(!('mes' in header)){
+  if(Object.hasOwn(header,'chat_metadata')){
+   const metadata=header.chat_metadata;
+   if(metadata&&typeof metadata==='object'&&!Array.isArray(metadata))return {messages,metadata};
+   throw new Error('invalid chat metadata');
+  }
+  if(typeof header.user_name==='string'&&typeof header.character_name==='string')return {messages,metadata:{}};
+ }
+ // Older group files may start directly with a message.
+ if(inGroup&&data.every(row=>typeof row?.mes==='string'))return {messages:data,metadata:{}};
+ throw new Error('missing chat header');
+}

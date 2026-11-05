@@ -23,7 +23,7 @@ import { makeZip } from './zip.mjs';
 import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, exactName } from './missing.mjs';
 import { cleanImageFile, saveCleanImage } from './downloads.mjs';
 import { jumpTargets, locateSource, locateAttached } from './message-jump.mjs';
-import {stableChatJson} from './chat.mjs';
+import {stableChatJson,comparableSavedMetadata,splitSavedChat} from './chat.mjs';
 
 const KEY='naice_shot',API='/api/plugins/naice-shot';
 // 챗샷 draws from the open chat; 프리샷 draws from free text with no chat at all. Each mode keeps its own work.
@@ -35,7 +35,7 @@ const workKey=()=>isFree()?FREE_KEY:keyOf();
 let dialog,scene=blankScene(),raw='',finalOverride=null,revision=0,busy=false,task=0,subscription=null,historyItems=[],chatKey='',result=null,attaching=false;
 let profileContext='profiles',busyOwner=0,extraction=null,progress=null,optionsOverride=null,historyTotal=0,historyHasMore=false,historyLoading=false;
 const selectedIds=new Set(),HISTORY_PAGE=20;
-let historyScope='chat',historyFilter='',historyChats=[],historyBytes=0,historyImageCount=0,historyRequest=0;
+let historyScope='chat',historyFilter='',historyChats=[],historyPending=[],historyPendingBytes=0,historyBytes=0,historyImageCount=0,historyRequest=0;
 let availableSkins=SKINS.filter(s=>!s.file),skinsDetected=false;
 let serverFeatures=[],draftsEnabled=false,draftLoading=false,pauseDraftCapture=false,draftLoadToken=0,draftSource=null,draftNote='';
 const $=id=>dialog.querySelector(`#${id}`);
@@ -292,7 +292,12 @@ function imageViewerOptions(item,{attachment=null}={}){
     onDetach:attachment?()=>removeMessageImage(item,attachment):null,
     // Also from the chat (0.1.63): deleteImages asks first and takes the picture out of every message it is in.
     // UI-070-04: a failure is thrown to the enlarged view, which shows it where the person is looking.
-    onDelete:()=>deleteImages({ids:[item.id],owners:item.chatKey?{[item.id]:item.chatKey}:null}).then(r=>!!r?.deleted?.includes(item.id))};
+    onDelete:async()=>{
+      const reply=await deleteImages({ids:[item.id],owners:item.chatKey?{[item.id]:item.chatKey}:null});
+      if(reply?.deleted.includes(item.id))return true;
+      if(reply?.issue)throw new Error(reply.issue);
+      return false;
+    }};
 }
 // Opens the panel (the tab it was on, or the one asked for).
 async function showPanel(tab=null){await (panelReady??Promise.resolve());await open();if(tab&&activeTab()!==tab)showTab(tab);}
@@ -300,7 +305,7 @@ async function showPanel(tab=null){await (panelReady??Promise.resolve());await o
 async function goToHistoryCard(item){
   await showPanel('history');
   const scope=item.chatKey===FREE_KEY?'free':item.chatKey&&item.chatKey===keyOf()?'chat':'all';
-  if(historyScope!==scope||historyFilter){closeImageMenu();historyScope=scope;historyFilter='';historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();}
+  if(historyScope!==scope||historyFilter){closeImageMenu();historyScope=scope;historyFilter='';historyItems=[];historyPending=[];historyPendingBytes=0;historyTotal=0;historyHasMore=false;selectedIds.clear();}
   await loadHistory();
   for(let i=0;i<60&&!historyItems.some(x=>x.id===item.id)&&historyHasMore;i++){if(historyLoading)await new Promise(r=>setTimeout(r,60));else await loadHistory({append:true});}
   const card=dialog.querySelector(`[data-view-history="${CSS.escape(item.id)}"]`)?.closest('.ncs-history-card');
@@ -393,10 +398,7 @@ async function readSavedChat({inGroup,id,card}){
     ?await fetch('/api/chats/group/get',{...request,body:JSON.stringify({id})})
     :await fetch('/api/chats/get',{...request,body:JSON.stringify({ch_name:card?.name,file_name:String(id).replace(/\.jsonl$/,''),avatar_url:card?.avatar})});
   if(!response.ok)throw new Error(`read ${response.status}`);
-  const data=await response.json();if(!Array.isArray(data))throw new Error('unexpected shape');
-  const [header,...messages]=data;
-  if(!header||!header.chat_metadata||typeof header.chat_metadata!=='object'||Array.isArray(header.chat_metadata)||'mes' in header)throw new Error('missing chat header');
-  return {messages,metadata:header.chat_metadata};
+  return splitSavedChat(await response.json(),{inGroup});
 }
 const CHAT_NOT_CURRENT='서버의 채팅과 화면이 같은지 확인하지 못했어요. 채팅을 다시 열고 시도해 주세요.';
 let chatWritePending=false,chatLoadEpoch=0,hostChatModule;
@@ -410,8 +412,12 @@ async function withChatWrite(key,apply){
     const current=()=>{const c=ctx();return keyOf(c)===key&&c.chatMetadata===chatMetadata&&c.chat===chat&&chatLoadEpoch===epoch;};
     const snapshot=chatState(context.chat,context.chatMetadata);
     const host=await (hostChatModule??=import('/script.js').catch(()=>null));
-    const ready=()=>current()&&!host?.isChatSaving&&!(ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished);
-    if(!ready())throw new Error(CHAT_NOT_CURRENT);
+    const assertReady=()=>{
+      if(!current())throw new Error(CHAT_NOT_CURRENT);
+      if(host?.isChatSaving||ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished)
+        throw new Error('실리태번이 채팅을 저장 중이거나 본편을 생성 중이에요. 잠시 뒤 다시 시도해 주세요.');
+    };
+    assertReady();
     const readState=async()=>{
       const saved=await read();
       saved.messages.forEach(message=>host?.ensureMessageMediaIsArray?.(message));
@@ -419,11 +425,10 @@ async function withChatWrite(key,apply){
     };
     let saved;
     try{saved=await readState();}catch{throw new Error(CHAT_NOT_CURRENT);}
-    if(!ready()||snapshot!==chatState(ctx().chat,ctx().chatMetadata))throw new Error(CHAT_NOT_CURRENT);
-    // ST assigns integrity on loading older files that have no integrity field.
-    const diskMetadata={...saved.metadata};
-    if(!Object.hasOwn(diskMetadata,'integrity')&&chatMetadata.integrity)diskMetadata.integrity=chatMetadata.integrity;
-    if(snapshot!==chatState(saved.messages,diskMetadata))throw new Error(CHAT_NOT_CURRENT);
+    assertReady();
+    if(snapshot!==chatState(ctx().chat,ctx().chatMetadata))throw new Error('채팅 내용이 바뀌는 중이에요. 잠시 뒤 다시 시도해 주세요.');
+    const diskMetadata=comparableSavedMetadata(saved.metadata,chatMetadata,context.extensionSettings?.note??{});
+    if(snapshot!==chatState(saved.messages,diskMetadata))throw new Error('서버의 채팅과 화면이 달라요. 다른 곳에서 수정했다면 채팅을 다시 열고, 방금 편집했다면 저장이 끝난 뒤 시도해 주세요.');
     return await apply(ctx(),{readSaved:async()=>(await readState()).messages,isCurrent:current},readState);
   }finally{chatWritePending=false;}
 }
@@ -477,13 +482,15 @@ function say(message,error=false,tab=activeTab()) {
 function changed(){undoChatOutfit=null;dialog?.querySelectorAll('.ncs-outfit-undo').forEach(e=>e.remove());revision++;finalOverride=null;optionsOverride=null;dropUndo();updateFinal({force:true});scheduleDraft();}
 // History restore uses the stored options for the next generation only; the settings tab keeps the user's own values.
 function effectiveOptions(){return optionsOverride?freeOptions(optionsOverride):settings().options;}
-function setBusy(value,owner=0) {busy=value;busyOwner=value?owner:0;for(const b of dialog.querySelectorAll('[data-action="extract"],[data-action="extract-again"],[data-action="free-fill"],[data-mode],[data-history-free],[data-action="generate"],[data-action="blank"],[data-action="undo-clear"],[data-action="same-seed"],[data-action="new-seed"],[data-action="convert-profile"]'))b.disabled=value;updateAttachButtons();renderGenerationCheck();if(!value)rememberDraft();}
+function setBusy(value,owner=0) {busy=value;busyOwner=value?owner:0;for(const b of dialog.querySelectorAll('[data-action="extract"],[data-action="extract-again"],[data-action="free-fill"],[data-mode],[data-history-free],[data-action="generate"],[data-action="blank"],[data-action="undo-clear"],[data-action="same-seed"],[data-action="new-seed"],[data-action="convert-profile"]'))b.disabled=value;updateAttachButtons();if(!value)rememberDraft();}
 async function api(route,{method='GET',body,keepalive=false,signal}={}) {
   const response=await fetch(`${API}${route}`,{method,headers:ctx().getRequestHeaders(),body:body?JSON.stringify(body):undefined,keepalive,signal});
-  const text=await response.text();let data;try{data=JSON.parse(text);}catch{throw new Error(`서버 플러그인을 확인해 주세요 (${response.status}).`);}
+  const text=await response.text();let data;try{data=JSON.parse(text);}catch{throw Object.assign(new Error(`서버 플러그인을 확인해 주세요 (${response.status}).`),{status:response.status});}
   if(!response.ok||data.error){const error=new Error(data.error??`요청 실패 (${response.status})`);error.status=response.status;error.code=data.code??'';throw error;}return data;
 }
 const draftSignal=()=>globalThis.AbortSignal?.timeout?.(15000);
+const ambiguousDelete=error=>!(error.status>=400&&error.status<500&&error.status!==408);
+const draftDeletionChecks=new Map();
 const drafts=new DraftQueue({read:key=>api(`/draft?chatKey=${encodeURIComponent(key)}`,{signal:draftSignal()}),
   write:(key,body)=>{const value={...body,chatKey:key,retainRawExtraction:settings().retainRawExtraction===true};return api('/draft',{method:'POST',body:value,keepalive:new Blob([JSON.stringify(value)]).size<60000,signal:draftSignal()});},onState:()=>renderDraftState()});
 let captureTimer=null;
@@ -492,9 +499,10 @@ function renderRawRetention(){if(dialog)$('ncs-retain-state').textContent=settin
 function renderDraftState(){
   if(!dialog)return;const e=drafts.entry(workKey()),box=$('ncs-draft-status');
   if(!draftsEnabled){box.hidden=!compatChecked;box.textContent='작업 기억을 사용할 수 없어요. 서버 연결·업데이트를 확인해 주세요.';$('ncs-draft-retry').hidden=!compatChecked;$('ncs-draft-retry').textContent='연결 다시 확인';return;}
-  box.hidden=!draftsEnabled;box.textContent=draftLoading?'마지막 작업을 불러오는 중…':e.error?`작업 저장을 확인해 주세요: ${e.error.message}`:e.saving||e.dirty||captureTimer?'마지막 작업 저장 중…':draftNote||'마지막 작업을 서버에 기억해요.';
-  $('ncs-draft-retry').hidden=!draftsEnabled||!e.error;
-  $('ncs-draft-retry').textContent=e.error?.status===409?'서버 작업 다시 불러오기':'다시 시도';
+  const held=draftDeletionChecks.has(workKey());
+  box.hidden=!draftsEnabled;box.textContent=held?'삭제 결과를 확인할 때까지 작업 자동 저장을 멈췄어요.':draftLoading?'마지막 작업을 불러오는 중…':e.error?`작업 저장을 확인해 주세요: ${e.error.message}`:e.saving||e.dirty||captureTimer?'마지막 작업 저장 중…':draftNote||'마지막 작업을 서버에 기억해요.';
+  $('ncs-draft-retry').hidden=!draftsEnabled||!held&&!e.error;
+  $('ncs-draft-retry').textContent=held?'삭제 결과 다시 확인':e.error?.status===409?'서버 작업 다시 불러오기':'다시 시도';
 }
 const emptyWork=w=>!w.scene.characters?.length&&!w.scene.moments?.length&&!['location','lighting','camera','interaction'].some(k=>w.scene[k])&&
   !w.finalOverride&&!w.optionsOverride&&!w.result&&!w.undoClear&&!w.raw&&!w.target&&!w.wish&&!w.freeText;
@@ -524,6 +532,13 @@ async function recallDraft(key=workKey()){
 async function retryDraft(){
   if(!draftsEnabled){await checkServer({force:true});return;}
   const key=workKey(),e=drafts.entry(key);
+  if(draftDeletionChecks.has(key)){
+    const outcome=await reconcileDraftDeletion(key);
+    if(outcome==='unknown')notice('아직 삭제 결과를 확인하지 못했어요. 작업 자동 저장을 멈춘 상태예요.',true);
+    else if(outcome==='deleted')notice('서버에서 작업이 삭제된 것을 확인했어요.');
+    else notice('서버 작업을 확인했어요. 자동 저장을 다시 시작해요.');
+    return;
+  }
   if(e.error?.status===409){if(!confirm('서버에 저장된 작업을 다시 불러올까요? 현재 화면의 저장되지 않은 편집은 바뀌어요.'))return;drafts.entries.delete(key);await recallDraft(key);}
   else if(!e.loaded){if((scene.characters.length||['location','lighting','camera','interaction'].some(k=>scene[k])||$('ncs-free-text').value)&&!confirm('서버 작업을 다시 불러오면 현재 화면의 편집이 바뀔 수 있어요. 불러올까요?'))return;await recallDraft(key);}else await drafts.flush(key);
 }
@@ -680,19 +695,36 @@ async function forgetWork(keys){
   if(!isFree()&&keys.includes(FREE_KEY))delete spare.free;
   if(here){loadWork(blankWork());targetShown=TARGET_STEP;targetScroll=0;draftSource=null;revision++;
     renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();}
-  for(const key of keys)drafts.reset(key);
+  for(const key of keys){draftDeletionChecks.delete(key);drafts.release(key);drafts.reset(key);}
   // The open work reads the server's deletion marker now; other chats read it when they are opened again.
   if(here)await drafts.ensure(workKey()).catch(()=>{});
+}
+function holdDraftDeletion(key){
+  if(!draftDeletionChecks.has(key))draftDeletionChecks.set(key,drafts.entry(key).revision);
+  drafts.hold(key);
+}
+async function reconcileDraftDeletion(key,state=null){
+  try{
+    const saved=state??await api(`/draft?chatKey=${encodeURIComponent(key)}`,{signal:draftSignal()});
+    if(!saved||!Object.hasOwn(saved,'revision'))return 'unknown';
+    const before=draftDeletionChecks.get(key);
+    if(saved.deleted===true&&saved.revision!==before){await forgetWork([key]);return 'deleted';}
+    draftDeletionChecks.delete(key);drafts.release(key);
+    if(saved.revision!==before){
+      drafts.entry(key).error=Object.assign(new Error('다른 곳에서 작업이 바뀌었어요.'),{status:409});
+    }else if(!drafts.paused)await drafts.flush(key);
+    return 'kept';
+  }catch{return 'unknown';}
+  finally{renderDraftState();}
 }
 // Deleting saved work: lock the drawing window, let saves already sent finish (later ones are dropped), delete,
 // then forget. Server requests of one user run in order, so nothing sent before can recreate the work.
 async function whileDeletingWork(keys,remove,forgetKeys=()=>keys){
+  if(drafts.paused)throw new Error('진행 중인 작업 삭제가 끝난 뒤 시도해 주세요.');
   pauseDraftCapture=true;clearTimeout(captureTimer);captureTimer=null;const fields=$('ncs-work-fields'),wasDisabled=fields.disabled;fields.disabled=true;
   try{
     await drafts.pause(keys);
-    let response;
-    // A failed deletion changes nothing: held edits are sent again below and the work stays on screen.
-    try{response=await remove();}catch(e){e.message=`삭제하지 못했어요. 작업은 그대로예요. (${e.message})`;throw e;}
+    const response=await remove();
     const gone=forgetKeys(response);if(gone?.length)await forgetWork(gone);
     return response;
   }finally{pauseDraftCapture=false;fields.disabled=wasDisabled;drafts.resume();renderDraftState();}
@@ -702,9 +734,21 @@ async function deleteAllWork(){
   if(busy||attaching||draftLoading)throw new Error('진행 중인 작업이 끝난 뒤 지워 주세요.');
   if(!confirm('저장된 작업을 모두 지울까요?\n채팅별·프리샷의 마지막 작업 기억이 서버에서 지워지고 되돌릴 수 없어요. 지금 그리기창도 비워져요.\n그림 이력·프로필·설정은 그대로예요.'))return;
   report('저장된 작업을 지우고 있어요…');
-  const r=await whileDeletingWork(null,()=>api('/draft',{method:'POST',body:{delete:true,all:true}}),()=>{
+  const keys=[...new Set([...drafts.entries.keys(),workKey(),chatKey,FREE_KEY].filter(Boolean))];
+  const r=await whileDeletingWork(null,async()=>{
+    try{return await api('/draft',{method:'POST',body:{delete:true,all:true},signal:draftSignal()});}
+    catch(e){
+      if(!ambiguousDelete(e))throw e;
+      for(const key of keys)holdDraftDeletion(key);
+      const confirmed=await Promise.all(keys.map(key=>reconcileDraftDeletion(key)));
+      return {unverified:true,held:confirmed.includes('unknown'),deleted:confirmed.filter(state=>state==='deleted').length};
+    }
+  },reply=>{
+    if(reply.unverified)return [];
     for(const k of Object.keys(spare))delete spare[k];
-    return [...new Set([...drafts.entries.keys(),workKey(),chatKey,FREE_KEY].filter(Boolean))];});
+    return keys;
+  });
+  if(r.unverified){report(`전체 삭제 응답을 받지 못했어요. 작업 ${r.deleted}개의 삭제를 확인했어요.${r.held?' 확인하지 못한 작업은 자동 저장을 멈췄어요.':''}`,true);return;}
   report(`저장된 작업 ${r.deleted??0}개를 지웠어요. 그림 이력은 그대로예요.`);
 }
 const skinTargets=()=>[dialog,document.getElementById('ncs-viewer')];
@@ -886,8 +930,9 @@ async function saveProfile() {
   if(bind&&(bind.role==='character'||bind.role==='member')&&bind.avatar&&!p.cardKey&&!s.profiles.some(x=>x.id!==id&&x.cardKey===bind.avatar))p.cardKey=bind.avatar;
   // An edited profile keeps its place in the list; only a new one goes to the end (0.1.73, like presets in 0.1.68).
   const next=s.profiles.some(x=>x.id===id)?s.profiles.map(x=>x.id===id?p:x):[...s.profiles,p];const validated=validateProfiles(next);
-  if(bind?.role==='user')await setChatBinding('userProfileId',id);
   s.profiles=validated;ctx().saveSettingsDebounced();
+  let linkError='';
+  if(bind?.role==='user')try{await setChatBinding('userProfileId',id);}catch(e){linkError=e.message;}
   if(bind?.role==='user'&&(bind.session!==profileFormSession||bind.chatKey!==keyOf()))return;
   pendingBind=null; // only after the profile was accepted, so fixing a validation error keeps the planned link
   editProfile(id);renderProfiles();renderScene();changed();
@@ -898,6 +943,7 @@ async function saveProfile() {
     placeProfileForm('profiles');changed();renderScene();showCard(saved.id);notice(`${saved.name} 프로필을 저장하고 장면에 넣었어요.${restored?' 추출해 둔 표정·행동·복장도 채웠어요.':' 장면 정보가 비어 있으면 장면 추출을 다시 눌러 확인할 수 있어요.'}`);
   }else if(profileContext==='scene-edit'){placeProfileForm('profiles');renderScene();notice(`"${p.name}" 프로필을 저장했어요. 모든 채팅의 그림에 함께 적용돼요.`);}
   else notice('프로필을 저장했어요.');
+  if(linkError)notice(`프로필은 저장했지만 현재 채팅에 연결하지 못했어요. ${linkError}`,true);
 }
 // 0.1.70: a new profile always starts on 직접 입력 (user's choice); 설명으로 만들기 is one tap away and is not remembered.
 function setProfileMode(mode) {
@@ -1907,31 +1953,43 @@ function rememberGeneration(key,id){
 function renderGenerationCheck(){
   const button=dialog?.querySelector('[data-action="generation-check"]');if(!button)return;
   button.hidden=!pendingGenerations.has(workKey());
-  button.disabled=checkingGeneration||busy;
+  button.disabled=checkingGeneration||busy||attaching;
+  const forget=dialog.querySelector('[data-action="generation-forget"]');
+  forget.hidden=button.hidden;forget.disabled=button.disabled;
 }
-async function checkGeneration(){
-  const key=workKey(),requestId=pendingGenerations.get(key);
-  if(!requestId||busy||checkingGeneration)return;
-  checkingGeneration=true;renderGenerationCheck();
-  const current=()=>workKey()===key&&pendingGenerations.get(key)===requestId;
+async function checkGeneration(entry=null){
+  const key=entry?.chatKey??workKey(),requestId=entry?.id??pendingGenerations.get(key);
+  if(!requestId||busy||attaching||checkingGeneration)return;
+  checkingGeneration=true;updateAttachButtons();
+  const current=()=>entry?historyPending.some(x=>x.id===requestId):workKey()===key&&pendingGenerations.get(key)===requestId;
   try{
     let reply=await api(`/generation?requestId=${encodeURIComponent(requestId)}`,{signal:draftSignal()});
     if(!current())return;
-    if(reply.state==='save-failed'&&confirm('그림은 이미 받았어요. 같은 그림을 서버에 다시 저장할까요?')){
+    if(reply.state==='save-failed'&&(entry||confirm('그림은 이미 받았어요. 같은 그림을 서버에 다시 저장할까요?'))){
       reply=await api('/generation',{method:'POST',body:{requestId},signal:draftSignal()});
       if(!current())return;
     }
     if(reply.state==='complete'){
       if(reply.item?.id!==requestId||reply.item.chatKey!==key)throw new Error('현재 작업의 생성 결과를 확인하지 못했어요.');
       imageDownload(reply.item);
-      rememberGeneration(key,null);result=reply.item;renderResult();rememberDraft();loadHistory().catch(()=>{});
-      refreshAccount().catch(()=>{});notice('같은 요청의 그림을 불러왔어요.',false,'scene');return;
+      if(pendingGenerations.get(key)===requestId)rememberGeneration(key,null);
+      if(workKey()===key){result=reply.item;renderResult();rememberDraft();}
+      loadHistory().catch(()=>{});
+      refreshAccount().catch(()=>{});notice(entry?'그림을 생성 이력에 저장했어요.':'같은 요청의 그림을 불러왔어요.',false,entry?'history':'scene');return;
     }
-    if(reply.state==='processing'){notice('이 요청은 아직 처리 중이에요. 잠시 뒤 다시 확인해 주세요.',false,'scene');return;}
-    if(reply.state==='save-failed'){notice('그림은 받았지만 아직 저장하지 못했어요. 같은 요청으로 다시 확인해 주세요.',true,'scene');return;}
-    notice('이 요청의 생성·차감 여부를 확인하지 못했어요. NovelAI에서 확인해 주세요. 새 생성 요청은 보내지 않았어요.',true,'scene');
-  }catch(e){if(current())notice(e.message,true,'scene');}
-  finally{checkingGeneration=false;renderGenerationCheck();}
+    const tab=entry?'history':'scene';
+    if(['rejected','discarded'].includes(reply.state)){
+      if(pendingGenerations.get(key)===requestId)rememberGeneration(key,null);
+      notice(reply.state==='rejected'?'NovelAI가 이 요청을 거절했어요.':'이 그림의 복구 기록을 지웠어요.',false,tab);
+      if(entry)loadHistory().catch(()=>{});
+      return;
+    }
+    if(reply.state==='missing'){notice('서버에서 이 요청 기록을 찾지 못했어요. 생성·차감 여부는 NovelAI에서 확인해 주세요.',true,tab);return;}
+    if(reply.state==='processing'){notice('이 요청은 아직 처리 중이에요. 잠시 뒤 다시 확인해 주세요.',false,tab);return;}
+    if(reply.state==='save-failed'){notice('그림은 받았지만 아직 저장하지 못했어요. 같은 요청으로 다시 확인해 주세요.',true,tab);return;}
+    notice('이 요청의 생성·차감 여부를 확인하지 못했어요. NovelAI에서 확인해 주세요. 새 생성 요청은 보내지 않았어요.',true,tab);
+  }catch(e){if(current())notice(e.message,true,entry?'history':'scene');}
+  finally{checkingGeneration=false;updateAttachButtons();}
 }
 async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   const originTab='scene',report=(message,error=false)=>notice(message,error,originTab);
@@ -1955,6 +2013,13 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   const snapshot={scene:clone(scene),...(isFree()?{mode:'free',freeText:$('ncs-free-text').value}:{}),...(s.retainRawExtraction===true?{rawExtraction:stripReasoningBlocks(raw)}:{})};snapshot.scene.source=scene.source?compactSource(stampSource(clone(scene.source),ctx().chat,{check:true})):null;
   if(workKey()!==startKey)return;
   const priorRequest=pendingGenerations.get(startKey);
+  if(!priorRequest&&serverFeatures.includes('pending-history')){
+    const before=revision,{pending}=await api(`/generation?chatKey=${encodeURIComponent(startKey)}`,{signal:draftSignal()});
+    if(ticket!==task||workKey()!==startKey||before!==revision||busy||attaching||checkingGeneration)return;
+    if(pending?.length&&!confirm('이 작업에 저장을 마치지 못한 그림이 있어요. 이력에서 저장을 다시 시도할 수 있어요. 새 그림을 생성할까요?')){
+      showTab('history');return;
+    }
+  }
   if(priorRequest&&!confirm('이전 요청의 결과가 아직 확인되지 않았어요. 새로 생성하면 Anlas가 다시 차감될 수 있어요. 새 요청을 보낼까요?'))return;
   const requestId=uuid(),canRecover=serverFeatures.includes('generation-recovery');
   if(canRecover)rememberGeneration(startKey,requestId);
@@ -1983,7 +2048,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
     result=item;renderResult();report('생성했어요 · 그림을 누르면 크게 볼 수 있어요.');loadHistory().catch(()=>{});
     refreshAccount().catch(()=>{}); // a failed balance check never turns a finished image into a failure
   }catch(e){
-    const refused=['anlas-consent','nai-account','nai-auth','nai-anlas','nai-permission','nai-busy','generation-not-sent'];
+    const refused=['anlas-consent','nai-account','nai-auth','nai-anlas','nai-permission','nai-busy','nai-rejected','generation-not-sent'];
     if(pendingGenerations.get(startKey)===requestId&&(refused.includes(e.code)||e.status===400||e.status===409&&!e.code))rememberGeneration(startKey,priorRequest);
     if(pendingGenerations.get(startKey)===requestId&&!e.code)throw new Error('생성 결과를 받지 못했어요. [같은 요청으로 다시 확인]을 먼저 눌러 주세요.');
     // The server's own consent block shows the switch; NovelAI's Anlas or key errors re-check the balance.
@@ -2014,10 +2079,10 @@ function renderResult() {
   updateAttachButtons();
 }
 function updateAttachButtons() {
-  const locked=busy||attaching;
-  for(const el of dialog.querySelectorAll('[data-action="attach"],[data-action="detach"],[data-history-free],[data-history-attach],[data-history-detach],[data-history-delete],[data-action="delete-result"],[data-history-pick]'))el.disabled=locked||el.dataset.unavailable==='true';
+  const locked=busy||attaching||checkingGeneration;
+  for(const el of dialog.querySelectorAll('[data-action="attach"],[data-action="detach"],[data-history-free],[data-history-attach],[data-history-detach],[data-history-delete],[data-pending-save],[data-pending-discard],[data-action="delete-result"],[data-history-pick]'))el.disabled=locked||el.dataset.unavailable==='true';
   for(const el of document.querySelectorAll('[data-ncs-inline-remove]'))el.disabled=locked;
-  updateHistoryTools();
+  updateHistoryTools();renderGenerationCheck();
 }
 let savingSelection=false;
 const downloadFile=downloadOriginal;
@@ -2068,7 +2133,7 @@ function renderSelectionSave(){
   box.querySelector('.ncs-zip-note').hidden=!many||zip; // separate files: the browser may ask once
 }
 function updateHistoryTools() {
-  if(!dialog)return;const locked=busy||attaching;
+  if(!dialog)return;const locked=busy||attaching||checkingGeneration;
   for(const id of [...selectedIds])if(!historyItems.some(x=>x.id===id))selectedIds.delete(id);
   const save=dialog.querySelector('[data-image-more="ncs-selection-save"]');const saveLabel=save.querySelector?.('.ncs-save-label');if(saveLabel)saveLabel.textContent=savingSelection?'저장 준비 중…':selectedIds.size?`선택 저장 (${selectedIds.size})`:'선택 저장';save.disabled=savingSelection||!selectedIds.size;
   if(!save.disabled)renderSelectionSave();
@@ -2076,8 +2141,8 @@ function updateHistoryTools() {
   const all=dialog.querySelector('[data-action="select-all-history"]'),every=historyItems.length>0&&historyItems.every(x=>selectedIds.has(x.id));
   const any=selectedIds.size>0;all.innerHTML=any?'모두 해제':'<span class="ncs-wide-only">표시된 항목 </span>모두 선택';all.title=any?`고른 ${selectedIds.size}장의 선택을 모두 풀어요`:'표시된 항목 모두 선택';all.disabled=locked||!historyItems.length;
   const allScope=['chats','all'].includes(historyScope),singleKey=historyScope==='free'?FREE_KEY:keyOf();
-  const clear=dialog.querySelector('[data-action="delete-chat-history"]');clear.disabled=locked||!historyTotal||!singleKey;clear.hidden=allScope;clear.textContent=historyScope==='free'?'프리샷 이력 전체 삭제':'이 채팅 이력 전체 삭제';
-  const filterDelete=dialog.querySelector('[data-action="delete-filter-chat"]');filterDelete.hidden=!allScope||!historyFilter;filterDelete.disabled=locked||!historyTotal;
+  const clear=dialog.querySelector('[data-action="delete-chat-history"]');clear.disabled=locked||!(historyTotal+historyPending.length)||!singleKey;clear.hidden=allScope;clear.textContent=historyScope==='free'?'프리샷 이력 전체 삭제':'이 채팅 이력 전체 삭제';
+  const filterDelete=dialog.querySelector('[data-action="delete-filter-chat"]');filterDelete.hidden=!allScope||!historyFilter;filterDelete.disabled=locked||!(historyTotal+historyPending.length);
   $('ncs-history-all-tools').hidden=!allScope;
   const attachSel=dialog.querySelector('[data-action="attach-selected"]'),mine=historyItems.filter(x=>selectedIds.has(x.id)&&x.chatKey&&x.chatKey===keyOf()).length;
   attachSel.textContent=mine?`선택 본문에 넣기 (${mine})`:'선택 본문에 넣기';attachSel.disabled=locked||!mine;attachSel.hidden=historyScope==='free';
@@ -2088,7 +2153,7 @@ function updateHistoryTools() {
   $('ncs-history-storage').textContent=allScope?`이 범위의 그림 ${historyImageCount}장 · ${formatBytes(historyBytes)}`:'';
   const more=dialog.querySelector('[data-action="history-more"]');more.hidden=!historyHasMore;more.disabled=historyLoading;
   more.textContent=historyLoading?'불러오는 중…':`더 보기 (${historyItems.length} / ${historyTotal})`;
-  $('ncs-history-count').textContent=historyTotal?`총 ${historyTotal}장 · ${historyItems.length}장 표시 중`:'';
+  $('ncs-history-count').textContent=[historyTotal?`총 ${historyTotal}장 · ${historyItems.length}장 표시 중`:'',historyPending.length?`저장 대기 ${historyPending.length}장 · ${formatBytes(historyPendingBytes)}`:''].filter(Boolean).join(' · ');
 }
 const formatBytes=n=>n>=1073741824?`${(n/1073741824).toFixed(2)} GB`:n>=1048576?`${(n/1048576).toFixed(1)} MB`:`${Math.max(0,Math.round(n/1024))} KB`;
 // Readable name for a chat key: the chat file name (which usually starts with the character name).
@@ -2096,44 +2161,74 @@ function chatLabel(key) {
   try{const o=JSON.parse(key);if(o.free)return '프리샷';const name=String(o.chat??o.card??'').trim()||'알 수 없는 채팅';return o.group?`그룹 · ${name}`:name;}catch{return '알 수 없는 채팅';}
 }
 function setHistoryScope(scope) {
-  closeImageMenu();historyScope=['chat','chats','free','all'].includes(scope)?scope:'chat';historyFilter='';historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();
+  closeImageMenu();historyScope=['chat','chats','free','all'].includes(scope)?scope:'chat';historyFilter='';historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;selectedIds.clear();
   loadHistory().catch(e=>notice(e.message,true));
+}
+async function requestImageDeletion(key,list,knownIds){
+  const all=list==='all';
+  try{return await api('/delete',{method:'POST',body:all?{chatKey:key,all:true}:{chatKey:key,ids:list},signal:draftSignal()});}
+  catch(e){
+    if(!ambiguousDelete(e))throw e;
+    if(all)holdDraftDeletion(key);
+    knownIds=knownIds.filter(id=>typeof id==='string'&&/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id));
+    const deleted=[];let draftState=null,allGone=false;
+    if(serverFeatures.includes('delete-check')){
+      try{
+        for(let i=0;i<Math.max(1,knownIds.length);i+=500){
+          const checked=await api('/delete-check',{method:'POST',body:{chatKey:key,all,ids:knownIds.slice(i,i+500)},signal:draftSignal()});
+          deleted.push(...(checked.absent??[]));
+          if(all)allGone=checked.remaining===false;
+          if(typeof checked.draftDeleted==='boolean')draftState={revision:checked.draftRevision,deleted:checked.draftDeleted};
+        }
+      }catch{/* The already verified IDs are still safe to detach. */}
+    }
+    const draftHeld=all&&await reconcileDraftDeletion(key,draftState)==='unknown';
+    return {deleted,unverified:true,draftHeld,allGone};
+  }
 }
 // Deletes images, possibly from several chats: one server request per owning chat.
 // all=true deletes every image of one chat (chatKey, or the current chat).
 async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
   const originTab=activeTab(),report=(message,error=false)=>notice(message,error,originTab);
-  if(busy||attaching)throw new Error('진행 중인 작업이 끝난 뒤 삭제해 주세요.');
+  if(busy||attaching||checkingGeneration)throw new Error('진행 중인 작업이 끝난 뒤 삭제해 주세요.');
   const current=keyOf(),chat=current?ctx().chat:[];
   if(current&&ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 삭제해 주세요.');
   const target=all?(allOf??current):null;
   if(all&&!target)throw new Error('먼저 캐릭터 채팅을 열어 주세요.');
   if(!all&&!ids.length)return null;
-  const ownerOf=id=>owners?.[id]??historyItems.find(x=>x.id===id)?.chatKey??(isFree()?FREE_KEY:current); // a 프리샷 picture belongs to the 프리샷 key, not to the open chat
+  const ownerOf=id=>owners?.[id]??historyItems.find(x=>x.id===id)?.chatKey??historyPending.find(x=>x.id===id)?.chatKey??(isFree()?FREE_KEY:current); // a 프리샷 picture belongs to the 프리샷 key, not to the open chat
   const groups=new Map();
   if(all)groups.set(target,'all');else for(const id of ids){const key=ownerOf(id);if(!key)continue;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(id);}
   const here=all?target===current:false,localIds=all?[]:ids.filter(id=>ownerOf(id)===current);
   const attached=here?countInlineImages(chat):localIds.filter(id=>hasInlineImage(chat,{id})).length;
   const elsewhere=all?target!==current:ids.some(id=>ownerOf(id)!==current);
-  const allCount=['chats','all'].includes(historyScope)?historyChats.find(c=>c.chatKey===target)?.count??historyTotal:historyTotal;
+  const allCount=['chats','all'].includes(historyScope)?historyChats.find(c=>c.chatKey===target)?.count??historyTotal+historyPending.length:historyTotal+historyPending.length;
   const what=all?(here?`이 채팅에서 만든 그림 ${allCount}장을 모두`:`"${chatLabel(target)}" 채팅의 그림 ${allCount}장을 모두`):ids.length===1?'이 그림을':`선택한 그림 ${ids.length}장을`;
   if(!confirm(`${what} 삭제할까요?\n원본 PNG와 생성 기록이 서버에서 지워지며 되돌릴 수 없어요.${attached?`\n지금 채팅 본문 아래에 붙인 그림 ${attached}장도 함께 빠져요.`:''}${elsewhere?'\n다른 채팅에 붙여 둔 그림이 있었다면 그 채팅에서는 "찾을 수 없는 그림" 안내로 바뀌어요.':''}${all&&serverFeatures.includes('draft-delete')?'\n이 채팅의 마지막 작업 기억(그리기창 작업)도 함께 지워져요.':''}`))return null;
   report('그림을 삭제하고 있어요…');
   attaching=true;updateAttachButtons();
   try {
-    const deleted=new Set(),skipped=[],failed=[];let unverifiedDetach=false,workDeleteFailed=false,requestUnverified=false;
+    const deleted=new Set(),skipped=[],failed=[];let unverifiedDetach=false,workDeleteFailed=false,requestUnverified=false,draftHeld=false,allGone=false,unsent=groups.size,deleteError='';
     for(const [key,list] of groups){
+      unsent--;
+      const knownIds=list==='all'?[...new Set([
+        ...[...historyItems,...historyPending].filter(x=>x.chatKey===key).map(x=>x.id),
+        ...(result?.chatKey===key?[result.id]:[]),
+        ...(key===current?chat.flatMap(m=>[m?.extra,...(Array.isArray(m?.swipe_info)?m.swipe_info.map(s=>s?.extra):[])]
+          .flatMap(extra=>Array.isArray(extra?.naice_shot_images)?extra.naice_shot_images.map(x=>x.id):[])):[])
+      ])]:list;
       let response;
-      try{response=list==='all'&&serverFeatures.includes('draft-delete')
-        ?await whileDeletingWork([key],()=>api('/delete',{method:'POST',body:{chatKey:key,all:true}}),reply=>reply.failed?.length||reply.workDeleteFailed?[]:[key]) // the chat's work goes too, saved yet or not
-        :await api('/delete',{method:'POST',body:list==='all'?{chatKey:key,all:true}:{chatKey:key,ids:list}});}
+      try{response=list==='all'
+        ?await whileDeletingWork([key],()=>requestImageDeletion(key,list,knownIds),reply=>
+          serverFeatures.includes('draft-delete')&&!reply.unverified&&!reply.failed?.length&&!reply.workDeleteFailed?[key]:[])
+        :await requestImageDeletion(key,list,knownIds);}
       catch(e){
-        if(deleted.size){requestUnverified=true;break;}
-        if(/\(404\)|\(405\)/.test(e.message))throw new Error('서버 플러그인이 이전 버전이에요. 최신 server 파일로 바꾸고 실리태번을 재시작해 주세요.');
-        throw e;
+        deleteError=/\(404\)|\(405\)/.test(e.message)?'서버 플러그인을 업데이트하고 실리태번을 재시작해 주세요.':e.message;
+        break;
       }
       for(const id of response.deleted??[])deleted.add(id);skipped.push(...(response.skipped??[]));
       failed.push(...(response.failed??[]));workDeleteFailed||=response.workDeleteFailed===true;
+      if(response.unverified){requestUnverified=true;draftHeld=response.draftHeld===true;allGone=response.allGone===true;break;}
     }
     // Clean attachments of the open chat in one save; other chats keep a "missing image" note.
     // 0.1.79 (UI-078-04): the originals are gone at this point. If taking them out of the chat is not saved, the rest
@@ -2144,14 +2239,17 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
       catch{detachFailed=true;}
     }
     if(result&&deleted.has(result.id))result=null;
-    for(const id of deleted)selectedIds.delete(id);
+    for(const id of deleted){selectedIds.delete(id);for(const [key,pending] of pendingGenerations)if(pending===id)rememberGeneration(key,null);}
     if(current&&keyOf()===current){renderChatImages();renderResult();}
     const skippedText=(skipped.length?` 찾지 못한 ${skipped.length}장은 지우지 않았어요.`:'')+
       (failed.length?` ${failed.length}장은 삭제가 끝나지 않았어요. 이력에서 다시 삭제해 주세요.`:'')+
       (workDeleteFailed?' 마지막 작업 기억은 지우지 못했어요.':'')+
-      (requestUnverified?' 나머지 삭제 결과는 확인하지 못했어요. 이력을 다시 확인해 주세요.':'');
-    say(deleted.size?`그림 ${deleted.size}장을 삭제했어요.${skippedText}${detachFailed?' 다만 채팅에서 그림을 빼는 저장은 실패해서, 채팅에는 \'찾을 수 없는 그림\' 표시가 남아요. 그 표시의 [이 메시지에서 빼기]로 정리할 수 있어요.':unverifiedDetach?` 다만 채팅에서 그림을 뺀 것이 ${UNVERIFIED}`:''}`:`삭제한 그림이 없어요.${skippedText}`,!deleted.size||unverifiedDetach||detachFailed||failed.length>0||workDeleteFailed||requestUnverified,originTab);
-    return {deleted:[...deleted],skipped};
+      (requestUnverified?(allGone?' 삭제 응답을 받지 못했지만 이 채팅 이력에 남은 그림이 없는 것을 확인했어요.':' 삭제 응답을 받지 못했어요. 확인된 그림만 반영했으니 이력을 다시 확인해 주세요.'):'')+
+      (draftHeld?' 작업 기억을 확인할 때까지 자동 저장을 멈췄어요.':'')+
+      (deleteError?` 삭제 요청 실패. ${deleteError}`:'')+
+      (unsent?` 나머지 ${unsent}개 채팅에는 삭제 요청을 보내지 않았어요.`:'');
+    say(deleted.size?`그림 ${deleted.size}장을 삭제했어요.${skippedText}${detachFailed?' 다만 채팅에서 그림을 빼는 저장은 실패해서, 채팅에는 \'찾을 수 없는 그림\' 표시가 남아요. 그 표시의 [이 메시지에서 빼기]로 정리할 수 있어요.':unverifiedDetach?` 다만 채팅에서 그림을 뺀 것이 ${UNVERIFIED}`:''}` :`${requestUnverified?(allGone?'이력 확인을 마쳤어요.':'삭제 결과를 전부 확인하지 못했어요.'):'삭제한 그림이 없어요.'}${skippedText}`,!deleted.size||unverifiedDetach||detachFailed||failed.length>0||workDeleteFailed||requestUnverified||!!deleteError,originTab);
+    return {deleted:[...deleted],skipped,issue:skippedText.trim()};
   }finally{attaching=false;updateAttachButtons();loadHistory().catch(e=>report(e.message,true));}
 }
 // --- 본문에 넣기 (0.1.72): pressing it opens the message list, newest first, with the message the picture was made
@@ -2387,6 +2485,12 @@ function renderHistory() {
   closeImageMenu();rememberScroll();
   const chat=ctx().chat??[],current=keyOf(),multi=['chats','all'].includes(historyScope);
   if(multi)renderHistoryFilter();
+  const pending=$('ncs-history-pending');
+  pending.hidden=!historyPending.length;
+  pending.innerHTML=historyPending.length?`<h4>저장 대기 중인 그림</h4>${historyPending.map(entry=>
+    `<div class="ncs-row"><small>${esc(chatLabel(entry.chatKey))} · ${esc(shortDate(entry.created))}</small>
+    <button type="button" data-pending-save="${esc(entry.id)}">저장 다시 시도</button>
+    <button type="button" data-pending-discard="${esc(entry.id)}" class="ncs-danger-outline">버리기</button></div>`).join('')}`:'';
   $('ncs-history').innerHTML=historyItems.length?historyItems.map(item=>{
     const id=esc(item.id),here=item.chatKey===current,editable=here||item.chatKey===FREE_KEY;
     return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button>${multi?`<small class="ncs-chat-name${here?' ncs-here':''}">${esc(chatLabel(item.chatKey))}${here?' · 지금 채팅':''}</small>`:''}<small class="ncs-history-date">${esc(shortDate(item.created))}</small>${historyActions(item,{editable,attached:here&&hasInlineImage(chat,item)})}</article>`;
@@ -2395,7 +2499,7 @@ function renderHistory() {
 }
 async function loadHistory({append=false}={}) {
   const scope=historyScope,startKey=scope==='free'?FREE_KEY:keyOf(),allScope=['chats','all'].includes(scope),filter=historyFilter;
-  if(!startKey&&!allScope){historyItems=[];historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>채팅을 먼저 열어 주세요. 다른 보기에서는 채팅 없이도 이력을 볼 수 있어요.</p>';updateHistoryTools();return;}
+  if(!startKey&&!allScope){historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>채팅을 먼저 열어 주세요. 다른 보기에서는 채팅 없이도 이력을 볼 수 있어요.</p>';updateHistoryTools();return;}
   if(append&&historyLoading)return;
   const offset=append?historyItems.length:0,limit=append?HISTORY_PAGE:Math.min(100,Math.max(HISTORY_PAGE,historyItems.length));
   const request=++historyRequest;historyLoading=true;updateHistoryTools();
@@ -2406,6 +2510,7 @@ async function loadHistory({append=false}={}) {
     if(allScope&&(data.scope!=='all'||scope==='chats'&&data.kind!=='chat')){historyItems=[];historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>이 보기는 서버 플러그인 v0.1.13 이상이 필요해요. 서버를 업데이트하고 실리태번을 재시작해 주세요.</p>';return;}
     if(allScope){historyChats=Array.isArray(data.chats)?data.chats:[];historyBytes=Number(data.bytes)||0;historyImageCount=Number(data.imageCount)||0;
       if(historyFilter&&!historyChats.some(c=>c.chatKey===historyFilter)){historyFilter='';historyItems=[];historyLoading=false;return loadHistory();}}
+    historyPending=Array.isArray(data.pending)?data.pending:[];historyPendingBytes=Number(data.pendingBytes)||0;
     const items=Array.isArray(data.items)?data.items:[];
     historyItems=append?[...historyItems,...items.filter(x=>!historyItems.some(y=>y.id===x.id))]:items;
     historyTotal=Number.isInteger(data.total)?data.total:historyItems.length;historyHasMore=data.hasMore===true;
@@ -2498,6 +2603,7 @@ async function onAction(action,el) {
     case 'add-temp':addTemp();break;
     case 'generate':await generate();break;
     case 'generation-check':await checkGeneration();break;
+    case 'generation-forget':rememberGeneration(workKey(),null);notice('이 탭의 확인 표시를 지웠어요. 서버에 남은 그림은 이력에서 확인할 수 있어요.');break;
     case 'missing-proceed':await proceedMissingDialog();break;
     case 'missing-cancel':closeMissingDialog();notice('생성하지 않았어요. 위 경고 상자에서 프로필을 만들거나 연결할 수 있어요.');break;
     case 'missing-reenable':await setSkipMissingWarning(false);renderSceneExtras();notice('이 채팅에서 생성 전 경고창을 다시 띄워요.');break;
@@ -2633,6 +2739,8 @@ function bindEvents() {
       }
       else if(el.dataset.attachPlace!==undefined){attachPick.placement=el.dataset.attachPlace;renderAttachPicker();}
       else if(el.dataset.historyJump){const item=historyItems.find(x=>x.id===el.dataset.historyJump);await goToMessage(item,el.dataset.jumpIndex===undefined?null:Number(el.dataset.jumpIndex),el.dataset.jumpKind);}
+      else if(el.dataset.pendingSave){const entry=historyPending.find(x=>x.id===el.dataset.pendingSave);if(entry)await checkGeneration(entry);}
+      else if(el.dataset.pendingDiscard&&historyPending.some(x=>x.id===el.dataset.pendingDiscard))await deleteImages({ids:[el.dataset.pendingDiscard]});
       else if(el.dataset.historyDelete)await deleteImages({ids:[el.dataset.historyDelete]});
       else if(el.dataset.historyDetach)await removeImageFromChat(historyItems.find(x=>x.id===el.dataset.historyDetach));
     }).catch(e=>notice(e.message,true,originTab)).finally(()=>rememberDraft());
@@ -2650,7 +2758,7 @@ function bindEvents() {
       if(el.closest('#ncs-work-fields'))dropUndo();
       if(el.dataset.historyPick){if(el.checked)selectedIds.add(el.dataset.historyPick);else selectedIds.delete(el.dataset.historyPick);el.closest('.ncs-history-card')?.classList.toggle('ncs-picked',el.checked);updateHistoryTools();return;}
       if(el.id==='ncs-history-scope'){setHistoryScope(el.value);return;}
-      if(el.id==='ncs-history-filter'){historyFilter=el.value;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();loadHistory().catch(e=>notice(e.message,true));return;}
+      if(el.id==='ncs-history-filter'){historyFilter=el.value;historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;selectedIds.clear();loadHistory().catch(e=>notice(e.message,true));return;}
       if(el.name==='ncs-skin'){useSkin(el.value,{save:true}).catch(e=>notice(e.message,true));return;}
       if(el.id==='ncs-character-binding'||el.id==='ncs-user-binding'){
         const field=el.id==='ncs-character-binding'?'characterProfileId':'userProfileId';
@@ -2737,7 +2845,7 @@ function chatChanged() {
     renderChatImages();renderHistory();if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true,'history'));return;
   }
   pauseDraftCapture=true;try{cancelExtraction('');}finally{pauseDraftCapture=false;}
-  wardrobeTarget=null;pendingTempConvert=null;lastLink=null;linkTarget=null;task++;revision++;scene=blankScene();draftSource=null;raw='';finalOverride=null;optionsOverride=null;restoredFinal=null;result=null;undoClear=null;historyItems=[];historyTotal=0;historyHasMore=false;selectedIds.clear();
+  wardrobeTarget=null;pendingTempConvert=null;lastLink=null;linkTarget=null;task++;revision++;scene=blankScene();draftSource=null;raw='';finalOverride=null;optionsOverride=null;restoredFinal=null;result=null;undoClear=null;historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;selectedIds.clear();
   if(dialog){targetScroll=0;targetReveal=false;targetListRendered=false;targetShown=TARGET_STEP;$('ncs-target').value='';$('ncs-moment-wish').value='';$('ncs-target-picker').open=false;renderTargets();renderMatching();renderScene({forceFinal:true});renderResult();renderUndo();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.',false,'scene');}
   renderChatImages();
   recallDraft().catch(e=>notice(e.message,true,'scene'));if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true,'history'));

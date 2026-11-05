@@ -9,7 +9,9 @@ window.fetch=(url,options)=>{
   if(window.mock?.chatReadFails)return Promise.resolve(new Response('no',{status:500}));
   window.mock.savedChat??=JSON.stringify(window.mock.chat);
   const saved=JSON.parse(window.mock.savedChat);
-  return Promise.resolve(new Response(JSON.stringify([{chat_metadata:window.mock.savedMetadata??window.mock.chatMetadata,user_name:'x',character_name:'y'},...saved]),{status:200,headers:{'Content-Type':'application/json'}}));
+  const header={user_name:'x',character_name:'y'};
+  if(!window.mock.legacyChatHeader)header.chat_metadata=window.mock.savedMetadata??window.mock.chatMetadata;
+  return Promise.resolve(new Response(JSON.stringify([header,...saved]),{status:200,headers:{'Content-Type':'application/json'}}));
  }
  return realFetch(url,options);
 };

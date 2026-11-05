@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {attachImage,buildImageMessage} from '../chat.mjs';
+import {attachImage,buildImageMessage,comparableSavedMetadata,splitSavedChat} from '../chat.mjs';
 import {chooseMessages} from '../core.mjs';
 const id='78c72e1e-e533-4188-9c93-a776da821ce3';
 const item={id,image:`/user/images/naice-shot/${id}.png`};
@@ -29,4 +29,21 @@ test('wrong chat and unsafe image paths cannot be attached',async()=>{
 test('a render failure rolls back the new display message only',async()=>{
  const original={mes:'RP'};const ctx={chat:[original],addOneMessage:()=>{throw new Error('render failed');},saveChat:async()=>{}};
  await assert.rejects(attachImage(ctx,item),/render failed/);assert.deepEqual(ctx.chat,[original]);
+});
+
+test('an absent author note default is normalized without ignoring real metadata changes',()=>{
+ const local={note_prompt:'default',note_depth:4,note_position:1,note_role:0,note_interval:1,integrity:'host-id'};
+ const config={default:'default'};
+ assert.deepEqual(comparableSavedMetadata({},local,config),local);
+ assert.equal(comparableSavedMetadata({note_prompt:'saved elsewhere'},local,config).note_prompt,'saved elsewhere');
+ assert.equal(Object.hasOwn(comparableSavedMetadata({}, {...local,note_depth:9},config),'note_depth'),false);
+});
+
+test('recognizes legacy chat and group formats without accepting an empty or invalid reply',()=>{
+ const message={mes:'hi'};
+ assert.deepEqual(splitSavedChat([{user_name:'u',character_name:'c'},message]),{messages:[message],metadata:{}});
+ assert.deepEqual(splitSavedChat([message],{inGroup:true}),{messages:[message],metadata:{}});
+ assert.throws(()=>splitSavedChat([],{inGroup:true}));
+ assert.throws(()=>splitSavedChat([{chat_metadata:[]},message]));
+ assert.throws(()=>splitSavedChat([message]));
 });

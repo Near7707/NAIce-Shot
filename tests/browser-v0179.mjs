@@ -211,5 +211,62 @@ try{
   await page.locator('#ncs-result [data-view-result]').first().waitFor();
   assert.equal(calls,1);assert.equal(checks,1);assert.equal(saves,1);assert.deepEqual(errors,[]);await page.close();
  }
+ // The host initializes Author's Note after the first save. A legacy header is also valid.
+ {
+  const {page,errors}=await open(375);
+  await page.evaluate(()=>{
+    mock.extensionSettings.note={default:'configured note'};
+    mock.chatMetadata={note_prompt:'configured note',note_interval:1,note_position:1,note_depth:4,note_role:0};
+    mock.savedMetadata={};mock.legacyChatHeader=true;
+  });
+  await page.locator('[data-action="generate"]').click();await idle(page);
+  await page.locator('#ncs-result [data-action="attach"]').click();
+  await page.locator('[data-attach-target="1"]').click();
+  await page.locator('#ncs-attach-dialog [data-action="attach-confirm"]').click();
+  await page.waitForFunction(()=>JSON.parse(mock.savedChat??'[]')[1]?.extra?.naice_shot_images?.length===1);
+  await page.locator('#chat .ncs-inline-open').first().waitFor();
+  assert.equal(await page.evaluate(()=>mock.chatSaves),1);
+  assert.deepEqual(errors,[]);await page.close();
+ }
+ // A fresh tab sees a server-side pending picture. A lost delete reply can be checked
+ // by its exact ID and the confirmed attachment is removed from the open chat.
+ {
+  const {page,errors}=await open(375);
+  const chatKey=JSON.stringify({group:null,card:'Leo.png',chat:'A'});
+  const id='00000000-0000-4000-8000-0000000000aa';
+  const entry={id,chatKey,created:'2026-11-05T00:00:00Z',bytes:2080};
+  const recovered={...entry,image:`/user/images/naice-shot/${id}.png`,seed:123,options:{model:'nai-diffusion-4-5-full'}};
+  let pending=[entry],items=[],checks=0,recoveries=0;
+  await page.route('**/api/plugins/naice-shot/**',async r=>{
+   const {pathname}=new URL(r.request().url());
+   if(pathname.endsWith('/status'))return r.fulfill({json:{keyConfigured:true,version:'0.1.21',features:[...features,'generation-recovery','pending-history','delete-check']}});
+   if(pathname.endsWith('/history'))return r.fulfill({json:{pending,pendingBytes:pending.length?2080:0,items,total:items.length}});
+   if(pathname.endsWith('/generation')){
+    if(r.request().method()==='GET')return r.fulfill({json:{state:'save-failed'}});
+    assert.equal(r.request().postDataJSON().requestId,id);recoveries++;pending=[];items=[recovered];
+    return r.fulfill({json:{state:'complete',item:recovered}});
+   }
+   if(pathname.endsWith('/delete')){items=[];return r.abort('failed');}
+   if(pathname.endsWith('/delete-check')){
+    checks++;assert.deepEqual(r.request().postDataJSON().ids,[id]);
+    return r.fulfill({json:{absent:[id],remaining:false}});
+   }
+   return r.fallback();
+  });
+  await page.reload();await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
+  await page.locator('[data-tab="history"]').click();
+  await page.locator('[data-pending-save]').click();
+  await page.locator(`[data-view-history="${id}"]`).waitFor();
+  assert.equal(recoveries,1);
+  await page.locator('[data-tab="scene"]').click();
+  await page.locator('#ncs-result [data-action="attach"]').click();
+  await page.locator('[data-attach-target="1"]').click();
+  await page.locator('#ncs-attach-dialog [data-action="attach-confirm"]').click();
+  await page.locator('#chat .ncs-inline-open').first().waitFor();
+  await page.locator('#ncs-result [data-action="delete-result"]').click();
+  await page.waitForFunction(()=>/삭제 응답을 받지 못했어요/.test(document.querySelector('#ncs-notice').innerText));
+  assert.equal(checks,1);assert.equal(await page.locator('#chat .ncs-inline-open').count(),0);
+  assert.deepEqual(errors,[]);await page.close();
+ }
  console.log('PASS: closable short notes; typed names checked again after becoming chips; a pick that does not fit is refused; backups keep each mode; link undo reaches other candidates; no success note for an unchecked move; delete cleans up after a failed chat save');
 }finally{await browser.close();server.close();}

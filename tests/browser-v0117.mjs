@@ -111,7 +111,7 @@ try{
  await page.locator('#ncs-profile-submit').click();
  await page.waitForFunction(()=>mock.extensionSettings.naice_shot.profiles.some(p=>p.name==='Mira'));
  const miraId=await page.evaluate(()=>mock.extensionSettings.naice_shot.profiles.find(p=>p.name==='Mira').id);
- assert.equal(await page.evaluate(()=>mock.chatMetadata.naice_shot.bindings.userProfileId),miraId);
+ await page.waitForFunction(id=>mock.savedMetadata?.naice_shot?.bindings?.userProfileId===id,miraId);
  assert.equal(await ubox.count(),0);
  // Persona source path on a fresh page.
  await page.close();

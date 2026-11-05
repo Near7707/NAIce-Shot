@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.83 — 2026-11-05 (extension + server v0.1.21)
+
+- New chats can save attachments and per-chat settings when the only absent disk metadata is a matching SillyTavern Author’s Note default. Recognized legacy headers are also supported.
+- History lists pending pictures from any tab. Save the existing picture again or discard its recovery data.
+- After a lost delete reply, verify the image IDs before removing attachments and check saved work before resuming its auto-save.
+
 ## 0.1.82 — 2026-11-05 (extension + server v0.1.20)
 
 - Before changing attachments or per-chat settings, compare the open chat with the saved messages and metadata. Stop if the chat is changing, a host save is in progress, or the file cannot be confirmed.

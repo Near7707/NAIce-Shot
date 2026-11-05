@@ -134,12 +134,12 @@ try{
   const savedPlace=p=>[...entries.values()].some(v=>v.work?.scene.location===p);
   deleteFails=true;await page.locator('#ncs-location').fill('kept edit');
   await page.locator('[data-tab="settings"]').click();await page.locator('[data-action="delete-all-work"]').click();
-  await page.waitForFunction(()=>/삭제하지 못했어요\. 작업은 그대로예요/.test(document.querySelector('#ncs-notice').textContent));
+  await page.waitForFunction(()=>/전체 삭제 응답을 받지 못했어요/.test(document.querySelector('#ncs-notice').textContent));
   await page.waitForFunction(()=>document.querySelector('#ncs-draft-status').textContent==='마지막 작업을 서버에 기억해요.');assert.ok(savedPlace('kept edit'),'the held edit is saved after the failure');
   await page.locator('[data-tab="scene"]').click();await page.locator('#ncs-location').fill('kept history edit');
   history.push({id:historyId,chatKey:JSON.stringify({group:null,card:'Leo.png',chat:'A'}),image:`/user/images/naice-shot/${historyId}.png`,created:new Date().toISOString()});
   await page.locator('[data-tab="history"]').click();await page.locator('[data-action="delete-chat-history"]').click();
-  await page.waitForFunction(()=>/삭제하지 못했어요/.test(document.querySelector('#ncs-notice').textContent));
+  await page.waitForFunction(()=>/삭제 응답을 받지 못했어요/.test(document.querySelector('#ncs-notice').textContent));
   await page.waitForFunction(()=>document.querySelector('#ncs-draft-status').textContent==='마지막 작업을 서버에 기억해요.');assert.ok(savedPlace('kept history edit'));deleteFails=false;
   await page.reload();await open();assert.equal(await value(),'kept history edit','nothing was lost');
   // A chat with images but no saved work yet: deleting its history still empties the drawing window.
