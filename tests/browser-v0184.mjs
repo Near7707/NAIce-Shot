@@ -113,9 +113,9 @@ try{
    await star.click();
    assert.equal(await star.textContent(),'★');assert.equal(await star.getAttribute('aria-pressed'),'true');
    assert.deepEqual(await stored(page),{[uid(2)]:{chatKey:KEY,star:true}});
-   // the star button sits on the date line and stays small
-   const box=await star.boundingBox(),date=await page.locator(`[data-view-history="${uid(2)}"]`).locator('xpath=ancestor::article').locator('.ncs-history-date').boundingBox();
-   assert.ok(box.width<=34&&Math.abs((box.y+box.height/2)-(date.y+date.height/2))<6,'☆ is a small button on the date line');
+   // the star button stays small (0.1.86: at the top right, on the 선택 line — browser-v0186 checks the place)
+   const box=await star.boundingBox();
+   assert.ok(box.width<=34,'☆ is a small button');
    await page.locator('[data-action="history-star-only"]').click();
    await page.waitForFunction(()=>document.querySelectorAll('#ncs-history [data-view-history]').length===1);
    assert.deepEqual(await cards(page),[uid(2)]);
@@ -253,32 +253,16 @@ try{
     const src=await popup(page).locator('img').getAttribute('src');seen.add(path.basename(src,'.png'));}
    assert.deepEqual([...seen].sort(),[uid(1),uid(2)].sort(),'random among the same character only');
    assert.equal(await page.locator('#ncs-tag-pop').count(),1,'one popup at a time');
-   assert.match(await popup(page).locator('.ncs-tag-pop-tags').innerText(),/#웃음/);
+   assert.equal(await popup(page).locator('.ncs-tag-pop-tags').count(),0,'0.1.86: no tag text on the popup');
    // stays until closed
    await page.waitForTimeout(1500);assert.equal(await popup(page).isVisible(),true);
    const pb=await popup(page).boundingBox();assert.ok(pb.x>=0&&pb.x+pb.width<=width+1,'popup inside the screen');assert.ok(await noOverflow(page));
-   // a picture of another chat: view only
-   for(let i=0;i<20;i++){if(path.basename(await popup(page).locator('img').getAttribute('src'),'.png')===uid(2))break;await reply(page,`웃음 ${i}`);await popup(page).waitFor();}
-   assert.equal(path.basename(await popup(page).locator('img').getAttribute('src'),'.png'),uid(2));
-   assert.equal(await popup(page).locator('[data-tag-pop="insert"]').isDisabled(),true);
-   assert.match(await popup(page).innerText(),/다른 채팅에서 만든 그림이라 보기만/);
+   // 0.1.86: no [넣기] and no "이 채팅에서 끄기" on the popup; ✕ closes it (browser-v0186 checks 🔍, dragging and sizes)
+   assert.equal(await popup(page).locator('[data-tag-pop="insert"],[data-tag-pop="off"]').count(),0);
    await popup(page).locator('[data-tag-pop="close"]').click();assert.equal(await popup(page).count(),0);
-   // a picture of this chat: [넣기] opens the usual list with the reply that showed it already chosen
-   let idx;
-   for(let i=0;i<20;i++){idx=await reply(page,`웃음 가득 ${i}`);await popup(page).waitFor();if(path.basename(await popup(page).locator('img').getAttribute('src'),'.png')===uid(1))break;}
-   assert.equal(path.basename(await popup(page).locator('img').getAttribute('src'),'.png'),uid(1));
-   await popup(page).locator('[data-tag-pop="insert"]').click();
-   await page.locator('#ncs-attach-dialog[open]').waitFor();
-   assert.equal(await popup(page).count(),0);
-   assert.equal(await page.locator('#ncs-attach-dialog [data-action="attach-confirm"]').innerText(),`#${idx}에 넣기`);
-   assert.equal(await page.locator(`[data-attach-target="${idx}"]`).getAttribute('aria-pressed'),'true');
-   await page.locator('#ncs-attach-dialog [data-action="attach-confirm"]').click();
-   await page.waitForFunction(i=>mock.chat[i].extra?.naice_shot_images?.some(x=>x.id==='00000001-aaaa-4bbb-8ccc-000000000001'),idx);
-   await closePanel(page);
-   // [이 채팅에서 끄기] turns this chat off
-   await reply(page,'웃음');await popup(page).waitFor();
-   await popup(page).locator('[data-tag-pop="off"]').click();
-   assert.equal(await popup(page).count(),0);assert.deepEqual(await page.evaluate(()=>mock.extensionSettings.naice_shot.tagPopupChats),{});
+   // turning the chat off in Settings stops it
+   await page.locator('.ncs-launch-button').click();await page.locator('[data-tab="settings"]').click();await toggle.uncheck();
+   assert.deepEqual(await page.evaluate(()=>mock.extensionSettings.naice_shot.tagPopupChats),{});await closePanel(page);
    await reply(page,'웃음');await page.waitForTimeout(100);assert.equal(await popup(page).count(),0);
    assert.deepEqual(errors,[]);await page.close();}
 

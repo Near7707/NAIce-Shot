@@ -108,7 +108,7 @@ try{
   // UI-066-01 + help text: a failed check marks the old list and stops copying it.
   await page.locator('[data-tab="settings"]').click();await page.locator('[data-action="status"]').click();await page.locator('#ncs-account-shape').waitFor();
   await page.locator('#ncs-account-shape > summary').click();
-  assert.match(await page.locator('.ncs-shape-help').innerText(),/이 목록은 뭔가요\?[\s\S]*개인정보는 없나요\?[\s\S]*서버에서부터 빼고 보내요/);
+  assert.match(await page.locator('.ncs-shape-help').innerText(),/개인정보는 없나요\?[\s\S]*서버에서부터 빼고 보내요[\s\S]*이 목록은 뭔가요\?/); // 0.1.86: the privacy answer comes first
   assert.equal(await page.locator('[data-action="copy-shape"]').isDisabled(),false);
   acct.fail=true;await page.locator('[data-action="status"]').click();await page.waitForFunction(()=>/이전 조회/.test(document.querySelector('#ncs-shape-status').textContent));
   assert.equal(await page.locator('[data-action="copy-shape"]').isDisabled(),true,'old list cannot be copied as current');

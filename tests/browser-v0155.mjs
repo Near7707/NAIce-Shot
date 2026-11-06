@@ -44,7 +44,7 @@ try{
   assert.equal(await page.locator('[data-action="free-fill"]').count(),0,'no separate 글로 채우기');
   assert.equal(await page.locator('[data-action="extract"]').count(),1);
   assert.equal(await page.locator('#ncs-request-home #ncs-request').count(),1,`${tag}: request above 장면 추출`);
-  assert.match(await page.locator('#ncs-request').innerText(),/추가 요청 · 선택[\s\S]*바꿀 내용을 적어 주세요/);
+  assert.match(await page.locator('#ncs-request').textContent(),/추가 요청 · 선택[\s\S]*바꿀 내용을 적어 주세요/); // 0.1.86: on a phone the full line sits behind 더보기
   assert.equal(await page.locator('#ncs-format').isVisible(),true);
   assert.equal(await page.locator('.ncs-section-head .ncs-clear-slot .ncs-action-slot').innerText(),'그리기창 비우기');
   assert.equal(await page.locator('[data-action="add-character"]').evaluate(b=>b.classList.contains('ncs-accent')),true);
@@ -70,7 +70,7 @@ try{
   await page.locator('[data-mode="free"]').click();await page.waitForFunction(()=>document.querySelector('[data-mode="free"]').getAttribute('aria-pressed')==='true');
   assert.equal(await slot.innerText(),'그리기창 비우기','프리샷 has no undo of its own yet');
   assert.equal(await page.locator('#ncs-request').isVisible(),false,'추가 요청 is 챗샷 only');assert.equal(await page.locator('#ncs-format').isVisible(),true,'추출 표현 also in 프리샷');
-  assert.match(await page.locator('#ncs-free-source p').innerText(),/별칭을 쓰면 인물을 미리 추가하지 않아도/);
+  assert.match(await page.locator('#ncs-free-source p:not(.ncs-help-short)').textContent(),/별칭을 쓰면 인물을 미리 추가하지 않아도/);
   // 프리샷 uses the same 장면 추출 (the free-scene prompt, nothing from the chat).
   await page.evaluate(()=>{mock.extraction={characters:[{id:'leo',name:'Leo',subject:'boy',appearance:'',outfit:'',expression:'smile',action:'reading',position:'auto'}],location:'library',lighting:'lamp light',camera:'wide shot',interaction:''};});
   await page.locator('#ncs-free-text').fill('도서관에서 책 읽는 레오');await page.locator('[data-action="extract"]').click();await idle(page);

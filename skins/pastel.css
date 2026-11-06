@@ -19,7 +19,7 @@
 #naice-shot-dialog[data-skin="pastel"] .ncs-brand .ncs-icon {border-radius:50%;background:#fff1b8;box-shadow:0 4px 12px rgba(242,201,76,.45);}
 #naice-shot-dialog[data-skin="pastel"] .ncs-header {border-bottom-color:transparent;}
 #naice-shot-dialog[data-skin="pastel"] .ncs-tabs button {border-radius:999px;background-color:#e6f2fc;border-color:transparent;color:var(--ncs-muted);}
-#naice-shot-dialog[data-skin="pastel"] .ncs-tabs button:hover {background-color:#d9ebfa;border-color:transparent;}
+@media (hover:hover){#naice-shot-dialog[data-skin="pastel"] .ncs-tabs button:hover {background-color:#d9ebfa;border-color:transparent;}}
 #naice-shot-dialog[data-skin="pastel"] .ncs-tabs .ncs-active {color:var(--ncs-fg);box-shadow:0 4px 12px rgba(80,140,200,.22),inset 0 -3px 0 #ffd75e;}
 #naice-shot-dialog[data-skin="pastel"] .ncs-profile-chip.ncs-selected {background-color:#cfe8fa;color:#1d3a55;border-color:#8cc4ea;}
 #naice-shot-dialog[data-skin="pastel"] .ncs-section {border-bottom-style:dashed;}

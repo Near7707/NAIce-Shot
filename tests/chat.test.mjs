@@ -39,6 +39,17 @@ test('an absent author note default is normalized without ignoring real metadata
  assert.equal(Object.hasOwn(comparableSavedMetadata({}, {...local,note_depth:9},config),'note_depth'),false);
 });
 
+test('0.1.86 B2: keys SillyTavern changes in memory only do not count as a disk change',()=>{
+ const local={lastInContextMessageId:12,chat_id_hash:991,timedWorldInfo:{sticky:{},cooldown:{}},variables:{x:1}};
+ const stable=x=>JSON.stringify(x,Object.keys(x).sort());
+ // the disk is older (or never had them): still the same chat
+ assert.equal(stable(comparableSavedMetadata({lastInContextMessageId:3,variables:{x:1}},local)),stable(local));
+ // memory dropped one that the disk still has: still the same
+ assert.equal(Object.hasOwn(comparableSavedMetadata({chat_id_hash:5,variables:{x:1}},{variables:{x:1}}),'chat_id_hash'),false);
+ // a real change elsewhere is still seen
+ assert.deepEqual(comparableSavedMetadata({lastInContextMessageId:3,variables:{x:2}},local).variables,{x:2});
+});
+
 test('recognizes legacy chat and group formats without accepting an empty or invalid reply',()=>{
  const message={mes:'hi'};
  assert.deepEqual(splitSavedChat([{user_name:'u',character_name:'c'},message]),{messages:[message],metadata:{}});

@@ -1,5 +1,16 @@
 # Installation and update checklist
 
+## v0.1.86
+
+**The server plugin must be 0.1.23** (it is the current one; no server change in this release). If the panel says the server is older, update the server first, restart SillyTavern, then update the extension and refresh.
+
+1. History: delete a picture you never put in the chat — no "빼는 저장은 실패" note.
+2. History card: ☆ is at the top right, on the 선택 line. Tap **# 태그** — only tagged pictures; ★ and # never stay on together.
+3. On a phone: explanations show one line with **더보기 ›**; costs and privacy notes stay open. Tapping a button leaves no colour behind.
+4. Apple Cream theme: open 대상 메시지 — the chosen row's text is readable.
+5. Tag popup: it shows at the top centre of the chat. Drag it, close it, get another match — it comes back where you left it. 🔍 opens the enlarged view. Settings → 팝업 크기 and 위치 처음으로.
+6. History ⋯ → 태그 편집 on a phone: the field stays above the keyboard.
+
 ## v0.1.84
 
 **Update the server plugin first** (0.1.22), restart SillyTavern, then update the extension and refresh. The extension needs server 0.1.22 or newer.

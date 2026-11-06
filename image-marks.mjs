@@ -65,6 +65,8 @@ export function forgetChat(marks, chatKey) {
   return { marks: next, changed };
 }
 export const starredIds = (marks, keep = () => true) => Object.entries(marks).filter(([id, m]) => m.star && keep(id, m)).map(([id]) => id);
+// 0.1.86: every picture that has at least one tag (the history's [# 태그] view).
+export const taggedIds = marks => Object.entries(marks).filter(([, m]) => Array.isArray(m.tags) && m.tags.length > 0).map(([id]) => id);
 
 // Whose picture it is: the character card of a one-on-one chat, or the group. 프리샷 pictures belong to no one.
 export function ownerOf(chatKey) {

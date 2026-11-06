@@ -11,3 +11,9 @@ export const TAB_ICONS = {
   settings: stroke('<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/>'),
   history: stroke('<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4.5v4h4"/><path d="M12 7.5V12l3 2"/>'),
 };
+
+// 0.1.86: buttons drawn on top of a picture (the tag popup). White strokes; the button behind them is a
+// see-through dark circle, so they read on light and dark pictures alike.
+const onPicture = body => `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+export const ZOOM_ICON = onPicture('<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/><path d="M10.5 8v5M8 10.5h5"/>');
+export const CLOSE_ICON = onPicture('<path d="M7 7l10 10M17 7L7 17"/>');

@@ -1,7 +1,7 @@
 import { DEFAULTS, MODELS, clone, PROFILE_SCHEMA, profileDraftPrompt, parseProfileDraft, blankScene, validateProfiles, sourceValid,
   assemble, resolveOutfit, buildPayload, costGuard, usageOf, textSignature,
   BRAND, SIZE_PRESETS, sizePresetOf, VERSION, stripReasoningBlocks } from './core.mjs';
-import { CAMERA_ICON, BRAND_ICON, TAB_ICONS } from './icons.mjs';
+import { CAMERA_ICON, BRAND_ICON, TAB_ICONS, ZOOM_ICON, CLOSE_ICON } from './icons.mjs';
 import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } from './skins.mjs';
 import { attachInlineImages, detachInlineImage, detachInlineImages, detachMessageImage, placeMessageImage, orderedInlineImages, placementOf, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, visibleInlineImages, SAVE_NOTES, INLINE_LAYOUTS, INLINE_SIZES } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
@@ -24,7 +24,7 @@ import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, 
 import { cleanImageFile, saveCleanImage } from './downloads.mjs';
 import { jumpTargets, locateSource, locateAttached } from './message-jump.mjs';
 import {stableChatJson,comparableSavedMetadata,splitSavedChat} from './chat.mjs';
-import {parseTags,cleanMarks,cleanPopupChats,setMark,forgetIds,forgetChat,starredIds,ownerOf,tagMatches,pickMatch,taggedFor,TAG_LIMIT,TAG_LENGTH} from './image-marks.mjs';
+import {parseTags,cleanMarks,cleanPopupChats,setMark,forgetIds,forgetChat,starredIds,taggedIds,ownerOf,tagMatches,pickMatch,taggedFor} from './image-marks.mjs';
 
 const KEY='naice_shot',API='/api/plugins/naice-shot';
 // 챗샷 draws from the open chat; 프리샷 draws from free text with no chat at all. Each mode keeps its own work.
@@ -39,7 +39,7 @@ const selectedIds=new Set(),HISTORY_PAGE=20;
 let historyScope='chat',historyFilter='',historyChats=[],historyPending=[],historyPendingBytes=0,historyBytes=0,historyImageCount=0,historyRequest=0;
 // 0.1.84: ★ only (the history view lists favorites through the server's ID filter); the unfiltered count is kept for
 // "delete all" questions. historyTagEdit: the card whose tag editor is open.
-let historyStarOnly=false,historyUnfiltered=null,historyTagEdit=null;
+let historyMarkFilter=null,historyUnfiltered=null,historyTagEdit=null; // historyMarkFilter: null, 'star' (★ only) or 'tag' (# 태그, 0.1.86) — never both
 let availableSkins=SKINS.filter(s=>!s.file),skinsDetected=false;
 let serverFeatures=[],draftsEnabled=false,draftLoading=false,pauseDraftCapture=false,draftLoadToken=0,draftSource=null,draftNote='';
 const $=id=>dialog.querySelector(`#${id}`);
@@ -243,15 +243,15 @@ async function promptForImage(item) {
 function shortDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?'':d.toLocaleString('ko-KR',{year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'});}
 // One history page for a range. With ★ only, the favorites' IDs go to the server, which keeps its own range rules.
 function marks(){const s=settings();if(!s.imageMarks||typeof s.imageMarks!=='object')s.imageMarks={};return s.imageMarks;}
-function historyPage({scope,filter,key,offset,limit,starOnly}){
+function historyPage({scope,filter,key,offset,limit,markFilter}){
   const all=['chats','all'].includes(scope);
-  if(starOnly)return api('/history',{method:'POST',body:{...(all?{scope:'all',...(scope==='chats'?{kind:'chat'}:{}),...(filter?{chatKey:filter}:{})}:{chatKey:key}),ids:starredIds(marks()),offset,limit}});
+  if(markFilter)return api('/history',{method:'POST',body:{...(all?{scope:'all',...(scope==='chats'?{kind:'chat'}:{}),...(filter?{chatKey:filter}:{})}:{chatKey:key}),ids:markFilter==='tag'?taggedIds(marks()):starredIds(marks()),offset,limit}});
   const query=all?`scope=all${scope==='chats'?'&kind=chat':''}${filter?`&chatKey=${encodeURIComponent(filter)}`:''}`:`chatKey=${encodeURIComponent(key)}`;
   return api(`/history?${query}&offset=${offset}&limit=${limit}`);
 }
 // A viewer owns its range and page cursor; background refreshes cannot mix in another range.
 function historyGallery(){
-  const scope=historyScope,filter=historyFilter,key=scope==='free'?FREE_KEY:keyOf(),all=['chats','all'].includes(scope),starOnly=historyStarOnly;
+  const scope=historyScope,filter=historyFilter,key=scope==='free'?FREE_KEY:keyOf(),all=['chats','all'].includes(scope),markFilter=historyMarkFilter;
   let offset=historyItems.length,pending=null;
   const gallery={items:[...historyItems],total:historyTotal,hasMore:historyHasMore,
     describe:item=>imageViewerOptions(item),
@@ -259,7 +259,7 @@ function historyGallery(){
     loadMore(){
       if(pending)return pending;if(!gallery.hasMore)return Promise.resolve();
       pending=(async()=>{
-        const data=await historyPage({scope,filter,key,offset,limit:HISTORY_PAGE,starOnly});
+        const data=await historyPage({scope,filter,key,offset,limit:HISTORY_PAGE,markFilter});
         if(all&&(data.scope!=='all'||scope==='chats'&&data.kind!=='chat'))throw new Error('이력 범위를 확인하지 못했어요. 다시 열어 주세요.');
         const items=Array.isArray(data.items)?data.items:[];offset+=items.length;
         gallery.items.push(...items.filter(x=>!gallery.items.some(y=>y.id===x.id)));
@@ -316,8 +316,9 @@ async function showPanel(tab=null){await (panelReady??Promise.resolve());await o
 async function goToHistoryCard(item){
   await showPanel('history');
   const scope=item.chatKey===FREE_KEY?'free':item.chatKey&&item.chatKey===keyOf()?'chat':'all';
-  // ★ only would hide a picture without a star: the card is looked for in the full range.
-  if(historyScope!==scope||historyFilter||(historyStarOnly&&!marks()[item.id]?.star)){closeImageMenu();historyScope=scope;historyFilter='';historyStarOnly=false;historyItems=[];historyPending=[];historyPendingBytes=0;historyTotal=0;historyHasMore=false;selectedIds.clear();}
+  // ★ only (or # 태그) would hide a picture without a star (or tags): the card is looked for in the full range.
+  const hiddenByMarks=historyMarkFilter==='star'&&!marks()[item.id]?.star||historyMarkFilter==='tag'&&!marks()[item.id]?.tags?.length;
+  if(historyScope!==scope||historyFilter||hiddenByMarks){closeImageMenu();historyScope=scope;historyFilter='';historyMarkFilter=null;historyItems=[];historyPending=[];historyPendingBytes=0;historyTotal=0;historyHasMore=false;selectedIds.clear();}
   await loadHistory();
   for(let i=0;i<60&&!historyItems.some(x=>x.id===item.id)&&historyHasMore;i++){if(historyLoading)await new Promise(r=>setTimeout(r,60));else await loadHistory({append:true});}
   const card=dialog.querySelector(`[data-view-history="${CSS.escape(item.id)}"]`)?.closest('.ncs-history-card');
@@ -803,7 +804,7 @@ function renderGenBox() {
   for(const k of GEN_FIELDS){const el=dialog.querySelector(`[data-gen="${k}"]`);if(el&&document.activeElement!==el)el.value=o[k];}
   const size=sizePresetOf(o);dialog.querySelector('[data-gen="size"]').value=size==='custom'?'portrait':size;
   $('ncs-gen-scope').textContent=history?'이력 설정 · 이번 생성에만':'생성 설정';
-  $('ncs-gen-scope').classList.toggle('ncs-gen-history',history);$('ncs-gen-override').hidden=!history;$('ncs-gen-note').hidden=history;
+  $('ncs-gen-scope').classList.toggle('ncs-gen-history',history);$('ncs-gen-override').hidden=!history;($('ncs-gen-note').closest('.ncs-help')??$('ncs-gen-note')).hidden=history;
   const parts=[MODELS[o.model]?.label??o.model,`${SIZE_PRESETS[size]?.label.split(' · ')[0]??'세로'} ${o.width}×${o.height}`,`${o.steps} Steps`,`Guidance ${o.scale}`,o.seed===-1?'새 seed':`seed ${o.seed}`];
   $('ncs-gen-line').innerHTML=parts.map(part=>`<span>${esc(part)}</span>`).join(' · ');
   const p=s.imagePresets.find(p=>p.id===s.imagePresetId),over=dialog.querySelector('[data-action="gen-preset-overwrite"]');
@@ -2156,9 +2157,13 @@ function updateHistoryTools() {
   const any=selectedIds.size>0;all.innerHTML=any?'모두 해제':'<span class="ncs-wide-only">표시된 항목 </span>모두 선택';all.title=any?`고른 ${selectedIds.size}장의 선택을 모두 풀어요`:'표시된 항목 모두 선택';all.disabled=locked||!historyItems.length;
   const allScope=['chats','all'].includes(historyScope),singleKey=historyScope==='free'?FREE_KEY:keyOf();
   const scopeCount=historyUnfiltered??historyTotal+historyPending.length; // ★ only lists fewer, but "delete all" means all
-  const star=dialog.querySelector('[data-action="history-star-only"]'),canStar=serverFeatures.includes('history-ids');
-  star.setAttribute('aria-pressed',String(historyStarOnly));star.textContent=historyStarOnly?'★ 즐겨찾기만':'☆ 즐겨찾기만';
-  star.disabled=locked||!canStar;star.title=canStar?(historyStarOnly?'모든 그림 보기로 돌아가요':'즐겨찾기(★)한 그림만 보여줘요'):'서버 플러그인 v0.1.22 이상이 필요해요';
+  const star=dialog.querySelector('[data-action="history-star-only"]'),tagView=dialog.querySelector('[data-action="history-tag-only"]'),canStar=serverFeatures.includes('history-ids');
+  star.setAttribute('aria-pressed',String(historyMarkFilter==='star'));star.textContent=historyMarkFilter==='star'?'★ 즐겨찾기만':'☆ 즐겨찾기만';
+  star.disabled=locked||!canStar;star.title=canStar?(historyMarkFilter==='star'?'모든 그림 보기로 돌아가요':'즐겨찾기(★)한 그림만 보여줘요'):'서버 플러그인 v0.1.22 이상이 필요해요';
+  // 0.1.86: [# 태그] lists every picture with a tag, through the same ID filter. Only one of ★ and # is on.
+  tagView.setAttribute('aria-pressed',String(historyMarkFilter==='tag'));tagView.disabled=locked||!canStar;
+  tagView.title=canStar?(historyMarkFilter==='tag'?'모든 그림 보기로 돌아가요':'태그를 붙인 그림만 보여줘요'):'서버 플러그인 v0.1.22 이상이 필요해요';
+  $('ncs-tag-view-help').hidden=historyMarkFilter!=='tag';
   const clear=dialog.querySelector('[data-action="delete-chat-history"]');clear.disabled=locked||!scopeCount||!singleKey;clear.hidden=allScope;clear.textContent=historyScope==='free'?'프리샷 이력 전체 삭제':'이 채팅 이력 전체 삭제';
   const filterDelete=dialog.querySelector('[data-action="delete-filter-chat"]');filterDelete.hidden=!allScope||!historyFilter;filterDelete.disabled=locked||!scopeCount;
   $('ncs-history-all-tools').hidden=!allScope;
@@ -2171,7 +2176,7 @@ function updateHistoryTools() {
   $('ncs-history-storage').textContent=allScope?`이 범위의 그림 ${historyImageCount}장 · ${formatBytes(historyBytes)}`:'';
   const more=dialog.querySelector('[data-action="history-more"]');more.hidden=!historyHasMore;more.disabled=historyLoading;
   more.textContent=historyLoading?'불러오는 중…':`더 보기 (${historyItems.length} / ${historyTotal})`;
-  $('ncs-history-count').textContent=[historyTotal?`${historyStarOnly?'즐겨찾기':'총'} ${historyTotal}장 · ${historyItems.length}장 표시 중`:'',historyPending.length?`저장 대기 ${historyPending.length}장 · ${formatBytes(historyPendingBytes)}`:''].filter(Boolean).join(' · ');
+  $('ncs-history-count').textContent=[historyTotal?`${historyMarkFilter==='star'?'즐겨찾기':historyMarkFilter==='tag'?'태그':'총'} ${historyTotal}장 · ${historyItems.length}장 표시 중`:'',historyPending.length?`저장 대기 ${historyPending.length}장 · ${formatBytes(historyPendingBytes)}`:''].filter(Boolean).join(' · ');
 }
 const formatBytes=n=>n>=1073741824?`${(n/1073741824).toFixed(2)} GB`:n>=1048576?`${(n/1048576).toFixed(1)} MB`:`${Math.max(0,Math.round(n/1024))} KB`;
 // Readable name for a chat key: the chat file name (which usually starts with the character name).
@@ -2258,7 +2263,9 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
     // 0.1.79 (UI-078-04): the originals are gone at this point. If taking them out of the chat is not saved, the rest
     // (result, selection, history) is still cleaned up and the note says exactly what happened.
     let detachFailed=false;
-    if(deleted.size&&current&&keyOf()===current){
+    // 0.1.86 (B1): skip the save when none of the deleted pictures is in this chat (swipes included). The pre-save
+    // comparison can refuse for reasons unrelated to these pictures, which used to show a false "save failed" note.
+    if(deleted.size&&current&&keyOf()===current&&[...deleted].some(id=>attachedCount(id)>0)){
       try{unverifiedDetach=!!(await withChatWrite(current,(context,guard)=>detachInlineImages(context,deleted,guard))).unverified;}
       catch{detachFailed=true;}
     }
@@ -2360,12 +2367,51 @@ function renderHistoryFilter() {
 // --- History → preset: saves this image's generation options as a new preset without touching current work.
 let historyPresetTarget=null;
 const historyPresetControls=item=>item.options?(historyPresetTarget===item.id?`<div class="ncs-wardrobe-save ncs-preset-form"><label>새 프리셋 이름<input id="ncs-history-preset-name" maxlength="80" placeholder="예: 이 그림 설정"></label><small>이 그림의 생성 설정·공통 태그를 저장해요. 인물·장면은 제외하고 seed는 새로 뽑아요.</small>${commonPositiveOf(item)===null?'<small>공통 Positive는 현재 설정값을 사용해요.</small>':''}<div class="ncs-row ncs-form-actions"><button type="button" class="ncs-primary" data-history-preset-save="${esc(item.id)}">저장</button><button type="button" data-history-preset-cancel>취소</button></div></div>`:''):'';
-// 0.1.84: the date line carries the ☆/★ toggle; tags show under it as small #chips.
-function historyMarks(item){
-  const m=marks()[item.id],star=m?.star===true,tags=m?.tags??[];
-  return `<div class="ncs-history-meta"><button type="button" class="ncs-star" data-history-star="${esc(item.id)}" aria-pressed="${star}" aria-label="${star?'즐겨찾기 해제':'즐겨찾기'}" title="${star?'즐겨찾기 해제':'즐겨찾기'}">${star?'★':'☆'}</button><small class="ncs-history-date">${esc(shortDate(item.created))}</small></div>${tags.length?`<div class="ncs-history-tags" aria-label="태그">${tags.map(t=>`<span class="ncs-tag-chip">#${esc(t)}</span>`).join('')}</div>`:''}`;
+// 0.1.86: the ☆/★ toggle sits at the card's top right, on the 선택 line, sized like the checkbox.
+function historyStar(item){
+  const star=marks()[item.id]?.star===true;
+  return `<button type="button" class="ncs-star" data-history-star="${esc(item.id)}" aria-pressed="${star}" aria-label="${star?'즐겨찾기 해제':'즐겨찾기'}" title="${star?'즐겨찾기 해제':'즐겨찾기'}">${star?'★':'☆'}</button>`;
 }
-const historyTagControls=item=>historyTagEdit===item.id?`<div class="ncs-wardrobe-save ncs-tag-form"><label>태그 · 쉼표로 구분<input id="ncs-history-tag-input" maxlength="400" value="${esc((marks()[item.id]?.tags??[]).join(', '))}" placeholder="예: 웃음, 비 오는 날"></label><small>AI 답변에 이 단어가 나오면 이 그림을 팝업으로 보여줘요. 같은 캐릭터의 채팅에서만 떠요. 그림마다 ${TAG_LIMIT}개, 태그마다 ${TAG_LENGTH}자까지예요.</small><div class="ncs-row ncs-form-actions"><button type="button" class="ncs-primary" data-history-tag-save="${esc(item.id)}">저장</button><button type="button" data-history-tag-cancel>취소</button></div></div>`:'';
+// The date line; tags show under it as small #chips.
+function historyMarks(item){
+  const tags=marks()[item.id]?.tags??[];
+  return `<div class="ncs-history-meta"><small class="ncs-history-date">${esc(shortDate(item.created))}</small></div>${tags.length?`<div class="ncs-history-tags" aria-label="태그">${tags.map(t=>`<span class="ncs-tag-chip">#${esc(t)}</span>`).join('')}</div>`:''}`;
+}
+// 0.1.86: on a phone a long explanation shows as one short line + "더보기 ›"; opened, the whole text + "접기 ‹".
+// Markup: <div class="ncs-help" data-short="한 줄 요약">…the original lines…</div>. PC shows the full text only
+// (CSS hides the short line and the buttons above 520px). Costs, privacy, deleting and saved data are never wrapped.
+function setupHelpFolds(root){
+  for(const box of root.querySelectorAll('.ncs-help[data-short]:not(.ncs-help-ready)')){
+    const first=box.firstElementChild,short=document.createElement(first?.tagName==='P'?'p':'small');
+    short.className=`ncs-help-short${first?.classList.contains('ncs-small')?' ncs-small':''}`;
+    short.append(box.dataset.short,' ');
+    const more=document.createElement('button');more.type='button';more.className='ncs-help-toggle';more.dataset.helpToggle='open';more.setAttribute('aria-expanded','false');more.textContent='더보기 ›';
+    short.append(more);
+    const less=document.createElement('button');less.type='button';less.className='ncs-help-toggle ncs-help-less';less.dataset.helpToggle='close';less.setAttribute('aria-expanded','true');less.textContent='접기 ‹';
+    box.prepend(short);box.append(less);box.classList.add('ncs-help-ready');
+  }
+}
+// Scrolls the nearest scrolling box so that `box` sits inside the visible screen (above an on-screen keyboard).
+// The keyboard covers the bottom of the panel, so the scrolling box gets extra room at its end while `focus` keeps
+// focus; otherwise the last card's form could never scroll above it. Runs now, on the next frame, and whenever the
+// visible area changes.
+function keepAboveKeyboard(box,focus=box){
+  const scroller=(el=>{for(let p=el?.parentElement;p;p=p.parentElement){const y=getComputedStyle(p).overflowY;if(y==='auto'||y==='scroll')return p;}return null;})(box);
+  const base=scroller?parseFloat(getComputedStyle(scroller).paddingBottom)||0:0;
+  const fit=()=>{
+    if(!box.isConnected)return;
+    const vv=window.visualViewport,top=(vv?.offsetTop??0)+8,bottom=(vv?vv.offsetTop+vv.height:innerHeight)-8;
+    if(scroller){const covered=Math.max(0,scroller.getBoundingClientRect().bottom-bottom);scroller.style.paddingBottom=covered?`${base+covered}px`:'';}
+    const r=box.getBoundingClientRect();
+    let d=r.bottom>bottom?r.bottom-bottom:0;if(r.top-d<top)d=r.top-top;
+    if(Math.abs(d)<1)return;if(scroller)scroller.scrollTop+=d;else box.scrollIntoView({block:'nearest'});
+  };
+  fit();requestAnimationFrame(fit);
+  const vv=window.visualViewport;
+  const stop=()=>{vv?.removeEventListener?.('resize',fit);vv?.removeEventListener?.('scroll',fit);focus.removeEventListener('blur',stop);if(scroller)scroller.style.paddingBottom='';};
+  vv?.addEventListener?.('resize',fit);vv?.addEventListener?.('scroll',fit);focus.addEventListener('blur',stop);
+}
+const historyTagControls=item=>historyTagEdit===item.id?`<div class="ncs-wardrobe-save ncs-tag-form"><label>태그 · 쉼표로 구분<input id="ncs-history-tag-input" maxlength="400" value="${esc((marks()[item.id]?.tags??[]).join(', '))}" placeholder="웃음, 비, rain"></label><div class="ncs-row ncs-form-actions"><button type="button" class="ncs-primary" data-history-tag-save="${esc(item.id)}">저장</button><button type="button" data-history-tag-cancel>취소</button></div></div>`:'';
 function historyActions(item,{editable=false,attached=false}={}){
   const id=esc(item.id),menu=`ncs-history-menu-${id}`,save=saveMenu(item,`ncs-history-save-${item.id}`);
   // Order (docs/DESIGN.md): 챗샷으로 보내기 · 프리샷으로 보내기 · 설정을 프리셋으로 · 본문에 넣기.
@@ -2502,7 +2548,7 @@ function storeMarks(next){settings().imageMarks=next;ctx().saveSettingsDebounced
 function toggleStar(id){
   const item=historyItems.find(x=>x.id===id);if(!item)return;
   const on=!marks()[id]?.star;storeMarks(setMark(marks(),item,{star:on}));
-  if(historyStarOnly&&!on){loadHistory().catch(e=>notice(e.message,true));return;}
+  if(historyMarkFilter==='star'&&!on){loadHistory().catch(e=>notice(e.message,true));return;}
   const button=dialog.querySelector(`[data-history-star="${CSS.escape(id)}"]`);
   if(button){const label=on?'즐겨찾기 해제':'즐겨찾기';button.textContent=on?'★':'☆';button.setAttribute('aria-pressed',String(on));button.title=label;button.setAttribute('aria-label',label);}
 }
@@ -2510,6 +2556,7 @@ function saveTags(id){
   const item=historyItems.find(x=>x.id===id);if(!item)return;
   const tags=parseTags($('ncs-history-tag-input')?.value??'');
   storeMarks(setMark(marks(),item,{tags}));historyTagEdit=null;renderHistory();renderTagPopupSetting();
+  if(historyMarkFilter==='tag'&&!tags.length)loadHistory().catch(e=>notice(e.message,true)); // no tags left: it leaves the # view
   notice(tags.length?`태그 ${tags.length}개를 저장했어요: ${tags.map(t=>'#'+t).join(' ')}`:'이 그림의 태그를 모두 지웠어요.',false,'history');
 }
 function saveHistoryPreset(id){
@@ -2525,7 +2572,10 @@ function saveHistoryPreset(id){
 // What was actually sent for a history image. Built only when opened, from data the list already has.
 
 function promptText(item){
-  const a=item.assembled??{},o=item.options??{},lines=[`모델: ${MODELS[o.model]?.label??o.model??''} · ${o.width??'?'}×${o.height??'?'} · Steps ${o.steps??'?'} · seed ${item.seed??o.seed??''}`,'',`[공통 Positive]\n${a.base??''}`,`[공통 Negative]\n${a.negative??''}`];
+  // 0.1.86 (B3): the rest of the generation settings, under the names the preset editor uses.
+  const a=item.assembled??{},o=item.options??{},has=v=>v!==undefined&&v!==null&&v!=='',
+    more=[has(o.scale)&&`Guidance ${o.scale}`,has(o.cfgRescale)&&`CFG Rescale ${o.cfgRescale}`,has(o.sampler)&&`Sampler ${o.sampler}`,has(o.scheduler)&&`Noise Schedule ${o.scheduler}`].filter(Boolean),
+    lines=[`모델: ${MODELS[o.model]?.label??o.model??''} · ${o.width??'?'}×${o.height??'?'} · Steps ${o.steps??'?'} · seed ${item.seed??o.seed??''}${more.length?`\n${more.join(' · ')}`:''}`,'',`[공통 Positive]\n${a.base??''}`,`[공통 Negative]\n${a.negative??''}`];
   (a.characters??[]).forEach((c,i)=>lines.push(`[인물 ${i+1}${c.name?` · ${c.name}`:''}${c.position&&c.position!=='auto'?` · ${c.position}`:''}]\n${c.prompt??''}${c.negative?`\nNegative: ${c.negative}`:''}`));
   return lines.join('\n\n');
 }
@@ -2549,21 +2599,21 @@ function renderHistory() {
     <button type="button" data-pending-discard="${esc(entry.id)}" class="ncs-danger-outline">버리기</button></div>`).join('')}`:'';
   $('ncs-history').innerHTML=historyItems.length?historyItems.map(item=>{
     const id=esc(item.id),here=item.chatKey===current,editable=here||item.chatKey===FREE_KEY;
-    return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button>${multi?`<small class="ncs-chat-name${here?' ncs-here':''}">${esc(chatLabel(item.chatKey))}${here?' · 지금 채팅':''}</small>`:''}${historyMarks(item)}${historyActions(item,{editable,attached:here&&hasInlineImage(chat,item)})}</article>`;
-  }).join(''):historyStarOnly?'<p>이 범위에 즐겨찾기(★)한 그림이 없어요. 이력 카드의 ☆를 눌러 표시해요.</p>':'<p>이 범위에 저장된 그림이 없어요.</p>';
+    return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><div class="ncs-history-top"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label>${historyStar(item)}</div><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button>${multi?`<small class="ncs-chat-name${here?' ncs-here':''}">${esc(chatLabel(item.chatKey))}${here?' · 지금 채팅':''}</small>`:''}${historyMarks(item)}${historyActions(item,{editable,attached:here&&hasInlineImage(chat,item)})}</article>`;
+  }).join(''):historyMarkFilter==='star'?'<p>이 범위에 즐겨찾기(★)한 그림이 없어요. 이력 카드의 ☆를 눌러 표시해요.</p>':historyMarkFilter==='tag'?'<p>이 범위에 태그를 붙인 그림이 없어요. 이력 카드 ⋯ → 태그 편집에서 붙여요.</p>':'<p>이 범위에 저장된 그림이 없어요.</p>';
   updateAttachButtons();restoreScroll();
 }
 async function loadHistory({append=false}={}) {
-  const scope=historyScope,startKey=scope==='free'?FREE_KEY:keyOf(),allScope=['chats','all'].includes(scope),filter=historyFilter,starOnly=historyStarOnly;
+  const scope=historyScope,startKey=scope==='free'?FREE_KEY:keyOf(),allScope=['chats','all'].includes(scope),filter=historyFilter,markFilter=historyMarkFilter;
   if(!startKey&&!allScope){historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>채팅을 먼저 열어 주세요. 다른 보기에서는 채팅 없이도 이력을 볼 수 있어요.</p>';updateHistoryTools();return;}
   if(append&&historyLoading)return;
   const offset=append?historyItems.length:0,limit=append?HISTORY_PAGE:Math.min(100,Math.max(HISTORY_PAGE,historyItems.length));
   const request=++historyRequest;historyLoading=true;updateHistoryTools();
   try {
-    const data=await historyPage({scope,filter,key:startKey,offset,limit,starOnly});
-    if(request!==historyRequest||historyScope!==scope||historyFilter!==filter||historyStarOnly!==starOnly||(!allScope&&scope!=='free'&&keyOf()!==startKey))return;
-    if(starOnly&&data.filtered!==true){historyItems=[];historyTotal=0;historyHasMore=false;historyUnfiltered=null;$('ncs-history').innerHTML='<p>즐겨찾기 보기는 서버 플러그인 v0.1.22 이상이 필요해요. 서버를 업데이트하고 실리태번을 재시작해 주세요.</p>';return;}
-    historyUnfiltered=starOnly&&Number.isInteger(data.unfilteredCount)?data.unfilteredCount:null;
+    const data=await historyPage({scope,filter,key:startKey,offset,limit,markFilter});
+    if(request!==historyRequest||historyScope!==scope||historyFilter!==filter||historyMarkFilter!==markFilter||(!allScope&&scope!=='free'&&keyOf()!==startKey))return;
+    if(markFilter&&data.filtered!==true){historyItems=[];historyTotal=0;historyHasMore=false;historyUnfiltered=null;$('ncs-history').innerHTML='<p>즐겨찾기·태그 보기는 서버 플러그인 v0.1.22 이상이 필요해요. 서버를 업데이트하고 실리태번을 재시작해 주세요.</p>';return;}
+    historyUnfiltered=markFilter&&Number.isInteger(data.unfilteredCount)?data.unfilteredCount:null;
     if(allScope&&(data.scope!=='all'||scope==='chats'&&data.kind!=='chat')){historyItems=[];historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>이 보기는 서버 플러그인 v0.1.13 이상이 필요해요. 서버를 업데이트하고 실리태번을 재시작해 주세요.</p>';return;}
     if(allScope){historyChats=Array.isArray(data.chats)?data.chats:[];historyBytes=Number(data.bytes)||0;historyImageCount=Number(data.imageCount)||0;
       if(historyFilter&&!historyChats.some(c=>c.chatKey===historyFilter)){historyFilter='';historyItems=[];historyLoading=false;return loadHistory();}}
@@ -2730,7 +2780,8 @@ async function onAction(action,el) {
     case 'delete-all-work':await deleteAllWork();break;
     case 'history':await loadHistory();break;
     case 'history-more':await loadHistory({append:true});break;
-    case 'history-star-only':closeImageMenu();historyStarOnly=!historyStarOnly;historyItems=[];historyPending=[];historyPendingBytes=0;historyTotal=0;historyHasMore=false;historyUnfiltered=null;selectedIds.clear();await loadHistory();break;
+    case 'tag-popup-home':{tagPopStore('place',null);const pop=document.getElementById('ncs-tag-pop');if(pop){delete pop.dataset.moved;homeTagPop(pop);}renderTagPopupSetting();notice('태그 추천 팝업을 처음 자리(채팅 가운데 위)로 돌렸어요.');break;}
+    case 'history-star-only':case 'history-tag-only':{const want=action==='history-tag-only'?'tag':'star';historyMarkFilter=historyMarkFilter===want?null:want;}closeImageMenu();historyItems=[];historyPending=[];historyPendingBytes=0;historyTotal=0;historyHasMore=false;historyUnfiltered=null;selectedIds.clear();await loadHistory();break;
     case 'select-all-history':{
       // [모두 선택] ↔ [모두 해제]: once anything is picked, the button clears the picks.
       if(selectedIds.size)selectedIds.clear();else for(const x of historyItems)selectedIds.add(x.id);
@@ -2757,6 +2808,9 @@ function bindEvents() {
   // 0.1.68: a tap anywhere on the account box unfolds it, except ↻, the NovelAI link and the consent row.
   $('ncs-anlas-box').addEventListener('click',event=>{if(!event.target.closest('a,button,input,label,.ncs-consent-row'))toggleAccount();});
   // 0.1.84: Enter in the tag field saves (not while a Korean syllable is still being composed).
+  // 0.1.86 (B5): the tag editor opens under its card, often behind a phone keyboard. While its field has focus, keep
+  // the whole form (field + buttons) inside the visible part of the screen, measured with visualViewport.
+  dialog.addEventListener('focusin',event=>{if(event.target?.id==='ncs-history-tag-input')keepAboveKeyboard(event.target.closest('.ncs-tag-form')??event.target,event.target);});
   dialog.addEventListener('keydown',event=>{if(event.target?.id!=='ncs-history-tag-input'||event.key!=='Enter'||event.isComposing)return;
     event.preventDefault();const save=dialog.querySelector('[data-history-tag-save]');if(save&&!save.disabled)save.click();});
   dialog.addEventListener('click',event=>{
@@ -2794,6 +2848,7 @@ function bindEvents() {
       else if(el.dataset.historyPreset){historyPresetTarget=el.dataset.historyPreset;renderHistory();}
       else if(el.dataset.historyPresetSave)saveHistoryPreset(el.dataset.historyPresetSave);
       else if(el.dataset.historyPresetCancel!==undefined){historyPresetTarget=null;renderHistory();}
+      else if(el.dataset.helpToggle){const box=el.closest('.ncs-help');const open=el.dataset.helpToggle==='open';box?.classList.toggle('ncs-open',open);box?.querySelector(open?'.ncs-help-less':'[data-help-toggle="open"]')?.focus({preventScroll:true});}
       else if(el.dataset.historyStar)toggleStar(el.dataset.historyStar);
       else if(el.dataset.historyTags){closeImageMenu();historyTagEdit=el.dataset.historyTags;renderHistory();$('ncs-history-tag-input')?.focus({preventScroll:true});}
       else if(el.dataset.historyTagSave)saveTags(el.dataset.historyTagSave);
@@ -2874,6 +2929,10 @@ function bindEvents() {
         const next=cleanPopupChats(s.tagPopupChats);if(el.checked)next[key]=true;else delete next[key];
         s.tagPopupChats=next;ctx().saveSettingsDebounced();if(!el.checked)closeTagPopup();renderTagPopupSetting();
         notice(el.checked?'이 채팅에서 태그 추천 팝업을 켰어요.':'이 채팅에서 태그 추천 팝업을 껐어요.');return;}
+      if(el.id==='ncs-tag-popup-size'){
+        if(!Object.hasOwn(TAG_POP_SIZES,el.value))return;tagPopStore('size',el.value);
+        const pop=document.getElementById('ncs-tag-pop');if(pop){pop.dataset.size=el.value;pop.style.setProperty('--ncs-tag-pop-h',`${TAG_POP_SIZES[el.value]}vh`);fitTagPop();}
+        notice(`태그 추천 팝업 크기: ${el.selectedOptions[0]?.textContent??el.value} (이 기기)`);return;}
       if(el.id==='ncs-message-button'){settings().messageButton=el.checked;ctx().saveSettingsDebounced();setMessageButtons(el.checked);renderChatImageSummary();notice(el.checked?'메시지 날짜 옆에 그리기 아이콘을 넣었어요.':'메시지의 그리기 아이콘을 뺐어요.');return;}
       if(el.id==='ncs-inline-layout'||el.id==='ncs-inline-size'){settings()[el.id==='ncs-inline-layout'?'inlineLayout':'inlineSize']=el.value;ctx().saveSettingsDebounced();renderChatImages();renderChatImageSummary();return;}
       if(el.id==='ncs-chat-image-placement'){
@@ -2905,14 +2964,44 @@ function bindEvents() {
   $('ncs-import').addEventListener('change',event=>importSettings(event.target.files[0]).catch(e=>notice(e.message,true)));
 }
 // --- 0.1.84 태그 추천 팝업: a character reply that contains a tag shows one tagged picture of the same character (or
-// group), picked at random. It never writes the chat; [넣기] opens the usual 본문에 넣기 list with that reply chosen.
+// group), picked at random. It never writes the chat.
+// 0.1.86: just the picture, no frame or tag text. It first shows at the top centre of the chat, can be dragged by the
+// picture (mouse or finger), and remembers where it was left on this device (PC and phone apart). Two see-through round
+// buttons on the picture: 🔍 opens the usual enlarged view (its ⋯ can put the picture in the chat) and ✕ closes.
+// Tapping the picture does nothing. Size: 작게 · 보통 · 크게, per device.
 let tagPop=null,lastTagPop=null;
 const popupOn=key=>!!key&&settings().tagPopupChats?.[key]===true;
+const TAG_POP_SIZES={small:25,medium:36,large:50}; // share of the screen height
+const tagPopDevice=()=>globalThis.matchMedia?.('(max-width:520px)').matches?'phone':'pc';
+function tagPopStore(name,value){
+  const key=`naice-shot-tag-pop-${name}-${tagPopDevice()}`;
+  try{if(value===undefined)return localStorage.getItem(key);if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,value);}catch{}
+  return null;
+}
+const tagPopSize=()=>{const v=tagPopStore('size');return Object.hasOwn(TAG_POP_SIZES,v)?v:'medium';};
+function tagPopSaved(){try{const p=JSON.parse(tagPopStore('place')??'null');return Number.isFinite(p?.x)&&Number.isFinite(p?.y)?p:null;}catch{return null;}}
+// Keeps the box inside the screen (a place saved on a wider window, a rotated phone).
+function placeTagPop(box,x,y){
+  const r=box.getBoundingClientRect(),w=r.width||box.offsetWidth,h=r.height||box.offsetHeight;
+  const nx=Math.min(Math.max(4,x),Math.max(4,innerWidth-w-4)),ny=Math.min(Math.max(4,y),Math.max(4,innerHeight-h-4));
+  box.style.left=`${Math.round(nx)}px`;box.style.top=`${Math.round(ny)}px`;return {x:nx,y:ny};
+}
+function homeTagPop(box){
+  const chat=document.getElementById('chat')?.getBoundingClientRect(),w=box.offsetWidth;
+  const centre=chat&&chat.width?chat.left+chat.width/2:innerWidth/2,top=Math.max(chat&&chat.height?chat.top+8:0,56);
+  return placeTagPop(box,centre-w/2,top);
+}
+function fitTagPop(){
+  const box=document.getElementById('ncs-tag-pop');if(!box)return;
+  const saved=tagPopSaved();if(saved)placeTagPop(box,saved.x,saved.y);else homeTagPop(box);
+}
 function renderTagPopupSetting(){
   if(!dialog)return;const box=$('ncs-tag-popup');if(!box)return;const key=keyOf(),owner=key?ownerOf(key):null;
   box.checked=popupOn(key);box.disabled=!owner;
   $('ncs-tag-popup-state').textContent=!key?'채팅을 열면 켤 수 있어요.':!owner?'이 채팅의 캐릭터를 확인하지 못해서 켤 수 없어요.':
     `${owner.startsWith('group:')?'이 그룹':'이 캐릭터'}의 태그 붙은 그림 ${taggedFor(marks(),key)}장${popupOn(key)?' · 켜짐':''}`;
+  const size=$('ncs-tag-popup-size');if(size)size.value=tagPopSize();
+  const reset=dialog.querySelector('[data-action="tag-popup-home"]');if(reset)reset.disabled=!tagPopSaved();
 }
 function closeTagPopup(){document.getElementById('ncs-tag-pop')?.remove();tagPop=null;}
 function suggestTaggedImage(index,type){
@@ -2926,32 +3015,55 @@ function suggestTaggedImage(index,type){
 function showTagPopup(list,where){
   const choice=pickMatch(list,{avoid:lastTagPop});
   if(!choice){return;}
+  // A popup already on the screen keeps its place when the next picture replaces it.
+  const old=document.getElementById('ncs-tag-pop'),kept=old?{x:old.offsetLeft,y:old.offsetTop}:null;
   closeTagPopup();lastTagPop=choice.id;
-  const here=choice.chatKey===where.key,box=document.createElement('div');
+  const box=document.createElement('div');
   tagPop={...choice,...where};
-  box.id='ncs-tag-pop';box.className='ncs-tag-pop';box.setAttribute('role','dialog');box.setAttribute('aria-label','태그 추천 그림');
-  box.innerHTML=`<div class="ncs-tag-pop-head"><span class="ncs-tag-pop-tags">${choice.tags.map(t=>'#'+esc(t)).join(' ')}</span><button type="button" class="ncs-tag-pop-close" data-tag-pop="close" aria-label="닫기" title="닫기">✕</button></div>
-    <img alt="태그 추천 그림" src="/user/images/naice-shot/${esc(choice.id)}.png">
-    <button type="button" class="ncs-tag-pop-insert" data-tag-pop="insert" ${here?'':'disabled'}>넣기</button>
-    ${here?'':'<small>다른 채팅에서 만든 그림이라 보기만 할 수 있어요.</small>'}<button type="button" class="ncs-tag-pop-off" data-tag-pop="off">이 채팅에서 팝업 끄기</button>`;
+  box.id='ncs-tag-pop';box.className='ncs-tag-pop';box.dataset.size=tagPopSize();box.setAttribute('role','dialog');box.setAttribute('aria-label','태그 추천 그림');
+  box.style.setProperty('--ncs-tag-pop-h',`${TAG_POP_SIZES[tagPopSize()]}vh`);
+  box.innerHTML=`<img alt="태그 추천 그림" draggable="false" src="/user/images/naice-shot/${esc(choice.id)}.png"><div class="ncs-tag-pop-tools"><button type="button" data-tag-pop="zoom" aria-label="크게 보기" title="크게 보기">${ZOOM_ICON}</button><button type="button" data-tag-pop="close" aria-label="닫기" title="닫기">${CLOSE_ICON}</button></div>`;
+  const img=box.querySelector('img');
   // A picture that no longer loads (deleted elsewhere) gives way to another match, or the popup closes.
-  box.querySelector('img').addEventListener('error',()=>{if(tagPop?.id!==choice.id)return;closeTagPopup();showTagPopup(list.filter(x=>x.id!==choice.id),where);},{once:true});
+  img.addEventListener('error',()=>{if(tagPop?.id!==choice.id)return;closeTagPopup();showTagPopup(list.filter(x=>x.id!==choice.id),where);},{once:true});
+  img.addEventListener('load',()=>{if(box.isConnected&&!box.dataset.moved)fitTagPop();});
   box.addEventListener('keydown',event=>{if(event.key==='Escape'){event.stopPropagation();closeTagPopup();}});
   box.addEventListener('click',event=>{
     const act=event.target.closest('[data-tag-pop]')?.dataset.tagPop;if(!act)return;
     if(act==='close')closeTagPopup();
-    else if(act==='off'){const s=settings(),next=cleanPopupChats(s.tagPopupChats);delete next[where.key];s.tagPopupChats=next;ctx().saveSettingsDebounced();closeTagPopup();renderTagPopupSetting();say('이 채팅에서 태그 추천 팝업을 껐어요. 설정 탭에서 다시 켤 수 있어요.');}
-    else if(act==='insert')insertTagPopup().catch(e=>say(e.message,true));
+    else if(act==='zoom')zoomTagPopup().catch(e=>say(e.message,true));
   });
+  dragTagPop(box);
   document.body.append(box);
+  if(kept)placeTagPop(box,kept.x,kept.y);else fitTagPop();
 }
-async function insertTagPopup(){
+// Drag by the picture. Buttons never start a drag; a press that does not move does nothing.
+function dragTagPop(box){
+  let start=null;
+  box.addEventListener('pointerdown',event=>{
+    if(event.button!==0||event.target.closest('button'))return;
+    start={id:event.pointerId,x:event.clientX,y:event.clientY,left:box.offsetLeft,top:box.offsetTop,moved:false};
+    box.setPointerCapture?.(event.pointerId);event.preventDefault();
+  });
+  box.addEventListener('pointermove',event=>{
+    if(!start||event.pointerId!==start.id)return;
+    const dx=event.clientX-start.x,dy=event.clientY-start.y;
+    if(!start.moved&&Math.hypot(dx,dy)<6)return;
+    start.moved=true;box.classList.add('ncs-dragging');placeTagPop(box,start.left+dx,start.top+dy);
+  });
+  const end=event=>{
+    if(!start||event.pointerId!==start.id)return;
+    const moved=start.moved;start=null;box.classList.remove('ncs-dragging');
+    if(moved){box.dataset.moved='1';tagPopStore('place',JSON.stringify({x:box.offsetLeft,y:box.offsetTop}));renderTagPopupSetting();}
+  };
+  box.addEventListener('pointerup',end);box.addEventListener('pointercancel',end);
+  box.addEventListener('touchmove',event=>{if(start)event.preventDefault();},{passive:false}); // the chat must not scroll while dragging
+}
+async function zoomTagPopup(){
   const pop=tagPop;if(!pop)return;
-  if(keyOf()!==pop.key||pop.chatKey!==pop.key)throw new Error('지금 열린 채팅에서 만든 그림만 넣을 수 있어요.');
-  closeTagPopup();
   const rec=await recordOf({id:pop.id,chatKey:pop.chatKey});
-  if(keyOf()!==pop.key)throw new Error('채팅이 바뀌어서 넣지 않았어요.');
-  await showPanel();openAttachPicker([rec],{prefer:pop});
+  if(tagPop?.id!==pop.id)return;
+  viewImage(rec);
 }
 function chatChanged() {
   closeImageMenu();closeAttachPicker();closeTagPopup();renderTagPopupSetting();
@@ -3009,6 +3121,7 @@ async function initialize() {
   dialog.querySelector('.ncs-content').addEventListener('scroll',rememberScroll,{passive:true});
   $('ncs-missing-dialog').addEventListener('cancel',()=>{missingPrompt=null;}); // Escape closes only this box
   $('ncs-attach-dialog').addEventListener('close',()=>{attachPick=null;});
+  setupHelpFolds(dialog);
   for(const tab of dialog.querySelectorAll('[data-tab]')){const icon=document.createElement('span');icon.className='ncs-tab-icon';icon.innerHTML=TAB_ICONS[tab.dataset.tab]??'';tab.prepend(icon);}
   $('ncs-version').textContent=`v${VERSION}`;setProfileMode('direct');syncGen(mode);renderSettings();renderProfiles();editProfile();renderTargets();bindEvents();bindRefFields();watchGenerateArea();chatKey=keyOf();renderProgress();renderModeUI();renderScene();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';
   const menu=document.getElementById('extensionsMenu');if(menu){const button=document.createElement('div');button.className='list-group-item flex-container flexGap5 ncs-menu-item';button.innerHTML=`<div class="extensionsMenuExtensionButton ncs-menu-icon">${CAMERA_ICON}</div><span data-brand>${esc(brand())}</span>`;button.tabIndex=0;button.setAttribute('role','button');button.addEventListener('click',()=>open().catch(e=>notice(e.message,true)));button.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open().catch(e=>notice(e.message,true));}});menu.append(button);}
@@ -3018,6 +3131,7 @@ async function initialize() {
   detectSkins(new URL('./',import.meta.url).href).then(list=>{availableSkins=list;skinsDetected=true;return useSkin(settings().skin);}).catch(e=>console.warn('[NAIce Shot] skin detection failed',e?.message));
   bindImageMenus();
   window.addEventListener('beforeunload',event=>{if(!draftsEnabled)return;rememberDraft(workKey(),null,{flush:true});if([...drafts.entries.values()].some(e=>e.dirty||e.saving)){event.preventDefault();event.returnValue='';}});
+  window.addEventListener('resize',()=>fitTagPop()); // the tag popup stays on the screen after a resize or rotation
   window.addEventListener('pagehide',()=>rememberDraft(workKey(),null,{flush:true}));
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')rememberDraft(workKey(),null,{flush:true});});
   const c=ctx(),events=c.eventTypes??c.event_types;c.eventSource.on(events.CHAT_CHANGED,()=>{chatLoadEpoch++;chatChanged();});

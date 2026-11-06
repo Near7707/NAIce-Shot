@@ -20,7 +20,7 @@
 #naice-shot-dialog[data-skin="lavender"] .ncs-brand .ncs-icon {border-radius:50%;background:linear-gradient(135deg,#e9dbff,#ffd9ea);box-shadow:0 4px 12px rgba(184,140,242,.35);}
 #naice-shot-dialog[data-skin="lavender"] .ncs-header {border-bottom-color:transparent;}
 #naice-shot-dialog[data-skin="lavender"] .ncs-tabs button {border-radius:999px;background-color:#f3ebfd;border-color:transparent;color:var(--ncs-muted);}
-#naice-shot-dialog[data-skin="lavender"] .ncs-tabs button:hover {background-color:#ece0fb;border-color:transparent;}
+@media (hover:hover){#naice-shot-dialog[data-skin="lavender"] .ncs-tabs button:hover {background-color:#ece0fb;border-color:transparent;}}
 #naice-shot-dialog[data-skin="lavender"] .ncs-tabs .ncs-active {border-color:#d6bdf7;color:var(--ncs-fg);box-shadow:0 4px 12px rgba(140,100,200,.18);}
 #naice-shot-dialog[data-skin="lavender"] .ncs-primary {background-image:linear-gradient(90deg,#dcc4ff,#ffc9e2 60%,#ffe0c4);}
 #naice-shot-dialog[data-skin="lavender"] .ncs-profile-chip.ncs-selected {background-color:#e6d4ff;color:#3b1f66;border-color:#c9a8ff;}

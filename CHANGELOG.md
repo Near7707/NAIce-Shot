@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.86 — 2026-11-07 (extension only — needs server v0.1.23)
+
+- Fixes: deleting a picture that is not in the open chat (swipes included) no longer saves the chat, so no false "save failed" note (B1). Keys SillyTavern changes in memory only (`lastInContextMessageId`, `chat_id_hash`, `timedWorldInfo`) no longer block a chat save (B2). The prompt view also lists Guidance, CFG Rescale, Sampler and Noise Schedule (B3). The chosen row in 대상 메시지 and the @ list is readable on every theme (B4). The tag editor stays above a phone keyboard (B5).
+- Layout: tighter spacing and 36px buttons and fields; hover colours only on devices that hover; ☆ moved to the history card's top right; a note under the common Negative field that the official site's quality tags and negative preset are not added.
+- Phones: long explanations fold to one line with 더보기 ›. Costs, privacy, deleting and saved data stay open. The account field list folds under "문제가 생겼을 때".
+- History: **# 태그** lists every tagged picture (only one of ★ and # at a time).
+- Tag popup: just the picture, first at the top centre of the chat, dragged by the picture and remembered per device, 🔍 (enlarged view) and ✕ on the picture, size 작게 · 보통 · 크게 and 위치 처음으로 in Settings. [넣기] and "이 채팅에서 팝업 끄기" are gone (insert from the enlarged view's ⋯; turn off in Settings).
+- Needs server 0.1.23 (deleting old pictures with no chat key, used since 0.1.85); an older server now shows the update notice.
+
 ## 0.1.85 — 2026-11-06 (extension + server v0.1.23)
 
 - Draft restore keeps the editable scene and prompt when the result's ID, image path or seed is invalid.

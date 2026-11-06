@@ -49,7 +49,7 @@ try{
   await page.locator('[data-action="generate"]').click();await page.locator('#ncs-result img').waitFor();
   await page.locator('[data-tab="history"]').click();const card=page.locator('.ncs-history-card').first();await card.waitFor();
   assert.equal(await card.locator('[data-prompt-view]').count(),0);
-  assert.deepEqual(await card.locator('button:visible').allTextContents(),['','☆','⋯','저장','삭제']); // 0.1.84: ☆ on the date line
+  assert.deepEqual(await card.locator('button:visible').allTextContents(),['☆','','⋯','저장','삭제']); // 0.1.86: ☆ at the top right, on the 선택 line
   assert.doesNotMatch(await card.innerText(),/seed|:\d\d:\d\d/,'card shows the date to the minute, no seed');
   await card.scrollIntoViewIfNeeded();
   if(fontRoot)await page.screenshot({path:`/tmp/naice-stage1/history-${width}.png`});

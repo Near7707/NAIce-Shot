@@ -54,7 +54,7 @@ try{
  await page.locator('#ncs-final').evaluate(el=>el.closest('details').open=true);
  const json=JSON.parse(await page.locator('#ncs-final').inputValue());json.base='edited in json';
  await page.locator('#ncs-final').fill(JSON.stringify(json,null,2));
- await page.locator('#ncs-final-box > p').click(); // leave the JSON box
+ await page.locator('#ncs-final-box > .ncs-help').click({position:{x:2,y:2}}); // leave the JSON box (0.1.86: the line sits in a fold wrapper)
  await page.locator('[data-tab="settings"]').click();await page.locator('[data-tab="scene"]').click();
  assert.equal(await page.locator('#ncs-final-form [data-final="base"]').inputValue(),'edited in json');
 

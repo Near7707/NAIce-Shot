@@ -179,7 +179,7 @@ try {
     if(tab==='profiles')await page.locator('[data-profile="leo"]').click();
     await page.locator('.ncs-header strong').click(); // blur controls before checking
     const visibility=await page.locator('#naice-shot-dialog').evaluate(el=>{
-     const target=el.querySelector('[data-page]:not([hidden]) input:not([type=hidden]):not([type=checkbox]):not([type=radio]),[data-page]:not([hidden]) textarea,[data-page]:not([hidden]) button')??el.querySelector('[data-tab]');
+     const target=el.querySelector('[data-page]:not([hidden]) input:not([type=hidden]):not([type=checkbox]):not([type=radio]),[data-page]:not([hidden]) textarea,[data-page]:not([hidden]) button:not(.ncs-help-toggle)')??el.querySelector('[data-tab]');
      const css=getComputedStyle(target),canvas=document.createElement('canvas'),c=canvas.getContext('2d');
      const rgb=color=>{c.clearRect(0,0,1,1);c.fillStyle=color;c.fillRect(0,0,1,1);return [...c.getImageData(0,0,1,1).data].slice(0,3);};
      const lum=values=>values.map(x=>x/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4).reduce((sum,x,i)=>sum+x*[.2126,.7152,.0722][i],0);

@@ -1,7 +1,7 @@
 // 0.1.84: tags and favorites (★) for history pictures, and the tag-suggestion match.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseTags,cleanMarks,cleanPopupChats,setMark,forgetIds,forgetChat,starredIds,ownerOf,messageWords,tagHits,tagMatches,pickMatch,taggedFor,TAG_LIMIT,TAG_LENGTH,MARK_LIMIT} from '../image-marks.mjs';
+import {parseTags,cleanMarks,cleanPopupChats,setMark,forgetIds,forgetChat,starredIds,taggedIds,ownerOf,messageWords,tagHits,tagMatches,pickMatch,taggedFor,TAG_LIMIT,TAG_LENGTH,MARK_LIMIT} from '../image-marks.mjs';
 
 const id=n=>`0000000${n}-aaaa-4bbb-8ccc-${String(n).padStart(12,'0')}`;
 const chat=(card,chatName='Mira - 1')=>JSON.stringify({group:null,card,chat:chatName});
@@ -95,4 +95,10 @@ test('one match at random; the last shown picture comes again only when it is th
   assert.equal(pickMatch(list,{avoid:'a',random:()=>0}).id,'b');
   assert.equal(pickMatch([{id:'a'}],{avoid:'a'}).id,'a');assert.equal(pickMatch([]),null);
   const seen=new Set();for(let i=0;i<60;i++)seen.add(pickMatch(list).id);assert.equal(seen.size,3);
+});
+
+test('0.1.86: taggedIds lists only pictures that have tags',()=>{
+  const m={a:{chatKey:'k',star:true},b:{chatKey:'k',tags:['rain']},c:{chatKey:'k',tags:[]},d:{chatKey:'k',star:true,tags:['웃음']}};
+  assert.deepEqual(taggedIds(m).sort(),['b','d']);
+  assert.deepEqual(taggedIds({}),[]);
 });

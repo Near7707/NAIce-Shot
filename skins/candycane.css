@@ -23,6 +23,6 @@
 #naice-shot-dialog[data-skin="candycane"] .ncs-tabs button {border-radius:999px;background:#fff;border-color:#ecc9cb;color:#6b575b;}
 #naice-shot-dialog[data-skin="candycane"] .ncs-tabs .ncs-active {background:#1f6b4a;color:#fff;border-color:#145238;box-shadow:0 4px 10px rgba(31,107,74,.3);}
 #naice-shot-dialog[data-skin="candycane"] .ncs-primary {background:repeating-linear-gradient(135deg,#c62f3a 0 12px,#b82a35 12px 24px);border-radius:999px;}
-#naice-shot-dialog[data-skin="candycane"] .ncs-primary:hover {background:#d63d48;}
+@media (hover:hover){#naice-shot-dialog[data-skin="candycane"] .ncs-primary:hover {background:#d63d48;}}
 @media (max-width:360px) { #naice-shot-dialog[data-skin="candycane"] .ncs-header {background:repeating-linear-gradient(135deg,#d1303c 0 9px,#fff 9px 18px) left top/100% 9px no-repeat;} }
 #ncs-viewer[data-skin="candycane"] {--ncsv-accent:#c62f3a;--ncsv-accent-fg:#fff;--ncsv-accent-hover:#d63d48;--ncsv-pressed:#1f6b4a;}

@@ -35,6 +35,7 @@ export function stableChatJson(state){
  });
 }
 
+export const MEMORY_ONLY_METADATA=['lastInContextMessageId','chat_id_hash','timedWorldInfo'];
 // ST assigns these values when loading a chat. Ignore an absent disk key only
 // when memory contains the same value ST would initialize.
 export function comparableSavedMetadata(saved,local,note={}){
@@ -44,6 +45,13 @@ export function comparableSavedMetadata(saved,local,note={}){
   note_position:note.defaultPosition??1,note_depth:note.defaultDepth??4,note_role:note.defaultRole??0};
  for(const [key,value] of Object.entries(defaults)){
   if(!Object.hasOwn(metadata,key)&&local[key]===value)metadata[key]=value;
+ }
+ // 0.1.86 (B2): ST changes these in memory only and writes them with its next save, whatever the disk held:
+ // lastInContextMessageId (setInContextMessages, "No metadata save on purpose"), chat_id_hash (made on first
+ // macro use) and timedWorldInfo (world info sticky/cooldown, created and updated by world info scans).
+ // A difference here is not someone else's edit, so the memory value is taken for the comparison.
+ for(const key of MEMORY_ONLY_METADATA){
+  if(Object.hasOwn(local,key))metadata[key]=local[key];else delete metadata[key];
  }
  return metadata;
 }

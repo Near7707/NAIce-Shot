@@ -18,7 +18,7 @@
 }
 /* Same tab boxes as every skin; only the selected one gets a cobalt underline. */
 #naice-shot-dialog[data-skin="minimal"] .ncs-tabs button {background-color:transparent;border-color:transparent;color:var(--ncs-muted);}
-#naice-shot-dialog[data-skin="minimal"] .ncs-tabs button:hover {background-color:var(--ncs-hover);border-color:transparent;color:var(--ncs-fg);}
+@media (hover:hover){#naice-shot-dialog[data-skin="minimal"] .ncs-tabs button:hover {background-color:var(--ncs-hover);border-color:transparent;color:var(--ncs-fg);}}
 #naice-shot-dialog[data-skin="minimal"] .ncs-tabs .ncs-active {border-color:transparent;border-bottom-color:var(--ncs-accent);border-radius:var(--ncs-radius-control) var(--ncs-radius-control) 0 0;color:var(--ncs-fg);}
 #naice-shot-dialog[data-skin="minimal"] .ncs-profile-chip.ncs-selected {background-color:#1d1f24;color:#ffffff;border-color:#1d1f24;}
 #naice-shot-dialog[data-skin="minimal"] .ncs-header {border-bottom-color:transparent;}

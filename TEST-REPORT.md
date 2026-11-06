@@ -1,3 +1,14 @@
+# v0.1.86 validation — 2026-11-07 (extension only, server v0.1.23)
+
+- Extension Node suite: **190 passed, 0 failed** (+2: memory-only chat keys — `lastInContextMessageId`, `chat_id_hash`, `timedWorldInfo` — are taken from memory in the comparison while a real change elsewhere is still seen; `taggedIds` lists only pictures with tags).
+- Server Node suite (v0.1.23, unchanged): **42 passed, 0 failed**.
+- **70 of 70 Chromium browser scripts passed.** New `browser-v0186` (375 and 1100px, the theme check on all 17 themes at 375px): a picture not in the chat is deleted with no chat read and no "save failed" note, while one on another swipe is still taken out (B1); deleting works when only memory-only keys differ from the disk (B2); the prompt view shows Guidance, CFG Rescale, Sampler and Noise Schedule (B3); the chosen 대상 메시지 row (✓ included) and the highlighted @ row are 4.5:1 or better on every theme (B4); with `visualViewport` shrunk to 360 and then 250px the tag form stays above it (B5); no `:hover` rule outside `@media (hover:hover)` in style.css or any theme; 중간 spacing values and 36px controls (32px switch); the official-preset note under Negative; phone folds open and close, PC shows the full text, and no fold contains costs, privacy, deleting or saved-data words; ☆ on the 선택 line at the right; the # 태그 view (ID filter, ★/# never both, folded help, delete all still asks about every picture, taking the last tags off leaves the view); the tag popup (no frame or text, top centre of the chat, a tap does nothing, drag and per-device place, kept inside the screen, 🔍 opens the enlarged view, sizes 25/50% and 위치 처음으로).
+- Sixteen fixes were each reverted once and `browser-v0186` (or the chat unit test) failed every time.
+- Older scripts updated for intended changes: `browser-v0140` (☆ first on the card), `browser-v0184` (☆ place checked in v0186; the popup has no [넣기] or "끄기"), `browser-v0168` (privacy answer first in the account list), `browser-smoke` (the 더보기 link has no border by design), `browser-v0155` and `browser-v062` (text behind a fold).
+- Not checked: a real SillyTavern (the memory-only keys come from reading SillyTavern `06bde93`: `setInContextMessages`, `getChatIdHash`, world info timed effects), an iPhone or Android keyboard (only a simulated `visualViewport`), touch dragging on a real phone, a real NovelAI account.
+
+---
+
 # v0.1.84 validation — 2026-11-06 (server v0.1.22)
 
 - Extension Node suite: **188 passed, 0 failed** (+9: `image-marks.test.mjs` — tags split and limited, marks kept by picture ID (deleting one never moves another's tag or star), the 3,000-picture ceiling, broken saved marks dropped, owner = card or group (프리샷 none), Korean anywhere / Latin whole words, matches only from the same character, random pick that avoids the last picture).
