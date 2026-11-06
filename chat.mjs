@@ -35,10 +35,15 @@ export function stableChatJson(state){
  });
 }
 
-export const MEMORY_ONLY_METADATA=['lastInContextMessageId','chat_id_hash','timedWorldInfo'];
+export const MEMORY_ONLY_METADATA=['lastInContextMessageId','chat_id_hash'];
+// 0.1.87 (GPT P2 B2): timedWorldInfo is usually changed in memory by world info scans, but /wi-set-timed-effect
+// changes it and saves at once, possibly from another window. Its disk value is taken as "ours" only when this
+// window has known that exact value (at chat load, from a value it saw itself, or from a disk read it confirmed).
+export const TIMED_KEY='timedWorldInfo';
+export const timedState=metadata=>Object.hasOwn(metadata??{},TIMED_KEY)?stableChatJson(metadata[TIMED_KEY]):'-';
 // ST assigns these values when loading a chat. Ignore an absent disk key only
 // when memory contains the same value ST would initialize.
-export function comparableSavedMetadata(saved,local,note={}){
+export function comparableSavedMetadata(saved,local,note={},{timedKnown=null}={}){
  const metadata={...saved};
  if(!Object.hasOwn(metadata,'integrity')&&local.integrity)metadata.integrity=local.integrity;
  const defaults={note_prompt:note.default??'',note_interval:note.defaultInterval??1,
@@ -47,11 +52,15 @@ export function comparableSavedMetadata(saved,local,note={}){
   if(!Object.hasOwn(metadata,key)&&local[key]===value)metadata[key]=value;
  }
  // 0.1.86 (B2): ST changes these in memory only and writes them with its next save, whatever the disk held:
- // lastInContextMessageId (setInContextMessages, "No metadata save on purpose"), chat_id_hash (made on first
- // macro use) and timedWorldInfo (world info sticky/cooldown, created and updated by world info scans).
- // A difference here is not someone else's edit, so the memory value is taken for the comparison.
+ // lastInContextMessageId (setInContextMessages, "No metadata save on purpose") and chat_id_hash (made on first
+ // macro use). A difference here is not someone else's edit, so the memory value is taken for the comparison.
  for(const key of MEMORY_ONLY_METADATA){
   if(Object.hasOwn(local,key))metadata[key]=local[key];else delete metadata[key];
+ }
+ // A disk value this window never had may be another window's sticky/cooldown: it stays as read, so a
+ // difference from memory stops the write instead of saving the old value over it.
+ if(timedKnown?.has(timedState(saved))){
+  if(Object.hasOwn(local,TIMED_KEY))metadata[TIMED_KEY]=local[TIMED_KEY];else delete metadata[TIMED_KEY];
  }
  return metadata;
 }

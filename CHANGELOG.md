@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.87 — 2026-11-07 (extension only — server v0.1.23 unchanged)
+
+- Fixes from the GPT review of 0.1.86: a world info sticky/cooldown effect saved in another window is no longer written back to its old value when this window takes a picture out of the chat — the save stops instead (B2). On a phone, the first press on [저장]/[취소] under the tag field works with the keyboard open (B5). The two saved-data notes ("장면·프롬프트는 서버에 따로 기억해요", "…채팅별 마지막 작업에 함께 기억해요") no longer fold on phones. The popup's ✕ stays on the screen even on a very low screen. If switching ★ → # cannot read the list, the ★ view stays as it was.
+- P3-3: while the result of a work deletion is unknown, the drawing window is locked (so nothing typed then can be emptied later). "삭제 결과 다시 확인" unlocks it once the server answers.
+- Tag popup: 🔍 is gone. Press the picture briefly to open the enlarged view; hold it, then drag, to move it. The ✕ is smaller on a lighter circle.
+- 프리샷: the situation box is four lines tall again. One 더보기 above 장면 추출 (프리샷 and 챗샷). The floating [↓ 생성] hides while [장면 추출] is on the screen.
+- [같은 요청으로 다시 확인]·[확인 표시 지우기] no longer flash while generating, and sit as one even row.
+- Settings: the folded "추출 AI 응답 원문 추가 보관" shows 켜짐/꺼짐. The # 태그 rules moved into 태그 추천 팝업's explanation (no separate note in History). 팝업 크기 and [위치 처음으로], and the two backup buttons, line up.
+- History: the empty ★ / # message uses the full width.
+- NAI status box: the dot is green (free), orange (uses V5 or Anlas) or red (check needed); the Anlas and V5 numbers use the accent colour, red when they are 0.
+
 ## 0.1.86 — 2026-11-07 (extension only — needs server v0.1.23)
 
 - Fixes: deleting a picture that is not in the open chat (swipes included) no longer saves the chat, so no false "save failed" note (B1). Keys SillyTavern changes in memory only (`lastInContextMessageId`, `chat_id_hash`, `timedWorldInfo`) no longer block a chat save (B2). The prompt view also lists Guidance, CFG Rescale, Sampler and Noise Schedule (B3). The chosen row in 대상 메시지 and the @ list is readable on every theme (B4). The tag editor stays above a phone keyboard (B5).

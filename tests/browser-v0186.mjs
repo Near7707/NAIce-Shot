@@ -199,7 +199,7 @@ try{
    }
    // never folded: costs, privacy, deleting, saved data
    const folded=await page.locator('.ncs-help:not(#ncs-tag-view-help)').evaluateAll(els=>els.map(e=>e.textContent));
-   assert.ok(folded.length>=25,`${folded.length} folds`);
+   assert.ok(folded.length>=22,`${folded.length} folds`); // 0.1.87: three fewer (mode note unfolded, two pairs merged)
    for(const t of folded)assert.doesNotMatch(t,/Anlas|비용|개인정보|삭제|되돌릴 수 없|저장돼요|PNG|JSON\)|서버 플러그인/,t.slice(0,60));
    assert.equal(await page.locator('small',{hasText:'V4.5의 Opus 무료 생성 크기예요'}).isVisible(),true);
    assert.equal(await page.locator('p',{hasText:'추출 요청에도 해당 AI의 사용량·API 비용이 들어가요'}).isVisible(),true);
@@ -226,16 +226,11 @@ try{
    const {page,errors,asked}=await open(width,{seed:[pic(1),pic(2),pic(3)],marks});
    await history(page);
    const tagBtn=page.locator('[data-action="history-tag-only"]'),star=page.locator('[data-action="history-star-only"]'),help=page.locator('#ncs-tag-view-help');
-   assert.equal(await tagBtn.innerText(),'# 태그');assert.equal(await help.isVisible(),false);
+   assert.equal(await tagBtn.innerText(),'# 태그');assert.equal(await help.count(),0,'0.1.87: the explanation moved to Settings → 태그 추천 팝업');
    await tagBtn.click();await page.waitForFunction(()=>document.querySelectorAll('#ncs-history [data-view-history]').length===1);
    assert.deepEqual(await cards(page),[uid(1)]);assert.deepEqual(page.posts.at(-1).ids,[uid(1)]);
    assert.equal(await tagBtn.getAttribute('aria-pressed'),'true');assert.equal(await star.getAttribute('aria-pressed'),'false');
    assert.match(await page.locator('#ncs-history-count').innerText(),/^태그 1장/);
-   // the explanation above the list is folded (at every width)
-   assert.equal(await help.isVisible(),true);assert.equal(await help.locator('.ncs-help-short').isVisible(),true);
-   assert.equal(await help.locator('> small:not(.ncs-help-short)').isVisible(),false);
-   await help.locator('[data-help-toggle="open"]').click();
-   assert.match(await help.innerText(),/비, rain[\s\S]*같은 캐릭터[\s\S]*10개[\s\S]*30자[\s\S]*설정 탭/);
    assert.ok(await noOverflow(page));await shot(page,`tag-view-${width}`);
    // delete all still asks about every picture of the chat
    page.refuse=true;await page.locator('[data-action="delete-chat-history"]').click();page.refuse=false;
@@ -243,7 +238,7 @@ try{
    // ★ turns # off
    await star.click();await page.waitForFunction(()=>document.querySelector('[data-action="history-tag-only"]').getAttribute('aria-pressed')==='false');
    await page.waitForFunction(id=>[...document.querySelectorAll('#ncs-history [data-view-history]')].map(e=>e.dataset.viewHistory).join()===id,uid(2));
-   assert.equal(await star.getAttribute('aria-pressed'),'true');assert.equal(await help.isVisible(),false);
+   assert.equal(await star.getAttribute('aria-pressed'),'true');
    // pressing it again shows every picture, with neither on
    await star.click();await page.waitForFunction(()=>document.querySelectorAll('#ncs-history [data-view-history]').length===3);
    assert.deepEqual([await star.getAttribute('aria-pressed'),await tagBtn.getAttribute('aria-pressed')],['false','false']);
@@ -264,14 +259,16 @@ try{
    let box=await show();
    const look=await popup(page).evaluate(e=>{const s=getComputedStyle(e);return [s.borderTopWidth,s.paddingTop,e.innerText.trim()];});
    assert.deepEqual(look,['0px','0px',''],'no frame, no padding, no tag text');await shot(page,`popup-${width}`);
-   assert.deepEqual(await popup(page).locator('.ncs-tag-pop-tools button').evaluateAll(b=>b.map(x=>[x.dataset.tagPop,!!x.querySelector('svg')])),[['zoom',true],['close',true]]);
+   // 0.1.87 (user's choice): 🔍 removed, only ✕; a short press on the picture zooms (browser-v0187)
+   assert.deepEqual(await popup(page).locator('.ncs-tag-pop-tools button').evaluateAll(b=>b.map(x=>[x.dataset.tagPop,!!x.querySelector('svg')])),[['close',true]]);
    assert.equal(await popup(page).locator('[data-tag-pop="insert"],[data-tag-pop="off"]').count(),0);
    const chat=await rectOf(page,'#chat');
    assert.ok(Math.abs((box.x+box.w/2)-(chat.x+chat.w/2))<=2,'centred over the chat');assert.ok(box.y<=Math.max(chat.y+8,56)+1,'at the top');
    assert.ok(box.x>=0&&box.r<=width+1);
-   // a tap on the picture does nothing
-   await page.mouse.click(box.x+box.w/2,box.y+box.h/2);await page.waitForTimeout(150);
-   assert.equal(await page.locator('#ncs-viewer[open]').count(),0);let at=await rectOf(page,'#ncs-tag-pop');assert.deepEqual([at.x,at.y],[box.x,box.y]);
+   // 0.1.87: a tap on the picture opens the enlarged view and leaves the popup where it is
+   await page.mouse.click(box.x+box.w/2,box.y+box.h/2);await page.locator('#ncs-viewer[open]').waitFor();
+   await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.getElementById('ncs-viewer')?.open);
+   let at=await rectOf(page,'#ncs-tag-pop');assert.deepEqual([at.x,at.y],[box.x,box.y]);
    // dragging moves it and the place is kept on this device
    await page.mouse.move(box.x+box.w/2,box.y+box.h/2);await page.mouse.down();await page.mouse.move(box.x+box.w/2-30,box.y+box.h/2+80,{steps:6});await page.mouse.up();
    at=await rectOf(page,'#ncs-tag-pop');assert.ok(Math.abs(at.x-(box.x-30))<=1&&Math.abs(at.y-(box.y+80))<=1,'moved with the pointer');
@@ -282,8 +279,8 @@ try{
    // a press on ✕ never drags: it closes; the next popup comes back where it was left
    await popup(page).locator('[data-tag-pop="close"]').click();assert.equal(await popup(page).count(),0);
    box=await show();assert.deepEqual([box.x,box.y],[edge.x,edge.y]);
-   // 🔍 opens the usual enlarged view of that picture
-   await popup(page).locator('[data-tag-pop="zoom"]').click();await page.locator('#ncs-viewer[open]').waitFor();
+   // a short press opens the usual enlarged view of that picture (0.1.87: was 🔍)
+   await page.mouse.click(box.x+box.w/2,box.y+box.h/2);await page.locator('#ncs-viewer[open]').waitFor();
    assert.match(await page.locator('#ncs-viewer .ncsv-stage img').getAttribute('src'),new RegExp(uid(1)));
    await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.getElementById('ncs-viewer')?.open);
    // Settings: size per device (기본 보통) and 위치 처음으로

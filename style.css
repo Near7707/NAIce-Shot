@@ -875,6 +875,7 @@
 #naice-shot-dialog .ncs-ref-item[aria-selected="true"] :is(.ncs-ref-aliases,.ncs-ref-look) {color:var(--ncs-tab-active-fg);}
 @media (hover:hover){#naice-shot-dialog .ncs-ref-item:hover :is(.ncs-ref-aliases,.ncs-ref-look) {color:var(--ncs-tab-active-fg);}}
 #naice-shot-dialog .ncs-ref-help {display:block;margin-top:4px;}
+#naice-shot-dialog .ncs-save-note {display:block;margin:4px 0 8px;color:var(--ncs-muted);}
 #naice-shot-dialog .ncs-ref-help code {font-size:12px;}
 /* 0.1.76: one line under the 본문에 넣기 position row. */
 #naice-shot-dialog .ncs-attach-place-note {display:block;margin-top:6px;font-size:12.5px;line-height:1.5;color:var(--ncs-muted);}
@@ -932,6 +933,8 @@
 #naice-shot-dialog input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]),#naice-shot-dialog select {height:36px;min-height:36px;}
 #naice-shot-dialog select {padding-right:34px;}
 #naice-shot-dialog .ncs-chipfield {padding:7px 10px;min-height:36px;}
+/* 0.1.87: the 프리샷 situation box keeps its four lines (the 36px rule above had shrunk it to one). */
+#naice-shot-dialog .ncs-chipfield.ncs-chipfield-multi {min-height:calc(4 * 1.5em + 14px);}
 #naice-shot-dialog .ncs-number-stepper button {width:36px;min-height:36px;padding:0;line-height:1;}
 #naice-shot-dialog .ncs-number-stepper input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]) {margin:0;}
 #naice-shot-dialog .ncs-target-summary {min-height:36px;padding:7px 40px 7px 12px;}
@@ -959,21 +962,42 @@
  #naice-shot-dialog .ncs-help:not(.ncs-open) > .ncs-help-short {display:block;}
  #naice-shot-dialog .ncs-help.ncs-open > .ncs-help-less {display:inline-block;margin-top:2px;font-size:12px;}
 }
-/* 0.1.86: the # 태그 view's explanation folds at every width. */
-#naice-shot-dialog .ncs-help-always:not(.ncs-open) > :not(.ncs-help-short) {display:none;}
-#naice-shot-dialog .ncs-help-always:not(.ncs-open) > .ncs-help-short {display:block;}
-#naice-shot-dialog .ncs-help-always.ncs-open > .ncs-help-less {display:inline-block;margin-top:2px;font-size:12px;}
-#naice-shot-dialog .ncs-help-always {margin:0 0 8px;}
 
 /* 0.1.86 태그 추천 팝업: only the picture. Fixed dark buttons (not the theme), white icons on see-through circles. */
 .ncs-tag-pop {position:fixed;z-index:9000;left:50%;top:calc(56px + env(safe-area-inset-top,0px));box-sizing:border-box;margin:0;padding:0;border:0;background:none;
  border-radius:12px;box-shadow:0 8px 28px #0008;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;line-height:0;}
 .ncs-tag-pop.ncs-dragging {cursor:grabbing;box-shadow:0 12px 36px #000a;}
 .ncs-tag-pop img {display:block;width:auto;height:auto;max-width:calc(100vw - 16px);max-height:var(--ncs-tag-pop-h,36vh);border-radius:12px;-webkit-user-drag:none;pointer-events:none;}
-.ncs-tag-pop-tools {position:absolute;top:6px;right:6px;display:flex;gap:6px;}
-.ncs-tag-pop-tools button {display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;min-height:0;margin:0;padding:6px;border:0;border-radius:999px;background:#0000008c;color:#fff;cursor:pointer;line-height:0;}
+.ncs-tag-pop-tools {position:absolute;top:5px;right:5px;display:flex;gap:6px;}
+/* 0.1.87 (user's choice): only a small ✕, on a lighter see-through circle; the picture itself zooms and moves. */
+.ncs-tag-pop-tools button {display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;min-height:0;margin:0;padding:5px;border:0;border-radius:999px;background:#00000059;color:#fff;cursor:pointer;line-height:0;filter:drop-shadow(0 0 1px #000a);}
 .ncs-tag-pop-tools button svg {width:100%;height:100%;}
-@media (hover:hover){.ncs-tag-pop-tools button:hover {background:#000000b8;}}
+@media (hover:hover){.ncs-tag-pop-tools button:hover {background:#00000099;}}
+.ncs-tag-pop {-webkit-touch-callout:none;cursor:zoom-in;}
+.ncs-tag-pop.ncs-dragging {transform:scale(1.03);}
+.ncs-tag-pop:focus-visible {outline:2px solid #fff;outline-offset:2px;}
 .ncs-tag-pop-tools button:focus-visible {outline:2px solid #fff;outline-offset:1px;}
 #naice-shot-dialog .ncs-tag-popup-home {display:flex;align-items:flex-end;margin:7px 0;}
 #naice-shot-dialog .ncs-tag-popup-home button {width:100%;margin-top:6px;}
+
+/* 0.1.87 — user feedback after trying 0.1.86. */
+/* The empty ★ / # message spans the whole history grid instead of one card column. */
+#naice-shot-dialog #ncs-history > p {grid-column:1/-1;}
+/* 같은 요청으로 다시 확인 · 확인 표시 지우기: one row of two equal buttons under 이미지 생성. */
+#naice-shot-dialog .ncs-pair-row:not([hidden]) {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch;}
+#naice-shot-dialog .ncs-pair-row > button {width:100%;min-width:0;margin:0;}
+/* Side-by-side control + button rows line up: same height, same bottom line. */
+/* SillyTavern gives every select margin-bottom:5px, which lifted 팝업 크기 above [위치 처음으로] on the phone. */
+#naice-shot-dialog select {margin-bottom:0;}
+#naice-shot-dialog .ncs-tag-popup-tools {align-items:end;}
+#naice-shot-dialog .ncs-tag-popup-tools > label {margin-bottom:7px;}
+#naice-shot-dialog .ncs-tag-popup-home {margin:7px 0;}
+#naice-shot-dialog .ncs-tag-popup-home button {margin:0;}
+#naice-shot-dialog .ncs-file {display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:36px;padding:7px 14px;margin:0;}
+/* NAI status: the dot says what this generation costs; the numbers stand out, and run-out numbers are red. */
+#naice-shot-dialog .ncs-cost-dot {width:9px;height:9px;box-shadow:0 0 0 1px #0000001f;}
+#naice-shot-dialog .ncs-anlas-box[data-state="ok"] .ncs-cost-dot {background:#3a9d4f;}
+#naice-shot-dialog .ncs-anlas-box[data-state="spend"] .ncs-cost-dot {background:#e09a2b;}
+#naice-shot-dialog .ncs-anlas-box[data-state="warn"] .ncs-cost-dot {background:var(--ncs-warning);}
+#naice-shot-dialog #ncs-anlas-balance b {color:var(--ncs-accent-text);font-weight:700;}
+#naice-shot-dialog #ncs-anlas-balance b.ncs-low {color:var(--ncs-warning);}

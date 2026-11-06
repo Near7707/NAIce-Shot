@@ -15,5 +15,4 @@ export const TAB_ICONS = {
 // 0.1.86: buttons drawn on top of a picture (the tag popup). White strokes; the button behind them is a
 // see-through dark circle, so they read on light and dark pictures alike.
 const onPicture = body => `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
-export const ZOOM_ICON = onPicture('<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/><path d="M10.5 8v5M8 10.5h5"/>');
 export const CLOSE_ICON = onPicture('<path d="M7 7l10 10M17 7L7 17"/>');

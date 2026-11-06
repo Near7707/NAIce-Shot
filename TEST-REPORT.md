@@ -1,3 +1,14 @@
+# v0.1.87 validation — 2026-11-07 (extension only, server v0.1.23)
+
+- Extension Node suite: **191 passed, 0 failed** (+1: timed world info is taken from memory only when the disk value is one this window has had; another window's sticky effect stays as read).
+- Server Node suite (v0.1.23, unchanged): **42 passed, 0 failed**.
+- **71 of 71 Chromium browser scripts passed** (4 at a time). New `browser-v0187` (375 and 1100px): a sticky effect saved elsewhere stops the chat save and stays on the disk while the picture stays in the chat, and a value this window saw after a reply still lets the save through (B2); with `visualViewport` at 360px, a quick and a slow (0.5s) press on [저장] under the last card saves on the first press and the button does not move under the pointer, the extra room goes after saving, [취소] closes on the first press (B5); a deletion whose reply and check are both lost locks the drawing window ("삭제 결과를 확인할 때까지 작업을 잠갔어요."), checking again while the server is still away keeps it locked, and an answer unlocks it (P3-3); the two saved-data notes are visible at 375px outside every fold and no fold contains 기억해요; at 640×280 and 640×90 the popup's ✕ stays on the screen at the left edge; ★ → # with a 503 keeps the ★ button and card, then # works; the popup has only a ≤24px ✕ with background alpha ≤0.4, a long press without moving does nothing, hold-then-drag moves it without zooming, a short press opens the enlarged view; 프리샷 box ≥90px; one fold for the request field and two in 프리샷; [↓ 생성] hidden while 장면 추출 shows; the recovery buttons never appear during a generation and show as two equal buttons as wide as [이미지 생성]; the status dot colour by state and the numbers in the accent colour; 원문 보관 summary; tag rules in Settings; 팝업 크기 ↔ 위치 처음으로 and 내보내기 ↔ 가져오기 aligned (with SillyTavern's `select{margin-bottom:5px}` added); the empty ★ message spans the grid.
+- Eighteen fixes were each reverted once and `browser-v0187` failed every time.
+- Older scripts updated for intended changes: `browser-v0186` (popup has only ✕, a tap zooms; # 태그 has no note of its own; three fewer folds). `browser-v0150` waited for the outfit save to reach `saveMetadata` before rebuilding the card — it failed about half the time on 0.1.86 too (a race in the test, not the panel).
+- Not checked: a real SillyTavern (two windows with `/wi-set-timed-effect`), iPhone Safari or an Android keyboard (only a simulated `visualViewport`), a long press on a real touch screen, a real NovelAI account.
+
+---
+
 # v0.1.86 validation — 2026-11-07 (extension only, server v0.1.23)
 
 - Extension Node suite: **190 passed, 0 failed** (+2: memory-only chat keys — `lastInContextMessageId`, `chat_id_hash`, `timedWorldInfo` — are taken from memory in the comparison while a real change elsewhere is still seen; `taggedIds` lists only pictures with tags).

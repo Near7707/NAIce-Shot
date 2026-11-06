@@ -1,5 +1,16 @@
 # Installation and update checklist
 
+## v0.1.87
+
+**Extension only.** The server plugin stays 0.1.23 — just update the extension and refresh.
+
+1. Tag popup: press the picture briefly — the enlarged view opens. Hold it a moment, then drag — it moves. Only a small ✕ is left.
+2. 프리샷: the 상황 box is four lines tall. Above 장면 추출 there is one 더보기.
+3. Press 이미지 생성: the two small buttons under it do not flash.
+4. Settings: 추출 AI 응답 원문 추가 보관 shows 켜짐/꺼짐 while folded. 팝업 크기 and 위치 처음으로 sit on one line; so do the two backup buttons.
+5. History: ★ with no favorites — the message uses the whole width. Edit a tag on a phone with the keyboard open and tap 저장 once — it saves.
+6. The NAI status box: the dot is green, orange or red; the numbers are coloured.
+
 ## v0.1.86
 
 **The server plugin must be 0.1.23** (it is the current one; no server change in this release). If the panel says the server is older, update the server first, restart SillyTavern, then update the extension and refresh.
