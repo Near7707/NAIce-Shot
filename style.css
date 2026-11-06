@@ -962,11 +962,6 @@
  #naice-shot-dialog .ncs-help:not(.ncs-open) > .ncs-help-short {display:block;}
  #naice-shot-dialog .ncs-help.ncs-open > .ncs-help-less {display:inline-block;margin-top:2px;font-size:12px;}
 }
-/* 0.1.86: the # 태그 view's explanation folds at every width. */
-#naice-shot-dialog .ncs-help-always:not(.ncs-open) > :not(.ncs-help-short) {display:none;}
-#naice-shot-dialog .ncs-help-always:not(.ncs-open) > .ncs-help-short {display:block;}
-#naice-shot-dialog .ncs-help-always.ncs-open > .ncs-help-less {display:inline-block;margin-top:2px;font-size:12px;}
-#naice-shot-dialog .ncs-help-always {margin:0 0 8px;}
 
 /* 0.1.86 태그 추천 팝업: only the picture. Fixed dark buttons (not the theme), white icons on see-through circles. */
 .ncs-tag-pop {position:fixed;z-index:9000;left:50%;top:calc(56px + env(safe-area-inset-top,0px));box-sizing:border-box;margin:0;padding:0;border:0;background:none;
@@ -989,9 +984,11 @@
 /* The empty ★ / # message spans the whole history grid instead of one card column. */
 #naice-shot-dialog #ncs-history > p {grid-column:1/-1;}
 /* 같은 요청으로 다시 확인 · 확인 표시 지우기: one row of two equal buttons under 이미지 생성. */
-#naice-shot-dialog .ncs-pair-row:not([hidden]) {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;}
+#naice-shot-dialog .ncs-pair-row:not([hidden]) {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch;}
 #naice-shot-dialog .ncs-pair-row > button {width:100%;min-width:0;margin:0;}
 /* Side-by-side control + button rows line up: same height, same bottom line. */
+/* SillyTavern gives every select margin-bottom:5px, which lifted 팝업 크기 above [위치 처음으로] on the phone. */
+#naice-shot-dialog select {margin-bottom:0;}
 #naice-shot-dialog .ncs-tag-popup-tools {align-items:end;}
 #naice-shot-dialog .ncs-tag-popup-tools > label {margin-bottom:7px;}
 #naice-shot-dialog .ncs-tag-popup-home {margin:7px 0;}

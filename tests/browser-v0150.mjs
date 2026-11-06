@@ -43,6 +43,7 @@ try{
   // UI-049-03: save A, type B while it waits, the save fails → B stays.
   await page.evaluate(()=>{mock.normalSave=mock.saveMetadata;mock.saveMetadata=()=>new Promise((_,no)=>mock.failMetadata=()=>no(Error('mock failure')));});
   await card.locator('[data-save-outfit]').click();await card.locator('.ncs-outfit-saving').waitFor();
+  await page.waitForFunction(()=>typeof mock.failMetadata==='function'); // 0.1.87: the save has reached saveMetadata (the chat read before it could still be running, which raced this test)
   await once.fill('green scarf');
   // UI-049-04: rebuilding the card (이번 그림 → 비우기) keeps the hold and "저장 중…".
   await card.locator('[data-empty-outfit]').click();
