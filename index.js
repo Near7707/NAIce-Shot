@@ -1,7 +1,7 @@
 import { DEFAULTS, MODELS, clone, PROFILE_SCHEMA, profileDraftPrompt, parseProfileDraft, blankScene, validateProfiles, sourceValid,
   assemble, resolveOutfit, buildPayload, costGuard, usageOf, textSignature,
   BRAND, SIZE_PRESETS, sizePresetOf, VERSION, stripReasoningBlocks } from './core.mjs';
-import { CAMERA_ICON, BRAND_ICON, TAB_ICONS, ZOOM_ICON, CLOSE_ICON } from './icons.mjs';
+import { CAMERA_ICON, BRAND_ICON, TAB_ICONS, CLOSE_ICON } from './icons.mjs';
 import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } from './skins.mjs';
 import { attachInlineImages, detachInlineImage, detachInlineImages, detachMessageImage, placeMessageImage, orderedInlineImages, placementOf, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, visibleInlineImages, SAVE_NOTES, INLINE_LAYOUTS, INLINE_SIZES } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
@@ -23,7 +23,7 @@ import { makeZip } from './zip.mjs';
 import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, exactName } from './missing.mjs';
 import { cleanImageFile, saveCleanImage } from './downloads.mjs';
 import { jumpTargets, locateSource, locateAttached } from './message-jump.mjs';
-import {stableChatJson,comparableSavedMetadata,splitSavedChat} from './chat.mjs';
+import {stableChatJson,comparableSavedMetadata,splitSavedChat,timedState} from './chat.mjs';
 import {parseTags,cleanMarks,cleanPopupChats,setMark,forgetIds,forgetChat,starredIds,taggedIds,ownerOf,tagMatches,pickMatch,taggedFor} from './image-marks.mjs';
 
 const KEY='naice_shot',API='/api/plugins/naice-shot';
@@ -415,6 +415,13 @@ async function readSavedChat({inGroup,id,card}){
 }
 const CHAT_NOT_CURRENT='서버의 채팅과 화면이 같은지 확인하지 못했어요. 채팅을 다시 열고 시도해 주세요.';
 let chatWritePending=false,chatLoadEpoch=0,hostChatModule;
+// 0.1.87 (GPT P2 B2): world info timed effects this window has had since the chat was loaded. A disk value outside
+// this set was written somewhere else, so it is never replaced by this window's memory value.
+let timedKnown=new Set(),timedEpoch=-1;
+function noteTimed(metadata=ctx().chatMetadata){
+  if(timedEpoch!==chatLoadEpoch){timedKnown=new Set();timedEpoch=chatLoadEpoch;}
+  if(metadata&&typeof metadata==='object')timedKnown.add(timedState(metadata));
+}
 const chatState=(messages,metadata)=>stableChatJson({messages,metadata});
 async function withChatWrite(key,apply){
   if(!key||keyOf()!==key)throw new Error(CHAT_NOT_CURRENT);
@@ -440,9 +447,11 @@ async function withChatWrite(key,apply){
     try{saved=await readState();}catch{throw new Error(CHAT_NOT_CURRENT);}
     assertReady();
     if(snapshot!==chatState(ctx().chat,ctx().chatMetadata))throw new Error('채팅 내용이 바뀌는 중이에요. 잠시 뒤 다시 시도해 주세요.');
-    const diskMetadata=comparableSavedMetadata(saved.metadata,chatMetadata,context.extensionSettings?.note??{});
+    const diskMetadata=comparableSavedMetadata(saved.metadata,chatMetadata,context.extensionSettings?.note??{},{timedKnown});
     if(snapshot!==chatState(saved.messages,diskMetadata))throw new Error('서버의 채팅과 화면이 달라요. 다른 곳에서 수정했다면 채팅을 다시 열고, 방금 편집했다면 저장이 끝난 뒤 시도해 주세요.');
-    return await apply(ctx(),{readSaved:async()=>(await readState()).messages,isCurrent:current},readState);
+    noteTimed(saved.metadata);
+    try{return await apply(ctx(),{readSaved:async()=>(await readState()).messages,isCurrent:current},readState);}
+    finally{if(current())noteTimed();}
   }finally{chatWritePending=false;}
 }
 async function changeChatSetting(key,update){
@@ -508,12 +517,19 @@ const drafts=new DraftQueue({read:key=>api(`/draft?chatKey=${encodeURIComponent(
   write:(key,body)=>{const value={...body,chatKey:key,retainRawExtraction:settings().retainRawExtraction===true};return api('/draft',{method:'POST',body:value,keepalive:new Blob([JSON.stringify(value)]).size<60000,signal:draftSignal()});},onState:()=>renderDraftState()});
 let captureTimer=null;
 function scheduleDraft(){clearTimeout(captureTimer);captureTimer=null;if(draftsEnabled){captureTimer=setTimeout(()=>rememberDraft(),450);renderDraftState();}}
-function renderRawRetention(){if(dialog)$('ncs-retain-state').textContent=settings().retainRawExtraction===true?'켜짐 · 새로 만드는 그림의 이력과 마지막 작업에 응답 원문도 보관해요.':'꺼짐 · 응답 원문은 보관하지 않아요(생성 기록은 저장돼요).';}
+function renderRawRetention(){if(!dialog)return;const sum=$('ncs-retain-summary');if(sum)sum.textContent=settings().retainRawExtraction===true?' · 켜짐':' · 꺼짐';$('ncs-retain-state').textContent=settings().retainRawExtraction===true?'켜짐 · 새로 만드는 그림의 이력과 마지막 작업에 응답 원문도 보관해요.':'꺼짐 · 응답 원문은 보관하지 않아요(생성 기록은 저장돼요).';}
+// 0.1.87 (P3-3): while a deletion's result is unknown the work may still be deleted on the server, and anything typed
+// meanwhile would be emptied with it. The drawing window stays locked until the result is checked.
+function syncHeldLock(){
+  const fields=$('ncs-work-fields'),held=draftsEnabled&&draftDeletionChecks.has(workKey());
+  if(held){fields.disabled=true;fields.dataset.heldLock='true';}
+  else if(fields.dataset.heldLock){delete fields.dataset.heldLock;if(!draftLoading&&!pauseDraftCapture)fields.disabled=false;}
+}
 function renderDraftState(){
-  if(!dialog)return;const e=drafts.entry(workKey()),box=$('ncs-draft-status');
+  if(!dialog)return;syncHeldLock();const e=drafts.entry(workKey()),box=$('ncs-draft-status');
   if(!draftsEnabled){box.hidden=!compatChecked;box.textContent='작업 기억을 사용할 수 없어요. 서버 연결·업데이트를 확인해 주세요.';$('ncs-draft-retry').hidden=!compatChecked;$('ncs-draft-retry').textContent='연결 다시 확인';return;}
   const held=draftDeletionChecks.has(workKey());
-  box.hidden=!draftsEnabled;box.textContent=held?'삭제 결과를 확인할 때까지 작업 자동 저장을 멈췄어요.':draftLoading?'마지막 작업을 불러오는 중…':e.error?`작업 저장을 확인해 주세요: ${e.error.message}`:e.saving||e.dirty||captureTimer?'마지막 작업 저장 중…':draftNote||'마지막 작업을 서버에 기억해요.';
+  box.hidden=!draftsEnabled;box.textContent=held?'삭제 결과를 확인할 때까지 작업을 잠갔어요.':draftLoading?'마지막 작업을 불러오는 중…':e.error?`작업 저장을 확인해 주세요: ${e.error.message}`:e.saving||e.dirty||captureTimer?'마지막 작업 저장 중…':draftNote||'마지막 작업을 서버에 기억해요.';
   $('ncs-draft-retry').hidden=!draftsEnabled||!held&&!e.error;
   $('ncs-draft-retry').textContent=held?'삭제 결과 다시 확인':e.error?.status===409?'서버 작업 다시 불러오기':'다시 시도';
 }
@@ -547,7 +563,7 @@ async function retryDraft(){
   const key=workKey(),e=drafts.entry(key);
   if(draftDeletionChecks.has(key)){
     const outcome=await reconcileDraftDeletion(key);
-    if(outcome==='unknown')notice('아직 삭제 결과를 확인하지 못했어요. 작업 자동 저장을 멈춘 상태예요.',true);
+    if(outcome==='unknown')notice('아직 삭제 결과를 확인하지 못했어요. 확인할 때까지 작업을 잠가 둘게요.',true);
     else if(outcome==='deleted')notice('서버에서 작업이 삭제된 것을 확인했어요.');
     else notice('서버 작업을 확인했어요. 자동 저장을 다시 시작해요.');
     return;
@@ -761,7 +777,7 @@ async function deleteAllWork(){
     for(const k of Object.keys(spare))delete spare[k];
     return keys;
   });
-  if(r.unverified){report(`전체 삭제 응답을 받지 못했어요. 작업 ${r.deleted}개의 삭제를 확인했어요.${r.held?' 확인하지 못한 작업은 자동 저장을 멈췄어요.':''}`,true);return;}
+  if(r.unverified){report(`전체 삭제 응답을 받지 못했어요. 작업 ${r.deleted}개의 삭제를 확인했어요.${r.held?' 확인하지 못한 작업은 확인할 때까지 잠갔어요.':''}`,true);return;}
   report(`저장된 작업 ${r.deleted??0}개를 지웠어요. 그림 이력은 그대로예요.`);
 }
 const skinTargets=()=>[dialog,document.getElementById('ncs-viewer')];
@@ -1877,7 +1893,7 @@ function v5Short(sub){
   if(sub?.tier!==3)return '';const u=usageOf(sub);
   if(!u||u.percent===null||u.isNegative===null)return '<span class="ncs-v5-warn">V5 확인 못 함</span>';
   if(u.isNegative)return '<span class="ncs-v5-warn">V5 쓸 수 없음</span>';
-  return `V5 <b>${esc(String(u.percent))}%</b>${u.purchasedPercent?` (+${esc(String(u.purchasedPercent))}%)`:''}`;
+  return `V5 <b${u.percent<=0?' class="ncs-low"':''}>${esc(String(u.percent))}%</b>${u.purchasedPercent?` (+${esc(String(u.purchasedPercent))}%)`:''}`;
 }
 function v5Detail(sub){
   const u=usageOf(sub);if(!u||u.percent===null||u.isNegative===null)return '확인하지 못했어요';
@@ -1890,9 +1906,9 @@ function verdictOf(guard,model){
     return {text:'계정 확인 전',state:'neutral'};}
   switch(guard.kind){
     case 'free':return {text:`${pre}${m} 무료 조건에 해당해요 ✓`,state:'ok'};
-    case 'may':return {text:usageOf(sub)?.isNegative?`${pre}V5 사용량을 지금 쓸 수 없어요`:`${pre}V5 사용량으로 생성 (부족하면 Anlas)`,state:usageOf(sub)?.isNegative?'warn':'neutral'};
+    case 'may':return {text:usageOf(sub)?.isNegative?`${pre}V5 사용량을 지금 쓸 수 없어요`:`${pre}V5 사용량으로 생성 (부족하면 Anlas)`,state:usageOf(sub)?.isNegative?'warn':'spend'};
     case 'inactive':return {text:`${pre}구독 비활성 · 무료 생성 대상 아님`,state:'warn'};
-    case 'uses':return {text:`${pre}${sub.tier===3?'기본 조건을 넘어 Anlas를 사용해요':'이 생성은 Anlas를 사용해요'}`,state:'neutral'};
+    case 'uses':return {text:`${pre}${sub.tier===3?'기본 조건을 넘어 Anlas를 사용해요':'이 생성은 Anlas를 사용해요'}`,state:'spend'};
     default:return {text:guard.missing?'계정 정보에서 필요한 항목을 확인하지 못했어요':`${pre}무료 여부를 확인할 수 없어요`,state:'warn'};
   }
 }
@@ -1904,7 +1920,7 @@ function renderAccount(){
   else if(account.failed)box.textContent=account.keyConfigured===false?'NAI 키가 없어요 · 설정에서 확인':'잔액 확인 실패 · 다시 확인';
   else if(total===null)box.innerHTML=account.at?`Anlas 잔액을 알 수 없어요${v5?` · ${v5}`:''} · ${esc(time)} 확인`:'Anlas 확인 전';
   else{const diff=account.previous!=null?total-account.previous:0;
-    box.innerHTML=`Anlas <b>${total.toLocaleString()}</b>${v5?` · ${v5}`:''} · ${esc(time)} 확인${diff?` · 이전 조회보다 ${diff>0?'+':'−'}${Math.abs(diff).toLocaleString()}`:''}`;}
+    box.innerHTML=`Anlas <b${total<=0?' class="ncs-low"':''}>${total.toLocaleString()}</b>${v5?` · ${v5}`:''} · ${esc(time)} 확인${diff?` · 이전 조회보다 ${diff>0?'+':'−'}${Math.abs(diff).toLocaleString()}`:''}`;}
   const sub=account.sub,tier=tierName(sub),s=sub?.anlas;
   $('ncs-account-tier').textContent=sub?`${tier} · ${sub.active===true?'활성':sub.active===false?'비활성':'활성 여부 확인 못 함'}${sub.isGracePeriod===true?' · 유예 기간':''}`:'—';
   $('ncs-v5-row').hidden=sub?.tier!==3;if(sub?.tier===3)$('ncs-v5-detail').textContent=v5Detail(sub);
@@ -1965,10 +1981,12 @@ function rememberGeneration(key,id){
 }
 function renderGenerationCheck(){
   const button=dialog?.querySelector('[data-action="generation-check"]');if(!button)return;
-  button.hidden=!pendingGenerations.has(workKey());
+  // 0.1.87: the request is remembered as soon as it is sent (so a lost reply can be checked again), but the two
+  // buttons only appear once nothing is running: during the generation itself they flashed up for a moment.
+  button.hidden=!pendingGenerations.has(workKey())||busy&&!checkingGeneration;
   button.disabled=checkingGeneration||busy||attaching;
   const forget=dialog.querySelector('[data-action="generation-forget"]');
-  forget.hidden=button.hidden;forget.disabled=button.disabled;
+  forget.hidden=button.hidden;forget.disabled=button.disabled;$('ncs-generation-recover').hidden=button.hidden;
 }
 async function checkGeneration(entry=null){
   const key=entry?.chatKey??workKey(),requestId=entry?.id??pendingGenerations.get(key);
@@ -2163,7 +2181,6 @@ function updateHistoryTools() {
   // 0.1.86: [# 태그] lists every picture with a tag, through the same ID filter. Only one of ★ and # is on.
   tagView.setAttribute('aria-pressed',String(historyMarkFilter==='tag'));tagView.disabled=locked||!canStar;
   tagView.title=canStar?(historyMarkFilter==='tag'?'모든 그림 보기로 돌아가요':'태그를 붙인 그림만 보여줘요'):'서버 플러그인 v0.1.22 이상이 필요해요';
-  $('ncs-tag-view-help').hidden=historyMarkFilter!=='tag';
   const clear=dialog.querySelector('[data-action="delete-chat-history"]');clear.disabled=locked||!scopeCount||!singleKey;clear.hidden=allScope;clear.textContent=historyScope==='free'?'프리샷 이력 전체 삭제':'이 채팅 이력 전체 삭제';
   const filterDelete=dialog.querySelector('[data-action="delete-filter-chat"]');filterDelete.hidden=!allScope||!historyFilter;filterDelete.disabled=locked||!scopeCount;
   $('ncs-history-all-tools').hidden=!allScope;
@@ -2283,7 +2300,7 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
       (cleared.length?` 그림이 없는 생성 요청 기록 ${cleared.length}건도 정리했어요.`:'')+
       (unconfirmed.size?` 결과를 끝내 확인하지 못한 생성 요청 ${unconfirmed.size}건은 Anlas가 차감됐을 수 있어요. NovelAI에서 확인해 주세요.`:'')+
       (requestUnverified?(allGone?' 삭제 응답을 받지 못했지만 이 채팅 이력에 남은 그림이 없는 것을 확인했어요.':' 삭제 응답을 받지 못했어요. 확인된 그림만 반영했으니 이력을 다시 확인해 주세요.'):'')+
-      (draftHeld?' 작업 기억을 확인할 때까지 자동 저장을 멈췄어요.':'')+
+      (draftHeld?' 작업 기억을 확인할 때까지 그리기창을 잠갔어요.':'')+
       (deleteError?` 삭제 요청 실패. ${deleteError}`:'')+
       (unsent?` 나머지 ${unsent}개 채팅에는 삭제 요청을 보내지 않았어요.`:'');
     say(deleted.size?`그림 ${deleted.size}장을 삭제했어요.${skippedText}${detachFailed?' 다만 채팅에서 그림을 빼는 저장은 실패해서, 채팅에는 \'찾을 수 없는 그림\' 표시가 남아요. 그 표시의 [이 메시지에서 빼기]로 정리할 수 있어요.':unverifiedDetach?` 다만 채팅에서 그림을 뺀 것이 ${UNVERIFIED}`:''}` :`${requestUnverified?(allGone?'이력 확인을 마쳤어요.':'삭제 결과를 전부 확인하지 못했어요.'):'삭제한 그림이 없어요.'}${skippedText}`,!deleted.size||unverifiedDetach||detachFailed||failed.length>0||workDeleteFailed||requestUnverified||!!deleteError||unconfirmed.size>0,originTab);
@@ -2396,6 +2413,7 @@ function setupHelpFolds(root){
 // focus; otherwise the last card's form could never scroll above it. Runs now, on the next frame, and whenever the
 // visible area changes.
 function keepAboveKeyboard(box,focus=box){
+  box.ncsKeepStop?.(); // focusing the field again starts over instead of adding a second set of listeners
   const scroller=(el=>{for(let p=el?.parentElement;p;p=p.parentElement){const y=getComputedStyle(p).overflowY;if(y==='auto'||y==='scroll')return p;}return null;})(box);
   const base=scroller?parseFloat(getComputedStyle(scroller).paddingBottom)||0:0;
   const fit=()=>{
@@ -2408,8 +2426,21 @@ function keepAboveKeyboard(box,focus=box){
   };
   fit();requestAnimationFrame(fit);
   const vv=window.visualViewport;
-  const stop=()=>{vv?.removeEventListener?.('resize',fit);vv?.removeEventListener?.('scroll',fit);focus.removeEventListener('blur',stop);if(scroller)scroller.style.paddingBottom='';};
-  vv?.addEventListener?.('resize',fit);vv?.addEventListener?.('scroll',fit);focus.addEventListener('blur',stop);
+  // 0.1.87 (GPT P2 B5): pressing 저장·취소 must not drop the extra room first, or the button moves away from the
+  // finger before the click. A mouse/touch press on a button in the form keeps focus in the field (so the keyboard
+  // stays), and the room is only given back once focus has really left the form and no press is still going on.
+  let pressing=false,timer=0;
+  const hold=event=>{if(event.target.closest?.('button')){pressing=true;if(event.type==='mousedown')event.preventDefault();}};
+  const release=()=>{if(pressing){pressing=false;later();}};
+  const later=()=>{clearTimeout(timer);timer=setTimeout(()=>{if(pressing)return;if(!box.isConnected||!box.contains(document.activeElement))stop();},350);};
+  const left=event=>{if(!box.contains(event.relatedTarget))later();};
+  const stop=()=>{clearTimeout(timer);vv?.removeEventListener?.('resize',fit);vv?.removeEventListener?.('scroll',fit);box.removeEventListener('focusout',left);
+    box.removeEventListener('pointerdown',hold);box.removeEventListener('mousedown',hold);document.removeEventListener('pointerup',release,true);document.removeEventListener('pointercancel',release,true);
+    if(scroller)scroller.style.paddingBottom='';if(box.ncsKeepStop===stop)delete box.ncsKeepStop;};
+  box.ncsKeepStop=stop;
+  vv?.addEventListener?.('resize',fit);vv?.addEventListener?.('scroll',fit);box.addEventListener('focusout',left);
+  box.addEventListener('pointerdown',hold);box.addEventListener('mousedown',hold);document.addEventListener('pointerup',release,true);document.addEventListener('pointercancel',release,true);
+  if(focus!==box&&!box.contains(focus))focus.addEventListener('blur',later,{once:true});
 }
 const historyTagControls=item=>historyTagEdit===item.id?`<div class="ncs-wardrobe-save ncs-tag-form"><label>태그 · 쉼표로 구분<input id="ncs-history-tag-input" maxlength="400" value="${esc((marks()[item.id]?.tags??[]).join(', '))}" placeholder="웃음, 비, rain"></label><div class="ncs-row ncs-form-actions"><button type="button" class="ncs-primary" data-history-tag-save="${esc(item.id)}">저장</button><button type="button" data-history-tag-cancel>취소</button></div></div>`:'';
 function historyActions(item,{editable=false,attached=false}={}){
@@ -2781,7 +2812,19 @@ async function onAction(action,el) {
     case 'history':await loadHistory();break;
     case 'history-more':await loadHistory({append:true});break;
     case 'tag-popup-home':{tagPopStore('place',null);const pop=document.getElementById('ncs-tag-pop');if(pop){delete pop.dataset.moved;homeTagPop(pop);}renderTagPopupSetting();notice('태그 추천 팝업을 처음 자리(채팅 가운데 위)로 돌렸어요.');break;}
-    case 'history-star-only':case 'history-tag-only':{const want=action==='history-tag-only'?'tag':'star';historyMarkFilter=historyMarkFilter===want?null:want;}closeImageMenu();historyItems=[];historyPending=[];historyPendingBytes=0;historyTotal=0;historyHasMore=false;historyUnfiltered=null;selectedIds.clear();await loadHistory();break;
+    case 'history-star-only':case 'history-tag-only':{
+      // 0.1.87 (GPT P3): if the new list cannot be read, the old view comes back whole (its filter with its cards),
+      // so the buttons never show one view while the cards are from another.
+      const want=action==='history-tag-only'?'tag':'star',next=historyMarkFilter===want?null:want;
+      const before={markFilter:historyMarkFilter,items:historyItems,pending:historyPending,bytes:historyPendingBytes,total:historyTotal,more:historyHasMore,unfiltered:historyUnfiltered,picked:[...selectedIds]};
+      historyMarkFilter=next;closeImageMenu();historyItems=[];historyPending=[];historyPendingBytes=0;historyTotal=0;historyHasMore=false;historyUnfiltered=null;selectedIds.clear();
+      try{await loadHistory();}
+      catch(e){
+        if(historyMarkFilter===next){historyMarkFilter=before.markFilter;historyItems=before.items;historyPending=before.pending;historyPendingBytes=before.bytes;historyTotal=before.total;historyHasMore=before.more;historyUnfiltered=before.unfiltered;
+          for(const id of before.picked)selectedIds.add(id);renderHistory();}
+        throw e;
+      }
+      break;}
     case 'select-all-history':{
       // [모두 선택] ↔ [모두 해제]: once anything is picked, the button clears the picks.
       if(selectedIds.size)selectedIds.clear();else for(const x of historyItems)selectedIds.add(x.id);
@@ -2799,7 +2842,10 @@ async function onAction(action,el) {
 // [↓ 생성] shows while the generate area is out of sight on the drawing tab.
 function watchGenerateArea(){
   const target=$('ncs-generate-section'),button=$('ncs-jump-generate'),root=dialog.querySelector('.ncs-content');if(!target||!button||typeof IntersectionObserver!=='function')return;
-  new IntersectionObserver(([e])=>{button.hidden=e.isIntersecting;},{root,threshold:0}).observe(target);
+  // 0.1.87: also hidden while [장면 추출] is on the screen, which it used to cover near the bottom edge.
+  const extract=dialog.querySelector('[data-action="extract"]'),seen=new Map();
+  const io=new IntersectionObserver(entries=>{for(const e of entries)seen.set(e.target,e.isIntersecting);button.hidden=[...seen.values()].some(Boolean);},{root,threshold:0});
+  io.observe(target);if(extract)io.observe(extract);
 }
 function bindEvents() {
   $('ncs-target-label').addEventListener('click',()=>{rememberTargetScroll();targetListRendered=false;}); // before the native details toggle
@@ -2982,8 +3028,13 @@ const tagPopSize=()=>{const v=tagPopStore('size');return Object.hasOwn(TAG_POP_S
 function tagPopSaved(){try{const p=JSON.parse(tagPopStore('place')??'null');return Number.isFinite(p?.x)&&Number.isFinite(p?.y)?p:null;}catch{return null;}}
 // Keeps the box inside the screen (a place saved on a wider window, a rotated phone).
 function placeTagPop(box,x,y){
+  // 0.1.87 (GPT P3): the limits use the picture and its buttons together, so the ✕ never ends up off the screen
+  // even when a small picture is narrower or lower than the buttons that sit on it.
   const r=box.getBoundingClientRect(),w=r.width||box.offsetWidth,h=r.height||box.offsetHeight;
-  const nx=Math.min(Math.max(4,x),Math.max(4,innerWidth-w-4)),ny=Math.min(Math.max(4,y),Math.max(4,innerHeight-h-4));
+  let L=r.left,T=r.top,R=r.left+w,B=r.top+h;
+  for(const el of box.querySelectorAll('button')){const b=el.getBoundingClientRect();if(!b.width&&!b.height)continue;L=Math.min(L,b.left);T=Math.min(T,b.top);R=Math.max(R,b.right);B=Math.max(B,b.bottom);}
+  const left=r.left-L,top=r.top-T,right=R-(r.left+w),bottom=B-(r.top+h);
+  const nx=Math.min(Math.max(4+left,x),Math.max(4+left,innerWidth-w-right-4)),ny=Math.min(Math.max(4+top,y),Math.max(4+top,innerHeight-h-bottom-4));
   box.style.left=`${Math.round(nx)}px`;box.style.top=`${Math.round(ny)}px`;return {x:nx,y:ny};
 }
 function homeTagPop(box){
@@ -3022,42 +3073,49 @@ function showTagPopup(list,where){
   tagPop={...choice,...where};
   box.id='ncs-tag-pop';box.className='ncs-tag-pop';box.dataset.size=tagPopSize();box.setAttribute('role','dialog');box.setAttribute('aria-label','태그 추천 그림');
   box.style.setProperty('--ncs-tag-pop-h',`${TAG_POP_SIZES[tagPopSize()]}vh`);
-  box.innerHTML=`<img alt="태그 추천 그림" draggable="false" src="/user/images/naice-shot/${esc(choice.id)}.png"><div class="ncs-tag-pop-tools"><button type="button" data-tag-pop="zoom" aria-label="크게 보기" title="크게 보기">${ZOOM_ICON}</button><button type="button" data-tag-pop="close" aria-label="닫기" title="닫기">${CLOSE_ICON}</button></div>`;
+  box.innerHTML=`<img alt="태그 추천 그림" draggable="false" src="/user/images/naice-shot/${esc(choice.id)}.png"><div class="ncs-tag-pop-tools"><button type="button" data-tag-pop="close" aria-label="닫기" title="닫기">${CLOSE_ICON}</button></div>`;
+  box.tabIndex=0;box.title='눌러서 크게 보기 · 길게 눌러 옮기기';
   const img=box.querySelector('img');
   // A picture that no longer loads (deleted elsewhere) gives way to another match, or the popup closes.
   img.addEventListener('error',()=>{if(tagPop?.id!==choice.id)return;closeTagPopup();showTagPopup(list.filter(x=>x.id!==choice.id),where);},{once:true});
   img.addEventListener('load',()=>{if(box.isConnected&&!box.dataset.moved)fitTagPop();});
-  box.addEventListener('keydown',event=>{if(event.key==='Escape'){event.stopPropagation();closeTagPopup();}});
-  box.addEventListener('click',event=>{
-    const act=event.target.closest('[data-tag-pop]')?.dataset.tagPop;if(!act)return;
-    if(act==='close')closeTagPopup();
-    else if(act==='zoom')zoomTagPopup().catch(e=>say(e.message,true));
+  box.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){event.stopPropagation();closeTagPopup();}
+    else if((event.key==='Enter'||event.key===' ')&&event.target===box){event.preventDefault();zoomTagPopup().catch(e=>say(e.message,true));}
   });
+  box.addEventListener('click',event=>{if(event.target.closest('[data-tag-pop="close"]'))closeTagPopup();});
   dragTagPop(box);
   document.body.append(box);
   if(kept)placeTagPop(box,kept.x,kept.y);else fitTagPop();
 }
-// Drag by the picture. Buttons never start a drag; a press that does not move does nothing.
+// 0.1.87 (user's choice): the picture itself does both, by how long it is pressed. A short press opens the enlarged
+// view; holding it (TAG_POP_HOLD) picks it up so it follows the finger. Moving right away drags as well. A long press
+// let go without moving does nothing. The ✕ never starts either.
+const TAG_POP_HOLD=350;
 function dragTagPop(box){
   let start=null;
+  const lift=()=>{if(start){start.held=true;box.classList.add('ncs-dragging');}};
   box.addEventListener('pointerdown',event=>{
     if(event.button!==0||event.target.closest('button'))return;
-    start={id:event.pointerId,x:event.clientX,y:event.clientY,left:box.offsetLeft,top:box.offsetTop,moved:false};
+    start={id:event.pointerId,x:event.clientX,y:event.clientY,left:box.offsetLeft,top:box.offsetTop,moved:false,held:false,timer:setTimeout(lift,TAG_POP_HOLD)};
     box.setPointerCapture?.(event.pointerId);event.preventDefault();
   });
   box.addEventListener('pointermove',event=>{
     if(!start||event.pointerId!==start.id)return;
     const dx=event.clientX-start.x,dy=event.clientY-start.y;
     if(!start.moved&&Math.hypot(dx,dy)<6)return;
-    start.moved=true;box.classList.add('ncs-dragging');placeTagPop(box,start.left+dx,start.top+dy);
+    if(!start.moved){start.moved=true;clearTimeout(start.timer);}
+    box.classList.add('ncs-dragging');placeTagPop(box,start.left+dx,start.top+dy);
   });
   const end=event=>{
     if(!start||event.pointerId!==start.id)return;
-    const moved=start.moved;start=null;box.classList.remove('ncs-dragging');
+    const {moved,held,timer}=start;clearTimeout(timer);start=null;box.classList.remove('ncs-dragging');
     if(moved){box.dataset.moved='1';tagPopStore('place',JSON.stringify({x:box.offsetLeft,y:box.offsetTop}));renderTagPopupSetting();}
+    else if(!held&&event.type==='pointerup')zoomTagPopup().catch(e=>say(e.message,true));
   };
   box.addEventListener('pointerup',end);box.addEventListener('pointercancel',end);
   box.addEventListener('touchmove',event=>{if(start)event.preventDefault();},{passive:false}); // the chat must not scroll while dragging
+  box.addEventListener('contextmenu',event=>event.preventDefault()); // a long press picks the picture up, no menu
 }
 async function zoomTagPopup(){
   const pop=tagPop;if(!pop)return;
@@ -3134,11 +3192,13 @@ async function initialize() {
   window.addEventListener('resize',()=>fitTagPop()); // the tag popup stays on the screen after a resize or rotation
   window.addEventListener('pagehide',()=>rememberDraft(workKey(),null,{flush:true}));
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')rememberDraft(workKey(),null,{flush:true});});
-  const c=ctx(),events=c.eventTypes??c.event_types;c.eventSource.on(events.CHAT_CHANGED,()=>{chatLoadEpoch++;chatChanged();});
+  const c=ctx(),events=c.eventTypes??c.event_types;c.eventSource.on(events.CHAT_CHANGED,()=>{chatLoadEpoch++;noteTimed();chatChanged();});noteTimed();
+  // ST saves the chat after these; the timed effects it saves are this window's own.
+  for(const type of ['GENERATION_ENDED','GENERATION_STOPPED'])if(events[type])c.eventSource.on(events[type],()=>noteTimed());
   const refreshChatImages=()=>renderChatImages();
   // 0.1.84: tag suggestions read a character reply after it is rendered (after streaming ends). Never a greeting.
   if(events.CHARACTER_MESSAGE_RENDERED)c.eventSource.on(events.CHARACTER_MESSAGE_RENDERED,(id,type)=>{try{suggestTaggedImage(Number(id),type);}catch(e){console.error('[NAIce Shot]',e.message);}});
-  for(const type of ['MESSAGE_RECEIVED','MESSAGE_SENT','MESSAGE_SWIPED','MESSAGE_DELETED','MESSAGE_EDITED'])if(events[type])c.eventSource.on(events[type],()=>{refreshChatImages();if(dialog.open){renderTargets();renderMatching();renderResult();renderHistory();updateFinal();}});
+  for(const type of ['MESSAGE_RECEIVED','MESSAGE_SENT','MESSAGE_SWIPED','MESSAGE_DELETED','MESSAGE_EDITED'])if(events[type])c.eventSource.on(events[type],()=>{noteTimed();refreshChatImages();if(dialog.open){renderTargets();renderMatching();renderResult();renderHistory();updateFinal();}});
   document.getElementById('chat')?.addEventListener('click',event=>{
     const clean=event.target.closest('[data-ncs-inline-clean]');
     if(clean){event.preventDefault();const id=clean.dataset.ncsInlineClean;clean.disabled=true;saveCleanImage({id,image:`/user/images/naice-shot/${id}.png`}).then(()=>say('클린 PNG(메타데이터 제거)를 저장했어요.'),()=>say('클린 PNG를 저장하지 못했어요. 원본으로 대체 저장하지 않았어요.',true)).finally(()=>{clean.disabled=false;});return;}
