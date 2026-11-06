@@ -29,27 +29,30 @@ const pic=(n,chatKey=KEY,mins=n)=>({id:uid(n),created:new Date(Date.UTC(2026,10,
  options:{model:'nai-diffusion-4-5-full',width:832,height:1216,steps:28,scale:5,seed:n,sampler:'k_euler_ancestral',scheduler:'karras',cfgRescale:0},
  assembled:{base:'1boy',negative:'',characters:[]},snapshot:{scene:null}});
 const FEATURES=['paged-history','delete','private-records','all-history','history-kinds','privacy-controls','draft-work','draft-delete','free-text','draft-tombstone','nai-error-codes','generation-recovery','pending-history','delete-check','history-ids','delete-cleared'];
-async function open(width,{seed=[],features=FEATURES,marks=null,pending=null,broken=[]}={}){
+async function open(width,{seed=[],features=FEATURES,marks=null,pending=null,broken=[],draft=null}={}){
  const page=await browser.newPage({viewport:{width,height:900},acceptDownloads:true}),errors=[],asked=[];
  page.setDefaultTimeout(9000);page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{asked.push(d.message());page.refuse?d.dismiss():d.accept();});
- const items=[...seed];page.deleteFail=[];page.deleteExtra={};page.posts=[];
+ const items=[...seed];page.deleteFail=[];page.deleteExtra={};page.posts=[];page.deletions=[];page.unexpectedImages=[];
+ await page.route('https://example.invalid/**',r=>{page.unexpectedImages.push(r.request().url());return r.abort();});
  await page.route('**/user/images/naice-shot/**',r=>{const id=path.basename(new URL(r.request().url()).pathname,'.png');if(broken.includes(id))return r.fulfill({status:404,body:''});return r.fulfill({status:200,headers:{'Content-Type':'image/png'},body:pngOf(64,96)});});
  await page.route('**/api/plugins/naice-shot/**',r=>{const u=new URL(r.request().url()),post=r.request().method()==='POST',body=post?r.request().postDataJSON():null;
   if(u.pathname.endsWith('/history')){
    const q=post?body:Object.fromEntries(u.searchParams);if(post)page.posts.push(body);
    const all=q.scope==='all',inScope=items.filter(x=>all?(!q.chatKey||x.chatKey===q.chatKey):x.chatKey===q.chatKey).sort((a,b)=>b.created.localeCompare(a.created));
-   const list=post&&q.ids?inScope.filter(x=>q.ids.includes(x.id)):inScope,offset=Number(q.offset??0),limit=Number(q.limit??20);
+   const saved=inScope.filter(x=>!x.orphaned),pending=post&&q.ids?[]:inScope.filter(x=>x.orphaned);
+   const list=post&&q.ids?saved.filter(x=>q.ids.includes(x.id)):saved,offset=Number(q.offset??0),limit=Number(q.limit??20);
    const chats=[...new Set(items.map(x=>x.chatKey))].map(k=>({chatKey:k,count:items.filter(x=>x.chatKey===k).length,latest:''}));
-   return r.fulfill({json:{items:list.slice(offset,offset+limit),total:list.length,hasMore:offset+limit<list.length,pending:[],pendingBytes:0,
+   return r.fulfill({json:{items:list.slice(offset,offset+limit),total:list.length,hasMore:offset+limit<list.length,pending,pendingBytes:0,
     ...(post&&q.ids?{filtered:true,unfilteredCount:inScope.length}:{}),...(all?{scope:'all',kind:q.kind==='chat'?'chat':'all',chats,imageCount:items.length,bytes:1}:{})}});
   }
-  if(u.pathname.endsWith('/delete')){const deleted=[],failed=[],skipped=[];
+  if(u.pathname.endsWith('/delete')){page.deletions.push(body);const deleted=[],failed=[],skipped=[];
    const wanted=body.all?items.filter(x=>x.chatKey===body.chatKey).map(x=>x.id):body.ids;
    for(const id of wanted){if(page.deleteFail.includes(id)){failed.push(id);continue;}const i=items.findIndex(x=>x.id===id&&x.chatKey===body.chatKey);if(i>=0){items.splice(i,1);deleted.push(id);}else skipped.push(id);}
+   if(page.loseDeleteReply)return r.abort();
    return r.fulfill({json:{deleted,skipped,workDeleted:false,...page.deleteExtra,...(failed.length?{failed}:{})}});}
-  if(u.pathname.endsWith('/delete-check'))return r.fulfill({json:{absent:[],remaining:true}});
+  if(u.pathname.endsWith('/delete-check'))return r.fulfill({json:page.deleteCheckReply??{absent:[],remaining:true}});
   if(u.pathname.endsWith('/generation'))return r.fulfill({json:u.searchParams.has('chatKey')?{pending:[]}:(page.generationReply??{state:'unknown'})});
-  if(u.pathname.endsWith('/draft'))return r.fulfill({json:post?{revision:'r'}:{revision:null,work:null}});
+  if(u.pathname.endsWith('/draft'))return r.fulfill({json:post?{revision:'r'}:{revision:draft?'saved':null,work:draft}});
   return r.fulfill({json:{keyConfigured:true,version:'0.1.22',features,minClient:'0.1.44',subscription:{tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600},anlas:{subscription:1000,purchased:0}}}});
  });
  if(marks)await page.addInitScript(m=>document.addEventListener('DOMContentLoaded',()=>{mock.extensionSettings.naice_shot.imageMarks=m;}),marks);
@@ -67,6 +70,39 @@ const reply=async(page,text,type='normal',extra={})=>page.evaluate(([t,type,extr
 const popup=page=>page.locator('#ncs-tag-pop');
 const noOverflow=page=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1);
 try{
+ for(const result of [
+  {...pic(1),seed:'<img src="/missing-test-image" onerror="window.invalidSeedRan=true">'},
+  {...pic(1),image:'https://example.invalid/invalid-image.png'},
+  {...pic(1),id:'invalid-id',image:'/user/images/naice-shot/invalid-id.png'},
+  pic(1),
+ ]){
+  const {page,errors}=await open(1100,{draft:{scene:{characters:[],location:'Example scene'},result}});
+  await page.waitForFunction(()=>document.getElementById('ncs-location').value==='Example scene');
+  assert.match(await page.locator('#ncs-draft-status').textContent(),/작업하던 장면을 불러왔어요/);
+  assert.equal(await page.locator('#ncs-result img').count(),result.seed===1&&result.image===pic(1).image?1:0);
+  assert.equal(await page.evaluate(()=>window.invalidSeedRan),undefined);
+  assert.deepEqual(page.unexpectedImages,[]);assert.deepEqual(errors,[]);await page.close();
+ }
+ {const {page,items}=await open(1100,{seed:[pic(1,''),pic(2)]});
+  await history(page);await page.locator('#ncs-history-scope').selectOption('all');
+  await page.locator(`[data-history-delete="${uid(1)}"]`).click();
+  await page.waitForFunction(()=>/그림 1장을 삭제했어요/.test(document.querySelector('#ncs-notice').innerText));
+  assert.deepEqual(page.deletions,[{chatKey:'',ids:[uid(1)]}]);
+  assert.deepEqual(items.map(item=>item.id),[uid(2)]);
+  await page.close();
+ }
+ for(const loseReply of [false,true]){
+  const {page}=await open(1100,{seed:[{...pic(1),orphaned:true}],pending:[[KEY,uid(1)]]});
+  page.deleteExtra={cleared:[],unconfirmed:[uid(1)]};
+  page.loseDeleteReply=loseReply;page.deleteCheckReply={absent:[uid(1)],remaining:false,unconfirmed:[uid(1)]};
+  await history(page);
+  await page.locator('#ncs-history-pending').getByText('저장에 실패해 서버에 파일이 남아 있어요.').waitFor();
+  assert.equal(await page.locator('[data-pending-save]').count(),0);
+  await page.locator('[data-action="delete-chat-history"]').click();
+  await page.waitForFunction(()=>/그림 1장을 삭제했어요.*차감됐을 수 있어요/.test(document.querySelector('#ncs-notice').innerText));
+  assert.deepEqual(await page.evaluate(()=>JSON.parse(sessionStorage.getItem('naice-shot-pending-generation'))),[[KEY,uid(1)]]);
+  await page.close();
+ }
  for(const width of [375,1100]){
   // ☆ → ★ on the card, kept by the picture's own ID; ★ only lists favorites through the server's ID filter
   {const {page,errors,asked}=await open(width,{seed:[pic(1),pic(2),pic(3),pic(4,FREE)]});
@@ -168,7 +204,7 @@ try{
    await history(page);await page.locator('[data-action="delete-chat-history"]').click();
    await page.waitForFunction(()=>/그림 1장을 삭제했어요/.test(document.querySelector('#ncs-notice').innerText));
    const note=await page.locator('#ncs-notice').innerText();
-   assert.match(note,/그림이 없는 생성 요청 기록 2건도 정리했어요/);assert.match(note,/1건은 결과를 끝내 확인하지 못한 요청/);
+   assert.match(note,/그림이 없는 생성 요청 기록 2건도 정리했어요/);assert.match(note,/결과를 끝내 확인하지 못한 생성 요청 1건/);
    assert.equal(await page.locator('#ncs-notice').evaluate(n=>n.classList.contains('ncs-error')),true);
    await page.locator('[data-tab="scene"]').click();
    assert.equal(await page.locator('[data-action="generation-check"]').isHidden(),false,'the 확인 필요 mark stays for the unknown request');
@@ -186,7 +222,7 @@ try{
    page.deleteExtra={cleared:[refused],unconfirmed:[]};
    await history(page);await page.locator('[data-action="delete-chat-history"]').click();
    await page.waitForFunction(()=>/그림 1장을 삭제했어요/.test(document.querySelector('#ncs-notice').innerText));
-   assert.doesNotMatch(await page.locator('#ncs-notice').innerText(),/확인하지 못한 요청/);
+   assert.doesNotMatch(await page.locator('#ncs-notice').innerText(),/확인하지 못한 생성 요청/);
    await page.locator('[data-tab="scene"]').click();
    assert.equal(await page.locator('[data-action="generation-check"]').isHidden(),true,'a refused request needs no check');
    assert.deepEqual(errors,[]);await page.close();}

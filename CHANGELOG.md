@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.85 — 2026-11-06 (extension + server v0.1.23)
+
+- Draft restore keeps the editable scene and prompt when the result's ID, image path or seed is invalid.
+- History can delete legacy images with no chat key by selecting them in the all-history view (server 0.1.23). Files left by an interrupted save appear in history with a discard option. Deleting them keeps the generation check available when the charge is still uncertain.
+
 ## 0.1.84 — 2026-11-06 (extension + server v0.1.22 — update the server first)
 
 - History: each card has a ☆/★ (favorite) on its date line, and **⋯ → 태그 편집** gives a picture up to 10 tags (comma separated, 30 letters each). Both are kept in the extension settings by the picture's own ID, so deleting or reordering other pictures never moves them. 프리샷 pictures take no tags (they have no character).

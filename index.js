@@ -304,7 +304,7 @@ function imageViewerOptions(item,{attachment=null}={}){
     // Also from the chat (0.1.63): deleteImages asks first and takes the picture out of every message it is in.
     // UI-070-04: a failure is thrown to the enlarged view, which shows it where the person is looking.
     onDelete:async()=>{
-      const reply=await deleteImages({ids:[item.id],owners:item.chatKey?{[item.id]:item.chatKey}:null});
+      const reply=await deleteImages({ids:[item.id],owners:typeof item.chatKey==='string'?{[item.id]:item.chatKey}:null});
       if(reply?.deleted.includes(item.id))return true;
       if(reply?.issue)throw new Error(reply.issue);
       return false;
@@ -2089,7 +2089,7 @@ function imageControls(item) {
 }
 function renderResult() {
   renderGenerationCheck();
-  $('ncs-result').innerHTML=result?`<button type="button" class="ncs-image-open" data-view-result aria-label="생성된 장면 크게 보기"><img src="${esc(result.image)}" alt="생성된 장면"></button>${imageControls(result)}<div class="ncs-row"><button data-action="same-seed">같은 seed로 생성</button><button data-action="new-seed">새 seed로 생성</button><button type="button" data-view-result>크게 보기</button></div><small>seed ${result.seed} · ${esc(MODELS[result.options.model]?.label)} · 메시지 본문은 유지되고, 첨부 그림은 본편 AI 입력에 포함되지 않아요.</small>`:'';
+  $('ncs-result').innerHTML=result?`<button type="button" class="ncs-image-open" data-view-result aria-label="생성된 장면 크게 보기"><img src="${esc(result.image)}" alt="생성된 장면"></button>${imageControls(result)}<div class="ncs-row"><button data-action="same-seed">같은 seed로 생성</button><button data-action="new-seed">새 seed로 생성</button><button type="button" data-view-result>크게 보기</button></div><small>seed ${esc(result.seed)} · ${esc(MODELS[result.options?.model]?.label)} · 메시지 본문은 유지되고, 첨부 그림은 본편 AI 입력에 포함되지 않아요.</small>`:'';
   updateAttachButtons();
 }
 function updateAttachButtons() {
@@ -2189,19 +2189,20 @@ async function requestImageDeletion(key,list,knownIds){
     if(!ambiguousDelete(e))throw e;
     if(all)holdDraftDeletion(key);
     knownIds=knownIds.filter(id=>typeof id==='string'&&/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id));
-    const deleted=[];let draftState=null,allGone=false;
+    const deleted=[],unconfirmed=[];let draftState=null,allGone=false;
     if(serverFeatures.includes('delete-check')){
       try{
         for(let i=0;i<Math.max(1,knownIds.length);i+=500){
           const checked=await api('/delete-check',{method:'POST',body:{chatKey:key,all,ids:knownIds.slice(i,i+500)},signal:draftSignal()});
           deleted.push(...(checked.absent??[]));
+          unconfirmed.push(...(checked.unconfirmed??[]));
           if(all)allGone=checked.remaining===false;
           if(typeof checked.draftDeleted==='boolean')draftState={revision:checked.draftRevision,deleted:checked.draftDeleted};
         }
       }catch{/* The already verified IDs are still safe to detach. */}
     }
     const draftHeld=all&&await reconcileDraftDeletion(key,draftState)==='unknown';
-    return {deleted,unverified:true,draftHeld,allGone};
+    return {deleted,unconfirmed,unverified:true,draftHeld,allGone};
   }
 }
 // Deletes images, possibly from several chats: one server request per owning chat.
@@ -2214,9 +2215,9 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
   const target=all?(allOf??current):null;
   if(all&&!target)throw new Error('먼저 캐릭터 채팅을 열어 주세요.');
   if(!all&&!ids.length)return null;
-  const ownerOf=id=>owners?.[id]??historyItems.find(x=>x.id===id)?.chatKey??historyPending.find(x=>x.id===id)?.chatKey??(isFree()?FREE_KEY:current); // a 프리샷 picture belongs to the 프리샷 key, not to the open chat
+  const ownerOf=id=>owners?.[id]??historyItems.find(x=>x.id===id)?.chatKey??historyPending.find(x=>x.id===id)?.chatKey??(isFree()?FREE_KEY:current||null); // a 프리샷 picture belongs to the 프리샷 key, not to the open chat
   const groups=new Map();
-  if(all)groups.set(target,'all');else for(const id of ids){const key=ownerOf(id);if(!key)continue;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(id);}
+  if(all)groups.set(target,'all');else for(const id of ids){const key=ownerOf(id);if(key===null)continue;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(id);}
   const here=all?target===current:false,localIds=all?[]:ids.filter(id=>ownerOf(id)===current);
   const attached=here?countInlineImages(chat):localIds.filter(id=>hasInlineImage(chat,{id})).length;
   const elsewhere=all?target!==current:ids.some(id=>ownerOf(id)!==current);
@@ -2262,7 +2263,7 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
       catch{detachFailed=true;}
     }
     if(result&&deleted.has(result.id))result=null;
-    for(const id of deleted){selectedIds.delete(id);for(const [key,pending] of pendingGenerations)if(pending===id)rememberGeneration(key,null);}
+    for(const id of deleted){selectedIds.delete(id);for(const [key,pending] of pendingGenerations)if(pending===id&&!unconfirmed.has(id))rememberGeneration(key,null);}
     for(const id of cleared)if(!unconfirmed.has(id))for(const [key,pending] of pendingGenerations)if(pending===id)rememberGeneration(key,null);
     // 0.1.84: tags and stars of pictures the server confirmed gone. A whole chat confirmed empty forgets all of its marks.
     {let next=forgetIds(marks(),deleted),changedMarks=next.changed;
@@ -2273,7 +2274,7 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
       (failed.length?` ${failed.length}장은 삭제가 끝나지 않았어요. 이력에서 다시 삭제해 주세요.`:'')+
       (workDeleteFailed?' 마지막 작업 기억은 지우지 못했어요.':'')+
       (cleared.length?` 그림이 없는 생성 요청 기록 ${cleared.length}건도 정리했어요.`:'')+
-      (unconfirmed.size?` 그중 ${unconfirmed.size}건은 결과를 끝내 확인하지 못한 요청이라 Anlas가 차감됐을 수 있어요. NovelAI에서 확인해 주세요.`:'')+
+      (unconfirmed.size?` 결과를 끝내 확인하지 못한 생성 요청 ${unconfirmed.size}건은 Anlas가 차감됐을 수 있어요. NovelAI에서 확인해 주세요.`:'')+
       (requestUnverified?(allGone?' 삭제 응답을 받지 못했지만 이 채팅 이력에 남은 그림이 없는 것을 확인했어요.':' 삭제 응답을 받지 못했어요. 확인된 그림만 반영했으니 이력을 다시 확인해 주세요.'):'')+
       (draftHeld?' 작업 기억을 확인할 때까지 자동 저장을 멈췄어요.':'')+
       (deleteError?` 삭제 요청 실패. ${deleteError}`:'')+
@@ -2544,7 +2545,7 @@ function renderHistory() {
   pending.hidden=!historyPending.length;
   pending.innerHTML=historyPending.length?`<h4>저장 대기 중인 그림</h4>${historyPending.map(entry=>
     `<div class="ncs-row"><small>${esc(chatLabel(entry.chatKey))} · ${esc(shortDate(entry.created))}</small>
-    <button type="button" data-pending-save="${esc(entry.id)}">저장 다시 시도</button>
+    ${entry.orphaned===true?'<small>저장에 실패해 서버에 파일이 남아 있어요.</small>':`<button type="button" data-pending-save="${esc(entry.id)}">저장 다시 시도</button>`}
     <button type="button" data-pending-discard="${esc(entry.id)}" class="ncs-danger-outline">버리기</button></div>`).join('')}`:'';
   $('ncs-history').innerHTML=historyItems.length?historyItems.map(item=>{
     const id=esc(item.id),here=item.chatKey===current,editable=here||item.chatKey===FREE_KEY;
@@ -2740,7 +2741,7 @@ async function onAction(action,el) {
     case 'delete-selected':await deleteImages({ids:[...selectedIds]});break;
     case 'delete-chat-history':await deleteImages({all:true,chatKey:historyScope==='free'?FREE_KEY:keyOf()});break;
     case 'delete-filter-chat':if(historyFilter)await deleteImages({all:true,chatKey:historyFilter});break;
-    case 'delete-result':if(result)await deleteImages({ids:[result.id],owners:result.chatKey?{[result.id]:result.chatKey}:null});break;
+    case 'delete-result':if(result)await deleteImages({ids:[result.id],owners:typeof result.chatKey==='string'?{[result.id]:result.chatKey}:null});break;
     case 'export':exportSettings();break;
   }
 }

@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DraftQueue,packWork,unpackWork} from '../draft-work.mjs';
 import {blankScene} from '../core.mjs';
-const work=()=>({scene:{...blankScene(),source:{target:0,fingerprints:[{index:0,swipeId:0,text:'Example chat text'}]}},raw:'<think>private reasoning</think>{"location":"cafe"}',target:'0',wish:'reading',freeText:'',finalOverride:{base:'manual'},optionsOverride:{seed:7},result:{id:'image',payload:{secret:'never store'},snapshot:{rawExtraction:'never store'}},undoClear:null});
+const work=()=>({scene:{...blankScene(),source:{target:0,fingerprints:[{index:0,swipeId:0,text:'Example chat text'}]}},raw:'<think>private reasoning</think>{"location":"cafe"}',target:'0',wish:'reading',freeText:'',finalOverride:{base:'manual'},optionsOverride:{seed:7},result:{id:'00000000-0000-4000-8000-000000000001',image:'/user/images/naice-shot/00000000-0000-4000-8000-000000000001.png',seed:7,payload:{secret:'never store'},snapshot:{rawExtraction:'never store'}},undoClear:null});
 test('drafts omit source text, payload and raw by default, including undo; restore markers preserve reference semantics',()=>{
  const w=work();w.undoClear=work();w.restoredFinal=w.finalOverride;const p=packWork(w);
  assert.doesNotMatch(JSON.stringify(p),/Example chat text|private reasoning|never store/);
  assert.equal(p.raw,'');assert.equal(p.undoClear.raw,'');assert.ok(p.scene.source.fingerprints[0].signature);
- const restored=unpackWork(p);assert.equal(restored.finalOverride,restored.restoredFinal);assert.equal(restored.optionsOverride.seed,7);
+ const restored=unpackWork(p);assert.equal(restored.finalOverride,restored.restoredFinal);assert.equal(restored.optionsOverride.seed,7);assert.equal(restored.result.seed,7);
  assert.equal(packWork(w,{retainRaw:true}).raw,'{"location":"cafe"}');assert.equal(p.undoClear.undoClear,null);
 });
 test('per-chat queue serializes edits made during a save and keeps failed data available for retry',async()=>{
