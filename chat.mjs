@@ -36,14 +36,15 @@ export function stableChatJson(state){
 }
 
 export const MEMORY_ONLY_METADATA=['lastInContextMessageId','chat_id_hash'];
-// 0.1.87 (GPT P2 B2): timedWorldInfo is usually changed in memory by world info scans, but /wi-set-timed-effect
-// changes it and saves at once, possibly from another window. Its disk value is taken as "ours" only when this
-// window has known that exact value (at chat load, from a value it saw itself, or from a disk read it confirmed).
+// 0.1.87/0.1.88 (GPT P2 B2): timedWorldInfo is usually changed in memory by world info scans, but /wi-set-timed-effect
+// changes it and saves at once, possibly from another window. Its disk value is taken as "ours" only when it is the
+// one value this window last knew to be saved (0.1.88: not any value it once had — another window may have gone back
+// to an older one).
 export const TIMED_KEY='timedWorldInfo';
 export const timedState=metadata=>Object.hasOwn(metadata??{},TIMED_KEY)?stableChatJson(metadata[TIMED_KEY]):'-';
 // ST assigns these values when loading a chat. Ignore an absent disk key only
 // when memory contains the same value ST would initialize.
-export function comparableSavedMetadata(saved,local,note={},{timedKnown=null}={}){
+export function comparableSavedMetadata(saved,local,note={},{timedSaved=null}={}){
  const metadata={...saved};
  if(!Object.hasOwn(metadata,'integrity')&&local.integrity)metadata.integrity=local.integrity;
  const defaults={note_prompt:note.default??'',note_interval:note.defaultInterval??1,
@@ -57,9 +58,9 @@ export function comparableSavedMetadata(saved,local,note={},{timedKnown=null}={}
  for(const key of MEMORY_ONLY_METADATA){
   if(Object.hasOwn(local,key))metadata[key]=local[key];else delete metadata[key];
  }
- // A disk value this window never had may be another window's sticky/cooldown: it stays as read, so a
- // difference from memory stops the write instead of saving the old value over it.
- if(timedKnown?.has(timedState(saved))){
+ // Any other disk value may be another window's sticky/cooldown: it stays as read, so a difference from memory
+ // stops the write instead of saving this window's value over it.
+ if(typeof timedSaved==='string'&&timedState(saved)===timedSaved){
   if(Object.hasOwn(local,TIMED_KEY))metadata[TIMED_KEY]=local[TIMED_KEY];else delete metadata[TIMED_KEY];
  }
  return metadata;
