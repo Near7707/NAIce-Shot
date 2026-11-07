@@ -212,5 +212,46 @@ try{
   await page.touchscreen.tap(at.x+at.w/2,at.y+at.h/2);await page.locator('#ncs-viewer[open]').waitFor();
   assert.deepEqual(errors,[]);await page.close();}
 
- console.log('PASS: B2 a window going back to an older timed effect is kept; one work lock (another chat\'s load during a deletion, a later successful deletion); a late ★→# failure leaves the 프리샷 view and count; no keyboard room after a touch save; a second finger on the popup never zooms');
+ // 0.1.88 size standard (A 38 + notes 12), history selection tools, the 챗샷/프리샷 switch keeps its size.
+ for(const width of [320,375,1100]){
+  const {page,errors}=await open(width,{seed:[pic(1),pic(2),pic(3)],skin:'candycane'});
+  await page.waitForFunction(()=>document.querySelector('#naice-shot-dialog').dataset.skin==='candycane');
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'naice-shot-dialog','the dialog itself has the first focus');
+  const h=sel=>page.locator(sel).first().evaluate(e=>Math.round(e.getBoundingClientRect().height));
+  const fs=sel=>page.locator(sel).first().evaluate(e=>getComputedStyle(e).fontSize);
+  for(const sel of ['[data-action="extract"]','[data-action="generate"]'])assert.ok(Math.abs(await h(sel)-38)<=1,`${width} ${sel} ${await h(sel)}`);
+  assert.equal(await fs('[data-action="generate"]'),'15px');
+  // at 320px the tabs keep their icon-over-label layout
+  if(width>=375)for(const sel of ['.ncs-tabs button'])assert.ok(Math.abs(await h(sel)-36)<=1,`${width} tab ${await h(sel)}`);
+  assert.equal(await fs('.ncs-tabs button'),'14px');
+  // the switch: both buttons the same size, also with a keyboard focus ring on one
+  await page.keyboard.press('Tab');await page.locator('.ncs-header [data-mode="chat"]').focus();
+  const sizes=await page.locator('.ncs-header .ncs-mode button').evaluateAll(b=>b.map(e=>{const r=e.getBoundingClientRect();return [Math.round(r.width),Math.round(r.height),Math.round(r.top)];}));
+  assert.deepEqual(sizes[0],sizes[1],`${width}: 챗샷 ${sizes[0]} vs 프리샷 ${sizes[1]}`);
+  const ring=await page.locator('.ncs-header [data-mode="chat"]').evaluate(e=>[getComputedStyle(e).outlineStyle,getComputedStyle(e).outlineOffset]);
+  if(ring[0]!=='none')assert.ok(parseFloat(ring[1])<0,'the ring is drawn inside');
+  // notes 12, headings 16
+  assert.equal(await fs('.ncs-small'),'12px');assert.equal(await fs('h3'),'16px');
+  await page.locator('[data-tab="profiles"]').click();assert.ok(Math.abs(await h('#ncs-profile-submit')-38)<=1,'프로필 저장 is a main button');
+  await page.locator('[data-tab="settings"]').click();assert.ok(Math.abs(await h('[data-action="export"]')-36)<=1);
+  // history: [모두 선택] [본문에 넣기] [저장] [삭제] on one row, the whole delete below; small buttons 32
+  await history(page);
+  assert.ok(Math.abs(await h('[data-action="history-star-only"]')-32)<=1);assert.ok(Math.abs(await h('[data-action="history"]')-32)<=1);
+  assert.equal(await fs('.ncs-history-actions [data-history-delete]'),'13px');
+  const tools=()=>page.locator('.ncs-history-tools > button:not([hidden])').evaluateAll(b=>b.map(e=>[e.dataset.action||e.dataset.imageMore,e.innerText.trim(),Math.round(e.getBoundingClientRect().top)]));
+  let t=await tools();
+  assert.deepEqual(t.map(x=>x[1]),['모두 선택','본문에 넣기','저장','삭제','이 채팅 이력 전체 삭제']);
+  assert.equal(new Set(t.slice(0,4).map(x=>x[2])).size,1,`${width}: one row`);assert.ok(t[4][2]>t[0][2]);
+  await page.locator('[data-history-pick]').first().check();
+  t=await tools();assert.equal(t[0][1],'모두 해제');assert.match(await page.locator('#ncs-history-count').innerText(),/· 1장 고름$/);
+  await page.locator('[data-action="select-all-history"]').click();assert.equal((await tools())[0][1],'모두 선택');
+  assert.doesNotMatch(await page.locator('#ncs-history-count').innerText(),/고름/);
+  // 프리샷: three tools share the row
+  await page.locator('#ncs-history-scope').selectOption('free');await page.waitForTimeout(400);
+  t=await tools();assert.deepEqual(t.map(x=>x[1]),['모두 선택','저장','삭제','프리샷 이력 전체 삭제']);assert.equal(new Set(t.slice(0,3).map(x=>x[2])).size,1);
+  assert.ok(await noOverflow(page));await shot(page,`history-${width}`);
+  assert.deepEqual(errors,[]);await page.close();
+ }
+
+ console.log('PASS: B2 a window going back to an older timed effect is kept; one work lock (another chat\'s load during a deletion, a later successful deletion); a late ★→# failure leaves the 프리샷 view and count; no keyboard room after a touch save; a second finger on the popup never zooms; size standard (main 38/tabs 36/small 32, notes 12, headings 16) at 320/375/1100, history tools in one row with short labels and the count line, 챗샷/프리샷 same size with a focus ring, the dialog takes the first focus');
 }finally{await browser.close();server.close();}

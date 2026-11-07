@@ -2169,14 +2169,21 @@ function renderSelectionSave(){
   const zipRow=box.querySelector('.ncs-zip-choice');zipRow.hidden=!many;$('ncs-save-zip').checked=zip;
   box.querySelector('.ncs-zip-note').hidden=!many||zip; // separate files: the browser may ask once
 }
+// 0.1.88 (user's choice): the selection buttons are short ([모두 선택] [본문에 넣기] [저장] [삭제]); how many are
+// picked is said once, in the count line.
+function renderHistoryCount(){
+  $('ncs-history-count').innerHTML=[historyTotal?`${historyMarkFilter==='star'?'즐겨찾기':historyMarkFilter==='tag'?'태그':'총'} ${historyTotal}장${historyItems.length<historyTotal?` · ${historyItems.length}장 표시`:''}`:'', // 0.1.88: shorter, so the line has room for "N장 고름"
+    
+    historyPending.length?`저장 대기 ${historyPending.length}장 · ${formatBytes(historyPendingBytes)}`:'',selectedIds.size?`${selectedIds.size}장 고름`:''].filter(Boolean).map(t=>`<span class="ncs-nowrap">${esc(t)}</span>`).join(' · ');
+}
 function updateHistoryTools() {
   if(!dialog)return;const locked=busy||attaching||checkingGeneration;
   for(const id of [...selectedIds])if(!historyItems.some(x=>x.id===id))selectedIds.delete(id);
-  const save=dialog.querySelector('[data-image-more="ncs-selection-save"]');const saveLabel=save.querySelector?.('.ncs-save-label');if(saveLabel)saveLabel.textContent=savingSelection?'저장 준비 중…':selectedIds.size?`선택 저장 (${selectedIds.size})`:'선택 저장';save.disabled=savingSelection||!selectedIds.size;
+  const save=dialog.querySelector('[data-image-more="ncs-selection-save"]');const saveLabel=save.querySelector?.('.ncs-save-label');if(saveLabel)saveLabel.textContent=savingSelection?'준비 중…':'저장';save.title=selectedIds.size?`고른 ${selectedIds.size}장 저장`:'저장할 그림을 골라 주세요.';save.disabled=savingSelection||!selectedIds.size;
   if(!save.disabled)renderSelectionSave();
-  const del=dialog.querySelector('[data-action="delete-selected"]');del.textContent=selectedIds.size?`선택 삭제 (${selectedIds.size})`:'선택 삭제';del.disabled=locked||!selectedIds.size;
+  const del=dialog.querySelector('[data-action="delete-selected"]');del.textContent='삭제';del.title=selectedIds.size?`고른 ${selectedIds.size}장 삭제`:'';del.disabled=locked||!selectedIds.size;
   const all=dialog.querySelector('[data-action="select-all-history"]'),every=historyItems.length>0&&historyItems.every(x=>selectedIds.has(x.id));
-  const any=selectedIds.size>0;all.innerHTML=any?'모두 해제':'<span class="ncs-wide-only">표시된 항목 </span>모두 선택';all.title=any?`고른 ${selectedIds.size}장의 선택을 모두 풀어요`:'표시된 항목 모두 선택';all.disabled=locked||!historyItems.length;
+  const any=selectedIds.size>0;all.textContent=any?'모두 해제':'모두 선택';all.title=any?`고른 ${selectedIds.size}장의 선택을 모두 풀어요`:'표시된 항목 모두 선택';all.disabled=locked||!historyItems.length;
   const allScope=['chats','all'].includes(historyScope),singleKey=historyScope==='free'?FREE_KEY:keyOf();
   const scopeCount=historyUnfiltered??historyTotal+historyPending.length; // ★ only lists fewer, but "delete all" means all
   const star=dialog.querySelector('[data-action="history-star-only"]'),tagView=dialog.querySelector('[data-action="history-tag-only"]'),canStar=serverFeatures.includes('history-ids');
@@ -2189,15 +2196,16 @@ function updateHistoryTools() {
   const filterDelete=dialog.querySelector('[data-action="delete-filter-chat"]');filterDelete.hidden=!allScope||!historyFilter;filterDelete.disabled=locked||!scopeCount;
   $('ncs-history-all-tools').hidden=!allScope;
   const attachSel=dialog.querySelector('[data-action="attach-selected"]'),mine=historyItems.filter(x=>selectedIds.has(x.id)&&x.chatKey&&x.chatKey===keyOf()).length;
-  attachSel.textContent=mine?`선택 본문에 넣기 (${mine})`:'선택 본문에 넣기';attachSel.disabled=locked||!mine;attachSel.hidden=historyScope==='free';
-  attachSel.title=mine?'':'지금 열린 채팅에서 만든 그림을 골라 주세요.';
+  attachSel.textContent='본문에 넣기';attachSel.disabled=locked||!mine;attachSel.hidden=historyScope==='free';
+  attachSel.title=mine?`고른 그림 중 ${mine}장을 본문에 넣어요`:'지금 열린 채팅에서 만든 그림을 골라 주세요.';
+  renderHistoryCount();
   const help={chat:'지금 열린 채팅에서 만든 그림이에요.',chats:'모든 채팅에서 만든 그림이에요. 프리샷은 제외해요.',free:'채팅과 상관없이 프리샷에서 만든 그림이에요.',all:'모든 채팅과 프리샷의 그림을 함께 봐요.'};
   $('ncs-history-help').textContent=help[historyScope]+' 본문에 넣기는 지금 열린 채팅에서 만든 그림에만 사용할 수 있어요.';
   $('ncs-history-scope').value=historyScope;
   $('ncs-history-storage').textContent=allScope?`이 범위의 그림 ${historyImageCount}장 · ${formatBytes(historyBytes)}`:'';
   const more=dialog.querySelector('[data-action="history-more"]');more.hidden=!historyHasMore;more.disabled=historyLoading;
   more.textContent=historyLoading?'불러오는 중…':`더 보기 (${historyItems.length} / ${historyTotal})`;
-  $('ncs-history-count').textContent=[historyTotal?`${historyMarkFilter==='star'?'즐겨찾기':historyMarkFilter==='tag'?'태그':'총'} ${historyTotal}장 · ${historyItems.length}장 표시 중`:'',historyPending.length?`저장 대기 ${historyPending.length}장 · ${formatBytes(historyPendingBytes)}`:''].filter(Boolean).join(' · ');
+  renderHistoryCount();
 }
 const formatBytes=n=>n>=1073741824?`${(n/1073741824).toFixed(2)} GB`:n>=1048576?`${(n/1048576).toFixed(1)} MB`:`${Math.max(0,Math.round(n/1024))} KB`;
 // Readable name for a chat key: the chat file name (which usually starts with the character name).
@@ -3166,7 +3174,7 @@ const activeTab=()=>dialog?.querySelector('[data-tab][aria-selected="true"]')?.d
 async function open() {
   rememberScroll();
   chatChanged();renderTargets();renderProfiles();renderScene();renderExtractionProfiles();
-  if(!dialog.open)dialog.showModal();
+  if(!dialog.open){dialog.showModal();dialog.focus({preventScroll:true});} // 0.1.88: the dialog itself takes the first focus, so no button opens with a focus ring
   restoreScroll();
   // The chat may have changed while the panel was closed: reload the visible history instead of showing it empty.
   renderPlacement();renderGenerationCheck();if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true));
@@ -3189,7 +3197,7 @@ async function initialize() {
   if(document.getElementById('naice-shot-dialog'))return;
   mountSettingsDrawer();
   {const s=settings();s.imageMarks=cleanMarks(s.imageMarks);s.tagPopupChats=cleanPopupChats(s.tagPopupChats);} // 0.1.84: read once, broken entries dropped
-  dialog=document.createElement('dialog');dialog.id='naice-shot-dialog';
+  dialog=document.createElement('dialog');dialog.id='naice-shot-dialog';dialog.tabIndex=-1;
   const template=await fetch(new URL('panel.html',import.meta.url));if(!template.ok)throw new Error('NAIce Shot 패널 파일을 읽지 못했어요.');
   dialog.innerHTML=await template.text();document.body.append(dialog);
   // The 챗샷/프리샷 switch sits in the title row now, outside the work fields; it waits with them (draft loading, server check).
