@@ -1,3 +1,14 @@
+# v0.1.97 validation — 2026-11-08 (extension only, server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **81 of 81 Chromium browser scripts passed** (4 at a time). New `browser-v0197` (375 and 1100px; its fake server can hold a draft save's reply): a 챗샷 saved while connected, then edited while held, work memory connected again in 프리샷 → a chat change writes nothing for the old chat and says the edit was dropped, the new chat loads without a question; connected all along → a chat change in 프리샷 says nothing; a 챗샷 with only an edited final prompt whose read fails on return → kept, an edit meanwhile is not saved, [다시 시도] asks, 취소 keeps it and holds, 확인 later loads; no chat open, 프리샷 held, connect from 챗샷 → back in 프리샷 asked, 취소 keeps it, nothing written; a 챗샷 save waiting for its reply survives 프리샷 and back (no question, no reload) and the next save continues from its revision.
+- Fixes reverted one at a time (7): saving the off-screen 챗샷 on a chat change, the dropped-edit notice, the notice's comparison, the compare on a non-connect load (failing each of the three GPT cases), clearing the queue entry on every load — each made `browser-v0197` fail. Reverting only [다시 시도]'s own code still passes, as intended: the protection is in the one load path. `browser-v0197` fails on the 0.1.96 code (the old chat's held edit is written).
+- Older script updated: `browser-v0173` measured the history card's buttons right after the first card showed and failed while the list was still redrawing (the same failure on the 0.1.96 code); it now measures once all three buttons are there.
+- Not checked: a real NovelAI account, a real SillyTavern, iPhone Safari's own confirm box.
+
+---
+
 # v0.1.96 validation — 2026-11-08 (extension only, server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed**.

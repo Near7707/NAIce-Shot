@@ -96,7 +96,9 @@ try{
   // --- History card: ⋯ | 저장 ▾ | 삭제, and ⋯ opens toward the card.
   await page.locator('[data-tab="scene"]').click();await page.locator('[data-action="generate"]').click();await idle(page);
   await page.locator('[data-tab="history"]').click();await page.locator('.ncs-history-card').first().waitFor();
-  const c='.ncs-history-card .ncs-history-actions',dots=await rect(page,`${c} [data-image-more]:not(.ncs-save-toggle)`),save=await rect(page,`${c} .ncs-save-toggle`),del=await rect(page,`${c} [data-history-delete]`);
+  // 0.1.97: the list may still be redrawing right after the first card shows; measure once all three buttons are there.
+  const c='.ncs-history-card .ncs-history-actions';let dots,save,del;
+  for(let i=0;i<40;i++){[dots,save,del]=await Promise.all([rect(page,`${c} [data-image-more]:not(.ncs-save-toggle)`),rect(page,`${c} .ncs-save-toggle`),rect(page,`${c} [data-history-delete]`)]);if(dots&&save&&del)break;await page.waitForTimeout(100);}
   assert.ok(dots.x+dots.width<=save.x+0.5&&save.x+save.width<=del.x+0.5,'⋯ | 저장 | 삭제');
   await page.locator(`${c} [data-image-more]:not(.ncs-save-toggle)`).first().click();const menu=await rect(page,'.ncs-image-popup:popover-open');
   assert.ok(Math.abs(menu.x-Math.max(8,dots.x))<=1&&menu.x+menu.width<=width,'the menu opens from ⋯ and stays on screen');

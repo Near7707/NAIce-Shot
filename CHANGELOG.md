@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.97 — 2026-11-08 (extension only — server v0.1.25 unchanged)
+
+- Fixes from the GPT review of 0.1.96 (no P1). Saved work now reaches the screen one way only: whenever the screen holds other work, it asks "서버에 저장된 마지막 작업을 불러올까요?" first (취소 keeps both and pauses work memory in the tab), whether it comes from a mode switch, a chat change, [다시 시도] or a connect. A screen that cannot be compared is kept and work memory pauses. Only a connect and [서버 작업 다시 불러오기] read the server fresh, so a save still waiting for its reply keeps going through a trip to the other mode.
+- In 프리샷, a chat change no longer saves the old chat's 챗샷 work waiting off screen (it could write work never compared with the server's copy). When that work held edits that were not saved, the panel says so: "이전 채팅의 챗샷 편집은 저장되지 않은 채 비워졌어요."
+- [다시 시도] after a failed read now asks the same question (an edited final prompt alone counts too); nothing is saved for that work until it is read. With no chat open, 프리샷 work kept while paused is compared when 프리샷 comes back.
+- The separate list of works to compare (0.1.96) is gone; the one load path covers them.
+
 ## 0.1.96 — 2026-11-08 (extension only — server v0.1.25 unchanged)
 
 - Fixes from the GPT review of 0.1.95 (no P1). Work kept in the other mode (챗샷 ⇄ 프리샷) while work memory was paused is no longer replaced when work memory connects from the other mode: coming back compares it with the saved copy and asks the same question; 취소 keeps both and pauses work memory in the tab again. A chat change drops only the old chat's 챗샷 work (as the note says); 프리샷 work stays and is still compared.
