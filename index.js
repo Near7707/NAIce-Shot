@@ -545,6 +545,10 @@ function renderRawRetention(){if(!dialog)return;const sum=$('ncs-retain-summary'
 // the work is loading, a work deletion is running, the result of a deletion of this work is unknown (anything typed
 // meanwhile could be emptied by it), or the first server check of the panel is running. Nothing sets it directly.
 let deletingWork=false,compatChecking=false;
+// 0.1.95: the held work-memory connection (see connectDrafts).
+let draftHold=false,connectingDrafts=null;
+const sortedJson=v=>JSON.stringify(v,(k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(n=>[n,x[n]])):x);
+const DRAFT_HOLD_NOTE='서버에 다른 작업이 저장돼 있어서 작업 기억을 잠시 멈췄어요. 지금 편집은 아직 저장되지 않았어요. 채팅을 바꾸면 사라질 수 있어요.';
 function syncWorkLock(){
   if(!dialog)return;
   const held=draftsEnabled&&draftDeletionChecks.has(workKey());
@@ -552,6 +556,7 @@ function syncWorkLock(){
 }
 function renderDraftState(){
   if(!dialog)return;syncWorkLock();const e=drafts.entry(workKey()),box=$('ncs-draft-status');
+  if(!draftsEnabled&&draftHold){box.hidden=false;box.textContent=DRAFT_HOLD_NOTE;$('ncs-draft-retry').hidden=false;$('ncs-draft-retry').textContent='작업 기억 다시 연결';return;}
   if(!draftsEnabled){box.hidden=!compatChecked;box.textContent='작업 기억을 사용할 수 없어요. 서버 연결·업데이트를 확인해 주세요.';$('ncs-draft-retry').hidden=!compatChecked;$('ncs-draft-retry').textContent='연결 다시 확인';return;}
   const held=draftDeletionChecks.has(workKey());
   box.hidden=!draftsEnabled;box.textContent=held?'삭제 결과를 확인할 때까지 작업을 잠갔어요.':draftLoading?'마지막 작업을 불러오는 중…':e.error?`작업 저장을 확인해 주세요: ${e.error.message}`:e.saving||e.dirty||captureTimer?'마지막 작업 저장 중…':draftNote||'마지막 작업을 서버에 기억해요.';
@@ -582,6 +587,36 @@ async function recallDraft(key=workKey()){
     renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();
   }catch(e){if(token===draftLoadToken)draftNote='작업을 불러오지 못했어요. 다시 시도해 주세요.';}
   finally{if(token===draftLoadToken){draftLoading=false;renderDraftState();}}
+}
+// 0.1.95 (GPT P2, user decision): connecting the work memory (first check, [작업 기억 다시 연결], [서버·NAI 연결 확인])
+// reads this work's saved copy first and leaves the screen alone. Only when both the screen and the server hold
+// different work does it ask; 취소 keeps each where it is and holds the connection for this open tab, so nothing is
+// written to the server until a later connect press decides again. Changing chats does not lift the hold.
+function connectDrafts(){
+  if(!connectingDrafts)connectingDrafts=(async()=>{try{await connectDraftsOnce();}finally{connectingDrafts=null;}})();
+  return connectingDrafts;
+}
+async function connectDraftsOnce(){
+  for(;;){
+    const key=workKey();
+    if(!dialog||!key){draftHold=false;draftsEnabled=true;await recallDraft();return;}
+    const token=++draftLoadToken;draftLoading=true;renderDraftState();
+    let saved;
+    try{drafts.entries.delete(key);saved=await drafts.ensure(key);}
+    catch{if(token===draftLoadToken){draftLoading=false;renderDraftState();}notice('서버 작업을 확인하지 못해서 작업 기억을 연결하지 않았어요. 다시 눌러 주세요.',true);return;}
+    if(token===draftLoadToken){draftLoading=false;renderDraftState();}
+    if(key!==workKey())continue; // the chat changed while reading: decide for the one on screen now
+    const retainRaw=settings().retainRawExtraction===true;
+    let mine=null;try{mine=packWork(captureWork(),{retainRaw});}catch{mine=null;}
+    const differs=saved&&mine&&!emptyWork(mine)&&sortedJson(packWork(unpackWork(saved),{retainRaw}))!==sortedJson(mine);
+    if(differs&&!confirm('서버에 저장된 마지막 작업을 불러올까요?\n취소하면 지금 편집은 화면에, 서버 작업은 서버에 그대로 두고 작업 기억 연결을 멈춰요.')){
+      draftHold=true;drafts.entries.delete(key);renderDraftState();notice(DRAFT_HOLD_NOTE,true);return;
+    }
+    draftHold=false;draftsEnabled=true;
+    if(differs||!mine||emptyWork(mine))await recallDraft(key); // loads the saved copy (already read) onto the screen
+    else{draftNote='';rememberDraft(key);} // nothing saved, or the same work: keep the screen and remember it
+    return;
+  }
 }
 async function retryDraft(){
   if(!draftsEnabled){await checkServer({force:true});return;}
@@ -1884,7 +1919,7 @@ async function checkServer({force=false}={}) {
   }catch{status=-1;}
   compatResult={...checkCompat({uiVersion:VERSION,status,data}),reached:status>=200&&status<300&&!!data&&typeof data==='object'&&typeof data.version==='string'};
   serverFeatures=Array.isArray(data?.features)?data.features:[];if(dialog)$('ncs-delete-work-box').hidden=!serverFeatures.includes('draft-delete');
-  if(data?.features?.includes('draft-work')&&!draftsEnabled){draftsEnabled=true;await recallDraft();}
+  if(data?.features?.includes('draft-work')&&!draftsEnabled)await connectDrafts();
   if(force)compatDismissed=false;
   renderCompat();renderDraftState();return compatResult;
 }
@@ -2025,7 +2060,7 @@ const GENERATION_FEATURES=['pending-history','generation-recovery'];
 // 0.1.93 (GPT P2-1/P2-2): the server check a generation makes for itself. It reads its own answer only: it never
 // loads saved work or changes the tab's feature list (a draft load here once replaced unsaved edits), and an old or
 // changed server only brings the update notice back. Busy meanwhile unless the press already is.
-async function generationStatus(ticket){
+async function generationStatus(ticket,{v5Send=false}={}){
   const mine=!busy;if(mine)setBusy(true,ticket);
   let status=-1,data=null;
   try{
@@ -2040,7 +2075,9 @@ async function generationStatus(ticket){
   // 0.1.94 (GPT P3): a valid answer also refreshes the update notice (an old-server warning goes once it is updated);
   // only the notice — the feature list and work loading stay with checkServer.
   if(reached){const shown=compatResult;compatResult={...checkCompat({uiVersion:VERSION,status,data}),reached};
-    if(!v5||compatResult.level!==shown.level||compatResult.message!==shown.message)compatDismissed=false;renderCompat();} // a stopped V5 shows it again
+    // 0.1.95 (GPT P3): a closed notice opens again only when it says something new or this press is a V5 send it stops;
+    // V4.5 presses leave it closed.
+    if(v5Send&&!v5||compatResult.level!==shown.level||compatResult.message!==shown.message)compatDismissed=false;renderCompat();}
   return {reached,features,v5,version:reached?data.version:null};
 }
 const EDITED_NOT_SENT='기다리는 동안 내용이 바뀌어서 보내지 않았어요. 바뀐 내용으로 [이미지 생성]을 다시 눌러 주세요.';
@@ -2172,7 +2209,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   // 0.1.92 (user decision A), 0.1.93: Opus V5 goes only to server 0.1.25+, decided by this press's own answer (②),
   // asked as close to the send as the page allows. What is left is the moment between that answer and the send.
   if(v5){
-    const fresh=await generationStatus(ticket);if(ticket!==task||workKey()!==startKey)return;
+    const fresh=await generationStatus(ticket,{v5Send:true});if(ticket!==task||workKey()!==startKey)return;
     if(!fresh.reached)throw new Error(V5_SERVER_UNREACHED);
     if(!fresh.v5)throw new Error(V5_SERVER_NEEDED);
     if(changedSince()){report(EDITED_NOT_SENT);return;}
@@ -2198,7 +2235,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
         if(ticket!==task||workKey()!==startKey){stop();report('작업이 바뀌어서 생성 요청을 보내지 않았어요.');return;}
         // 0.1.93 (③, user decision): the server may have changed while the question was open — asked again, and a failed
         // or old answer sends nothing (this request's mark goes, an earlier one comes back).
-        const again=await generationStatus(ticket);
+        const again=await generationStatus(ticket,{v5Send:true});
         if(ticket!==task||workKey()!==startKey){stop();report('작업이 바뀌어서 생성 요청을 보내지 않았어요.');return;}
         if(!again.reached){stop();report(V5_SERVER_UNREACHED,true);return;}
         if(!again.v5){stop();report(V5_SERVER_NEEDED,true);return;}

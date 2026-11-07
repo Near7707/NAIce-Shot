@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.95 — 2026-11-08 (extension only — server v0.1.25 unchanged)
+
+- Fixes from the GPT review of 0.1.94 (no P1). When work memory connects after a failed first server check ([연결 다시 확인] in the drawing window, or **서버·NAI 연결 확인** in Settings), the saved work is read first and the screen is left alone. If the screen is empty, nothing is saved, or both are the same, it connects without asking; only when both hold different work does it ask "서버에 저장된 마지막 작업을 불러올까요?". 확인 loads the server's work; 취소 keeps the edit on screen and the saved work on the server, and pauses work memory in this tab: "서버에 다른 작업이 저장돼 있어서 작업 기억을 잠시 멈췄어요. 지금 편집은 아직 저장되지 않았어요. 채팅을 바꾸면 사라질 수 있어요." Nothing is written while paused (also across chat changes); **작업 기억 다시 연결** reads the current chat's saved work again and decides again. Before, the saved work replaced the edit without a question.
+- A closed update notice opens again only when its message changes or a V5 generation is actually stopped; V4.5 generations on a server without V5 support leave it closed.
+
 ## 0.1.94 — 2026-11-08 (extension only — server v0.1.25 unchanged)
 
 - Fixes from the GPT review of 0.1.93 (no P1). When the tab does not know the server's features (its first check failed) and the generation's own first check gets no valid answer either, nothing is sent, for every model: "서버 상태를 확인하지 못해서 생성 요청을 보내지 않았어요. 다시 눌러 주세요." Pressed again with the server back, the check for pictures that could not be saved comes first, as usual.

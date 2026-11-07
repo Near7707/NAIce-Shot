@@ -1,3 +1,13 @@
+# v0.1.95 validation — 2026-11-08 (extension only, server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **79 of 79 Chromium browser scripts passed** (4 at a time; `browser-v0148` failed once under load and passed alone). New `browser-v0195` (375 and 1100px): the first check failed, the place was edited and the server holds another saved work → [연결 다시 확인] and Settings' 서버·NAI 연결 확인 each ask once; 취소 keeps the edit on screen, shows the paused-memory note and [작업 기억 다시 연결], and writes nothing right away, after the autosave time, or across a chat change and back; pressed again it reads again and asks again, 확인 loads the saved work and autosave works again. Empty screen → no question, the saved work loads; nothing saved → no question, the edit is saved; the same work on both sides → no question; the chat changes while the saved work is being read → read again for the new chat (empty there: no question, connected). A server with 0.1.19's features: the closed update notice stays closed over three V4.5 generations (each makes its own check), a stopped V5 opens it again, and a changed message opens it too.
+- Fixes reverted one at a time (7): connecting without reading first, 취소 connecting and saving the screen, no same-work check, no re-decision after a chat change during the read, the paused-memory line in the drawing window, reopening the notice for any server without V5, no V5 flag on check ② — each made `browser-v0195` fail.
+- Not checked: a real NovelAI account, a real SillyTavern, iPhone Safari's own confirm box.
+
+---
+
 # v0.1.94 validation — 2026-11-08 (extension only, server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed**.
