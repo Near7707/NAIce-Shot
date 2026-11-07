@@ -4,7 +4,7 @@
 
 | 구분 | 대상 커밋 | 변경 내용 |
 | --- | --- | --- |
-| 확장(UI) v0.1.88 | 미커밋 | GPT의 0.1.87 리뷰(P2 3건, P3 2건) 수정, 크기 기준, 이력 선택 도구, 두 칸 전환·Anlas 동의 체크칸. |
+| 확장(UI) v0.1.88 | [9e23d97](https://github.com/Near7707/NAIce-Shot/commit/9e23d97) | GPT의 0.1.87 리뷰(P2 3건, P3 2건) 수정, 크기 기준, 이력 선택 도구, 두 칸 전환·Anlas 동의 체크칸. |
 
 **검토 방식:** GPT가 0.1.87을 리뷰(P1 없음, P2 3건, P3 2건). 사용자 "시작해" 뒤 Claude가 수정, 화면은 실제 패널 시안(https://claude.ai/artifact/Hu5ToVvAtwPQiLmqFZsf7B)에서 사용자가 고름. 리뷰는 GPT 차례.
 
