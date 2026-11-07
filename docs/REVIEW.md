@@ -4,8 +4,8 @@
 
 | 구분 | 대상 커밋 | 변경 내용 |
 | --- | --- | --- |
-| 서버 v0.1.24 | 미커밋 | Opus V5(무료 조건 안) 기본 사용량 2% 이상은 허용 없이 보냄, 1% 이하·쓸 수 없음·확인 못 함은 보내기 전 428 `usage-confirm`, 같은 요청에 `confirmUsage:true`면 보냄. 기능 `usage-confirm`. |
-| 확장(UI) v0.1.90 | 미커밋 | 확인창 → 같은 요청 한 번 재전송, 계정 상자(색 기준·안내 한 줄·24시간·굵은 글자·(+N%) 색·링크), 빨간 테마 숫자 색, `MIN_SERVER_VERSION` 0.1.24. |
+| 서버 v0.1.24 | [0970cb8](https://github.com/Near7707/NAIce-Shot-Server/commit/0970cb8) | Opus V5(무료 조건 안) 기본 사용량 2% 이상은 허용 없이 보냄, 1% 이하·쓸 수 없음·확인 못 함은 보내기 전 428 `usage-confirm`, 같은 요청에 `confirmUsage:true`면 보냄. 기능 `usage-confirm`. |
+| 확장(UI) v0.1.90 | [51fba14](https://github.com/Near7707/NAIce-Shot/commit/51fba14) | 확인창 → 같은 요청 한 번 재전송, 계정 상자(색 기준·안내 한 줄·24시간·굵은 글자·(+N%) 색·링크), 빨간 테마 숫자 색, `MIN_SERVER_VERSION` 0.1.24. |
 
 **검토 방식:** 사용자 요청(체크칸 대신 안내, 사용량 색) → 실제 패널 시안(https://claude.ai/artifact/VsYM51Jhp8C7BVvyK8kEP4) 여러 차례 → 사용자가 GPT와 허용 규칙을 따로 검토(1% 기준, 이번 요청만 확인, 추가 구매분은 실계정 확인 뒤) → Claude가 서버 코드로 확인 → 사용자 "시작해" 뒤 Claude가 서버와 확장을 함께 만듦. 리뷰는 GPT 차례(0.1.89와 함께).
 
