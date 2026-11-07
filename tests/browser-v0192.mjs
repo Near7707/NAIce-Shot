@@ -190,7 +190,7 @@ try{
    await page.waitForTimeout(150);await page.locator('#ncs-location').fill('stone bridge');g.open();
    await page.waitForFunction(()=>document.querySelector('#ncs-notice').textContent&&!/보내고 있어요/.test(document.querySelector('#ncs-notice').textContent));await idle(page);
    assert.match(await notice(page),EDITED);assert.equal(page.generated.length,0,'edited during the server check, no saving check after it');
-   assert.ok(!asked.some(m=>/이전 요청의 결과/.test(m)),'stopped before the earlier-request question');
+   assert.equal(asked.filter(m=>/이전 요청의 결과/.test(m)).length,1,'0.1.93: that question comes first, the server check right before the send');
    assert.deepEqual(errors,[]);await page.close();}
   // During the usage question's first try: an extraction setting changed → asked and sent (once more, same body plus
   // confirmUsage); the server work reloaded with another place → not asked, not sent again.

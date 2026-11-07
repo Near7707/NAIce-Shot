@@ -66,7 +66,10 @@ try{
    const {page,errors}=await open(width);ask(page);
    // Status answers are queued: each call takes the next one; a held answer waits until released.
    const queue=[];let calls=0;
-   await page.route('**/api/plugins/naice-shot/status**',async r=>{calls++;const next=queue.shift()??{sub:OPUS};if(next.hold)await next.hold;
+   await page.route('**/api/plugins/naice-shot/status**',async r=>{
+    // 0.1.93: a generation on a tab without the saving-check features asks the server itself (quick); not an account check.
+    if(new URL(r.request().url()).searchParams.get('quick')==='1')return r.fulfill({json:{keyConfigured:true,version:'0.1.17',features:[...features,'account-shape'],minClient:'0.1.44'}});
+    calls++;const next=queue.shift()??{sub:OPUS};if(next.hold)await next.hold;
     if(next.fail)return r.fulfill({status:502,json:{error:'NAI 계정 확인 실패 (연결하지 못했어요). 생성 요청은 보내지 않았어요.',code:'nai-account'}});
     return r.fulfill({json:{keyConfigured:true,version:'0.1.17',features:[...features,'account-shape'],minClient:'0.1.44',subscription:next.sub}});});
    let refuse=null;await page.route('**/api/plugins/naice-shot/generate',r=>refuse?r.fulfill({status:refuse.status,json:refuse.json}):r.fallback());

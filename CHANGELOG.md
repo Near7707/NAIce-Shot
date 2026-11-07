@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.93 — 2026-11-08 (extension only — server v0.1.25 unchanged)
+
+- Fixes from the GPT review of 0.1.92 (no P1). The version check before a V5 generation no longer loads saved work: an unsaved edit could be replaced by the server copy when work memory turned on during that check. It reads only its own answer, so another check (e.g. from the settings tab) answering late can no longer let a V5 request through to an old server.
+- The V5 version check now sits right before the send (after the saving check and the "이전 요청" question) and is asked again after a yes to "이번만 생성할까요?" (the server may change while the question is open). If that check fails or finds an old server, nothing is sent and the "확인 필요" mark of this request is cleared (an earlier one comes back). On a normal connection one V5 press makes one version check (two after a yes); V4.5 makes none.
+- If the first server check of the tab failed, a generation asks the server first and uses that answer for the saving check and for keeping the request ID.
+- What is sent and what is compared are built by one function (the scene's source time is filled the same way for both), compared with object keys in order; a state that can no longer be built (e.g. a profile that is gone) counts as a change and leaves no mark.
+- Limit: a server swapped in the moment between the last version answer and the send is not caught (an old server cannot be stopped from the server side).
+
 ## 0.1.92 — 2026-11-08 (extension only — needs server v0.1.25)
 
 - Fixes from the GPT review of 0.1.91 (no P1). **Opus V5 is sent only to server 0.1.25 or later** (user decision): right before each V5 generation the panel asks the server for its version (no NovelAI call). With an older server — also one that went back while the tab stayed open, and also with "Anlas 사용 가능성 허용" off — nothing is sent and the panel says to update; if the server cannot be reached it says to check the connection. V4.5 is not affected.

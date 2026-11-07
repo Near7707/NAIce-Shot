@@ -41,7 +41,7 @@ try{for(const width of [1100,375,320]){
  });
  await page.goto(`http://127.0.0.1:${host.address().port}/`);await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();if(fontRoot){await page.addStyleTag({content:'@import url("/test-font/400.css"); @import url("/test-font/700.css"); body {font-family:"Noto Sans KR",sans-serif}'});await page.evaluate(()=>document.fonts.ready);}
  const tab=async name=>page.locator(`[data-tab="${name}"]`).click(),action=async name=>page.locator(`[data-action="${name}"]`).click();
- const idle=()=>page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled&&document.querySelector('#ncs-progress').hidden&&!document.querySelector('.ncs-outfit-saving'));
+ const idle=()=>page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled&&document.querySelector('#ncs-progress').hidden&&!document.querySelector('.ncs-outfit-saving')&&!document.querySelector('[data-action="generate"]').disabled); // 0.1.93: a tab without the saving-check features asks the server first
  const range=async name=>{await page.locator('#ncs-history-scope').selectOption(name);await page.waitForFunction(()=>!document.querySelector('[data-action="history-more"]').disabled);};
  const card=page.locator('[data-character="leo"]'),once=card.locator('[data-field="manualOutfit"]');
  // Stepper association and momentary touch feedback, without focusing the numeric keyboard.

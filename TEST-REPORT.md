@@ -1,3 +1,14 @@
+# v0.1.93 validation — 2026-11-08 (extension only, server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **77 of 77 Chromium browser scripts passed** (4 at a time; `browser-v0148` and `v0169` were fixed and run again alone after the full run). New `browser-v0193` (375 and 1100px): one V5 press on a normal connection = one version check (two after a yes, none for V4.5); the server goes back to 0.1.23 during the saving check → nothing sent, no mark; the server goes back or away while "이번만" is open → only the first try, the earlier mark comes back; another check started in the settings tab answering 0.1.25 late does not decide (twice); work memory turning on during the check keeps the unsaved edit and sends it; after a failed first check ① runs, the saving check runs and the request ID is kept at send; the profile removed while the first try waits → stopped, no mark; the final prompt JSON typed again with keys in another order → sent.
+- Fixes reverted one at a time (8): loading saved work in the check, reading the shared state instead of the own answer, no check ②, no check ③, ③ without clearing the mark, no check ①, a comparison error counted as "same", plain `JSON.stringify` — each made `browser-v0193` fail. The source-time part (P3-3) has no test of its own; it is covered by building both from `requestParts`.
+- Older scripts updated for the intended change: `browser-v0192` (the "이전 요청" question now comes before the server check); `browser-v0148` (its "done" wait also waits for [이미지 생성]: its fake server lacks the saving-check features, so a press asks the server first); `browser-v0169` (answers that quick check apart from its account-check queue).
+- Not checked: the moment between the last version answer and the send (a limit), a real NovelAI account, a real SillyTavern, iPhone Safari's own confirm box.
+
+---
+
 # v0.1.92 validation — 2026-11-08 (extension only, server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed** (`ui-regression` "edits made in flight" now types once the request has left, as an edit before it stops the press).

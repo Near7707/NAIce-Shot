@@ -1,5 +1,12 @@
 # Installation and update checklist
 
+## v0.1.93
+
+**Extension only.** The server plugin stays 0.1.25 — just update the extension and refresh.
+
+1. With Opus V5, 이미지 생성 works as before (2 % or more: no question; 1 % or 0 %: "이번만 생성할까요?").
+2. Nothing else should look different; the fixes are for rare timing with server checks.
+
 ## v0.1.92
 
 **Extension only, but it needs server 0.1.25** (from 0.1.91). If you skipped 0.1.91, update in this order: server plugin (0.1.25) → restart SillyTavern → extension → refresh.
