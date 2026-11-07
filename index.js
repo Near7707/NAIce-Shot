@@ -2007,6 +2007,7 @@ function renderUsageNote(guard){
 const isV5=model=>String(model??'').startsWith('nai-diffusion-5');
 const V5_MIN_SERVER='0.1.25';
 const V5_SERVER_NEEDED=`서버 플러그인이 이전 버전이라 V5 생성을 보내지 않았어요. 서버 플러그인을 ${V5_MIN_SERVER} 이상으로 업데이트하고 실리태번을 다시 시작해 주세요.`;
+const STATUS_UNREACHED='서버 상태를 확인하지 못해서 생성 요청을 보내지 않았어요. 다시 눌러 주세요.';
 const V5_SERVER_UNREACHED='서버 플러그인 버전을 확인하지 못해서 V5 생성을 보내지 않았어요. 서버 연결을 확인하고 다시 눌러 주세요.';
 // 0.1.93: one request, built in one place for sending and for comparing, without the press's random seed draw: the
 // work, the prompt, the generation settings with the seed as entered (and, for "same seed", the picture it refers
@@ -2036,7 +2037,10 @@ async function generationStatus(ticket){
   const reached=status>=200&&status<300&&!!data&&typeof data==='object'&&typeof data.version==='string';
   const features=reached&&Array.isArray(data.features)?data.features:[];
   const v5=reached&&compareVersions(data.version,V5_MIN_SERVER)>=0&&features.includes('usage-confirm');
-  if(reached&&!v5){compatResult={...checkCompat({uiVersion:VERSION,status,data}),reached};compatDismissed=false;renderCompat();}
+  // 0.1.94 (GPT P3): a valid answer also refreshes the update notice (an old-server warning goes once it is updated);
+  // only the notice — the feature list and work loading stay with checkServer.
+  if(reached){const shown=compatResult;compatResult={...checkCompat({uiVersion:VERSION,status,data}),reached};
+    if(!v5||compatResult.level!==shown.level||compatResult.message!==shown.message)compatDismissed=false;renderCompat();} // a stopped V5 shows it again
   return {reached,features,v5,version:reached?data.version:null};
 }
 const EDITED_NOT_SENT='기다리는 동안 내용이 바뀌어서 보내지 않았어요. 바뀐 내용으로 [이미지 생성]을 다시 눌러 주세요.';
@@ -2150,7 +2154,9 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   let features=serverFeatures;
   if(!GENERATION_FEATURES.every(f=>features.includes(f))){
     const first=await generationStatus(ticket);if(ticket!==task||workKey()!==startKey)return;
-    if(first.reached)features=first.features;
+    // 0.1.94 (GPT P2, every model): no valid answer here means the saving check cannot be made — nothing is sent.
+    if(!first.reached)throw new Error(STATUS_UNREACHED);
+    features=first.features;
     if(changedSince()){report(EDITED_NOT_SENT);return;}
   }
   const priorRequest=pendingGenerations.get(startKey);

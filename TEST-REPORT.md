@@ -1,3 +1,14 @@
+# v0.1.94 validation — 2026-11-08 (extension only, server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **78 of 78 Chromium browser scripts passed** (4 at a time; `browser-v0151` and `v0176` failed once under load and passed alone, `browser-v0168` was fixed and run again). New `browser-v0194` (375 and 1100px): the first check of the tab failed and the generation's first check fails too → nothing sent for V5 and for V4.5 (the fake server would have taken `/generate`), no mark; pressed again with the server back and one picture not saved → the saving check runs and its notice comes first, 취소 sends nothing. Server 0.1.24 shows the update notice, a V5 press is stopped and shows it again; after switching the fake server to 0.1.25 in the same tab the next V5 generation clears it (also in the settings line).
+- Fixes reverted one at a time (2): no stop after a failed first check, the notice refreshed only for an old server — each made `browser-v0194` fail.
+- Older scripts updated for the intended change: `browser-v0168` (its quick status no longer fails with the account check, like the real server's `?quick=1`; with it failing, the press now stops before `/generate`).
+- Not checked: a real NovelAI account, a real SillyTavern, iPhone Safari's own confirm box.
+
+---
+
 # v0.1.93 validation — 2026-11-08 (extension only, server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed**.

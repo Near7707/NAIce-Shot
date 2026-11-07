@@ -1,5 +1,11 @@
 # Installation and update checklist
 
+## v0.1.94
+
+**Extension only.** The server plugin stays 0.1.25 — just update the extension and refresh.
+
+1. Nothing should look different. If the server cannot be reached, 이미지 생성 says "서버 상태를 확인하지 못해서…" and sends nothing.
+
 ## v0.1.93
 
 **Extension only.** The server plugin stays 0.1.25 — just update the extension and refresh.

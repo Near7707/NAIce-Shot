@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.94 — 2026-11-08 (extension only — server v0.1.25 unchanged)
+
+- Fixes from the GPT review of 0.1.93 (no P1). When the tab does not know the server's features (its first check failed) and the generation's own first check gets no valid answer either, nothing is sent, for every model: "서버 상태를 확인하지 못해서 생성 요청을 보내지 않았어요. 다시 눌러 주세요." Pressed again with the server back, the check for pictures that could not be saved comes first, as usual.
+- A valid answer of a generation's server check also refreshes the update notice: after updating the server in an open tab, the next V5 generation clears the old-server warning (the feature list and work loading still come from the usual server check).
+
 ## 0.1.93 — 2026-11-08 (extension only — server v0.1.25 unchanged)
 
 - Fixes from the GPT review of 0.1.92 (no P1). The version check before a V5 generation no longer loads saved work: an unsaved edit could be replaced by the server copy when work memory turned on during that check. It reads only its own answer, so another check (e.g. from the settings tab) answering late can no longer let a V5 request through to an old server.

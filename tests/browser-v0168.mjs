@@ -65,7 +65,8 @@ try{
   const {page,errors}=await open(width);const st=ask(page);
   const acct={sub:OPUS,fail:false,shape:['tier: number','active: boolean']};
   await page.route('**/api/plugins/naice-shot/status**',r=>{const q=new URL(r.request().url()).searchParams;
-   if(acct.fail)return r.fulfill({status:502,json:{error:'NAI 계정 확인 실패 (503).',code:'nai-account'}});
+   // 0.1.94: ?quick=1 never asks NovelAI (like the real server), so a failing account check does not fail it.
+   if(acct.fail&&q.get('quick')!=='1')return r.fulfill({status:502,json:{error:'NAI 계정 확인 실패 (503).',code:'nai-account'}});
    return r.fulfill({json:{keyConfigured:true,version:'0.1.16',features:[...features,'account-shape'],minClient:'0.1.44',subscription:{...acct.sub,...(q.get('shape')==='1'?{shape:acct.shape}:{})}}});});
   let refuse=null;const sent=[];
   await page.route('**/api/plugins/naice-shot/generate',r=>{sent.push(1);if(refuse)return r.fulfill({status:refuse.status,json:refuse.json});return r.fallback();});
