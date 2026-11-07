@@ -546,9 +546,18 @@ function renderRawRetention(){if(!dialog)return;const sum=$('ncs-retain-summary'
 // meanwhile could be emptied by it), or the first server check of the panel is running. Nothing sets it directly.
 let deletingWork=false,compatChecking=false;
 // 0.1.95: the held work-memory connection (see connectDrafts).
-let draftHold=false,connectingDrafts=null;
+let draftHold=false,draftHoldNote='',connectingDrafts=null,reconnectRun=null;
+// 0.1.96 (GPT P2-1): work keys whose off-screen work (the other mode's, kept in `spare`) was never compared with the
+// server's saved copy. Switching to such a mode compares and asks like a connect instead of loading the saved work.
+const draftChecks=new Set();
 const sortedJson=v=>JSON.stringify(v,(k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(n=>[n,x[n]])):x);
 const DRAFT_HOLD_NOTE='서버에 다른 작업이 저장돼 있어서 작업 기억을 잠시 멈췄어요. 지금 편집은 아직 저장되지 않았어요. 채팅을 바꾸면 사라질 수 있어요.';
+const draftUnreadableNote=m=>`지금 작업을 확인하지 못해서 작업 기억을 잠시 멈췄어요(${String(m).replace(/[.\s]+$/,'')}). 지금 편집은 아직 저장되지 않았어요. 채팅을 바꾸면 사라질 수 있어요.`;
+// 0.1.96 (GPT P3-1): what counts when comparing the screen with the saved copy — not how many target messages are
+// listed, and a valid final-prompt JSON by its content (key order aside). Saving still keeps the text as typed.
+const compareForm=w=>{const out={...w};delete out.targetShown;
+  if(typeof out.finalText==='string'&&out.finalText.trim())try{out.finalText={json:JSON.parse(out.finalText)};}catch{}
+  if(out.undoClear)out.undoClear=JSON.parse(compareForm(out.undoClear));return sortedJson(out);};
 function syncWorkLock(){
   if(!dialog)return;
   const held=draftsEnabled&&draftDeletionChecks.has(workKey());
@@ -556,14 +565,14 @@ function syncWorkLock(){
 }
 function renderDraftState(){
   if(!dialog)return;syncWorkLock();const e=drafts.entry(workKey()),box=$('ncs-draft-status');
-  if(!draftsEnabled&&draftHold){box.hidden=false;box.textContent=DRAFT_HOLD_NOTE;$('ncs-draft-retry').hidden=false;$('ncs-draft-retry').textContent='작업 기억 다시 연결';return;}
+  if(!draftsEnabled&&draftHold){box.hidden=false;box.textContent=draftHoldNote||DRAFT_HOLD_NOTE;$('ncs-draft-retry').hidden=false;$('ncs-draft-retry').textContent='작업 기억 다시 연결';return;}
   if(!draftsEnabled){box.hidden=!compatChecked;box.textContent='작업 기억을 사용할 수 없어요. 서버 연결·업데이트를 확인해 주세요.';$('ncs-draft-retry').hidden=!compatChecked;$('ncs-draft-retry').textContent='연결 다시 확인';return;}
   const held=draftDeletionChecks.has(workKey());
   box.hidden=!draftsEnabled;box.textContent=held?'삭제 결과를 확인할 때까지 작업을 잠갔어요.':draftLoading?'마지막 작업을 불러오는 중…':e.error?`작업 저장을 확인해 주세요: ${e.error.message}`:e.saving||e.dirty||captureTimer?'마지막 작업 저장 중…':draftNote||'마지막 작업을 서버에 기억해요.';
   $('ncs-draft-retry').hidden=!draftsEnabled||!held&&!e.error;
   $('ncs-draft-retry').textContent=held?draftDeletionRuns.has(workKey())?'삭제 결과 확인 중…':'삭제 결과 다시 확인':e.error?.status===409?'서버 작업 다시 불러오기':'다시 시도';
 }
-const emptyWork=w=>!w.scene.characters?.length&&!w.scene.moments?.length&&!['location','lighting','camera','interaction'].some(k=>w.scene[k])&&
+const emptyWork=w=>!w.scene.characters?.length&&!w.scene.unregistered?.length&&!w.scene.moments?.length&&!['location','lighting','camera','interaction'].some(k=>w.scene[k])&&
   !w.finalOverride&&!w.optionsOverride&&!w.result&&!w.undoClear&&!w.raw&&!w.target&&!w.wish&&!w.freeText;
 function rememberDraft(key=workKey(),work=null,{flush=false}={}){
   clearTimeout(captureTimer);captureTimer=null;
@@ -600,23 +609,42 @@ async function connectDraftsOnce(){
   for(;;){
     const key=workKey();
     if(!dialog||!key){draftHold=false;draftsEnabled=true;await recallDraft();return;}
-    const token=++draftLoadToken;draftLoading=true;renderDraftState();
-    let saved;
-    try{drafts.entries.delete(key);saved=await drafts.ensure(key);}
-    catch{if(token===draftLoadToken){draftLoading=false;renderDraftState();}notice('서버 작업을 확인하지 못해서 작업 기억을 연결하지 않았어요. 다시 눌러 주세요.',true);return;}
-    if(token===draftLoadToken){draftLoading=false;renderDraftState();}
-    if(key!==workKey())continue; // the chat changed while reading: decide for the one on screen now
-    const retainRaw=settings().retainRawExtraction===true;
-    let mine=null;try{mine=packWork(captureWork(),{retainRaw});}catch{mine=null;}
-    const differs=saved&&mine&&!emptyWork(mine)&&sortedJson(packWork(unpackWork(saved),{retainRaw}))!==sortedJson(mine);
-    if(differs&&!confirm('서버에 저장된 마지막 작업을 불러올까요?\n취소하면 지금 편집은 화면에, 서버 작업은 서버에 그대로 두고 작업 기억 연결을 멈춰요.')){
-      draftHold=true;drafts.entries.delete(key);renderDraftState();notice(DRAFT_HOLD_NOTE,true);return;
+    const r=await reconcileWork(key);
+    if(r==='moved')continue; // the chat changed while reading: decide for the one on screen now
+    if(r==='failed'){notice('서버 작업을 확인하지 못해서 작업 기억을 연결하지 않았어요. 다시 눌러 주세요.',true);return;}
+    if(r==='connected'){ // the other mode's work waiting off screen is compared when its mode comes back
+      const other=isFree()?'chat':'free',otherKey=isFree()?chatKey:FREE_KEY,w=spare[other];
+      if(w&&otherKey){let empty=false;try{empty=emptyWork(packWork(w,{retainRaw:settings().retainRawExtraction===true}));}catch{}if(!empty)draftChecks.add(otherKey);}
     }
-    draftHold=false;draftsEnabled=true;
-    if(differs||!mine||emptyWork(mine))await recallDraft(key); // loads the saved copy (already read) onto the screen
-    else{draftNote='';rememberDraft(key);} // nothing saved, or the same work: keep the screen and remember it
     return;
   }
+}
+function holdDrafts(key,note){
+  draftsEnabled=false;draftHold=true;draftHoldNote=note;draftChecks.clear();drafts.entries.delete(key);renderDraftState();notice(note,true);
+}
+// Reads the saved copy of `key` (the work on screen) and decides: 'connected', 'held' (the person kept the screen, or
+// the screen cannot be compared while a saved copy exists), 'failed' (the read failed; nothing changed) or 'moved'.
+async function reconcileWork(key){
+  const token=++draftLoadToken;draftLoading=true;renderDraftState();
+  let saved;
+  try{drafts.entries.delete(key);saved=await drafts.ensure(key);}
+  catch{if(token===draftLoadToken){draftLoading=false;renderDraftState();}return 'failed';}
+  if(token===draftLoadToken){draftLoading=false;renderDraftState();}
+  if(key!==workKey())return 'moved';
+  const retainRaw=settings().retainRawExtraction===true;
+  let mine;try{mine=packWork(captureWork(),{retainRaw});}
+  catch(e){ // 0.1.96 (GPT P2-2): the screen cannot be compared (e.g. too long): never replace it
+    if(saved){holdDrafts(key,draftUnreadableNote(e.message));return 'held';}
+    draftHold=false;draftsEnabled=true;rememberDraft(key);return 'connected'; // nothing to replace; the save error shows
+  }
+  const differs=!!saved&&!emptyWork(mine)&&compareForm(packWork(unpackWork(saved),{retainRaw}))!==compareForm(mine);
+  if(differs&&!confirm('서버에 저장된 마지막 작업을 불러올까요?\n취소하면 지금 편집은 화면에, 서버 작업은 서버에 그대로 두고 작업 기억 연결을 멈춰요.')){
+    holdDrafts(key,DRAFT_HOLD_NOTE);return 'held';
+  }
+  draftHold=false;draftHoldNote='';draftsEnabled=true;
+  if(differs||emptyWork(mine))await recallDraft(key); // loads the saved copy (already read) onto the screen
+  else{draftNote='';rememberDraft(key);} // nothing saved, or the same work: keep the screen and remember it
+  return 'connected';
 }
 async function retryDraft(){
   if(!draftsEnabled){await checkServer({force:true});return;}
@@ -733,6 +761,11 @@ async function setMode(next){
   historyPresetTarget=null;
   revision++;renderSettings();renderModeUI();renderTargets();renderScene({forceFinal:true});renderResult();renderPlacement();if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true));
   notice(isFree()?'프리샷이에요. 채팅과 상관없이 자유롭게 그려요.':'챗샷이에요. 열린 채팅의 장면을 그려요.');
+  const key=workKey();
+  if(draftsEnabled&&draftChecks.has(key)){draftChecks.delete(key); // 0.1.96 (GPT P2-1): this work was kept while held
+    const r=await reconcileWork(key);
+    if(r==='failed'){if(key===workKey())draftChecks.add(key);notice('서버 작업을 확인하지 못했어요. 지금 화면은 그대로 두었어요. [작업 기억 다시 연결]이나 모드를 다시 바꿔 확인해 주세요.',true);}
+    return;}
   await recallDraft();
 }
 // The clear button's own place turns into its undo: [그리기창 비우기] ⇄ [↶ 비우기 취소]. After an import from history
@@ -785,7 +818,7 @@ async function forgetWork(keys){
   if(!isFree()&&keys.includes(FREE_KEY))delete spare.free;
   if(here){loadWork(blankWork());targetShown=TARGET_STEP;targetScroll=0;draftSource=null;revision++;
     renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();}
-  for(const key of keys){draftDeletionChecks.delete(key);drafts.release(key);drafts.reset(key);}
+  for(const key of keys){draftDeletionChecks.delete(key);draftChecks.delete(key);drafts.release(key);drafts.reset(key);}
   // The open work reads the server's deletion marker now; other chats read it when they are opened again.
   if(here)await drafts.ensure(workKey()).catch(()=>{});
 }
@@ -851,6 +884,7 @@ async function deleteAllWork(){
   },reply=>{
     if(reply.unverified)return [];
     for(const k of Object.keys(spare))delete spare[k];
+    draftChecks.clear();
     return keys;
   });
   if(r.unverified){report(`전체 삭제 응답을 받지 못했어요. 작업 ${r.deleted}개의 삭제를 확인했어요.${r.held?' 확인하지 못한 작업은 확인할 때까지 잠갔어요.':''}`,true);return;}
@@ -1909,8 +1943,17 @@ function stampSource(source,chat,{check=false}={}){
 }
 let compatChecked=false,compatDismissed=false,compatResult={level:'none',message:''};
 // Asks the server plugin for its version (no NovelAI call) and warns when the UI and server folders do not match.
-async function checkServer({force=false}={}) {
-  if(compatChecked&&!force)return compatResult;compatChecked=true;
+// 0.1.96 (GPT P3-2): while work memory is not connected, presses share one run from the status check to the end of the
+// connect (its question included); a press after it ends starts a new one.
+function checkServer({force=false}={}) {
+  if(compatChecked&&!force)return Promise.resolve(compatResult);
+  if(draftsEnabled)return checkServerOnce(force);
+  if(reconnectRun){if(force)compatDismissed=false;return reconnectRun;}
+  reconnectRun=(async()=>{try{return await checkServerOnce(force);}finally{reconnectRun=null;}})();
+  return reconnectRun;
+}
+async function checkServerOnce(force) {
+  compatChecked=true;
   let status=-1,data=null;
   try{
     const signal=typeof AbortSignal!=='undefined'&&AbortSignal.timeout?AbortSignal.timeout(8000):undefined;
@@ -3350,6 +3393,7 @@ function chatChanged() {
   closeImageMenu();closeAttachPicker();closeTagPopup();renderTagPopupSetting();
   const key=keyOf();if(key===chatKey)return;undoChatOutfit=null;historyImportToken++;
   const oldKey=chatKey;if(oldKey){const oldWork=isFree()?spare.chat:captureWork();if(oldWork)rememberDraft(oldKey,oldWork,{flush:true});}
+  draftChecks.delete(oldKey); // that chat's 챗샷 work goes (0.1.96); 프리샷's mark stays with its work
   if(!isFree()){draftLoadToken++;draftLoading=false;syncWorkLock();}
   closeMissingDialog();pendingBind=null;quickProfileName='';chatKey=key;renderPlacement();
   tabNotices.delete('scene');renderNotice();

@@ -1,3 +1,13 @@
+# v0.1.96 validation — 2026-11-08 (extension only, server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **80 of 80 Chromium browser scripts passed** (4 at a time). New `browser-v0196` (375 and 1100px; its fake server keeps saved work per chat key): 챗샷 edit held, work memory connected in 프리샷 (nothing saved there), back to 챗샷 → asked, 취소 keeps the edit and holds the tab again, nothing written, 확인 later loads it; the same from 프리샷 (확인 on return loads the saved 프리샷 work); a chat change in 프리샷 drops the old chat's mark (the new chat loads without a question), a chat change in 챗샷 keeps 프리샷's mark (still asked); unregistered-only extraction → asked, the person stays; a place over the save limit → no question, the screen stays, held with the reason when a saved copy exists, the save error when none; [더 보기] in the target list and a valid final JSON with keys in another order → no question, an invalid JSON → asked and kept as typed; presses during a held status check (drawing tab and Settings) → one status check, one question, and a later press asks again.
+- Fixes reverted one at a time (9): unregistered in `emptyWork`, the compare on return, the mark on connect, the 프리샷 mark kept on a chat change, keeping the screen when it cannot be compared, `targetShown` out of the comparison, the JSON content comparison, the shared connect run, turning work memory off on a hold — each made `browser-v0196` fail. Dropping the old chat's mark is tidying only (left in place it finds an empty screen and loads without asking).
+- Not checked: a real NovelAI account, a real SillyTavern, iPhone Safari's own confirm box.
+
+---
+
 # v0.1.95 validation — 2026-11-08 (extension only, server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed**.

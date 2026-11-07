@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.96 — 2026-11-08 (extension only — server v0.1.25 unchanged)
+
+- Fixes from the GPT review of 0.1.95 (no P1). Work kept in the other mode (챗샷 ⇄ 프리샷) while work memory was paused is no longer replaced when work memory connects from the other mode: coming back compares it with the saved copy and asks the same question; 취소 keeps both and pauses work memory in the tab again. A chat change drops only the old chat's 챗샷 work (as the note says); 프리샷 work stays and is still compared.
+- A scene with only unregistered people now counts as work (it is compared on connect, and saved even when nothing was saved before). If the screen cannot be compared (e.g. a field too long to save) while a saved copy exists, the screen is kept and work memory pauses: "지금 작업을 확인하지 못해서 작업 기억을 잠시 멈췄어요(…)".
+- The comparison ignores how many target messages are listed and a valid final-prompt JSON's key order (an invalid JSON is compared as typed). Presses while a connect is running (from the status check to the question) share it: one status check and one question.
+
 ## 0.1.95 — 2026-11-08 (extension only — server v0.1.25 unchanged)
 
 - Fixes from the GPT review of 0.1.94 (no P1). When work memory connects after a failed first server check ([연결 다시 확인] in the drawing window, or **서버·NAI 연결 확인** in Settings), the saved work is read first and the screen is left alone. If the screen is empty, nothing is saved, or both are the same, it connects without asking; only when both hold different work does it ask "서버에 저장된 마지막 작업을 불러올까요?". 확인 loads the server's work; 취소 keeps the edit on screen and the saved work on the server, and pauses work memory in this tab: "서버에 다른 작업이 저장돼 있어서 작업 기억을 잠시 멈췄어요. 지금 편집은 아직 저장되지 않았어요. 채팅을 바꾸면 사라질 수 있어요." Nothing is written while paused (also across chat changes); **작업 기억 다시 연결** reads the current chat's saved work again and decides again. Before, the saved work replaced the edit without a question.
