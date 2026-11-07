@@ -244,6 +244,10 @@ try{
   assert.equal(new Set(t.slice(0,4).map(x=>x[2])).size,1,`${width}: one row`);assert.ok(t[4][2]>t[0][2]);
   await page.locator('[data-history-pick]').first().check();
   t=await tools();assert.equal(t[0][1],'모두 해제');assert.match(await page.locator('#ncs-history-count').innerText(),/· 1장 고름$/);
+  // ☆ and # are icons only, and the count line stays on one line from 375px
+  assert.deepEqual([await page.locator('[data-action="history-star-only"]').innerText(),await page.locator('[data-action="history-tag-only"]').innerText()],['☆','#']);
+  assert.equal(await page.locator('[data-action="history-star-only"]').getAttribute('aria-label'),'즐겨찾기만 보기');
+  if(width>=375)assert.ok(await h('#ncs-history-count')<=20,`count on one line (${await h('#ncs-history-count')})`);
   await page.locator('[data-action="select-all-history"]').click();assert.equal((await tools())[0][1],'모두 선택');
   assert.doesNotMatch(await page.locator('#ncs-history-count').innerText(),/고름/);
   // 프리샷: three tools share the row
@@ -253,5 +257,15 @@ try{
   assert.deepEqual(errors,[]);await page.close();
  }
 
- console.log('PASS: B2 a window going back to an older timed effect is kept; one work lock (another chat\'s load during a deletion, a later successful deletion); a late ★→# failure leaves the 프리샷 view and count; no keyboard room after a touch save; a second finger on the popup never zooms; size standard (main 38/tabs 36/small 32, notes 12, headings 16) at 320/375/1100, history tools in one row with short labels and the count line, 챗샷/프리샷 same size with a focus ring, the dialog takes the first focus');
+ // 0.1.88: Anlas consent can be ticked right by the "허용이 꺼져 있어요" note — the same setting, ticked by the user.
+ {const {page,errors}=await open(375);
+  await page.waitForFunction(()=>!document.querySelector('.ncs-consent-check').hidden);
+  const here=page.locator('#ncs-allow-anlas-here'),main=page.locator('#ncs-allow-anlas');
+  assert.equal(await main.isChecked(),false);assert.equal(await here.isChecked(),false);
+  await here.check();assert.equal(await main.isChecked(),true);assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.allowAnlas),true);
+  await page.waitForFunction(()=>document.querySelector('.ncs-consent-check').hidden);
+  await main.uncheck();await page.waitForFunction(()=>!document.querySelector('.ncs-consent-check').hidden);assert.equal(await here.isChecked(),false);
+  assert.deepEqual(errors,[]);await page.close();}
+
+ console.log('PASS: B2 a window going back to an older timed effect is kept; one work lock (another chat\'s load during a deletion, a later successful deletion); a late ★→# failure leaves the 프리샷 view and count; no keyboard room after a touch save; a second finger on the popup never zooms; size standard (main 38/tabs 36/small 32, notes 12, headings 16) at 320/375/1100, history tools in one row with short labels and the count line, 챗샷/프리샷 same size with a focus ring, the dialog takes the first focus, ☆/# icons with a one-line count, the consent checkbox by the note');
 }finally{await browser.close();server.close();}

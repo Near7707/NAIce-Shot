@@ -1,3 +1,15 @@
+# v0.1.88 validation — 2026-11-07 (extension only, server v0.1.23)
+
+- Extension Node suite: **191 passed, 0 failed** (the timed world info test now checks "the one value last known saved", including another window going back to an older value).
+- Server Node suite (v0.1.23, unchanged): **42 passed, 0 failed**.
+- **72 of 72 Chromium browser scripts passed** (4 at a time). New `browser-v0188`: the B2 order from the review (off seen, on saved, another window saves off) stops the save and keeps "off"; a deletion held open while switching to chat B keeps the drawing window locked after B's work loads, and what is typed after the deletion stays; a held deletion followed by a successful one unlocks the window and the mode switch and hides the check button; ★ → # held, scope changed to 프리샷, then the old request fails with 503: the 프리샷 # view stays and 전체 삭제 asks about 4 pictures; two touch-saves on [저장] leave no room and do not grow it; a CDP two-finger touch during a drag moves the popup with the first finger and does not zoom, a one-finger tap still zooms; at 320/375/1100px main buttons 38, tabs 36 (375+), small 32, notes 12, headings 16, 프로필 저장 38, 내보내기 36; history tools order and one row, "N장 고름", ☆/# icons, one-line count from 375px; 챗샷/프리샷 same size with a focus ring drawn inside, the dialog has the first focus; the consent checkbox by the note ticks the same setting.
+- Fixes reverted one at a time: B2, the lock, the stale check, the second finger, first focus, inside ring, size, icons and the consent checkbox each made `browser-v0188` fail. The touch-room fix has two parts (pointer-only press, cleanup when the form leaves); either alone passes, both reverted fail.
+- Older scripts updated for intended changes: `browser-v014`, `v040`, `v0172` (short labels, count in the count line), `v0149` (selection tools share one row), `v0146`, `v0167` (consent checkbox in place of the jump button), `v0186` (# icon).
+- One full run had `browser-v0140` and `v0155` fail once under load; both passed alone and three times in parallel since, and the final full run passed.
+- Not checked: a real SillyTavern (two windows), iPhone Safari or an Android keyboard, real multi-touch, a real NovelAI account.
+
+---
+
 # v0.1.87 validation — 2026-11-07 (extension only, server v0.1.23)
 
 - Extension Node suite: **191 passed, 0 failed** (+1: timed world info is taken from memory only when the disk value is one this window has had; another window's sticky effect stays as read).

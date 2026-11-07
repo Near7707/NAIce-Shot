@@ -1946,7 +1946,7 @@ function renderCost(){
   if(!off)consentRefused=false; // only consent or a fresh successful check (refreshAccount) clears a server refusal
   const v=verdictOf(guard,effectiveOptions().model);$('ncs-verdict').textContent=v.text;$('ncs-anlas-box').dataset.state=v.state;
   $('ncs-cost').textContent=guard.missing?missingText():stepsWord(guard.message);$('ncs-cost-link').hidden=guard.kind!=='may';
-  const show=blocked||(off&&consentRefused);$('ncs-consent-note').hidden=!show;dialog.querySelector('[data-action="goto-anlas"]').hidden=!show;
+  const show=blocked||(off&&consentRefused);$('ncs-consent-note').hidden=!show;const here=dialog.querySelector('.ncs-consent-check');here.hidden=!show;$('ncs-allow-anlas-here').checked=settings().allowAnlas===true;
   return {guard,blocked};
 }
 let consentRefused=false;
@@ -2187,7 +2187,7 @@ function updateHistoryTools() {
   const allScope=['chats','all'].includes(historyScope),singleKey=historyScope==='free'?FREE_KEY:keyOf();
   const scopeCount=historyUnfiltered??historyTotal+historyPending.length; // ★ only lists fewer, but "delete all" means all
   const star=dialog.querySelector('[data-action="history-star-only"]'),tagView=dialog.querySelector('[data-action="history-tag-only"]'),canStar=serverFeatures.includes('history-ids');
-  star.setAttribute('aria-pressed',String(historyMarkFilter==='star'));star.textContent=historyMarkFilter==='star'?'★ 즐겨찾기만':'☆ 즐겨찾기만';
+  star.setAttribute('aria-pressed',String(historyMarkFilter==='star'));star.textContent=historyMarkFilter==='star'?'★':'☆'; // 0.1.88: icons only, the names are in aria-label/title
   star.disabled=locked||!canStar;star.title=canStar?(historyMarkFilter==='star'?'모든 그림 보기로 돌아가요':'즐겨찾기(★)한 그림만 보여줘요'):'서버 플러그인 v0.1.22 이상이 필요해요';
   // 0.1.86: [# 태그] lists every picture with a tag, through the same ID filter. Only one of ★ and # is on.
   tagView.setAttribute('aria-pressed',String(historyMarkFilter==='tag'));tagView.disabled=locked||!canStar;
@@ -2800,7 +2800,6 @@ async function onAction(action,el) {
     case 'copy-shape':await copyShape();break;
     case 'toggle-account':toggleAccount();break;
     case 'refresh-anlas':await refreshAccount().catch(()=>{});break;
-    case 'goto-anlas':gotoAnlasSetting();break;
     // 프리셋 저장: overwrite the selected preset, or create one when none is selected.
     case 'save-preset':{const p=settings().imagePresets.find(p=>p.id===settings().imagePresetId);if(!p)break;
       if(!confirm(`"${p.name}" 프리셋에 지금 값을 덮어쓸까요?\n이전에 저장한 값은 사라져요.`))break;saveImagePreset(true);break;}
@@ -3019,6 +3018,9 @@ function bindEvents() {
         if(el.checked&&!confirm('추출 AI 응답 원문을 추가로 보관할까요?\n개인정보 주의: 응답에 이름·대화 인용 등이 포함될 수 있어요. 앞으로 만드는 그림의 이력과 마지막 작업에 보관되고, PNG에는 들어가지 않아요.'))el.checked=false;
         settings().retainRawExtraction=el.checked;ctx().saveSettingsDebounced();renderRawRetention();return;
       }
+      // 0.1.88 (user's choice): the same consent as a second checkbox where the "Anlas 허용이 꺼져 있어요" note is,
+      // so it can be ticked right there. It is still a checkbox the user ticks (0.1.46: nothing turns it on by itself).
+      if(el.id==='ncs-allow-anlas-here'){const main=$('ncs-allow-anlas');main.checked=el.checked;main.dispatchEvent(new Event('input',{bubbles:true}));return;}
       const settingMap={'ncs-positive':'positive','ncs-negative':'negative','ncs-format':'format','ncs-recent':'recent','ncs-include-user':'includeUser','ncs-schema':'structuredOutput','ncs-allow-anlas':'allowAnlas'};
       const optionMap={'ncs-model':'model','ncs-steps':'steps','ncs-scale':'scale','ncs-seed':'seed','ncs-cfg':'cfgRescale','ncs-sampler':'sampler'};
       if(settingMap[el.id])settings()[settingMap[el.id]]=el.type==='checkbox'?el.checked:el.type==='number'?Number(el.value):el.value;

@@ -70,7 +70,7 @@ try{
   const recheck=async s=>{sub=s;const before=await page.evaluate(()=>document.querySelector('#ncs-anlas-balance').textContent);await page.locator('[data-action="refresh-anlas"]').click();
    await page.waitForFunction(()=>!document.querySelector('[data-action="refresh-anlas"]').disabled);await page.waitForTimeout(50);};
   const model=async id=>{const box=page.locator('#ncs-gen-box');if(!await box.evaluate(d=>d.open))await page.locator('#ncs-gen-box > summary').click();await page.locator('[data-gen="model"]').selectOption(id);};
-  const allow=page.locator('#ncs-allow-anlas'),go=page.locator('[data-action="goto-anlas"]');
+  const allow=page.locator('#ncs-allow-anlas'),go=page.locator('.ncs-consent-check') /* 0.1.88 */;
   await allow.uncheck();
   // Active Opus, V4.5, consent off: free, and it is really sent (the bug: the missing old perk used to block it).
   await model('nai-diffusion-4-5-full');await recheck(OPUS);

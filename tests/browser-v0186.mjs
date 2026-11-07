@@ -226,7 +226,7 @@ try{
    const {page,errors,asked}=await open(width,{seed:[pic(1),pic(2),pic(3)],marks});
    await history(page);
    const tagBtn=page.locator('[data-action="history-tag-only"]'),star=page.locator('[data-action="history-star-only"]'),help=page.locator('#ncs-tag-view-help');
-   assert.equal(await tagBtn.innerText(),'# 태그');assert.equal(await help.count(),0,'0.1.87: the explanation moved to Settings → 태그 추천 팝업');
+   assert.equal(await tagBtn.innerText(),'#'); // 0.1.88: icon onlyassert.equal(await help.count(),0,'0.1.87: the explanation moved to Settings → 태그 추천 팝업');
    await tagBtn.click();await page.waitForFunction(()=>document.querySelectorAll('#ncs-history [data-view-history]').length===1);
    assert.deepEqual(await cards(page),[uid(1)]);assert.deepEqual(page.posts.at(-1).ids,[uid(1)]);
    assert.equal(await tagBtn.getAttribute('aria-pressed'),'true');assert.equal(await star.getAttribute('aria-pressed'),'false');
