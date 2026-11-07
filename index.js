@@ -423,6 +423,22 @@ function noteTimed(metadata=ctx().chatMetadata){
   if(timedEpoch!==chatLoadEpoch){timedSaved=null;timedEpoch=chatLoadEpoch;}
   if(metadata&&typeof metadata==='object')timedSaved=timedState(metadata);
 }
+// 0.1.89 (GPT P2-1): a message or generation event does not say that SillyTavern saved anything (a stopped generation
+// saves nothing). The event only asks for a look at the disk: when the disk holds the same timed effects as memory,
+// that disk value is the new base. A value never read from the disk never becomes the base.
+const TIMED_CHECK_DELAY=1200;let timedCheckTimer=0,timedCheckRun=0;
+function checkTimedSoon(){clearTimeout(timedCheckTimer);timedCheckRun++;timedCheckTimer=setTimeout(()=>confirmTimed().catch(()=>{}),TIMED_CHECK_DELAY);}
+async function confirmTimed(){
+  const c=ctx(),key=keyOf(c),epoch=chatLoadEpoch,meta=c.chatMetadata,run=timedCheckRun;
+  if(!key||!meta||typeof meta!=='object')return;
+  if(timedEpoch===epoch&&timedState(meta)===timedSaved)return; // nothing new to learn
+  const host=await (hostChatModule??=import('/script.js').catch(()=>null));
+  if(host?.isChatSaving){checkTimedSoon();return;} // look again after SillyTavern's save
+  let saved;try{saved=await savedReader()();}catch{return;}
+  const now=ctx();
+  if(run!==timedCheckRun||keyOf(now)!==key||chatLoadEpoch!==epoch||now.chatMetadata!==meta)return;
+  if(timedState(saved.metadata)===timedState(now.chatMetadata))noteTimed(saved.metadata);
+}
 const chatState=(messages,metadata)=>stableChatJson({messages,metadata});
 async function withChatWrite(key,apply){
   if(!key||keyOf()!==key)throw new Error(CHAT_NOT_CURRENT);
@@ -452,7 +468,12 @@ async function withChatWrite(key,apply){
     if(snapshot!==chatState(saved.messages,diskMetadata))throw new Error('서버의 채팅과 화면이 달라요. 다른 곳에서 수정했다면 채팅을 다시 열고, 방금 편집했다면 저장이 끝난 뒤 시도해 주세요.');
     noteTimed(saved.metadata);
     const done=await apply(ctx(),{readSaved:async()=>(await readState()).messages,isCurrent:current},readState);
-    if(current())noteTimed(); // this window's save went through: the disk now has its value
+    // 0.1.89 (GPT P2-1): even a save that went through only becomes the base after reading it back from the disk;
+    // an unverified result keeps the old base.
+    // (Read only when there is something to learn: memory has timed effects the base does not have.)
+    if(current()&&timedEpoch===chatLoadEpoch&&timedState(ctx().chatMetadata)!==timedSaved){
+      try{const after=await readState();if(current()&&timedState(after.metadata)===timedState(ctx().chatMetadata))noteTimed(after.metadata);}catch{}
+    }
     return done;
   }finally{chatWritePending=false;}
 }
@@ -535,7 +556,7 @@ function renderDraftState(){
   const held=draftDeletionChecks.has(workKey());
   box.hidden=!draftsEnabled;box.textContent=held?'삭제 결과를 확인할 때까지 작업을 잠갔어요.':draftLoading?'마지막 작업을 불러오는 중…':e.error?`작업 저장을 확인해 주세요: ${e.error.message}`:e.saving||e.dirty||captureTimer?'마지막 작업 저장 중…':draftNote||'마지막 작업을 서버에 기억해요.';
   $('ncs-draft-retry').hidden=!draftsEnabled||!held&&!e.error;
-  $('ncs-draft-retry').textContent=held?'삭제 결과 다시 확인':e.error?.status===409?'서버 작업 다시 불러오기':'다시 시도';
+  $('ncs-draft-retry').textContent=held?draftDeletionRuns.has(workKey())?'삭제 결과 확인 중…':'삭제 결과 다시 확인':e.error?.status===409?'서버 작업 다시 불러오기':'다시 시도';
 }
 const emptyWork=w=>!w.scene.characters?.length&&!w.scene.moments?.length&&!['location','lighting','camera','interaction'].some(k=>w.scene[k])&&
   !w.finalOverride&&!w.optionsOverride&&!w.result&&!w.undoClear&&!w.raw&&!w.target&&!w.wish&&!w.freeText;
@@ -567,6 +588,7 @@ async function retryDraft(){
   const key=workKey(),e=drafts.entry(key);
   if(draftDeletionChecks.has(key)){
     const outcome=await reconcileDraftDeletion(key);
+    if(outcome==='settled')return; // the other press's answer already said it
     if(outcome==='unknown')notice('아직 삭제 결과를 확인하지 못했어요. 확인할 때까지 작업을 잠가 둘게요.',true);
     else if(outcome==='deleted')notice('서버에서 작업이 삭제된 것을 확인했어요.');
     else notice('서버 작업을 확인했어요. 자동 저장을 다시 시작해요.');
@@ -732,15 +754,30 @@ async function forgetWork(keys){
   // The open work reads the server's deletion marker now; other chats read it when they are opened again.
   if(here)await drafts.ensure(workKey()).catch(()=>{});
 }
+// 0.1.89 (GPT P2-2): each unknown deletion is its own hold object. A check works on the hold it started with: an
+// answer that comes back after that hold was settled (by an earlier answer) changes nothing, so it can never empty
+// what was typed after the lock opened. One check per work at a time; a second press waits for the same answer.
 function holdDraftDeletion(key){
-  if(!draftDeletionChecks.has(key))draftDeletionChecks.set(key,drafts.entry(key).revision);
+  if(!draftDeletionChecks.has(key))draftDeletionChecks.set(key,{revision:drafts.entry(key).revision});
   drafts.hold(key);
 }
-async function reconcileDraftDeletion(key,state=null){
+const draftDeletionRuns=new Map();
+function reconcileDraftDeletion(key,state=null){
+  const hold=draftDeletionChecks.get(key);
+  if(!hold)return Promise.resolve('settled');
+  const running=draftDeletionRuns.get(key);
+  if(running?.hold===hold&&!state)return running.promise;
+  const promise=settleDraftDeletion(key,hold,state).finally(()=>{if(draftDeletionRuns.get(key)?.promise===promise){draftDeletionRuns.delete(key);renderDraftState();}});
+  if(!state)draftDeletionRuns.set(key,{hold,promise});
+  renderDraftState();
+  return promise;
+}
+async function settleDraftDeletion(key,hold,state){
   try{
     const saved=state??await api(`/draft?chatKey=${encodeURIComponent(key)}`,{signal:draftSignal()});
+    if(draftDeletionChecks.get(key)!==hold)return 'settled'; // an earlier answer already settled this deletion
     if(!saved||!Object.hasOwn(saved,'revision'))return 'unknown';
-    const before=draftDeletionChecks.get(key);
+    const before=hold.revision;
     if(saved.deleted===true&&saved.revision!==before){await forgetWork([key]);return 'deleted';}
     draftDeletionChecks.delete(key);drafts.release(key);
     if(saved.revision!==before){
@@ -2673,19 +2710,29 @@ async function loadHistory({append=false}={}) {
     const items=Array.isArray(data.items)?data.items:[];
     historyItems=append?[...historyItems,...items.filter(x=>!historyItems.some(y=>y.id===x.id))]:items;
     historyTotal=Number.isInteger(data.total)?data.total:historyItems.length;historyHasMore=data.hasMore===true;
+    lastHistoryView={scope,filter,key:startKey,markFilter,items:historyItems,pending:historyPending,bytes:historyPendingBytes,total:historyTotal,more:historyHasMore,unfiltered:historyUnfiltered};
   }finally{if(request===historyRequest){historyLoading=false;updateHistoryTools();}}
   if(request===historyRequest)renderHistory();
 }
 let historyImportToken=0;
+// 0.1.89 (GPT P3-1): the last view that loaded completely. While another list is still loading, a failed ★/# switch
+// goes back to this one, never to the half-loaded (empty) list.
+let lastHistoryView=null;
 async function restoreHistory(id){return importHistory(id,'chat');}
 async function sendToFree(id){return importHistory(id,'free');}
+// 0.1.89 (GPT P2-2): the history is outside the locked drawing window, so sending a picture to it checks the same
+// lock: no import while work is being deleted or while the result of a deletion of the target work is unknown.
+const workLockedFor=key=>deletingWork||drafts.paused||draftsEnabled&&!!key&&draftDeletionChecks.has(key);
+const WORK_LOCKED='작업 삭제를 확인하는 중이라 그리기창을 잠가 두었어요. 끝난 뒤 다시 보내 주세요.';
 async function importHistory(id,nextMode,record=null){
   if(busy||attaching||draftLoading||outfitSaving)throw new Error('진행 중인 작업이 끝난 뒤 보내 주세요.');
+  if(workLockedFor(nextMode==='free'?FREE_KEY:keyOf()))throw new Error(WORK_LOCKED);
   const item=record??historyItems.find(x=>x.id===id);if(!item)return;
   const startChat=keyOf(),startTask=task,startRevision=revision,switched=mode!==nextMode,token=++historyImportToken;
   if(nextMode==='chat'&&!startChat)throw new Error('채팅을 먼저 열어 주세요.');
   if(switched)await setMode(nextMode);
   if(token!==historyImportToken||mode!==nextMode||keyOf()!==startChat||task!==startTask||revision!==startRevision+(switched?1:0))throw new Error('채팅이나 작업이 바뀌어서 가져오지 않았어요. 다시 선택해 주세요.');
+  if(workLockedFor(workKey())||draftLoading)throw new Error(WORK_LOCKED);
   const name=nextMode==='free'?'프리샷':'챗샷';
   const before={...captureWork(),undoClear:null,targetShown,label:`이력에서 가져왔어요. 원래 ${name} 작업은 되돌리기로 돌아와요.`};
   const sameChat=nextMode==='chat'&&item.chatKey===startChat,known=c=>c.temp||settings().profiles.some(p=>p.id===c.id);
@@ -2836,8 +2883,10 @@ async function onAction(action,el) {
       // 0.1.87 (GPT P3): if the new list cannot be read, the old view comes back whole (its filter with its cards),
       // so the buttons never show one view while the cards are from another.
       const want=action==='history-tag-only'?'tag':'star',next=historyMarkFilter===want?null:want;
-      const before={markFilter:historyMarkFilter,items:historyItems,pending:historyPending,bytes:historyPendingBytes,total:historyTotal,more:historyHasMore,unfiltered:historyUnfiltered,picked:[...selectedIds]};
-      const scope=historyScope,filter=historyFilter,key=keyOf();
+      const scope=historyScope,filter=historyFilter,key=keyOf(),viewKey=scope==='free'?FREE_KEY:key,last=lastHistoryView;
+      const before=historyLoading&&last&&last.scope===scope&&last.filter===filter&&(['chats','all'].includes(scope)||last.key===viewKey)
+        ?{...last,picked:[]} // 0.1.89: the list on screen is still loading: go back to the last one that loaded
+        :{markFilter:historyMarkFilter,items:historyItems,pending:historyPending,bytes:historyPendingBytes,total:historyTotal,more:historyHasMore,unfiltered:historyUnfiltered,picked:[...selectedIds]};
       historyMarkFilter=next;closeImageMenu();historyItems=[];historyPending=[];historyPendingBytes=0;historyTotal=0;historyHasMore=false;historyUnfiltered=null;selectedIds.clear();
       const loading=loadHistory(),request=historyRequest; // loadHistory numbers its request before its first wait
       try{await loading;}
@@ -3223,12 +3272,12 @@ async function initialize() {
   window.addEventListener('pagehide',()=>rememberDraft(workKey(),null,{flush:true}));
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')rememberDraft(workKey(),null,{flush:true});});
   const c=ctx(),events=c.eventTypes??c.event_types;c.eventSource.on(events.CHAT_CHANGED,()=>{chatLoadEpoch++;noteTimed();chatChanged();});noteTimed();
-  // ST saves the chat after these; the timed effects it saves are this window's own.
-  for(const type of ['GENERATION_ENDED','GENERATION_STOPPED'])if(events[type])c.eventSource.on(events[type],()=>noteTimed());
+  // ST usually saves the chat after these (not after a stopped generation): look at the disk once it has (0.1.89).
+  for(const type of ['GENERATION_ENDED','GENERATION_STOPPED'])if(events[type])c.eventSource.on(events[type],()=>checkTimedSoon());
   const refreshChatImages=()=>renderChatImages();
   // 0.1.84: tag suggestions read a character reply after it is rendered (after streaming ends). Never a greeting.
   if(events.CHARACTER_MESSAGE_RENDERED)c.eventSource.on(events.CHARACTER_MESSAGE_RENDERED,(id,type)=>{try{suggestTaggedImage(Number(id),type);}catch(e){console.error('[NAIce Shot]',e.message);}});
-  for(const type of ['MESSAGE_RECEIVED','MESSAGE_SENT','MESSAGE_SWIPED','MESSAGE_DELETED','MESSAGE_EDITED'])if(events[type])c.eventSource.on(events[type],()=>{noteTimed();refreshChatImages();if(dialog.open){renderTargets();renderMatching();renderResult();renderHistory();updateFinal();}});
+  for(const type of ['MESSAGE_RECEIVED','MESSAGE_SENT','MESSAGE_SWIPED','MESSAGE_DELETED','MESSAGE_EDITED'])if(events[type])c.eventSource.on(events[type],()=>{checkTimedSoon();refreshChatImages();if(dialog.open){renderTargets();renderMatching();renderResult();renderHistory();updateFinal();}});
   document.getElementById('chat')?.addEventListener('click',event=>{
     const clean=event.target.closest('[data-ncs-inline-clean]');
     if(clean){event.preventDefault();const id=clean.dataset.ncsInlineClean;clean.disabled=true;saveCleanImage({id,image:`/user/images/naice-shot/${id}.png`}).then(()=>say('클린 PNG(메타데이터 제거)를 저장했어요.'),()=>say('클린 PNG를 저장하지 못했어요. 원본으로 대체 저장하지 않았어요.',true)).finally(()=>{clean.disabled=false;});return;}

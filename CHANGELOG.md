@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.89 — 2026-11-07 (extension only — server v0.1.23 unchanged)
+
+- Fixes from the GPT review of 0.1.88: a message or generation event no longer makes the timed effects in memory the "saved" value; the event only starts a look at the disk, and only a value read back from the disk becomes the base (also after this window's own save). A stopped generation followed by a picture deletion now saves the chat, and a value another window saved by chance is no longer overwritten (B2).
+- [삭제 결과 다시 확인] runs one check per work at a time (a second press waits for the same answer, the button says "삭제 결과 확인 중…"), and an answer that arrives after the deletion was already settled changes nothing — what was typed after the lock opened stays. [챗샷으로 보내기]/[프리샷으로 보내기] from the history (card ⋯ and the enlarged view) is refused while work is being deleted or its deletion result is unknown.
+- If ★ is still loading when # is pressed and # fails, the list goes back to the last view that loaded (no more empty ★ list until refresh).
+- History count line: the count always has its own line and ☆ · # · ↻ 새로고침 sit under it at the right, at every width (user's choice from the mock-up). Long counts such as "저장 대기 100장 · 105 MB" no longer push the refresh text out of its button at 320px.
+
 ## 0.1.88 — 2026-11-07 (extension only — server v0.1.23 unchanged)
 
 - Fixes from the GPT review of 0.1.87: world info timed effects are compared with the one value this window last knew to be saved, so another window going back to an older value is not saved over (B2). One lock for the drawing window (loading, deleting, unknown deletion result, first server check): loading another chat's work during a deletion no longer opens it, and a later successful deletion opens it again. A late failure of ★ → # no longer changes a view that moved on (scope, chat or filter). A touch on [저장] leaves no keyboard room behind. A second finger on the tag popup never opens the enlarged view.

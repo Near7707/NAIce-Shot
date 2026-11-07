@@ -1026,3 +1026,10 @@
 /* 0.1.88: the consent checkbox by the "Anlas 허용이 꺼져 있어요" note (same setting as the one above). */
 #naice-shot-dialog .ncs-consent-check {margin:0;min-height:32px;font-size:13px;}
 #naice-shot-dialog .ncs-consent-check[hidden] {display:none;}
+/* ---- 0.1.89 ---- */
+/* GPT P3-2 + user choice: the count line always has its own line (long counts such as "저장 대기 N장 · N MB" wrap
+   inside it), and ☆ · # · ↻ 새로고침 sit on the next line at the right, at every width. */
+#naice-shot-dialog .ncs-count-row {flex-wrap:wrap;row-gap:6px;}
+#naice-shot-dialog .ncs-count-row > small {flex:1 0 100%;min-width:0;}
+#naice-shot-dialog .ncs-count-row > small + button {margin-left:auto;}
+#naice-shot-dialog .ncs-count-row > button {flex:none;}

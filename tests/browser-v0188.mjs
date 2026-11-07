@@ -115,11 +115,12 @@ try{
   const {page,errors}=await open(width,{seed:[pic(3)]});
   await history(page);await inChat(uid(3))(page);
   const off={sticky:{},cooldown:{}},on={sticky:{'7':{hash:7,start:1,end:9,protected:false}},cooldown:{}};
-  await page.evaluate(([off,on])=>{const m=mock.chatMetadata;
-   m.timedWorldInfo=structuredClone(off);mock.emit('received');mock.savedMetadata=structuredClone(m); // this window sees off (saved)
-   m.timedWorldInfo=structuredClone(on);mock.emit('received');mock.savedMetadata=structuredClone(m); // then on, and saves it
-   mock.savedMetadata.timedWorldInfo=structuredClone(off); // another window turns it off again and saves
-  },[off,on]);
+  // (0.1.89: each event starts a look at the disk; the test waits for it, as ST's save comes before the look)
+  const saveAndLook=async value=>{const n=await page.evaluate(v=>{const m=mock.chatMetadata;m.timedWorldInfo=structuredClone(v);mock.savedMetadata=structuredClone(m);mock.emit('received');return (mock.chatReads??[]).length;},value);
+   await page.waitForFunction(n=>(mock.chatReads??[]).length>n,n);await page.waitForTimeout(100);};
+  await saveAndLook(off); // this window sees off (saved)
+  await saveAndLook(on); // then on, and saves it
+  await page.evaluate(off=>{mock.savedMetadata.timedWorldInfo=structuredClone(off);},off); // another window turns it off again and saves
   await page.locator(`[data-history-delete="${uid(3)}"]`).click();
   await waitNotice(page,/빼는 저장은 실패/);
   assert.deepEqual(await page.evaluate(()=>mock.savedMetadata.timedWorldInfo),off,'the other window\'s "off" is still on the disk');

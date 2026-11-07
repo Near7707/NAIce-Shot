@@ -1,5 +1,13 @@
 # Installation and update checklist
 
+## v0.1.89
+
+**Extension only.** The server plugin stays 0.1.23 — just update the extension and refresh.
+
+1. History: the count is on its own line; ☆ # ↻ 새로고침 sit under it at the right.
+2. Press ★ and then # quickly: if # cannot load, the full list comes back (not an empty ★ list).
+3. Nothing else should look different; the other fixes are for rare save and deletion timing.
+
 ## v0.1.88
 
 **Extension only.** The server plugin stays 0.1.23 — just update the extension and refresh.

@@ -121,7 +121,10 @@ try{
    await history(page);await inChat(uid(4))(page);
    const seen={sticky:{'3':{hash:3,start:1,end:4,protected:false}},cooldown:{}};
    // ST changes the effect during a reply and saves it; this window saw it then (MESSAGE_RECEIVED)
-   await page.evaluate(s=>{mock.chatMetadata.timedWorldInfo=structuredClone(s);mock.emit('received');mock.savedMetadata=structuredClone(mock.chatMetadata);mock.chatMetadata.timedWorldInfo={sticky:{},cooldown:{}};},seen);
+   // (0.1.89: the event only starts a look at the disk, so the test waits for that read before memory moves on)
+   const reads=await page.evaluate(s=>{mock.chatMetadata.timedWorldInfo=structuredClone(s);mock.savedMetadata=structuredClone(mock.chatMetadata);mock.emit('received');return (mock.chatReads??[]).length;},seen);
+   await page.waitForFunction(n=>(mock.chatReads??[]).length>n,reads);await page.waitForTimeout(100);
+   await page.evaluate(()=>{mock.chatMetadata.timedWorldInfo={sticky:{},cooldown:{}};});
    await page.locator(`[data-history-delete="${uid(4)}"]`).click();
    await waitNotice(page,/그림 1장을 삭제했어요/);
    assert.doesNotMatch(await notice(page),/빼는 저장은 실패|화면이 달라요/);

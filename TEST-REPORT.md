@@ -1,3 +1,14 @@
+# v0.1.89 validation — 2026-11-07 (extension only, server v0.1.23)
+
+- Extension Node suite: **191 passed, 0 failed**.
+- Server Node suite (v0.1.23, unchanged): **42 passed, 0 failed**.
+- **73 of 73 Chromium browser scripts passed** (4 at a time). New `browser-v0189`: the disk has "off" (read by this window), memory turns "on" and a generation is stopped — deleting a picture then saves the chat and takes it out (375/1100px); after the stop another window saves that "on" and memory moves on — the save stops and "on" stays; this window's own deletion whose messages are saved but whose timed effects are not, with the check afterwards unable to read the chat — a later deletion still stops instead of writing over another window's value; [삭제 결과 다시 확인] pressed twice sends one check, and text typed after it unlocks stays when a second identical answer would arrive; a check started before a successful 작업 전체 삭제 changes nothing when it ends; during 작업 전체 삭제 [챗샷으로 보내기] from the card ⋯ and from the enlarged view is refused with a lock note; ★ held, # fails with 503 — the three cards come back with ☆/# off and "총 3장", and the late ★ answer is dropped; at 320/375/1100px, with 1,200 pictures · 100 waiting (105 MB) · 1 picked and with a short count, the count is above ☆ # ↻ (one row, at the right), the refresh text fits and nothing scrolls sideways.
+- Fixes reverted one at a time (8): events setting the base, the base after this window's own save, one check per work, the settled-answer check, the import lock, the last loaded view, the count-line CSS — each made `browser-v0189` fail. The second import-lock check (after switching 챗샷/프리샷) is defensive and not separately tested.
+- Older scripts updated for the intended change: `browser-v0187` and `browser-v0188` (B2) now wait for the look at the disk after each event, as SillyTavern's save comes before it. `tests/fixture.html` has `GENERATION_ENDED`/`GENERATION_STOPPED`.
+- Not checked: a real SillyTavern (two windows, a real stopped generation and the moment of SillyTavern's save), iPhone Safari or an Android keyboard, real multi-touch, a real NovelAI account.
+
+---
+
 # v0.1.88 validation — 2026-11-07 (extension only, server v0.1.23)
 
 - Extension Node suite: **191 passed, 0 failed** (the timed world info test now checks "the one value last known saved", including another window going back to an older value).
