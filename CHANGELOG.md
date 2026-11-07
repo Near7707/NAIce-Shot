@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.92 — 2026-11-08 (extension only — needs server v0.1.25)
+
+- Fixes from the GPT review of 0.1.91 (no P1). **Opus V5 is sent only to server 0.1.25 or later** (user decision): right before each V5 generation the panel asks the server for its version (no NovelAI call). With an older server — also one that went back while the tab stayed open, and also with "Anlas 사용 가능성 허용" off — nothing is sent and the panel says to update; if the server cannot be reached it says to check the connection. V4.5 is not affected.
+- What a press sends is fixed when [이미지 생성] is pressed: the prompt, the generation settings with the seed as entered (and the picture "같은 시드" refers to), the scene, 프리샷's situation text, the raw-kept setting, the switch and the work. After each wait (the server check, the saving check, the "이번만" question) it is compared again; if anything changed — a backup import, [서버 작업 다시 불러오기], an edit — nothing is sent and the panel asks to press again. Extraction settings (e.g. the response limit) are not part of it and no longer cancel a generation. After a yes the first request goes again with only the yes added.
+- The extension now needs server 0.1.25 (`MIN_SERVER_VERSION`); with 0.1.24 the update notice shows.
+- README: the Korean introduction matches the cost section.
+
 ## 0.1.91 — 2026-11-08 (extension + server — server v0.1.25 recommended, v0.1.24 still works)
 
 - Fixes from the GPT review of 0.1.89 + 0.1.90 (no P1). With a server older than 0.1.24 (it cannot ask "이번만"), Opus V5 with "Anlas 사용 가능성 허용" on is no longer sent: the panel checks the server again first and says to update it (an updated server is found without a refresh). With the switch off an old server refuses V5 by itself, as before.

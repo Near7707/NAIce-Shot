@@ -1,3 +1,14 @@
+# v0.1.92 validation — 2026-11-08 (extension only, server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed** (`ui-regression` "edits made in flight" now types once the request has left, as an edit before it stops the press).
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **76 of 76 Chromium browser scripts passed** (4 at a time). New `browser-v0192` (375 and 1100px): server 0.1.24 with the switch off at 82 % → the update notice and no `/generate` (a banner alone would have let it go), the same with the switch on, V4.5 still sent; a tab left open while the server goes back to 0.1.23 → stopped with the switch on and off; an unreachable server → its own words, nothing sent, no "확인 필요" mark. During the server check and during the saving check: the switch turned off (as a backup import does) or the place edited → nothing sent; the extraction response limit changed → sent as pressed. During the "이번만" first try: the limit changed → asked, the same body again with `confirmUsage`; [서버 작업 다시 불러오기] with another place → not asked, not sent again.
+- Fixes reverted one at a time (9): the V5 gate, the version check, the unreachable check, the comparison after the server check (with an earlier unconfirmed request, so no saving check follows), after the saving check, before the question, the switch in the comparison, and the comparison put back to `revision` (the extraction limit then cancels) — each made `browser-v0192` fail. The first comparison revert passed at first (the saving check caught it); a scenario without that check was added. The check after the question is a second guard only (a browser confirm box blocks typing).
+- Older scripts updated for the intended change: `browser-v0186`–`v0190` fake server 0.1.25; `browser-v0191` (the old-server words); `browser-v013` keeps its exact old-server answer; `browser-v031` answers `/status` (its catch-all held every request); `browser-v0117` waits for the first press to finish; 25 scripts (`v0155`–`v0180`, `v0164`, `v0167`) whose "done" wait looked only at the progress banner now also wait for [이미지 생성] to come back, as the V5 server check keeps the buttons off without a banner. `tests/fixture.html` also raises an older fake server's version to 0.1.25 (with `usage-confirm` as before), and a catch-all answer with no version becomes 0.1.25 with its update notice hidden (no notice showed for it before); `browser-v0191`/`v0192` keep their answers exact.
+- Not checked: a real NovelAI account, a real SillyTavern (a real backup import and server work reload during a generation), iPhone Safari's own confirm box.
+
+---
+
 # v0.1.91 validation — 2026-11-08 (extension + server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed** (the cost-guard test adds 1.5 %, −1 % and Infinity as "not checked", and the 0 % words). The UI module test's fake server now lists `usage-confirm` in its status.

@@ -18,7 +18,7 @@ import { copyText } from './clipboard.mjs';
 import {DraftQueue,packWork,unpackWork} from './draft-work.mjs';
 import {saveMenu,downloadOriginal} from './download-choice.mjs';
 import { genericizeScene } from './tags.mjs';
-import { checkCompat } from './compat.mjs';
+import { checkCompat, compareVersions } from './compat.mjs';
 import { makeZip } from './zip.mjs';
 import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, exactName } from './missing.mjs';
 import { cleanImageFile, saveCleanImage } from './downloads.mjs';
@@ -1882,7 +1882,7 @@ async function checkServer({force=false}={}) {
     const response=await fetch(`${API}/status?quick=1`,{headers:ctx().getRequestHeaders(),signal});status=response.status;
     try{data=JSON.parse(await response.text());}catch{data=null;}
   }catch{status=-1;}
-  compatResult=checkCompat({uiVersion:VERSION,status,data});
+  compatResult={...checkCompat({uiVersion:VERSION,status,data}),reached:status>=200&&status<300&&!!data&&typeof data==='object'&&typeof data.version==='string'};
   serverFeatures=Array.isArray(data?.features)?data.features:[];if(dialog)$('ncs-delete-work-box').hidden=!serverFeatures.includes('draft-delete');
   if(data?.features?.includes('draft-work')&&!draftsEnabled){draftsEnabled=true;await recallDraft();}
   if(force)compatDismissed=false;
@@ -2005,7 +2005,17 @@ function renderUsageNote(guard){
 }
 // The server's usage-confirm question, one sentence per line.
 const isV5=model=>String(model??'').startsWith('nai-diffusion-5');
-const V5_SERVER_NEEDED='서버 플러그인이 V5 사용량 확인을 지원하는지 확인하지 못해서 보내지 않았어요. 서버 플러그인을 0.1.24 이상으로 업데이트하고 실리태번을 다시 시작해 주세요.';
+const V5_MIN_SERVER='0.1.25';
+const V5_SERVER_NEEDED=`서버 플러그인이 이전 버전이라 V5 생성을 보내지 않았어요. 서버 플러그인을 ${V5_MIN_SERVER} 이상으로 업데이트하고 실리태번을 다시 시작해 주세요.`;
+const V5_SERVER_UNREACHED='서버 플러그인 버전을 확인하지 못해서 V5 생성을 보내지 않았어요. 서버 연결을 확인하고 다시 눌러 주세요.';
+// What a press would send, as text, without its random seed draw: the prompt, the generation settings with the seed
+// as entered (and, for "same seed", the picture it refers to), the scene, 프리샷's situation text, the raw-kept setting
+// and text, the switch, the work. Anything else (extraction settings) is not part of it.
+function sendKey(seedMode){
+  const s=settings(),keep=s.retainRawExtraction===true;
+  return JSON.stringify({work:workKey(),final:finalData(),options:effectiveOptions(),seedMode,sameSeed:seedMode==='same'?result?.seed??null:null,
+    scene,mode:isFree()?'free':'chat',freeText:isFree()?$('ncs-free-text').value:null,keep,raw:keep?stripReasoningBlocks(raw):null,allowAnlas:s.allowAnlas===true});
+}
 const EDITED_NOT_SENT='기다리는 동안 내용이 바뀌어서 보내지 않았어요. 바뀐 내용으로 [이미지 생성]을 다시 눌러 주세요.';
 const usageQuestion=message=>`${String(message).replace(/\. /g,'.\n')}\n이번만 생성할까요?`;
 let consentRefused=false;
@@ -2099,12 +2109,19 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   const s=settings(),startKey=workKey(),ticket=++task;
   if(isFree()){const tooLong=lengthProblem($('ncs-free-text').value,'free');if(tooLong)throw new Error(tooLong);} // before anything is sent
   if(finalOverride?.invalid)throw new Error('최종 프롬프트 JSON이 올바르지 않아요. 고치거나 "조립 결과로 되돌리기"를 눌러 주세요.');
-  // 0.1.91 (GPT P2-1): a server without usage-confirm (0.1.23 or older) sends Opus V5 on the saved switch alone, even
-  // at 1 %. With the switch off it refuses V5 itself (anlas-consent), so only switch-on V5 waits: the server is checked
-  // again, and nothing is sent until it says it asks for one request.
-  if(isV5(effectiveOptions().model)&&settings().allowAnlas===true&&!serverFeatures.includes('usage-confirm')){
-    await checkServer({force:true});if(ticket!==task||workKey()!==startKey)return;
-    if(!serverFeatures.includes('usage-confirm'))throw new Error(V5_SERVER_NEEDED);
+  // 0.1.92 (GPT review of 0.1.91): what this press would send is fixed now. Every wait below (server check, saving
+  // check, the usage question) compares it again and stops if it changed: a backup import, a reloaded server work, an
+  // edit. Only this press's random seed draw is left out; settings that do not reach the request (extraction) pass.
+  syncMoment();const sendBase=sendKey(seedMode),changedSince=()=>sendKey(seedMode)!==sendBase;
+  // 0.1.92 (user decision A): Opus V5 goes only to server 0.1.25 or later, checked right before each V5 press with a
+  // fresh answer (a tab left open while the server went back, a 0.1.24 server, the switch on or off).
+  if(isV5(effectiveOptions().model)){
+    // Busy while it checks: a second press waits, and the panel shows it is working.
+    let fresh;setBusy(true,ticket);try{fresh=await checkServer({force:true});}finally{if(busyOwner===ticket)setBusy(false);}
+    if(ticket!==task||workKey()!==startKey)return;
+    if(!fresh.reached)throw new Error(V5_SERVER_UNREACHED);
+    if(compareVersions(fresh.server??'0',V5_MIN_SERVER)<0||!serverFeatures.includes('usage-confirm'))throw new Error(V5_SERVER_NEEDED);
+    if(changedSince()){report(EDITED_NOT_SENT);return;}
   }
   const a=clone(finalData()),submittedFinal=finalOverride,submittedOptions=optionsOverride;
   const options=clone(effectiveOptions());
@@ -2112,13 +2129,13 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   options.seed=seedMode==='same'&&result?result.seed:seedMode==='new'||options.seed===-1?crypto.getRandomValues(new Uint32Array(1))[0]:options.seed;
   buildPayload(a,options); // Local validation before network or billing.
   if(!a.base.trim()&&!a.characters.length)throw new Error('장면이나 프롬프트를 먼저 입력해 주세요.');
-  syncMoment();
   const snapshot={scene:clone(scene),...(isFree()?{mode:'free',freeText:$('ncs-free-text').value}:{}),...(s.retainRawExtraction===true?{rawExtraction:stripReasoningBlocks(raw)}:{})};snapshot.scene.source=scene.source?compactSource(stampSource(clone(scene.source),ctx().chat,{check:true})):null;
   if(workKey()!==startKey)return;
   const priorRequest=pendingGenerations.get(startKey);
   if(!priorRequest&&serverFeatures.includes('pending-history')){
-    const before=revision,{pending}=await api(`/generation?chatKey=${encodeURIComponent(startKey)}`,{signal:draftSignal()});
-    if(ticket!==task||workKey()!==startKey||before!==revision||busy||attaching||checkingGeneration)return;
+    const {pending}=await api(`/generation?chatKey=${encodeURIComponent(startKey)}`,{signal:draftSignal()});
+    if(ticket!==task||workKey()!==startKey||busy||attaching||checkingGeneration)return;
+    if(changedSince()){report(EDITED_NOT_SENT);return;}
     if(pending?.length&&!confirm('이 작업에 저장을 마치지 못한 그림이 있어요. 이력에서 저장을 다시 시도할 수 있어요. 새 그림을 생성할까요?')){
       showTab('history');return;
     }
@@ -2129,7 +2146,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   dropUndo();setBusy(true,ticket);startProgress('generate',ticket);report('NAI에 생성 요청을 보내고 있어요. 창을 닫거나 채팅을 바꿔도 서버는 결과를 저장해요.');
   rememberDraft(startKey,null,{flush:true});const generationDraft=drafts.entry(startKey);generationDraft.pinned=true;const savedDraftVersion=generationDraft.version;
   try {
-    let item,confirmUsage=false;const sentRevision=revision;
+    let item,confirmUsage=false;
     for(;;){
       try{item=await api('/generate',{method:'POST',body:{requestId,chatKey:startKey,assembled:a,options,allowAnlas:s.allowAnlas,retainRawExtraction:s.retainRawExtraction===true,snapshot,...(confirmUsage?{confirmUsage:true}:{})}});break;}
       catch(e){
@@ -2139,11 +2156,12 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
         refreshAccount().catch(()=>{});
         const stop=()=>{if(pendingGenerations.get(startKey)===requestId)rememberGeneration(startKey,priorRequest);};
         if(ticket!==task||workKey()!==startKey){stop();report('작업이 바뀌어서 생성 요청을 보내지 않았어요.');return;}
-        if(revision!==sentRevision){stop();report(EDITED_NOT_SENT);return;}
+        if(changedSince()){stop();report(EDITED_NOT_SENT);return;}
         if(!confirm(usageQuestion(e.message))){stop();report('생성 요청을 보내지 않았어요.');return;}
         if(ticket!==task||workKey()!==startKey){stop();report('작업이 바뀌어서 생성 요청을 보내지 않았어요.');return;}
-        // 0.1.91 (GPT P2-2): the yes is for what was asked about; an edit made meanwhile is never sent as the old content.
-        if(revision!==sentRevision){stop();report(EDITED_NOT_SENT);return;}
+        // 0.1.91 (GPT P2-2), 0.1.92: the yes is for what was asked about; a change made meanwhile is never sent as the
+        // old content. After a yes the first body goes again with confirmUsage only.
+        if(changedSince()){stop();report(EDITED_NOT_SENT);return;}
         confirmUsage=true;
       }
     }

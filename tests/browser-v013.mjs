@@ -22,6 +22,7 @@ async function run(statusReply,viewport={width:1280,height:900}){
  await page.route('**/api/plugins/naice-shot/**',route=>{const u=new URL(route.request().url());
   if(u.pathname.endsWith('/status')){if(u.searchParams.get('quick')==='1')quick++;return statusReply(route,u);}
   route.fulfill({json:{items:[],total:0,hasMore:false}});});
+ await page.addInitScript(()=>{window.__ncsExactFeatures=true;}); // this check is about the update notice itself
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
  await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
  await page.waitForFunction(()=>document.querySelector('#ncs-compat').dataset.level);

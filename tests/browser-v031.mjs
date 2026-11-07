@@ -70,6 +70,7 @@ try{
  let releaseGen;await page.unroute('**/api/plugins/naice-shot/**');
  await page.route('**/api/plugins/naice-shot/**',async route=>{const req=route.request(),url=new URL(req.url());
   if(url.pathname.endsWith('/history'))return route.fulfill({json:{items:items.filter(x=>x.chatKey===url.searchParams.get('chatKey')),total:items.length}});
+  if(url.pathname.endsWith('/status'))return route.fulfill({json:{}}); // 0.1.92: V5 asks the server first (fixture fills the version)
   const b=req.postDataJSON();await new Promise(r=>{releaseGen=r;});
   const item={id:b.requestId,created:new Date().toISOString(),chatKey:b.chatKey,image:`/user/images/naice-shot/${b.requestId}.png`,seed:b.options.seed,options:b.options,assembled:b.assembled,snapshot:b.snapshot};items.push(item);route.fulfill({json:item});});
  await click('generate');await page.locator('#ncs-progress').waitFor({state:'visible'});

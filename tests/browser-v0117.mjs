@@ -67,6 +67,7 @@ try{
  // "Don't ask again" for this chat: the dialog stops, the box and the line stay.
  await t.click('generate');await page.locator('#ncs-missing-skip').check();await t.click('missing-proceed');
  await page.waitForFunction(()=>mock.chatMetadata.naice_shot?.skipMissingWarning===true);
+ await page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&!document.querySelector('[data-action="generate"]').disabled); // 0.1.92: V5 checks the server first
  const before=t.sent.length;await t.click('generate');await page.waitForFunction(n=>document.querySelectorAll('#ncs-result img').length&&true,before);
  await page.waitForTimeout(300);assert.equal(await page.locator('#ncs-missing-dialog').isHidden(),true);assert.equal(t.sent.length,before+1);
  assert.equal(await box.count(),1);assert.equal(await page.locator('#ncs-left-out').isVisible(),true);

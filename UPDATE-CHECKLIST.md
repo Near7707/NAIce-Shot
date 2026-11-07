@@ -1,5 +1,13 @@
 # Installation and update checklist
 
+## v0.1.92
+
+**Extension only, but it needs server 0.1.25** (from 0.1.91). If you skipped 0.1.91, update in this order: server plugin (0.1.25) → restart SillyTavern → extension → refresh.
+
+1. With Opus V5, 이미지 생성 works as in 0.1.91 (2 % or more: no question; 1 % or 0 %: "이번만 생성할까요?").
+2. Change the extraction response limit while an image is being made: the image still comes.
+3. With an older server, V5 says "서버 플러그인이 이전 버전이라 V5 생성을 보내지 않았어요…" and sends nothing.
+
 ## v0.1.91
 
 **Extension + server.** Update in this order: server plugin (0.1.25) → restart SillyTavern → extension → refresh. (Server 0.1.24 still works with this extension; 0.1.25 makes older extensions show their update notice.)

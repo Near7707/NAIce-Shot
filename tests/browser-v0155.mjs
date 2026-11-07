@@ -35,7 +35,7 @@ async function open(width,{cardName}={}){
  await page.locator('[data-action="extract"]').click();await page.locator('[data-character="leo"]').waitFor();
  return {page,errors};
 }
-const idle=page=>page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden);
+const idle=page=>page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&!document.querySelector('[data-action="generate"]').disabled); // 0.1.92: V5 checks the server first (buttons off, no banner)
 const moment=(title,action,lighting)=>({title,characters:[{id:'leo',name:'Leo',expression:'smile',action,position:'auto',outfitMode:'unchanged',outfit:''}],unregistered:[],location:'cafe',lighting,camera:'medium shot',interaction:''});
 try{
  for(const width of [375,1100]){

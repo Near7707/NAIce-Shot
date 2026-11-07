@@ -195,7 +195,9 @@ test('failed generation keeps the draft for retry, while success preserves edits
   assert.equal(h.ui.state().final.base,'old history scene');
   assert.equal(h.ui.state().options.seed,777);
   let finish;h.context.generationResponse=new Promise(resolve=>{finish=resolve;});
-  const pending=h.ui.generate();
+  const n=h.sent.length,pending=h.ui.generate();
+  // 0.1.92: an edit before the request leaves (V5 server check) stops it; this one comes while it is in flight.
+  while(h.sent.length===n)await new Promise(r=>setTimeout(r,1));
   h.input('ncs-final',JSON.stringify({...h.item.assembled,base:'next draft typed during generation'}));
   finish();await pending;
   assert.equal(h.sent.at(-1).assembled.base,'old history scene');

@@ -67,7 +67,7 @@ async function open(width,{seed=[],features=FEATURES,marks=null,pending=null,bro
    if(!post&&page.draftReply){page.draftReads=(page.draftReads??0)+1;const g=page.draftGates?.shift();const reply=page.draftReply;return (g??Promise.resolve()).then(()=>r.fulfill({json:reply}));}
    return r.fulfill({json:post?{revision:'r'}:{revision:draft?'saved':null,work:draft}});}
   }
-  return r.fulfill({json:{keyConfigured:true,version:'0.1.24',features,minClient:'0.1.44',subscription:page.sub??{tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600},anlas:{subscription:1000,purchased:0}}}});
+  return r.fulfill({json:{keyConfigured:true,version:'0.1.25',features,minClient:'0.1.44',subscription:page.sub??{tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600},anlas:{subscription:1000,purchased:0}}}});
  });
  if(skin)await page.addInitScript(k=>document.addEventListener('DOMContentLoaded',()=>{mock.extensionSettings.naice_shot.skin=k;}),skin);
  if(marks)await page.addInitScript(m=>document.addEventListener('DOMContentLoaded',()=>{mock.extensionSettings.naice_shot.imageMarks=m;}),marks);

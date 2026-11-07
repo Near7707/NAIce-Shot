@@ -140,7 +140,7 @@ try{
    await page.locator('#ncs-allow-anlas').check();await account(page,OPUS(1));await ready(page);await closeCompat(page);
    const calls=page.statusCalls;await clearNotice(page);await page.locator('[data-action="generate"]').click();
    await page.waitForFunction(()=>document.querySelector('#ncs-notice').textContent);await idle(page);
-   assert.match(await notice(page),/V5 사용량 확인을 지원하는지 확인하지 못해서 보내지 않았어요/);
+   assert.match(await notice(page),/서버 플러그인이 이전 버전이라 V5 생성을 보내지 않았어요/);
    assert.equal(page.generated.length,0,'nothing sent to an old server');assert.ok(page.statusCalls>calls,'the server was checked again first');
    assert.ok(!asked.some(m=>/이번만/.test(m)));assert.equal(await page.locator('#ncs-generation-recover').isHidden(),true,'no 확인 필요 mark');
    assert.match(await page.locator('#ncs-compat-text').innerText(),/./,'the update notice shows again');

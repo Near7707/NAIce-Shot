@@ -34,7 +34,7 @@ async function open(width,{cardName,skin}={}){
  await page.locator('[data-action="extract"]').click();await page.locator('[data-character="leo"]').waitFor();
  return {page,errors};
 }
-const idle=page=>page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden);
+const idle=page=>page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&!document.querySelector('[data-action="generate"]').disabled); // 0.1.92: V5 checks the server first (buttons off, no banner)
 try{
  for(const width of [320,375,1100]){
   const {page,errors}=await open(width);const tag=`${width}px`;let answer=true;page.removeAllListeners('dialog');page.on('dialog',d=>answer?d.accept():d.dismiss());

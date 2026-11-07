@@ -13,13 +13,17 @@ window.fetch=(url,options)=>{
   if(!window.mock.legacyChatHeader)header.chat_metadata=window.mock.savedMetadata??window.mock.chatMetadata;
   return Promise.resolve(new Response(JSON.stringify([header,...saved]),{status:200,headers:{'Content-Type':'application/json'}}));
  }
- // 0.1.91: Opus V5 with the switch on goes only to a server that asks for one request (usage-confirm). The fake
- // servers of older checks predate it, so their status gets it added; a check about old servers sets
- // window.__ncsExactFeatures to keep its list as it is (browser-v0191).
+ // 0.1.91/0.1.92: Opus V5 goes only to server 0.1.25+ with usage-confirm. The fake servers of older checks predate
+ // it, so their status gets usage-confirm added and a lower version raised to 0.1.25; a check about old servers or
+ // the update notice sets window.__ncsExactFeatures to keep the answer as it is (browser-v013, browser-v0191/v0192).
  if(path==='/api/plugins/naice-shot/status'&&!window.__ncsExactFeatures)return realFetch(url,options).then(async r=>{
   let data;try{data=JSON.parse(await r.clone().text());}catch{return r;}
   if(!data||typeof data!=='object'||Array.isArray(data))return r;
   data.features=[...(Array.isArray(data.features)?data.features:[]),'usage-confirm'];
+  const v=String(data.version??'0').split('.').map(Number);if(typeof data.version==='string'&&(v[0]*1e6+v[1]*1e3+(v[2]||0))<1025)data.version='0.1.25';
+  // A catch-all fake answer with no version (older checks never meant a server check): it becomes 0.1.25, and the
+  // update notice its short feature list would raise is hidden, as no notice showed for it before.
+  if(typeof data.version!=='string'){data.version='0.1.25';if(!document.getElementById('ncs-fixture-compat')){const st=document.createElement('style');st.id='ncs-fixture-compat';st.textContent='#ncs-compat{display:none!important}';document.head.append(st);}}
   return new Response(JSON.stringify(data),{status:r.status,headers:{'Content-Type':'application/json'}});
  });
  return realFetch(url,options);
