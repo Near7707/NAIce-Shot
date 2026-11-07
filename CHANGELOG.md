@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.88 — 2026-11-07 (extension only — server v0.1.23 unchanged)
+
+- Fixes from the GPT review of 0.1.87: world info timed effects are compared with the one value this window last knew to be saved, so another window going back to an older value is not saved over (B2). One lock for the drawing window (loading, deleting, unknown deletion result, first server check): loading another chat's work during a deletion no longer opens it, and a later successful deletion opens it again. A late failure of ★ → # no longer changes a view that moved on (scope, chat or filter). A touch on [저장] leaves no keyboard room behind. A second finger on the tag popup never opens the enlarged view.
+- One size standard (picked from a real-panel mock-up): main buttons 38px (장면 추출, 이미지 생성, 프로필 저장), normal 36px, small 32px; tabs 36px; headings 16, body 14, notes 12.
+- History selection: [모두 선택↔모두 해제] [본문에 넣기] [저장▾] [삭제] in one row, the count line says "N장 고름". ☆ and # are icons only.
+- The 챗샷/프리샷 switch no longer grows when the panel opens (the panel itself takes the first focus).
+- "Anlas 허용이 꺼져 있어요" now has the same consent checkbox right by it (in place of the [허용 설정으로] jump).
+
 ## 0.1.87 — 2026-11-07 (extension only — server v0.1.23 unchanged)
 
 - Fixes from the GPT review of 0.1.86: a world info sticky/cooldown effect saved in another window is no longer written back to its old value when this window takes a picture out of the chat — the save stops instead (B2). On a phone, the first press on [저장]/[취소] under the tag field works with the keyboard open (B5). The two saved-data notes ("장면·프롬프트는 서버에 따로 기억해요", "…채팅별 마지막 작업에 함께 기억해요") no longer fold on phones. The popup's ✕ stays on the screen even on a very low screen. If switching ★ → # cannot read the list, the ★ view stays as it was.

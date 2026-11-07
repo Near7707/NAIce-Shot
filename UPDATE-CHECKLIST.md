@@ -1,5 +1,14 @@
 # Installation and update checklist
 
+## v0.1.88
+
+**Extension only.** The server plugin stays 0.1.23 — just update the extension and refresh.
+
+1. [장면 추출] and [이미지 생성] are the same height. The tabs are a bit lower.
+2. History: one row [모두 선택] [본문에 넣기] [저장] [삭제]; pick a picture — the count line says "1장 고름". ☆ and # are icons.
+3. Open the panel a few times: 챗샷/프리샷 stay the same size.
+4. With Anlas off and a V5 size, the note in the status box has its own "Anlas 사용 허용" checkbox — ticking it ticks the one above too.
+
 ## v0.1.87
 
 **Extension only.** The server plugin stays 0.1.23 — just update the extension and refresh.

@@ -1001,3 +1001,28 @@
 #naice-shot-dialog .ncs-anlas-box[data-state="warn"] .ncs-cost-dot {background:var(--ncs-warning);}
 #naice-shot-dialog #ncs-anlas-balance b {color:var(--ncs-accent-text);font-weight:700;}
 #naice-shot-dialog #ncs-anlas-balance b.ncs-low {color:var(--ncs-warning);}
+
+/* 0.1.88 — one size standard (docs/DESIGN.md 4-1, user's choice "A 38 + 설명 12" from the real-panel mock-up).
+   Buttons: main 38 / normal 36 / small 32. Text: heading 16 / body 14 / notes 12 (dates and counts 12). */
+#naice-shot-dialog .ncs-actions > .ncs-action-main,#naice-shot-dialog .ncs-action-main,#naice-shot-dialog [data-action="generate"] {min-height:38px;height:auto;padding:5px 16px;font-size:15px;font-weight:700;}
+#naice-shot-dialog .ncs-tabs button {min-height:36px;padding-top:6px;padding-bottom:6px;font-size:14px;line-height:1.2;}
+#naice-shot-dialog .ncs-star-filter,#naice-shot-dialog .ncs-refresh-button,#naice-shot-dialog [data-action="blank"],#naice-shot-dialog .ncs-draft-bar button {min-height:32px;height:32px;font-size:13px;padding:4px 12px;}
+#naice-shot-dialog .ncs-anlas-refresh {width:32px;min-width:32px;height:32px;min-height:32px;font-size:15px;}
+#naice-shot-dialog .ncs-history-actions button,#naice-shot-dialog [data-action="toggle-account"] {font-size:13px;}
+#naice-shot-dialog .ncs-history-actions [data-image-more]:not(.ncs-save-toggle) {font-size:18px;}
+#naice-shot-dialog h3 {font-size:16px;}
+#naice-shot-dialog small,#naice-shot-dialog .ncs-small,#naice-shot-dialog .ncs-help p,#naice-shot-dialog .ncs-help small,#naice-shot-dialog .ncs-privacy-note,#naice-shot-dialog #ncs-cost,#naice-shot-dialog .ncs-review-reminder,#naice-shot-dialog .ncs-history-help,#naice-shot-dialog .ncs-mode-help {font-size:12px;}
+#naice-shot-dialog .ncs-history-date,#naice-shot-dialog .ncs-fold-values,#naice-shot-dialog #ncs-history-count,#naice-shot-dialog .ncs-brand-text small,#naice-shot-dialog footer {font-size:12px;}
+/* History selection: [모두 선택] [본문에 넣기] [저장] [삭제] share one line (three in 프리샷), the full deletes below. */
+#naice-shot-dialog .ncs-history-tools {display:flex;flex-wrap:wrap;}
+#naice-shot-dialog .ncs-history-tools > button {flex:1 1 0;min-width:0;padding-left:4px;padding-right:4px;}
+#naice-shot-dialog .ncs-history-tools > [data-action="delete-chat-history"],#naice-shot-dialog .ncs-history-tools > [data-action="delete-filter-chat"] {flex-basis:100%;}
+/* The joined 챗샷/프리샷 switch keeps its size when a button has the focus ring (the ring is drawn inside). */
+#naice-shot-dialog .ncs-mode button:focus-visible {outline-offset:-3px;}
+@media (max-width:360px) { #naice-shot-dialog .ncs-history-tools {gap:4px;} #naice-shot-dialog .ncs-history-tools > button {padding-left:2px;padding-right:2px;font-size:12.5px;} }
+#naice-shot-dialog #ncs-history-count .ncs-nowrap {white-space:nowrap;}
+/* 0.1.88: ☆ and # are icons only (names in aria-label/title), so the count line has room. */
+#naice-shot-dialog .ncs-icon-filter {flex:none;width:36px;min-width:36px;padding:0;font-size:16px;line-height:1;}
+/* 0.1.88: the consent checkbox by the "Anlas 허용이 꺼져 있어요" note (same setting as the one above). */
+#naice-shot-dialog .ncs-consent-check {margin:0;min-height:32px;font-size:13px;}
+#naice-shot-dialog .ncs-consent-check[hidden] {display:none;}

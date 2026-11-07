@@ -41,15 +41,17 @@ try{
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
   await page.locator('[data-action="extract"]').click();await page.locator('[data-character="leo"]').waitFor();
-  const balance=page.locator('#ncs-anlas-balance'),cost=page.locator('#ncs-cost'),note=page.locator('#ncs-consent-note'),go=page.locator('[data-action="goto-anlas"]'),allow=page.locator('#ncs-allow-anlas');
+  const balance=page.locator('#ncs-anlas-balance'),cost=page.locator('#ncs-cost'),note=page.locator('#ncs-consent-note'),go=page.locator('.ncs-consent-check') /* 0.1.88: a second consent checkbox in place of the jump button */,allow=page.locator('#ncs-allow-anlas');
   const notice=()=>page.locator('#ncs-notice').innerText();
   // 1) Tablet/Scroll: balance, "uses Anlas", consent off → not sent, button only shows the switch.
   await page.waitForFunction(()=>/^Anlas 1,005 · .+ 확인$/.test(document.querySelector('#ncs-anlas-balance').textContent));
   assert.equal(await cost.innerText(),'이 생성은 Anlas를 사용해요.');assert.equal(await page.locator('#ncs-cost-link').isHidden(),true);
   assert.equal(await note.isVisible(),true);assert.equal(await go.isVisible(),true);
-  await go.click();assert.equal(await allow.isChecked(),false,'the button never turns it on');
-  assert.equal(await allow.evaluate(el=>el===document.activeElement&&el.closest('label').classList.contains('ncs-attention')),true);
+  // 0.1.88: ticking the checkbox by the note is the same consent as the one above, and only a tick turns it on
+  await go.locator('input').check();assert.equal(await allow.isChecked(),true,'the same setting');assert.equal(await go.isHidden(),true);
+  await allow.uncheck();assert.equal(await go.isVisible(),true);assert.equal(await go.locator('input').isChecked(),false);
   await page.locator('[data-action="generate"]').click();await page.waitForFunction(()=>/허용이 꺼져 있어서 보내지 않았어요/.test(document.querySelector('#ncs-notice').textContent));assert.equal(acct.generated,0);
+  assert.equal(await allow.evaluate(el=>el===document.activeElement&&el.closest('label').classList.contains('ncs-attention')),true,'generating shows the consent checkbox');
   // 2) Consent on: sent; afterwards the balance is checked again and shown as a difference since the last check.
   await allow.check();assert.equal(await note.isHidden(),true);assert.equal(await go.isHidden(),true);
   await page.locator('[data-action="generate"]').click();await page.locator('#ncs-result img').waitFor();assert.equal(acct.generated,1);

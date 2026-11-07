@@ -88,7 +88,7 @@ try{
  await page.waitForFunction(id=>mock.chat[1]?.extra?.naice_shot_images?.some(x=>x.id===id),newest.id);
  await page.locator('#chat .ncs-inline-images img').waitFor();
  await page.locator(`[data-history-pick="${newest.id}"]`).check();await page.locator(`[data-history-pick="${second.id}"]`).check();
- assert.equal(await page.locator('[data-action="delete-selected"]').textContent(),'선택 삭제 (2)');
+ assert.equal(await page.locator('[data-action="delete-selected"]').textContent(),'삭제');assert.match(await page.locator('#ncs-history-count').innerText(),/2장 고름/); // 0.1.88
  dialogAnswer=false;await click('delete-selected');assert.equal(await total(),23,'cancelled confirm deletes nothing');
  assert.match(dialogs.at(-1),/선택한 그림 2장/);assert.match(dialogs.at(-1),/붙인 그림 1장도 함께/);
  dialogAnswer=true;await click('delete-selected');

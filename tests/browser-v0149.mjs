@@ -100,9 +100,9 @@ try{
   await oneLine('비우기 취소','.ncs-clear-slot > button');await page.locator('.ncs-clear-slot .ncs-action-slot').click();
   await page.locator('[data-tab="history"]').click();await page.locator('.ncs-history-card').first().waitFor();await noOverflow('이력');
   await oneLine('이력','.ncs-history-actions > button, .ncs-history-tools > button:not([hidden])');await fits('이력','.ncs-history-actions > button, .ncs-history-tools > button:not([hidden])');
-  // Arrangement kept: three tools on one row, the whole-history delete under them.
+  // 0.1.88: the selection tools (three or four) share one row, the whole-history delete under them.
   const tops=await page.$$eval('.ncs-history-tools > button:not([hidden])',els=>els.map(e=>Math.round(e.getBoundingClientRect().top)));
-  assert.equal(new Set(tops.slice(0,3)).size,1,`${tag}: three tools share a row`);assert.ok(tops[3]>tops[0],`${tag}: whole-history delete below`);
+  assert.equal(new Set(tops.slice(0,-1)).size,1,`${tag}: the selection tools share a row`);assert.ok(tops.at(-1)>tops[0],`${tag}: whole-history delete below`);
   assert.equal(await page.locator('[data-action="history"]').innerText(),'↻ 새로고침');assert.ok(await page.locator('[data-action="history"]').evaluate(e=>e.getBoundingClientRect().width<=140),`${tag}: refresh stays small`);
   await page.locator('[data-tab="settings"]').click();await noOverflow('설정');await oneLine('설정','.ncs-actions > button');await fits('설정','.ncs-actions > button');await oneMain('설정');await capped('설정');
   await page.locator('[data-tab="profiles"]').click();await noOverflow('프로필');await oneLine('프로필','.ncs-actions > button');await fits('프로필','.ncs-actions > button');await oneMain('프로필');await capped('프로필');

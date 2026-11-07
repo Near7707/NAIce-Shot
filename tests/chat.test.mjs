@@ -50,20 +50,20 @@ test('0.1.86 B2: keys SillyTavern changes in memory only do not count as a disk 
  assert.deepEqual(comparableSavedMetadata({lastInContextMessageId:3,variables:{x:2}},local).variables,{x:2});
 });
 
-test('0.1.87 GPT P2 B2: timed world info from another window is not taken for this window\'s value',()=>{
- const loaded={sticky:{},cooldown:{}},scanned={sticky:{a:{end:5}},cooldown:{}},elsewhere={sticky:{b:{end:9}},cooldown:{}};
- const local={timedWorldInfo:scanned,variables:{x:1}};
- const known=new Set([timedState({timedWorldInfo:loaded})]);
- // the disk still has the value this window loaded: the scan result in memory is this window's own
- assert.deepEqual(comparableSavedMetadata({timedWorldInfo:loaded,variables:{x:1}},local,{},{timedKnown:known}).timedWorldInfo,scanned);
+test('0.1.88 GPT P2 B2: timed world info is ours only when the disk has the value this window last knew saved',()=>{
+ const off={sticky:{},cooldown:{}},on={sticky:{a:{end:5}},cooldown:{}},elsewhere={sticky:{b:{end:9}},cooldown:{}};
+ const local={timedWorldInfo:on,variables:{x:1}};
+ // the disk still has the value this window last knew saved: the scan result in memory is this window's own
+ assert.deepEqual(comparableSavedMetadata({timedWorldInfo:off,variables:{x:1}},local,{},{timedSaved:timedState({timedWorldInfo:off})}).timedWorldInfo,on);
  // the disk never had it, and this window started without it: also its own
- assert.deepEqual(comparableSavedMetadata({variables:{x:1}},local,{},{timedKnown:new Set([timedState({})])}).timedWorldInfo,scanned);
- // another window saved a sticky effect this window never had: the disk value stays, so the write stops
- assert.deepEqual(comparableSavedMetadata({timedWorldInfo:elsewhere,variables:{x:1}},local,{},{timedKnown:known}).timedWorldInfo,elsewhere);
- // without a known set nothing is assumed
- assert.deepEqual(comparableSavedMetadata({timedWorldInfo:loaded},local).timedWorldInfo,loaded);
- // key order does not matter
- assert.equal(timedState({timedWorldInfo:{cooldown:{},sticky:{}}}),timedState({timedWorldInfo:loaded}));
+ assert.deepEqual(comparableSavedMetadata({variables:{x:1}},local,{},{timedSaved:timedState({})}).timedWorldInfo,on);
+ // another window saved a sticky effect: the disk value stays, so the write stops
+ assert.deepEqual(comparableSavedMetadata({timedWorldInfo:elsewhere},local,{},{timedSaved:timedState({timedWorldInfo:on})}).timedWorldInfo,elsewhere);
+ // another window went back to an older value this window once had (off), after this window saved on: still kept
+ assert.deepEqual(comparableSavedMetadata({timedWorldInfo:off},local,{},{timedSaved:timedState({timedWorldInfo:on})}).timedWorldInfo,off);
+ // without a known value nothing is assumed
+ assert.deepEqual(comparableSavedMetadata({timedWorldInfo:off},local).timedWorldInfo,off);
+ assert.equal(timedState({timedWorldInfo:{cooldown:{},sticky:{}}}),timedState({timedWorldInfo:off}));
 });
 
 test('recognizes legacy chat and group formats without accepting an empty or invalid reply',()=>{

@@ -43,7 +43,7 @@ try{
 
  // 1) One image: plain PNG download.
  await page.locator(`[data-history-pick="${ids[0]}"]`).check();
- assert.equal(await save.textContent(),'선택 저장 (1)');
+ assert.equal(await save.textContent(),'저장');assert.match(await page.locator('#ncs-history-count').innerText(),/1장 고름/); // 0.1.88: short labels, the count is in the count line
  await save.click();assert.equal(await page.locator('.ncs-zip-choice').isHidden(),true,'one image: no ZIP choice');assert.equal(await page.locator('.ncs-zip-note').isHidden(),true);
  assert.match(await shared.innerText(),/^클린 PNG\n프롬프트·seed 등 메타데이터를 제거한 사본이에요/);assert.match(await original.innerText(),/^원본 PNG\n프롬프트·seed 등/);
  let [download]=await Promise.all([page.waitForEvent('download'),original.click()]);assert.equal(await page.locator('#ncs-privacy-dialog').count(),0,'no extra warning');
@@ -51,7 +51,7 @@ try{
 
  // 2) Several images, one missing on disk: one ZIP with the rest, oldest first, and a note.
  if(/모두 해제/.test(await page.locator('[data-action="select-all-history"]').innerText()))await click('select-all-history'); // v0.1.57: [모두 해제] while anything is picked
- await click('select-all-history');assert.equal(await save.textContent(),'선택 저장 (4)');
+ await click('select-all-history');assert.equal(await save.textContent(),'저장');assert.match(await page.locator('#ncs-history-count').innerText(),/4장 고름/);
  await save.click();const zip=page.locator('#ncs-save-zip');assert.equal(await zip.isChecked(),false,'PC default: one file at a time');
  assert.match(await original.innerText(),/^원본 PNG · 4장 따로/);const zipNote=page.locator('.ncs-zip-note');assert.equal(await zipNote.innerText(),'여러 파일 다운로드 허용이 필요할 수 있어요. 일부가 저장되지 않으면 ZIP으로 받아 주세요.');await zip.check();assert.match(await original.innerText(),/^원본 ZIP/);assert.equal(await zipNote.isHidden(),true,'ZIP needs no note');
  assert.equal(await page.locator('#ncs-selection-save').isVisible(),true,'ticking the box keeps the menu open');

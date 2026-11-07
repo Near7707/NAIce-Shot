@@ -94,7 +94,7 @@ try{
   const sel=page.locator('[data-action="attach-selected"]');assert.equal(await sel.isDisabled(),true);
   const ids=await page.locator('[data-history-pick]').evaluateAll(els=>els.map(e=>e.dataset.historyPick));
   for(const id of ids.slice(0,2))await page.locator(`[data-history-pick="${id}"]`).check();
-  assert.equal(await sel.innerText(),'선택 본문에 넣기 (2)');await sel.click();
+  assert.equal(await sel.innerText(),'본문에 넣기');assert.match(await page.locator('#ncs-history-count').innerText(),/2장 고름/);await sel.click(); // 0.1.88: short label, count in the count line
   assert.match(await page.locator('#ncs-attach-dialog small').innerText(),/선택된 2장을 넣어요/);
   assert.equal((await rows(page)).find(r=>r[1])?.[0],2,'both were made for #2');
   const saves=await page.evaluate(()=>mock.chatSaves??0);await page.locator('[data-attach-target="1"]').click();await confirm(page).click();
