@@ -1951,7 +1951,7 @@ function verdictOf(guard,model){
     // 0.1.90: green = Anlas is not expected by what was checked; orange "ask" = this generation is confirmed first.
     case 'usage':return {text:`${pre}V5 남은 사용량으로 생성`,state:'ok'};
     case 'ask':return guard.reason==='low'?{text:`${pre}V5 사용량 거의 소진 · 생성 때 확인`,state:'ask'}
-      :guard.reason==='empty'?{text:`${pre}V5 기본 사용량 없음 · 생성 때 확인`,state:'ask'}
+      :guard.reason==='empty'?{text:`${pre}V5 기본 사용량 0% · 생성 때 확인`,state:'ask'}
       :{text:guard.reason==='negative'?`${pre}V5 사용량을 지금 쓸 수 없어요`:`${pre}V5 사용량 확인 못 함`,state:'warn'};
     case 'inactive':return {text:`${pre}구독 비활성 · 무료 생성 대상 아님`,state:'warn'};
     case 'uses':return {text:`${pre}${sub.tier===3?'기본 조건을 넘어 Anlas를 사용해요':'이 생성은 Anlas를 사용해요'}`,state:'spend'};
@@ -1998,12 +1998,15 @@ function renderUsageNote(guard){
   const text=guard.kind==='usage'?'확인한 사용량 기준으로 <b>V5 사용량으로 생성해요.</b>'
     :guard.kind!=='ask'?''
     :guard.reason==='low'?`V5 사용량이 ${esc(String(guard.percent))}% 남았어요. 이제부터 ${may}`
-    :guard.reason==='empty'?(guard.purchasedPercent>0?'기본 사용량을 다 썼어요. 추가 구매 사용량이 먼저 쓰일 수도 있지만 <b>Anlas가 차감될 수도 있어서</b> 생성할 때마다 물어봐요.':`V5 사용량을 다 썼어요. ${may}`)
+    :guard.reason==='empty'?(guard.purchasedPercent>0?'기본 사용량이 0%로 표시돼요. 추가 구매 사용량이 먼저 쓰일 수도 있지만 <b>Anlas가 차감될 수도 있어서</b> 생성할 때마다 물어봐요.':`V5 기본 사용량이 0%로 표시돼요. ${may}`)
     :guard.reason==='negative'?`V5 사용량을 지금 쓸 수 없어요. ${may}`
     :'사용량을 확인하지 못했어요. ↻로 다시 확인해 주세요. 그대로 생성하면 <b>Anlas가 차감될 수 있다고</b> 한 번 물어봐요.';
   note.innerHTML=text;note.hidden=!text;note.classList.toggle('ncs-usage-alert',guard.kind==='ask');
 }
 // The server's usage-confirm question, one sentence per line.
+const isV5=model=>String(model??'').startsWith('nai-diffusion-5');
+const V5_SERVER_NEEDED='서버 플러그인이 V5 사용량 확인을 지원하는지 확인하지 못해서 보내지 않았어요. 서버 플러그인을 0.1.24 이상으로 업데이트하고 실리태번을 다시 시작해 주세요.';
+const EDITED_NOT_SENT='기다리는 동안 내용이 바뀌어서 보내지 않았어요. 바뀐 내용으로 [이미지 생성]을 다시 눌러 주세요.';
 const usageQuestion=message=>`${String(message).replace(/\. /g,'.\n')}\n이번만 생성할까요?`;
 let consentRefused=false;
 // Shows the switch; turning it on is left to the person.
@@ -2096,6 +2099,13 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   const s=settings(),startKey=workKey(),ticket=++task;
   if(isFree()){const tooLong=lengthProblem($('ncs-free-text').value,'free');if(tooLong)throw new Error(tooLong);} // before anything is sent
   if(finalOverride?.invalid)throw new Error('최종 프롬프트 JSON이 올바르지 않아요. 고치거나 "조립 결과로 되돌리기"를 눌러 주세요.');
+  // 0.1.91 (GPT P2-1): a server without usage-confirm (0.1.23 or older) sends Opus V5 on the saved switch alone, even
+  // at 1 %. With the switch off it refuses V5 itself (anlas-consent), so only switch-on V5 waits: the server is checked
+  // again, and nothing is sent until it says it asks for one request.
+  if(isV5(effectiveOptions().model)&&settings().allowAnlas===true&&!serverFeatures.includes('usage-confirm')){
+    await checkServer({force:true});if(ticket!==task||workKey()!==startKey)return;
+    if(!serverFeatures.includes('usage-confirm'))throw new Error(V5_SERVER_NEEDED);
+  }
   const a=clone(finalData()),submittedFinal=finalOverride,submittedOptions=optionsOverride;
   const options=clone(effectiveOptions());
   if(renderCost().blocked){gotoAnlasSetting();throw new Error(`${costGuard(options,subscription).message} Anlas 사용 허용이 꺼져 있어서 보내지 않았어요.`);}
@@ -2119,7 +2129,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   dropUndo();setBusy(true,ticket);startProgress('generate',ticket);report('NAI에 생성 요청을 보내고 있어요. 창을 닫거나 채팅을 바꿔도 서버는 결과를 저장해요.');
   rememberDraft(startKey,null,{flush:true});const generationDraft=drafts.entry(startKey);generationDraft.pinned=true;const savedDraftVersion=generationDraft.version;
   try {
-    let item,confirmUsage=false;
+    let item,confirmUsage=false;const sentRevision=revision;
     for(;;){
       try{item=await api('/generate',{method:'POST',body:{requestId,chatKey:startKey,assembled:a,options,allowAnlas:s.allowAnlas,retainRawExtraction:s.retainRawExtraction===true,snapshot,...(confirmUsage?{confirmUsage:true}:{})}});break;}
       catch(e){
@@ -2128,8 +2138,12 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
         if(e.code!=='usage-confirm'||confirmUsage)throw e;
         refreshAccount().catch(()=>{});
         const stop=()=>{if(pendingGenerations.get(startKey)===requestId)rememberGeneration(startKey,priorRequest);};
-        if(ticket!==task||workKey()!==startKey||!confirm(usageQuestion(e.message))){stop();report('생성 요청을 보내지 않았어요.');return;}
         if(ticket!==task||workKey()!==startKey){stop();report('작업이 바뀌어서 생성 요청을 보내지 않았어요.');return;}
+        if(revision!==sentRevision){stop();report(EDITED_NOT_SENT);return;}
+        if(!confirm(usageQuestion(e.message))){stop();report('생성 요청을 보내지 않았어요.');return;}
+        if(ticket!==task||workKey()!==startKey){stop();report('작업이 바뀌어서 생성 요청을 보내지 않았어요.');return;}
+        // 0.1.91 (GPT P2-2): the yes is for what was asked about; an edit made meanwhile is never sent as the old content.
+        if(revision!==sentRevision){stop();report(EDITED_NOT_SENT);return;}
         confirmUsage=true;
       }
     }

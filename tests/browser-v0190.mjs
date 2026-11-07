@@ -182,9 +182,9 @@ try{
   assert.equal(page.generated.length,n+2);assert.equal(asked.slice(before2).filter(m=>/이번만/.test(m)).length,1);
   await page.locator('#ncs-allow-anlas').uncheck();page.ask=null;
   // 0 % with extra usage, unusable, unknown: each its own words; unknown is red.
-  await account(page,OPUS(0,100));assert.equal(await verdict(page),'Opus · V5 기본 사용량 없음 · 생성 때 확인');assert.equal(await state(page),'ask');
-  assert.match(await page.locator('#ncs-usage-note').innerText(),/^기본 사용량을 다 썼어요\. 추가 구매 사용량이 먼저 쓰일 수도 있지만 Anlas가 차감될 수도 있어서/);
-  await account(page,OPUS(0,0));assert.match(await page.locator('#ncs-usage-note').innerText(),/^V5 사용량을 다 썼어요\./);
+  await account(page,OPUS(0,100));assert.equal(await verdict(page),'Opus · V5 기본 사용량 0% · 생성 때 확인');assert.equal(await state(page),'ask');
+  assert.match(await page.locator('#ncs-usage-note').innerText(),/^기본 사용량이 0%로 표시돼요\. 추가 구매 사용량이 먼저 쓰일 수도 있지만 Anlas가 차감될 수도 있어서/);
+  await account(page,OPUS(0,0));assert.match(await page.locator('#ncs-usage-note').innerText(),/^V5 기본 사용량이 0%로 표시돼요\./);
   await account(page,OPUS(50,0,{isNegative:true}));assert.equal(await verdict(page),'Opus · V5 사용량을 지금 쓸 수 없어요');assert.equal(await state(page),'warn');
   await account(page,(({usage,...rest})=>rest)(OPUS(1)));assert.equal(await verdict(page),'Opus · V5 사용량 확인 못 함');assert.equal(await state(page),'warn');
   assert.match(await page.locator('#ncs-usage-note').innerText(),/^사용량을 확인하지 못했어요\. ↻로 다시 확인해 주세요\./);

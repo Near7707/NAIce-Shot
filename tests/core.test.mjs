@@ -76,10 +76,10 @@ test('cost guard (0.1.67, V5 rule 0.1.90): V4.5 free for an active Opus without 
   assert.equal(costGuard(v5,{...opus,usage:{percent:2,isNegative:false}}).kind,'usage');
   const ask=usage=>{const g=costGuard(v5,{...opus,usage});assert.equal(g.kind,'ask');assert.equal(g.consent,'once');assert.equal(g.free,false);return [g.reason,g.message];};
   assert.deepEqual(ask({percent:1,purchasedPercent:100,isNegative:false}),['low','V5 사용량이 1% 남았어요. 이번 생성에서 Anlas가 차감될 수 있어요.']);
-  assert.deepEqual(ask({percent:0,purchasedPercent:100,isNegative:false}),['empty','V5 기본 사용량을 다 썼어요 (추가 구매 100%). 이번 생성에서 Anlas가 차감될 수 있어요.'],'0% is a real value; extra usage alone does not count yet');
-  assert.deepEqual(ask({percent:0,isNegative:false}),['empty','V5 기본 사용량을 다 썼어요. 이번 생성에서 Anlas가 차감될 수 있어요.']);
+  assert.deepEqual(ask({percent:0,purchasedPercent:100,isNegative:false}),['empty','V5 기본 사용량이 0%로 표시돼요 (추가 구매 100%). 이번 생성에서 Anlas가 차감될 수 있어요.'],'0% is a real value; extra usage alone does not count yet');
+  assert.deepEqual(ask({percent:0,isNegative:false}),['empty','V5 기본 사용량이 0%로 표시돼요. 이번 생성에서 Anlas가 차감될 수 있어요.']);
   assert.equal(ask({percent:80,isNegative:true})[0],'negative');
-  for(const usage of [undefined,null,{},{percent:'82',isNegative:false},{percent:82}]){assert.equal(ask(usage)[0],'unknown');assert.equal(costGuard(v5,{...opus,usage}).missing,undefined,'not an account field problem');}
+  for(const usage of [undefined,null,{},{percent:'82',isNegative:false},{percent:82},{percent:1.5,isNegative:false},{percent:-1,isNegative:false},{percent:Infinity,isNegative:false}]){assert.equal(ask(usage)[0],'unknown');assert.equal(costGuard(v5,{...opus,usage}).missing,undefined,'not an account field problem');}
   assert.equal(costGuard({...v5,steps:29},opus).kind,'uses');
   // Lower tiers and an unchecked account.
   for(const tier of [0,1,2]){for(const o of [v45,v5]){const g=costGuard(o,{tier,active:true,isGracePeriod:false});assert.deepEqual([g.free,g.kind,g.message],[false,'uses','이 생성은 Anlas를 사용해요.']);}}
@@ -90,6 +90,8 @@ test('cost guard (0.1.67, V5 rule 0.1.90): V4.5 free for an active Opus without 
   for(const tier of [null,undefined,'3']){const g=costGuard(v45,{...opus,tier});assert.deepEqual([g.free,g.kind,g.missing],[false,'unknown',true]);}
   assert.equal(costGuard(v45,{tier:1}).missing,true,'a lower tier without its state is missing too, never free');
   assert.deepEqual(usageOf({usage:{percent:82,purchasedPercent:'x',isNegative:false}}),{percent:82,purchasedPercent:null,isNegative:false,timeUntilNextPercent:null});
+  // 0.1.91 (GPT P3-2): the schema's percent fields are whole numbers from 0; anything else is "not checked".
+  assert.deepEqual(usageOf({usage:{percent:1.5,purchasedPercent:2.5,isNegative:false}}),{percent:null,purchasedPercent:null,isNegative:false,timeUntilNextPercent:null});
 });
 test('profile validation preserves stable IDs and rejects duplicates',()=>{
   assert.equal(validateProfiles(profiles)[0].id,'leo');assert.throws(()=>validateProfiles([...profiles,profiles[0]]),/중복/);

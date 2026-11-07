@@ -41,6 +41,8 @@ async function setup() {
   const sandbox=vm.createContext({...imports,console,URL,crypto:webcrypto,AbortController,setInterval,clearInterval,setTimeout,clearTimeout,confirm:()=>true,
     SillyTavern:{getContext:()=>context},document:{readyState:'loading',activeElement:null,addEventListener(){},querySelectorAll:()=>[],querySelector:()=>null,getElementById:()=>null},
     fetch:async(url,options)=>{
+      // 0.1.91: Opus V5 is sent only to a server that asks for one request (usage-confirm).
+      if(String(url).includes('/status'))return {ok:true,status:200,text:async()=>JSON.stringify({version:'0.1.25',minClient:'0.1.90',keyConfigured:true,features:['usage-confirm']})};
       if(String(url).endsWith('/generate')) {
         const body=JSON.parse(options.body);sent.push(body);
         if(context.generationResponse)await context.generationResponse;

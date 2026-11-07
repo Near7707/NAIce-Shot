@@ -1,3 +1,15 @@
+# v0.1.91 validation — 2026-11-08 (extension + server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed** (the cost-guard test adds 1.5 %, −1 % and Infinity as "not checked", and the 0 % words). The UI module test's fake server now lists `usage-confirm` in its status.
+- Server Node suite (v0.1.25): **42 passed, 0 failed** (the V5 test now expects 400 `usage-confirm`, adds 1.5 % and −1 % as "not checked", the 0 % words; the status test checks `minClient` 0.1.90).
+- **75 of 75 Chromium browser scripts passed** (4 at a time). New `browser-v0191` (375 and 1100px): server 0.1.23 without `usage-confirm`, switch on, 1 % → no request, the server is checked again, the update notice comes back, no "확인 필요" mark; V4.5 is still sent; after the fake server is updated the next V5 press finds it and asks. The first try held while the place is edited → no question, no second send, the edit stays, the message above; the next press asks and sends the new place under the same ID; without an edit the held try and the yes go as one request. 0 % words; 1.5 % and −1 % read as "V5 사용량 확인 못 함". The fake server answers 400 like server 0.1.25 (`browser-v0190` still answers 428 like 0.1.24 and passes).
+- Fixes reverted one at a time (8): the old-server block, the second server check, the edit check before the question, whole-number percent, the 0 % verdict words (each made `browser-v0191` fail), and on the server the 400 answer, `minClient` 0.1.90 and whole-number percent (each made the server suite fail). The block first failed by waiting; the check now fails on the notice text. The edit check after the question is a second guard only (a browser confirm box blocks typing) and has no test of its own.
+- Older scripts updated for the intended change: `browser-v0190` (0 % words). `tests/fixture.html` adds `usage-confirm` to the fake status of older scripts (their fake servers predate it, and their V5 generation runs with the switch on); `browser-v0191` keeps its lists exact (`window.__ncsExactFeatures`).
+- Old UI 0.1.89 + server 0.1.25: checked by reading 0.1.89's code (a 400 answer is treated as "not sent"), not run.
+- Not checked: a real NovelAI account (Extra Usage order at 0 %, real `usage.percent` values), a real SillyTavern, iPhone Safari's own confirm box.
+
+---
+
 # v0.1.90 validation — 2026-11-08 (extension + server v0.1.24)
 
 - Extension Node suite: **191 passed, 0 failed** (the cost-guard test now covers the V5 rule: 2 % goes, 1 %/0 %/unusable/unknown ask for one request, extra usage does not count yet).

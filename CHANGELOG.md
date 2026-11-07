@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.91 — 2026-11-08 (extension + server — server v0.1.25 recommended, v0.1.24 still works)
+
+- Fixes from the GPT review of 0.1.89 + 0.1.90 (no P1). With a server older than 0.1.24 (it cannot ask "이번만"), Opus V5 with "Anlas 사용 가능성 허용" on is no longer sent: the panel checks the server again first and says to update it (an updated server is found without a refresh). With the switch off an old server refuses V5 by itself, as before.
+- If the scene, the prompt or a setting is edited while the first try is being answered, the "이번만 생성할까요?" yes no longer sends the old content: nothing is sent and the panel says "기다리는 동안 내용이 바뀌어서 보내지 않았어요. 바뀐 내용으로 [이미지 생성]을 다시 눌러 주세요."
+- V5 usage that is not a whole number from 0 (e.g. 1.5 %) is read as "확인 못 함" (asked for each generation), not as enough. At 0 % the words say what is shown, not more: "V5 기본 사용량 0% · 생성 때 확인", "V5 기본 사용량이 0%로 표시돼요."
+- README: the cost section tells apart "V5 usage missing" (asked each time) and "account check failed" (the switch decides, as before).
+- Server 0.1.25: `usage-confirm` answers 400 instead of 428, so an older UI that cannot ask treats it as "not sent" (no "결과 확인 필요" mark), and `minClient` is 0.1.90, so such a UI shows its update notice.
+
 ## 0.1.90 — 2026-11-08 (extension + server — needs server v0.1.24)
 
 - **New V5 rule (user decision).** Opus V5 within the free conditions (normal size, 28 steps or fewer) is sent without the "Anlas 사용 가능성 허용" switch while the base V5 usage shows 2 % or more. At 1 % or 0 %, when NovelAI says the usage cannot be used, or when the usage is not known, the server stops before sending (428 `usage-confirm`) and the panel asks "…이번만 생성할까요?" for this one request — even with the switch on. A yes sends the same request (same ID and content) once more; a no sends nothing and leaves no "확인 필요" mark. The extra (purchased) usage is shown but not counted yet (one switch in `core.mjs` once a real account shows it is used before Anlas). Tablet/Scroll and anything outside the free conditions keep the switch as before.

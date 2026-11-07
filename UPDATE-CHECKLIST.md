@@ -1,5 +1,13 @@
 # Installation and update checklist
 
+## v0.1.91
+
+**Extension + server.** Update in this order: server plugin (0.1.25) → restart SillyTavern → extension → refresh. (Server 0.1.24 still works with this extension; 0.1.25 makes older extensions show their update notice.)
+
+1. With Opus, V5 at 2 % or more: 이미지 생성 works without a question, as in 0.1.90.
+2. When V5 shows 1 % or 0 %: the question "…이번만 생성할까요?" still comes every time. At 0 % the box says "V5 기본 사용량 0% · 생성 때 확인".
+3. Nothing else should look different.
+
 ## v0.1.90
 
 **Extension + server.** Update in this order: server plugin (0.1.24) → restart SillyTavern → extension → refresh. With the old server the panel shows an update notice.
