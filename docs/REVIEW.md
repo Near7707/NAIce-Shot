@@ -4,8 +4,8 @@
 
 | 구분 | 대상 커밋 | 변경 내용 |
 | --- | --- | --- |
-| 서버 v0.1.25 | 미커밋 | `usage-confirm`을 428 대신 400으로(옛 UI가 "안 보냄"으로 처리), `minClient` 0.1.90, V5 percent는 0 이상 정수만(공유 core.mjs). |
-| 확장(UI) v0.1.91 | 미커밋 | 옛 서버 + 허용 켬이면 V5를 보내지 않음(먼저 서버 다시 확인), 첫 응답 기다리는 동안 고치면 재전송 안 함, 0% 문구, README 비용 안내. `MIN_SERVER_VERSION` 0.1.24 그대로. |
+| 서버 v0.1.25 | [bfea1b6](https://github.com/Near7707/NAIce-Shot-Server/commit/bfea1b6) | `usage-confirm`을 428 대신 400으로(옛 UI가 "안 보냄"으로 처리), `minClient` 0.1.90, V5 percent는 0 이상 정수만(공유 core.mjs). |
+| 확장(UI) v0.1.91 | [171c6d4](https://github.com/Near7707/NAIce-Shot/commit/171c6d4) | 옛 서버 + 허용 켬이면 V5를 보내지 않음(먼저 서버 다시 확인), 첫 응답 기다리는 동안 고치면 재전송 안 함, 0% 문구, README 비용 안내. `MIN_SERVER_VERSION` 0.1.24 그대로. |
 
 **검토 방식:** GPT가 0.1.89 + 0.1.90을 한 번에 리뷰(P1 없음, P2 2건, P3 3건. 0.1.89 고친 곳은 재실행 검사 통과, 같은 ID 재전송 중복 생성 경로 없음). Claude가 지적 5건을 코드에서 확인(모두 맞음), 사용자가 "리뷰 수정을 먼저 0.1.91로, 가이드는 그다음"을 고르고 "시작해".
 
