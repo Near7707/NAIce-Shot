@@ -1,5 +1,5 @@
 import { DEFAULTS, MODELS, clone, PROFILE_SCHEMA, profileDraftPrompt, parseProfileDraft, blankScene, validateProfiles, sourceValid,
-  assemble, resolveOutfit, buildPayload, costGuard, usageOf, textSignature,
+  assemble, resolveOutfit, buildPayload, costGuard, usageOf, V5_ASK_AT, textSignature,
   BRAND, SIZE_PRESETS, sizePresetOf, VERSION, stripReasoningBlocks } from './core.mjs';
 import { CAMERA_ICON, BRAND_ICON, TAB_ICONS, CLOSE_ICON } from './icons.mjs';
 import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } from './skins.mjs';
@@ -1934,7 +1934,8 @@ function v5Short(sub){
   if(sub?.tier!==3)return '';const u=usageOf(sub);
   if(!u||u.percent===null||u.isNegative===null)return '<span class="ncs-v5-warn">V5 확인 못 함</span>';
   if(u.isNegative)return '<span class="ncs-v5-warn">V5 쓸 수 없음</span>';
-  return `V5 <b${u.percent<=0?' class="ncs-low"':''}>${esc(String(u.percent))}%</b>${u.purchasedPercent?` (+${esc(String(u.purchasedPercent))}%)`:''}`;
+  // 0.1.90: labels bold, the extra usage in the number colour, the base number in the warning colour once V5 asks.
+  return `<span class="ncs-anlas-label">V5</span> <b${u.percent<=V5_ASK_AT?' class="ncs-low"':''}>${esc(String(u.percent))}%</b>${u.purchasedPercent?` <span class="ncs-v5-extra">(+${esc(String(u.purchasedPercent))}%)</span>`:''}`;
 }
 function v5Detail(sub){
   const u=usageOf(sub);if(!u||u.percent===null||u.isNegative===null)return '확인하지 못했어요';
@@ -1947,7 +1948,11 @@ function verdictOf(guard,model){
     return {text:'계정 확인 전',state:'neutral'};}
   switch(guard.kind){
     case 'free':return {text:`${pre}${m} 무료 조건에 해당해요 ✓`,state:'ok'};
-    case 'may':return {text:usageOf(sub)?.isNegative?`${pre}V5 사용량을 지금 쓸 수 없어요`:`${pre}V5 사용량으로 생성 (부족하면 Anlas)`,state:usageOf(sub)?.isNegative?'warn':'spend'};
+    // 0.1.90: green = Anlas is not expected by what was checked; orange "ask" = this generation is confirmed first.
+    case 'usage':return {text:`${pre}V5 남은 사용량으로 생성`,state:'ok'};
+    case 'ask':return guard.reason==='low'?{text:`${pre}V5 사용량 거의 소진 · 생성 때 확인`,state:'ask'}
+      :guard.reason==='empty'?{text:`${pre}V5 기본 사용량 없음 · 생성 때 확인`,state:'ask'}
+      :{text:guard.reason==='negative'?`${pre}V5 사용량을 지금 쓸 수 없어요`:`${pre}V5 사용량 확인 못 함`,state:'warn'};
     case 'inactive':return {text:`${pre}구독 비활성 · 무료 생성 대상 아님`,state:'warn'};
     case 'uses':return {text:`${pre}${sub.tier===3?'기본 조건을 넘어 Anlas를 사용해요':'이 생성은 Anlas를 사용해요'}`,state:'spend'};
     default:return {text:guard.missing?'계정 정보에서 필요한 항목을 확인하지 못했어요':`${pre}무료 여부를 확인할 수 없어요`,state:'warn'};
@@ -1956,12 +1961,12 @@ function verdictOf(guard,model){
 function renderAccount(){
   if(!dialog)return;const box=$('ncs-anlas-balance'),total=anlasTotal(account.sub),button=dialog.querySelector('[data-action="refresh-anlas"]');
   button.disabled=!!account.checking;
-  const v5=v5Short(account.sub),time=account.at?new Date(account.at).toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'}):'';
+  const v5=v5Short(account.sub),time=account.at?new Date(account.at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hourCycle:'h23'}):''; // 24-hour (0.1.90)
   if(account.checking&&!account.at&&!account.failed)box.textContent='Anlas 확인 중…';
   else if(account.failed)box.textContent=account.keyConfigured===false?'NAI 키가 없어요 · 설정에서 확인':'잔액 확인 실패 · 다시 확인';
   else if(total===null)box.innerHTML=account.at?`Anlas 잔액을 알 수 없어요${v5?` · ${v5}`:''} · ${esc(time)} 확인`:'Anlas 확인 전';
   else{const diff=account.previous!=null?total-account.previous:0;
-    box.innerHTML=`Anlas <b${total<=0?' class="ncs-low"':''}>${total.toLocaleString()}</b>${v5?` · ${v5}`:''} · ${esc(time)} 확인${diff?` · 이전 조회보다 ${diff>0?'+':'−'}${Math.abs(diff).toLocaleString()}`:''}`;}
+    box.innerHTML=`<span class="ncs-anlas-label">Anlas</span> <b${total<=0?' class="ncs-low"':''}>${total.toLocaleString()}</b>${v5?` · ${v5}`:''} · ${esc(time)} 확인${diff?` · 이전 조회보다 ${diff>0?'+':'−'}${Math.abs(diff).toLocaleString()}`:''}`;}
   const sub=account.sub,tier=tierName(sub),s=sub?.anlas;
   $('ncs-account-tier').textContent=sub?`${tier} · ${sub.active===true?'활성':sub.active===false?'비활성':'활성 여부 확인 못 함'}${sub.isGracePeriod===true?' · 유예 기간':''}`:'—';
   $('ncs-v5-row').hidden=sub?.tier!==3;if(sub?.tier===3)$('ncs-v5-detail').textContent=v5Detail(sub);
@@ -1979,13 +1984,27 @@ function toggleAccount(){
 function renderCost(){
   // Blocked here once the account is known (a missing field too); an unchecked account is left to the server, which
   // checks it itself just before sending and answers anlas-consent if needed (then consentRefused shows the same note).
-  const guard=costGuard(effectiveOptions(),subscription),off=settings().allowAnlas!==true,blocked=off&&!guard.free&&!!subscription;
+  const guard=costGuard(effectiveOptions(),subscription),off=settings().allowAnlas!==true,blocked=off&&guard.consent==='setting'&&!!subscription;
   if(!off)consentRefused=false; // only consent or a fresh successful check (refreshAccount) clears a server refusal
   const v=verdictOf(guard,effectiveOptions().model);$('ncs-verdict').textContent=v.text;$('ncs-anlas-box').dataset.state=v.state;
-  $('ncs-cost').textContent=guard.missing?missingText():stepsWord(guard.message);$('ncs-cost-link').hidden=guard.kind!=='may';
+  $('ncs-cost').textContent=guard.missing?missingText():stepsWord(guard.message);$('ncs-cost-link').hidden=false; // every model (0.1.90)
+  renderUsageNote(guard);
   const show=blocked||(off&&consentRefused);$('ncs-consent-note').hidden=!show;const here=dialog.querySelector('.ncs-consent-check');here.hidden=!show;$('ncs-allow-anlas-here').checked=settings().allowAnlas===true;
   return {guard,blocked};
 }
+// 0.1.90: one line under the Opus V5 verdict, in place of the switch (V5 no longer uses the saved switch).
+function renderUsageNote(guard){
+  const note=$('ncs-usage-note'),may='<b>Anlas가 차감될 수 있어서</b> 생성할 때마다 한 번씩 물어봐요.';
+  const text=guard.kind==='usage'?'확인한 사용량 기준으로 <b>V5 사용량으로 생성해요.</b>'
+    :guard.kind!=='ask'?''
+    :guard.reason==='low'?`V5 사용량이 ${esc(String(guard.percent))}% 남았어요. 이제부터 ${may}`
+    :guard.reason==='empty'?(guard.purchasedPercent>0?'기본 사용량을 다 썼어요. 추가 구매 사용량이 먼저 쓰일 수도 있지만 <b>Anlas가 차감될 수도 있어서</b> 생성할 때마다 물어봐요.':`V5 사용량을 다 썼어요. ${may}`)
+    :guard.reason==='negative'?`V5 사용량을 지금 쓸 수 없어요. ${may}`
+    :'사용량을 확인하지 못했어요. ↻로 다시 확인해 주세요. 그대로 생성하면 <b>Anlas가 차감될 수 있다고</b> 한 번 물어봐요.';
+  note.innerHTML=text;note.hidden=!text;note.classList.toggle('ncs-usage-alert',guard.kind==='ask');
+}
+// The server's usage-confirm question, one sentence per line.
+const usageQuestion=message=>`${String(message).replace(/\. /g,'.\n')}\n이번만 생성할까요?`;
 let consentRefused=false;
 // Shows the switch; turning it on is left to the person.
 function gotoAnlasSetting(){
@@ -2100,7 +2119,20 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   dropUndo();setBusy(true,ticket);startProgress('generate',ticket);report('NAI에 생성 요청을 보내고 있어요. 창을 닫거나 채팅을 바꿔도 서버는 결과를 저장해요.');
   rememberDraft(startKey,null,{flush:true});const generationDraft=drafts.entry(startKey);generationDraft.pinned=true;const savedDraftVersion=generationDraft.version;
   try {
-    const item=await api('/generate',{method:'POST',body:{requestId,chatKey:startKey,assembled:a,options,allowAnlas:s.allowAnlas,retainRawExtraction:s.retainRawExtraction===true,snapshot}});
+    let item,confirmUsage=false;
+    for(;;){
+      try{item=await api('/generate',{method:'POST',body:{requestId,chatKey:startKey,assembled:a,options,allowAnlas:s.allowAnlas,retainRawExtraction:s.retainRawExtraction===true,snapshot,...(confirmUsage?{confirmUsage:true}:{})}});break;}
+      catch(e){
+        // 0.1.90: Opus V5 with little or unknown usage. The server sent nothing to NovelAI and wrote no request record,
+        // so after a yes the same request (same ID and content) goes once more; a no or a changed work stops here.
+        if(e.code!=='usage-confirm'||confirmUsage)throw e;
+        refreshAccount().catch(()=>{});
+        const stop=()=>{if(pendingGenerations.get(startKey)===requestId)rememberGeneration(startKey,priorRequest);};
+        if(ticket!==task||workKey()!==startKey||!confirm(usageQuestion(e.message))){stop();report('생성 요청을 보내지 않았어요.');return;}
+        if(ticket!==task||workKey()!==startKey){stop();report('작업이 바뀌어서 생성 요청을 보내지 않았어요.');return;}
+        confirmUsage=true;
+      }
+    }
     if(pendingGenerations.get(startKey)===requestId)rememberGeneration(startKey,null);
     if(ticket!==task||workKey()!==startKey){
       // A successful old-chat request must consume its old one-off options as well, never the new chat's.
@@ -2122,7 +2154,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
     result=item;renderResult();report('생성했어요 · 그림을 누르면 크게 볼 수 있어요.');loadHistory().catch(()=>{});
     refreshAccount().catch(()=>{}); // a failed balance check never turns a finished image into a failure
   }catch(e){
-    const refused=['anlas-consent','nai-account','nai-auth','nai-anlas','nai-permission','nai-busy','nai-rejected','generation-not-sent'];
+    const refused=['anlas-consent','usage-confirm','nai-account','nai-auth','nai-anlas','nai-permission','nai-busy','nai-rejected','generation-not-sent'];
     if(pendingGenerations.get(startKey)===requestId&&(refused.includes(e.code)||e.status===400||e.status===409&&!e.code))rememberGeneration(startKey,priorRequest);
     if(pendingGenerations.get(startKey)===requestId&&!e.code)throw new Error('생성 결과를 받지 못했어요. [같은 요청으로 다시 확인]을 먼저 눌러 주세요.');
     // The server's own consent block shows the switch; NovelAI's Anlas or key errors re-check the balance.

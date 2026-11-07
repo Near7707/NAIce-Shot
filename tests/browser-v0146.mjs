@@ -75,18 +75,18 @@ try{
   await page.locator('[data-action="new-seed"]').click();await page.waitForFunction(()=>/허용이 꺼져 있어서 보내지 않았어요/.test(document.querySelector('#ncs-notice').textContent));
   assert.equal(await go.isVisible(),true);assert.equal(await note.isVisible(),true);assert.equal(await allow.isChecked(),false);
   acct.generateError=null;acct.statusFails=false;
-  // 5) Opus: V5 "may", with a link to NovelAI; V4.5 within limits is free and needs no consent.
+  // 5) Opus: V5 by its usage (0.1.90: no switch needed above 1 %), link to NovelAI for every model; V4.5 free.
   acct.tier=3;acct.perk=true;acct.usage={percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600};await page.locator('[data-action="refresh-anlas"]').click();await page.waitForFunction(()=>/^Anlas /.test(document.querySelector('#ncs-anlas-balance').textContent));
   await page.locator('#ncs-gen-box > summary').click();await page.locator('[data-gen="model"]').selectOption('nai-diffusion-5-full');
-  assert.equal(await cost.innerText(),'V5 사용량으로 생성해요. 부족하면 Anlas가 차감될 수 있어요.');
+  assert.equal(await cost.innerText(),'V5 사용량으로 생성해요. 다 쓰면 Anlas가 차감될 수 있어요.');
   await page.locator('[data-action="toggle-account"]').click(); // 0.1.68: the NovelAI link sits in the unfolded details
   assert.equal(await page.locator('#ncs-cost-link').isVisible(),true);
-  assert.equal(await page.locator('#ncs-cost-link').getAttribute('rel'),'noopener noreferrer');assert.equal(await go.isVisible(),true,'Opus V5 still needs consent');
+  assert.equal(await page.locator('#ncs-cost-link').getAttribute('rel'),'noopener noreferrer');assert.equal(await go.isHidden(),true,'0.1.90: Opus V5 with usage left needs no switch');
   await page.locator('[data-gen="model"]').selectOption('nai-diffusion-4-5-full');
-  assert.match(await cost.innerText(),/^Opus 무료 조건/);assert.equal(await page.locator('#ncs-cost-link').isHidden(),true);assert.equal(await go.isHidden(),true);
+  assert.match(await cost.innerText(),/^Opus 무료 조건/);assert.equal(await page.locator('#ncs-cost-link').isVisible(),true,'0.1.90: the link for every model');assert.equal(await go.isHidden(),true);
   assert.ok(await page.locator('.ncs-content').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'fits the width');
   if(process.env.NAICE_TEST_FONTS)await page.locator('#ncs-anlas-box').screenshot({path:`/tmp/naice-anlas-${width}.png`});
   assert.deepEqual(errors,[]);await page.close();
  }
- console.log('PASS: Tablet/Scroll cost line and consent block (button shows the switch only), balance difference since the last check, failed balance check after a finished image, NovelAI Anlas error vs consent refusal, Opus V5 may-cost with link, Opus V4.5 free, 1100/375px');
+ console.log('PASS: Tablet/Scroll cost line and consent block (button shows the switch only), balance difference since the last check, failed balance check after a finished image, NovelAI Anlas error vs consent refusal, Opus V5 by its usage with link, Opus V4.5 free with link, 1100/375px');
 }finally{await browser.close();server.close();}

@@ -84,19 +84,24 @@ try{
   assert.equal(await page.locator('#ncs-account-tier').innerText(),'Opus · 활성');assert.equal(await page.locator('#ncs-v5-detail').innerText(),'82% · 추가 구매 100%');
   assert.match(await page.locator('#ncs-cost').innerText(),/^Opus 무료 조건\(기본 크기·28 Steps 이하·1장\)/);
   assert.ok(await page.locator('#ncs-anlas-box').evaluate(e=>e.scrollWidth<=e.clientWidth+1),'no sideways scroll');
-  // V5: its usage, never free; consent off blocks before sending.
+  // V5: its usage, never free; 0.1.90: with usage left it is sent with the switch off (the server may still ask).
   await model('nai-diffusion-5-full');
-  assert.equal(await verdict(),'Opus · V5 사용량으로 생성 (부족하면 Anlas)');assert.equal(await go.isVisible(),true);
-  const m=sent.length;await page.locator('[data-action="generate"]').click();await page.waitForFunction(()=>/허용이 꺼져 있어서 보내지 않았어요/.test(document.querySelector('#ncs-notice').textContent));assert.equal(sent.length,m);
+  assert.equal(await verdict(),'Opus · V5 남은 사용량으로 생성');assert.equal(await state(),'ok');assert.equal(await go.isHidden(),true);
+  const m=sent.length;await page.locator('[data-action="generate"]').click();await idle(page);assert.equal(sent.length,m+1,'sent with the switch off');
   // 0% is a value; isNegative its own warning; missing usage is "확인 못 함" (and V4.5 does not care).
   await recheck({...OPUS,usage:{percent:0,purchasedPercent:0,isNegative:false,timeUntilNextPercent:0}});assert.match(await line2(),/ · V5 0% · /);
   await recheck({...OPUS,usage:{percent:0,purchasedPercent:0,isNegative:true,timeUntilNextPercent:0}});assert.match(await line2(),/V5 쓸 수 없음/);
   assert.equal(await verdict(),'Opus · V5 사용량을 지금 쓸 수 없어요');assert.equal(await state(),'warn');
   await recheck(strip(OPUS,'usage'));assert.match(await line2(),/V5 확인 못 함/);
-  assert.equal(await verdict(),'계정 정보에서 필요한 항목을 확인하지 못했어요');assert.equal(await state(),'warn');
+  // 0.1.90: missing V5 usage is no longer an account-field problem: it is asked for one request, the switch does not help.
+  assert.equal(await verdict(),'Opus · V5 사용량 확인 못 함');assert.equal(await state(),'warn');
+  assert.equal(await page.locator('#ncs-cost').innerText(),'V5 사용량을 확인하지 못했어요. 이번 생성에서 Anlas가 차감될 수 있어요.');
+  assert.equal(await go.isHidden(),true);
+  // The same missing field check stays for the account fields themselves (V4.5 here).
+  await model('nai-diffusion-4-5-full');await recheck(strip(OPUS,'active'));
   assert.match(await page.locator('#ncs-cost').innerText(),/무료 생성 여부를 확인할 수 없어, 생성하려면 Anlas 사용 허용이 필요해요\.$/);
   await allow.check();assert.match(await page.locator('#ncs-cost').innerText(),/현재 Anlas 사용이 허용되어 있어요\. 생성하면 Anlas가 차감될 수 있어요\.$/);await allow.uncheck();
-  await model('nai-diffusion-4-5-full');assert.equal(await verdict(),'Opus · V4.5 무료 조건에 해당해요 ✓','V4.5 never needs usage');
+  await recheck(strip(OPUS,'usage'));assert.equal(await verdict(),'Opus · V4.5 무료 조건에 해당해요 ✓','V4.5 never needs usage');
   // active missing / inactive / grace period (checked first) / Tablet.
   await recheck(strip(OPUS,'active'));assert.equal(await verdict(),'계정 정보에서 필요한 항목을 확인하지 못했어요');assert.equal(await go.isVisible(),true,'blocked with consent off');
   assert.equal(await page.locator('#ncs-account-tier').innerText(),'Opus · 활성 여부 확인 못 함');

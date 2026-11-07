@@ -1,3 +1,14 @@
+# v0.1.90 validation — 2026-11-08 (extension + server v0.1.24)
+
+- Extension Node suite: **191 passed, 0 failed** (the cost-guard test now covers the V5 rule: 2 % goes, 1 %/0 %/unusable/unknown ask for one request, extra usage does not count yet).
+- Server Node suite (v0.1.24): **42 passed, 0 failed** (the V5 consent test is replaced: 82 % and 2 % sent with the switch off; 1 %, 0 % with and without extra usage, `isNegative`, a wrong-typed and a missing `usage` answer 428 `usage-confirm` with the switch off and on, nothing sent; the same request ID with `confirmUsage:true` is then sent once; Tablet still wants the switch; `usage-confirm` is in the feature list).
+- **74 of 74 Chromium browser scripts passed** (4 at a time). New `browser-v0190` (375 and 1100px): 100 % (+100 %) is green with the line in place of the switch and is sent with the switch off without a question; 24-hour time, bold Anlas · V5, "(+N%)" in the number colour, the NovelAI link with V4.5 too; at 1 % the dot is orange and the words and number in the warning colour; the server asks → yes sends the same request (same ID and content) once more with `confirmUsage`, no sends nothing and leaves no "확인 필요" mark, the switch on still asks; 0 % with and without extra usage, unusable and unknown each have their words; 캔디케인 and 딸기우유 numbers are green and plum, 1 % still red; 밀크 keeps its accent colour.
+- Fixes reverted one at a time (12): the 2 % rule, `confirmUsage` on the second send, forgetting the request after a no, 24-hour time, the link, the switch not shown for V5, the orange verdict colour, the red-skin number colour, the "(+N%)" colour (each made `browser-v0190` fail), and on the server the one-request check, the switch not answering it, and the switch not asked for V5 with usage (each made the server suite fail). The no-`confirmUsage` revert first failed by a timeout; the test now waits for the panel to settle and fails on the notice.
+- Older scripts updated for the intended change: `browser-v0130` (the switch's words), `browser-v0146`, `browser-v0167` (V5 with usage left is sent with the switch off; missing V5 usage is "V5 사용량 확인 못 함", not an account-field problem; link for V4.5), `browser-v0188` (the consent checkbox by the box is checked with a Tablet account). `browser-v0186`–`v0189` fake server now says 0.1.24 with `usage-confirm` (otherwise the update notice covered a button in `v0187`).
+- Not checked: a real NovelAI account (especially whether Extra Usage is used before Anlas at 0 %, and the real `usage.percent` rounding), a real SillyTavern, iPhone Safari's own confirm box.
+
+---
+
 # v0.1.89 validation — 2026-11-07 (extension only, server v0.1.23)
 
 - Extension Node suite: **191 passed, 0 failed**.

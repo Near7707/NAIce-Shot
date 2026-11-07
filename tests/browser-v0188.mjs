@@ -31,7 +31,7 @@ const uid=n=>`0000000${n}-aaaa-4bbb-8ccc-${String(n).padStart(12,'0')}`;
 const pic=(n,chatKey=KEY,mins=n)=>({id:uid(n),created:new Date(Date.UTC(2026,10,5,10,mins)).toISOString(),chatKey,image:`/user/images/naice-shot/${uid(n)}.png`,seed:n,
  options:{model:'nai-diffusion-4-5-full',width:832,height:1216,steps:28,scale:5,seed:n,sampler:'k_euler_ancestral',scheduler:'karras',cfgRescale:0},
  assembled:{base:'1boy',negative:'',characters:[]},snapshot:{scene:null}});
-const FEATURES=['paged-history','delete','private-records','all-history','history-kinds','privacy-controls','draft-work','draft-delete','free-text','draft-tombstone','nai-error-codes','generation-recovery','pending-history','delete-check','history-ids','delete-cleared'];
+const FEATURES=['paged-history','delete','private-records','all-history','history-kinds','privacy-controls','draft-work','draft-delete','free-text','draft-tombstone','nai-error-codes','generation-recovery','pending-history','delete-check','history-ids','delete-cleared','usage-confirm'];
 async function open(width,{seed=[],features=FEATURES,marks=null,pending=null,broken=[],draft=null,skin=null,height=900,touch=false}={}){
  const page=await browser.newPage({viewport:{width,height},acceptDownloads:true,hasTouch:touch}),errors=[],asked=[];
  page.setDefaultTimeout(9000);page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{asked.push(d.message());page.refuse?d.dismiss():d.accept();});
@@ -62,7 +62,7 @@ async function open(width,{seed=[],features=FEATURES,marks=null,pending=null,bro
    if(post&&body.delete&&page.holdDraftDelete){const gate=page.holdDraftDelete;page.holdDraftDelete=null;return gate.then(()=>r.fulfill({json:{deleted:1}}));}
    if(!post&&page.draftReadFails)return r.abort();
    return r.fulfill({json:post?{revision:'r'}:{revision:draft?'saved':null,work:draft}});}
-  return r.fulfill({json:{keyConfigured:true,version:'0.1.23',features,minClient:'0.1.44',subscription:{tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600},anlas:{subscription:1000,purchased:0}}}});
+  return r.fulfill({json:{keyConfigured:true,version:'0.1.24',features,minClient:'0.1.44',subscription:{tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600},anlas:{subscription:1000,purchased:0}}}});
  });
  if(skin)await page.addInitScript(k=>document.addEventListener('DOMContentLoaded',()=>{mock.extensionSettings.naice_shot.skin=k;}),skin);
  if(marks)await page.addInitScript(m=>document.addEventListener('DOMContentLoaded',()=>{mock.extensionSettings.naice_shot.imageMarks=m;}),marks);
@@ -259,7 +259,10 @@ try{
  }
 
  // 0.1.88: Anlas consent can be ticked right by the "허용이 꺼져 있어요" note — the same setting, ticked by the user.
+ // 0.1.90: Opus V5 no longer uses the switch, so a Tablet account shows it.
  {const {page,errors}=await open(375);
+  await page.route('**/api/plugins/naice-shot/status**',r=>r.fulfill({json:{keyConfigured:true,version:'0.1.24',features:FEATURES,minClient:'0.1.44',subscription:{tier:1,active:true,isGracePeriod:false,anlas:{subscription:1000,purchased:0}}}}));
+  await page.locator('[data-action="refresh-anlas"]').click();
   await page.waitForFunction(()=>!document.querySelector('.ncs-consent-check').hidden);
   const here=page.locator('#ncs-allow-anlas-here'),main=page.locator('#ncs-allow-anlas');
   assert.equal(await main.isChecked(),false);assert.equal(await here.isChecked(),false);

@@ -1,8 +1,8 @@
 // UI ↔ server plugin compatibility. When a release changes the server plugin, raise MIN_SERVER_VERSION
 // (and add any new feature flag to REQUIRED_SERVER_FEATURES) so people who forget to replace the
 // server folder see a clear notice as soon as they open the panel.
-export const MIN_SERVER_VERSION = '0.1.23'; // Deleting old pictures with no chat key (used since UI 0.1.85)
-export const REQUIRED_SERVER_FEATURES = ['paged-history', 'delete', 'private-records', 'all-history', 'privacy-controls','draft-work','draft-delete','free-text','draft-tombstone','nai-error-codes','history-kinds','generation-recovery','pending-history','delete-check','history-ids','delete-cleared'];
+export const MIN_SERVER_VERSION = '0.1.24'; // V5 usage asked for one request (usage-confirm, used since UI 0.1.90)
+export const REQUIRED_SERVER_FEATURES = ['paged-history', 'delete', 'private-records', 'all-history', 'privacy-controls','draft-work','draft-delete','free-text','draft-tombstone','nai-error-codes','history-kinds','generation-recovery','pending-history','delete-check','history-ids','delete-cleared','usage-confirm'];
 
 export function compareVersions(a, b) {
   const parts = v => String(v ?? '').split('.').map(x => Number.parseInt(x, 10) || 0);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DEFAULTS,clone,blankScene,assemble,buildPayload,parseExtraction,chooseMessages,sourceValid,extractionPrompt,resolveOutfit,usageOf,textSignature,costGuard,validateProfiles,SIZE_PRESETS,sizePresetOf} from '../core.mjs';
+import {DEFAULTS,clone,blankScene,assemble,buildPayload,parseExtraction,chooseMessages,sourceValid,extractionPrompt,resolveOutfit,usageOf,textSignature,costGuard,V5_ASK_AT,V5_EXTRA_COUNTS,validateProfiles,SIZE_PRESETS,sizePresetOf} from '../core.mjs';
 
 const profiles=[{id:'leo',name:'Leo',aliases:['레오'],subject:'boy',appearance:'brown hair',defaultOutfit:'white shirt, jeans',positive:'ring',negative:'black hair'},
   {id:'mira',name:'Mira',aliases:['미라'],subject:'girl',appearance:'pink hair',defaultOutfit:'hoodie',positive:'',negative:'brown hair'}];
@@ -56,12 +56,12 @@ test('model capacity is enforced; coordinates only when every slot is placed',()
   a.characters[1].position='right';const p=buildPayload(a,{...DEFAULTS.options,seed:0});assert.equal(p.parameters.use_coords,true);assert.equal(p.parameters.v4_prompt.caption.char_captions[0].centers[0].x,0.3);
   a.characters=Array.from({length:7},()=>({prompt:'boy',negative:'',position:'auto'}));assert.throws(()=>buildPayload(a,{...DEFAULTS.options,model:'nai-diffusion-4-5-full',seed:0}),/한도/);
 });
-test('cost guard (0.1.67): V4.5 free for an active Opus without the old perk; V5 uses its own usage and never free',()=>{
+test('cost guard (0.1.67, V5 rule 0.1.90): V4.5 free for an active Opus without the old perk; V5 by its usage, asked at 1 % or below',()=>{
   const opus={tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:100,isNegative:false,timeUntilNextPercent:60}};
   const v45={...DEFAULTS.options,model:'nai-diffusion-4-5-full'},v5=DEFAULTS.options;
   assert.ok(v5.model.startsWith('nai-diffusion-5'),'DEFAULTS use V5');
   // V4.5: free with no perks at all (the field NovelAI no longer sends), within the usual conditions only.
-  assert.deepEqual(costGuard(v45,opus),{free:true,kind:'free',message:'Opus 무료 조건(기본 크기·28스텝 이하·1장)에 해당해요.'});
+  assert.deepEqual(costGuard(v45,opus),{free:true,kind:'free',consent:'none',message:'Opus 무료 조건(기본 크기·28스텝 이하·1장)에 해당해요.'});
   assert.equal(costGuard(v45,{...opus,perks:{unlimitedImageGeneration:false}}).free,true,'the old perk is not read');
   assert.equal(costGuard({...v45,steps:29},opus).kind,'uses');assert.equal(costGuard({...v45,width:1216,height:1216},opus).kind,'uses');
   assert.equal(costGuard(v45,{...opus,usage:undefined}).free,true,'V4.5 never needs usage');
@@ -69,11 +69,17 @@ test('cost guard (0.1.67): V4.5 free for an active Opus without the old perk; V5
   assert.equal(costGuard(v45,{...opus,isGracePeriod:true}).kind,'unknown');assert.equal(costGuard(v45,{...opus,active:false,isGracePeriod:true}).kind,'unknown');
   assert.deepEqual([costGuard(v45,{...opus,active:false}).kind,costGuard(v45,{...opus,active:false}).free],['inactive',false]);
   for(const bad of [{active:undefined},{active:'true'},{isGracePeriod:undefined},{active:null}]){const g=costGuard(v45,{...opus,...bad});assert.equal(g.kind,'unknown');assert.equal(g.missing,true);assert.equal(g.free,false);}
-  // V5: never free; 0% is a value, missing usage is "unknown", isNegative is its own message.
-  assert.equal(costGuard(v5,opus).kind,'may');assert.equal(costGuard(v5,opus).message,'V5 사용량으로 생성해요. 부족하면 Anlas가 차감될 수 있어요.');
-  assert.equal(costGuard(v5,{...opus,usage:{percent:0,isNegative:false}}).kind,'may','0% is a real value');
-  assert.match(costGuard(v5,{...opus,usage:{percent:0,isNegative:true}}).message,/지금 쓸 수 없어요/);
-  for(const usage of [undefined,null,{},{percent:'82',isNegative:false},{percent:82}]){const g=costGuard(v5,{...opus,usage});assert.equal(g.missing,true);assert.equal(g.free,false);}
+  // V5 (0.1.90): never free. Above V5_ASK_AT % of base usage it goes without the switch; at or below it, when it cannot
+  // be used, or when usage is missing, it asks for this one request. The extra usage does not count yet.
+  assert.equal(V5_ASK_AT,1);assert.equal(V5_EXTRA_COUNTS,false);
+  assert.deepEqual([costGuard(v5,opus).kind,costGuard(v5,opus).consent,costGuard(v5,opus).free],['usage','none',false]);
+  assert.equal(costGuard(v5,{...opus,usage:{percent:2,isNegative:false}}).kind,'usage');
+  const ask=usage=>{const g=costGuard(v5,{...opus,usage});assert.equal(g.kind,'ask');assert.equal(g.consent,'once');assert.equal(g.free,false);return [g.reason,g.message];};
+  assert.deepEqual(ask({percent:1,purchasedPercent:100,isNegative:false}),['low','V5 사용량이 1% 남았어요. 이번 생성에서 Anlas가 차감될 수 있어요.']);
+  assert.deepEqual(ask({percent:0,purchasedPercent:100,isNegative:false}),['empty','V5 기본 사용량을 다 썼어요 (추가 구매 100%). 이번 생성에서 Anlas가 차감될 수 있어요.'],'0% is a real value; extra usage alone does not count yet');
+  assert.deepEqual(ask({percent:0,isNegative:false}),['empty','V5 기본 사용량을 다 썼어요. 이번 생성에서 Anlas가 차감될 수 있어요.']);
+  assert.equal(ask({percent:80,isNegative:true})[0],'negative');
+  for(const usage of [undefined,null,{},{percent:'82',isNegative:false},{percent:82}]){assert.equal(ask(usage)[0],'unknown');assert.equal(costGuard(v5,{...opus,usage}).missing,undefined,'not an account field problem');}
   assert.equal(costGuard({...v5,steps:29},opus).kind,'uses');
   // Lower tiers and an unchecked account.
   for(const tier of [0,1,2]){for(const o of [v45,v5]){const g=costGuard(o,{tier,active:true,isGracePeriod:false});assert.deepEqual([g.free,g.kind,g.message],[false,'uses','이 생성은 Anlas를 사용해요.']);}}

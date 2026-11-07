@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.90 — 2026-11-08 (extension + server — needs server v0.1.24)
+
+- **New V5 rule (user decision).** Opus V5 within the free conditions (normal size, 28 steps or fewer) is sent without the "Anlas 사용 가능성 허용" switch while the base V5 usage shows 2 % or more. At 1 % or 0 %, when NovelAI says the usage cannot be used, or when the usage is not known, the server stops before sending (428 `usage-confirm`) and the panel asks "…이번만 생성할까요?" for this one request — even with the switch on. A yes sends the same request (same ID and content) once more; a no sends nothing and leaves no "확인 필요" mark. The extra (purchased) usage is shown but not counted yet (one switch in `core.mjs` once a real account shows it is used before Anlas). Tablet/Scroll and anything outside the free conditions keep the switch as before.
+- Account box: green = goes by the checked V5 usage (or V4.5 free); orange = this generation is confirmed first, its words in the warning colour; red = needs checking. One line under it replaces the switch for V5 ("확인한 사용량 기준으로 V5 사용량으로 생성해요." or why it will ask). Time in 24-hour form, the words Anlas · V5 in bold, "(+N%)" in the number colour, "NovelAI에서 확인" for every model. The switch's own explanation says what it is still for.
+- 캔디케인 and 딸기우유: the account numbers are holly green and plum instead of red, so red means a warning only (`--ncs-figure`, a colour a skin may set).
+
 ## 0.1.89 — 2026-11-07 (extension only — server v0.1.23 unchanged)
 
 - Fixes from the GPT review of 0.1.88: a message or generation event no longer makes the timed effects in memory the "saved" value; the event only starts a look at the disk, and only a value read back from the disk becomes the base (also after this window's own save). A stopped generation followed by a picture deletion now saves the chat, and a value another window saved by chance is no longer overwritten (B2).

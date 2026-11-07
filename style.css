@@ -1033,3 +1033,18 @@
 #naice-shot-dialog .ncs-count-row > small {flex:1 0 100%;min-width:0;}
 #naice-shot-dialog .ncs-count-row > small + button {margin-left:auto;}
 #naice-shot-dialog .ncs-count-row > button {flex:none;}
+
+/* 0.1.90 — account box for the new V5 rule (user decision). Green = the checked usage covers it (V4.5 free or V5
+   above 1 %), orange "ask" = this generation is confirmed first (V5 at 1 % or 0 %), its words in the warning colour;
+   red stays "needs checking". Numbers use --ncs-figure (a skin may set it; red skins do), the labels Anlas · V5 are
+   bold, and the line under the verdict replaces the switch for V5. */
+#naice-shot-dialog #ncs-anlas-balance .ncs-anlas-label {font-weight:700;color:var(--ncs-fg);}
+#naice-shot-dialog #ncs-anlas-balance b,#naice-shot-dialog #ncs-anlas-balance .ncs-v5-extra {color:var(--ncs-figure,var(--ncs-accent-text));font-weight:700;}
+#naice-shot-dialog #ncs-anlas-balance b.ncs-low {color:var(--ncs-warning);}
+#naice-shot-dialog .ncs-anlas-box[data-state="ok"] #ncs-verdict {color:var(--ncs-figure,var(--ncs-accent-text));}
+#naice-shot-dialog .ncs-anlas-box[data-state="ask"] .ncs-cost-dot {background:#e09a2b;}
+#naice-shot-dialog .ncs-anlas-box[data-state="ask"] #ncs-verdict {color:var(--ncs-warning);}
+#naice-shot-dialog .ncs-usage-note {margin:2px 0 0;font-size:12.5px;line-height:1.5;color:var(--ncs-muted);}
+#naice-shot-dialog .ncs-usage-note.ncs-usage-alert {color:var(--ncs-fg);}
+#naice-shot-dialog .ncs-usage-note b {color:var(--ncs-fg);font-weight:700;}
+#naice-shot-dialog .ncs-usage-note[hidden] {display:none;}

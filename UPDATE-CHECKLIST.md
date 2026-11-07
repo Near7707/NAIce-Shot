@@ -1,5 +1,15 @@
 # Installation and update checklist
 
+## v0.1.90
+
+**Extension + server.** Update in this order: server plugin (0.1.24) → restart SillyTavern → extension → refresh. With the old server the panel shows an update notice.
+
+1. With Opus, V5 and the switch "Anlas 사용 가능성 허용" off: the box is green "Opus · V5 남은 사용량으로 생성" and 이미지 생성 works without a question (while V5 shows 2 % or more).
+2. The time reads like "22:35 확인"; "Anlas" and "V5" are bold; "(+N%)" has the number colour. Open the box: "NovelAI에서 확인" is there with V4.5 as well.
+3. When V5 shows 1 % or 0 %: the box turns orange with red words, and 이미지 생성 asks "…이번만 생성할까요?" every time (also with the switch on). 취소 sends nothing.
+4. Optional check for later: at 0 % with extra usage left, press ↻, make one picture, press ↻ again and compare the extra % and Anlas. Tell Claude/GPT what changed.
+5. 캔디케인 / 딸기우유: the numbers are green / plum.
+
 ## v0.1.89
 
 **Extension only.** The server plugin stays 0.1.23 — just update the extension and refresh.

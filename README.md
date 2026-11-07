@@ -49,7 +49,7 @@ Termux로 실리태번을 쓰는 경우에도 순서는 같아요. 명령은 Ter
 
 서버 플러그인 설치를 허용하지 않는 호스팅에서는 사용할 수 없어요. Node.js 20 이상을 사용하며, 개발 대상은 SillyTavern 1.19.0 staging이에요.
 
-처음 사용할 때는 캐릭터와 유저의 이미지 프로필을 각각 만들고, **장면 추출 → 내용 확인·편집 → 이미지 생성** 순서로 진행해요. 별도 추출 AI 연결을 고를 수 있고, 추출 요청에도 해당 AI의 사용량·비용이 발생할 수 있어요. V5 생성은 무료 사용량을 확정할 수 없어 **Anlas 사용 가능성 허용**을 켜야 요청할 수 있어요.
+처음 사용할 때는 캐릭터와 유저의 이미지 프로필을 각각 만들고, **장면 추출 → 내용 확인·편집 → 이미지 생성** 순서로 진행해요. 별도 추출 AI 연결을 고를 수 있고, 추출 요청에도 해당 AI의 사용량·비용이 발생할 수 있어요. Opus의 V5 생성은 기본 V5 사용량이 2% 이상이면 허용 없이 생성하고, 1% 이하이거나 확인하지 못하면 생성할 때마다 "이번만 생성할까요?"라고 물어봐요(0.1.90). 확인한 뒤 실제 생성 사이에 다른 곳에서 사용량을 쓰면 Anlas가 차감될 수 있어요.
 
 **Opus가 아니어도 쓸 수 있어요.** Tablet·Scroll 구독은 그림마다 Anlas를 써서, **Anlas 사용 가능성 허용**을 켜야 생성돼요. 그리기창의 생성 버튼 위에 Anlas 잔액(↻로 다시 확인)과 이번 생성의 비용 조건이 보여요. 무료 체험 계정이 이 확장(외부 API)으로 그림을 만들 수 있는지는 확인되지 않았어요.
 
@@ -89,7 +89,7 @@ This repository contains the browser extension. The UI is in Korean. The compani
 - Adjust model, size, steps, Guidance and seed right in the drawing tab (그리기) (생성 설정), save or overwrite presets there, and turn a history image's settings into a new preset.
 - 프리샷: draw with no chat at all — write a situation and the same **장면 추출** button fills the scene (names or aliases of saved profiles are recognised without adding them first and keep their look; anyone else becomes a temporary person); history images can be sent to 프리샷. 그리기창 비우기 (next to the 2 · 장면 편집 heading) empties the current work with a lasting 되돌리기. Generating without a 공통 이미지 프리셋 asks first.
 - Save shared prompt and generation presets, including model, size, steps, Guidance, seed, CFG Rescale and sampler. (Noise Schedule is fixed to the default, karras.)
-- Image size is one of three free sizes (832×1216, 1024×1024, 1216×832) and steps are capped at 28, so generations stay inside NovelAI's Opus free conditions for size and steps. V5 still needs "Anlas 사용 가능성 허용"; check its remaining free usage on the NovelAI site.
+- Image size is one of three free sizes (832×1216, 1024×1024, 1216×832) and steps are capped at 28, so generations stay inside NovelAI's Opus free conditions for size and steps. Opus V5 goes by its own usage (0.1.90): no switch needed at 2 % or more, a question for each generation at 1 % or below.
 - Generate one image at a time, inspect it in a zoomable viewer and download the original PNG.
 - Attach images below existing messages without adding them to the RP message text or native media fields.
 - Browse current-chat or all-chat history, filter by chat and delete individual or selected images.
@@ -196,9 +196,11 @@ Only selected message bodies, participant identities and relevant clothing data 
 
 The code does not calculate V5 allowance or guarantee a free request. Enabling the switch permits a potentially billable request; the actual charge depends on NovelAI's account rules.
 
+Opus V5 (0.1.90, server 0.1.24): within the free conditions it is sent without the switch while the base V5 usage shows 2 % or more. At 1 % or 0 %, when NovelAI says the usage cannot be used, or when it is not known, the server checks just before sending, stops, and the panel asks "…이번만 생성할까요?" for that one request (also with the switch on). Extra (purchased) usage is shown but not counted yet. NovelAI has no request option that keeps Anlas untouched, so usage spent elsewhere between the check and the image can still cost Anlas.
+
 Any subscription can use the extension. Opus gets free V4.5 images within the default sizes and 28 steps; Tablet and Scroll use Anlas for every image, so they need the switch on. Free-trial accounts with the external API are unverified.
 
-Above **이미지 생성** the drawing tab shows the account box (0.1.67): line 1 is the tier and this generation's cost, e.g. "Opus · V4.5 무료 조건에 해당해요 ✓" (an active Opus, V4.5, default size, 28 steps or fewer), "Opus · V5 사용량으로 생성 (부족하면 Anlas)" (V5 has its own usage limit; it always needs the switch), "이 생성은 Anlas를 사용해요" (Tablet/Scroll, or over the free limits), "구독 비활성 · 무료 생성 대상 아님", or "계정 정보에서 필요한 항목을 확인하지 못했어요" when a field the check needs is missing (never read as "no"). Line 2 is the Anlas balance, the V5 usage (Opus) and when it was checked; tap it for the details. **↻** checks again. A failed check shows "잔액 확인 실패 · 다시 확인" instead of an old number. After an image the balance is checked again and shown as **이전 조회보다 −N** — a difference since the last check, not the price of that image. Settings → 서버·NAI 연결 확인 shows the same check.
+Above **이미지 생성** the drawing tab shows the account box (0.1.67): line 1 is the tier and this generation's cost, e.g. "Opus · V4.5 무료 조건에 해당해요 ✓" (an active Opus, V4.5, default size, 28 steps or fewer), "Opus · V5 남은 사용량으로 생성" (green, 2 % or more), "Opus · V5 사용량 거의 소진 · 생성 때 확인" / "V5 기본 사용량 없음 · 생성 때 확인" (orange, asked for each generation), "V5 사용량 확인 못 함" (red), "이 생성은 Anlas를 사용해요" (Tablet/Scroll, or over the free limits), "구독 비활성 · 무료 생성 대상 아님", or "계정 정보에서 필요한 항목을 확인하지 못했어요" when a field the check needs is missing (never read as "no"). Line 2 is the Anlas balance, the V5 usage (Opus) and when it was checked; tap it for the details. **↻** checks again. A failed check shows "잔액 확인 실패 · 다시 확인" instead of an old number. After an image the balance is checked again and shown as **이전 조회보다 −N** — a difference since the last check, not the price of that image. Settings → 서버·NAI 연결 확인 shows the same check.
 
 With the switch off and a cost-bearing generation, the request is not sent and **Anlas 허용 설정으로 이동** points to the switch (it never turns it on). NovelAI's own errors are named only when its reply says why: NAI key, not enough Anlas, model permission, too many requests, NovelAI trouble; otherwise "NovelAI가 요청을 거절했어요" with NovelAI's short note in brackets (at most 120 characters, credentials removed).
 
