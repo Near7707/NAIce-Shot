@@ -73,16 +73,17 @@ export class DraftQueue {
   // After the server deleted a saved work: start a new generation and read again. The server leaves a
   // marker with a fresh revision, so the next save must be based on that read, never on an older one.
   reset(key){const e=this.entry(key);clearTimeout(e.timer);e.gen++;
-    Object.assign(e,{loaded:false,data:null,revision:null,dirty:false,error:null,saving:null,reading:null});this.onState(key,e);}
+    Object.assign(e,{loaded:false,data:null,revision:null,deleted:false,dirty:false,error:null,saving:null,reading:null});this.onState(key,e);}
+  // 0.1.98 (GPT P2-1): `deleted` is the server's deletion record for this work (nothing saved since it was deleted).
   async ensure(key){
     const e=this.entry(key);if(e.loaded)return e.data;if(e.reading)return e.reading;
     const gen=e.gen;
-    const reading=(async()=>{try{const r=await this.read(key);if(gen!==e.gen)return e.data;e.revision=r.revision??null;e.data=r.work??null;e.loaded=true;e.error=null;return e.data;}
+    const reading=(async()=>{try{const r=await this.read(key);if(gen!==e.gen)return e.data;e.revision=r.revision??null;e.data=r.work??null;e.deleted=!e.data&&r.deleted===true;e.loaded=true;e.error=null;return e.data;}
       catch(error){if(gen!==e.gen)return e.data;e.error=error;throw error;}finally{if(e.reading===reading)e.reading=null;this.onState(key,e);}})();
     e.reading=reading;return reading;
   }
   put(key,data){const e=this.entry(key);if(!e.loaded)return;const json=JSON.stringify(data);if(json===JSON.stringify(e.data))return;
-    e.data=JSON.parse(json);e.version++;e.dirty=true;e.error=null;clearTimeout(e.timer);if(!this.paused&&!this.held.has(key))e.timer=setTimeout(()=>this.flush(key),this.delay);this.onState(key,e);}
+    e.data=JSON.parse(json);e.deleted=false;e.version++;e.dirty=true;e.error=null;clearTimeout(e.timer);if(!this.paused&&!this.held.has(key))e.timer=setTimeout(()=>this.flush(key),this.delay);this.onState(key,e);}
   async flush(key){
     const e=this.entry(key);clearTimeout(e.timer);if(e.saving)return e.saving;if(!e.loaded||!e.dirty||this.paused||this.held.has(key))return;
     const gen=e.gen;

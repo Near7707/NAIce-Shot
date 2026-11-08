@@ -1,3 +1,13 @@
+# v0.1.98 validation — 2026-11-08 (extension only, server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **82 of 82 Chromium browser scripts passed** (4 at a time). New `browser-v0198` (375 and 1100px; its fake server can answer a chat key with a deletion record): saved, deleted elsewhere, the next save refused (409), **서버 작업 다시 불러오기** 확인 → the screen is empty, no second question, nothing written until a new edit (which saves on the record's revision); a connect with an edit on screen and a deletion record → asked, 취소 keeps it and holds with nothing written, the next connect asks again and 확인 empties it; an empty screen → no question; [다시 시도] after a failed read on return → asked the same way; work memory paused from 프리샷, a generation started in chat A, chat B connected while it runs → A's saved work is not written when it ends (connected all along → A still takes the result); a 챗샷 saved before the pause → a chat change in 프리샷 says nothing, an edit made during the pause or refused before it → the dropped-edit notice.
+- Fixes reverted one at a time (6): keeping the deletion record in the queue, the deletion check in the load, the question on non-asked loads, the start-connected check of a generation, the saved-copy check of the notice (and the failed-save case) — each made `browser-v0198` fail. `browser-v0198` fails on the 0.1.97 code (the reload saves the edit over the deletion record).
+- Not checked: a real NovelAI account, a real SillyTavern (two windows), iPhone Safari's own confirm box.
+
+---
+
 # v0.1.97 validation — 2026-11-08 (extension only, server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed**.

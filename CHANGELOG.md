@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.98 — 2026-11-08 (extension only — server v0.1.25 unchanged)
+
+- Fixes from the GPT review of 0.1.97 (no P1). Work deleted in another window no longer comes back: the server's deletion record now counts as the server's state when saved work is loaded. **서버 작업 다시 불러오기** after a refused save empties the screen ("서버에서 삭제된 작업이라 화면을 비웠어요."); any other load that reads the record while the screen holds edits (connecting, the retry after a failed read, a chat read again) asks "서버에 이 작업의 삭제 기록이 있어요. 화면에 남은 편집도 비울까요?" — 확인 empties the screen, 취소 keeps the edit and pauses work memory. An empty screen connects without a question.
+- A generation started while work memory was paused no longer writes the starting chat's saved work when it ends after a chat change (the picture is in the history). Started while connected, it still does.
+- In 프리샷, a chat change after work memory paused no longer says an already saved 챗샷 edit was dropped. An edit whose save failed is still reported.
+
 ## 0.1.97 — 2026-11-08 (extension only — server v0.1.25 unchanged)
 
 - Fixes from the GPT review of 0.1.96 (no P1). Saved work now reaches the screen one way only: whenever the screen holds other work, it asks "서버에 저장된 마지막 작업을 불러올까요?" first (취소 keeps both and pauses work memory in the tab), whether it comes from a mode switch, a chat change, [다시 시도] or a connect. A screen that cannot be compared is kept and work memory pauses. Only a connect and [서버 작업 다시 불러오기] read the server fresh, so a save still waiting for its reply keeps going through a trip to the other mode.

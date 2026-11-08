@@ -549,6 +549,7 @@ let deletingWork=false,compatChecking=false;
 let draftHold=false,draftHoldNote='',connectingDrafts=null,reconnectRun=null;
 const sortedJson=v=>JSON.stringify(v,(k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(n=>[n,x[n]])):x);
 const DRAFT_HOLD_NOTE='서버에 다른 작업이 저장돼 있어서 작업 기억을 잠시 멈췄어요. 지금 편집은 아직 저장되지 않았어요. 채팅을 바꾸면 사라질 수 있어요.';
+const DRAFT_DELETED_HOLD_NOTE='서버에 이 작업의 삭제 기록이 있어서 작업 기억을 잠시 멈췄어요. 지금 편집은 아직 저장되지 않았어요. 채팅을 바꾸면 사라질 수 있어요.';
 const draftUnreadableNote=m=>`지금 작업을 확인하지 못해서 작업 기억을 잠시 멈췄어요(${String(m).replace(/[.\s]+$/,'')}). 지금 편집은 아직 저장되지 않았어요. 채팅을 바꾸면 사라질 수 있어요.`;
 // 0.1.96 (GPT P3-1): what counts when comparing the screen with the saved copy — not how many target messages are
 // listed, and a valid final-prompt JSON by its content (key order aside). Saving still keeps the text as typed.
@@ -571,11 +572,14 @@ function renderDraftState(){
 }
 const emptyWork=w=>!w.scene.characters?.length&&!w.scene.unregistered?.length&&!w.scene.moments?.length&&!['location','lighting','camera','interaction'].some(k=>w.scene[k])&&
   !w.finalOverride&&!w.optionsOverride&&!w.result&&!w.undoClear&&!w.raw&&!w.target&&!w.wish&&!w.freeText;
-// 0.1.97: whether work waiting off screen holds edits the queue does not have (the same comparison as a load).
+// 0.1.97, 0.1.98: whether work waiting off screen holds edits the queue does not keep (the same comparison as a load).
 function unsavedWork(key,w){
   const retainRaw=settings().retainRawExtraction===true;let mine;try{mine=packWork(w,{retainRaw});}catch{return true;}
-  if(emptyWork(mine))return false;const e=drafts.entries.get(key);if(!draftsEnabled||!e?.loaded)return true;
-  return !e.data||compareForm(packWork(unpackWork(e.data),{retainRaw}))!==compareForm(mine);
+  if(emptyWork(mine))return false;const e=drafts.entries.get(key);if(!e?.loaded||!e.data)return true;
+  if(compareForm(packWork(unpackWork(e.data),{retainRaw}))!==compareForm(mine))return true;
+  // 0.1.98 (GPT P3): the queue has it. Saved, or still on its way, it is not lost; a failed save is kept for the next
+  // try while work memory is connected, but a paused tab reads this work fresh when it connects, so that one is lost.
+  return !draftsEnabled&&e.dirty&&!!e.error;
 }
 function rememberDraft(key=workKey(),work=null,{flush=false}={}){
   clearTimeout(captureTimer);captureTimer=null;
@@ -602,6 +606,18 @@ async function recallDraft(key=workKey(),{connect=false,asked=false}={}){
   const retainRaw=settings().retainRawExtraction===true;
   let mine=null;try{mine=packWork(captureWork(),{retainRaw});}
   catch(e){if(saved&&!asked){holdDrafts(key,draftUnreadableNote(e.message));return 'held';}} // 0.1.96 (GPT P2-2): never replace it
+  // 0.1.98 (GPT P2-1, user decision): the server keeps a deletion record for this work. Edits left on screen are never
+  // saved over it unasked: 확인 empties the screen, 취소 keeps it and holds. [서버 작업 다시 불러오기] already asked.
+  if(!saved&&drafts.entry(key).deleted&&(!mine||!emptyWork(mine))){
+    if(!asked&&!confirm('서버에 이 작업의 삭제 기록이 있어요. 화면에 남은 편집도 비울까요?\n취소하면 편집은 화면에 두고 작업 기억 연결을 멈춰요.')){
+      holdDrafts(key,DRAFT_DELETED_HOLD_NOTE);return 'held';
+    }
+    if(key!==workKey())return 'moved';
+    if(connect){draftHold=false;draftHoldNote='';draftsEnabled=true;}
+    loadWork(blankWork());targetShown=TARGET_STEP;targetScroll=0;draftSource=null;revision++;
+    draftNote='서버에서 삭제된 작업이라 화면을 비웠어요.';
+    renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();renderDraftState();return 'connected';
+  }
   const differs=!asked&&!!saved&&!!mine&&!emptyWork(mine)&&compareForm(packWork(unpackWork(saved),{retainRaw}))!==compareForm(mine);
   if(differs&&!confirm('서버에 저장된 마지막 작업을 불러올까요?\n취소하면 지금 편집은 화면에, 서버 작업은 서버에 그대로 두고 작업 기억 연결을 멈춰요.')){
     holdDrafts(key,DRAFT_HOLD_NOTE);return 'held';
@@ -2247,7 +2263,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   const requestId=uuid(),canRecover=features.includes('generation-recovery');
   if(canRecover)rememberGeneration(startKey,requestId);
   dropUndo();setBusy(true,ticket);startProgress('generate',ticket);report('NAI에 생성 요청을 보내고 있어요. 창을 닫거나 채팅을 바꿔도 서버는 결과를 저장해요.');
-  rememberDraft(startKey,null,{flush:true});const generationDraft=drafts.entry(startKey);generationDraft.pinned=true;const savedDraftVersion=generationDraft.version;
+  rememberDraft(startKey,null,{flush:true});const startedConnected=draftsEnabled,generationDraft=drafts.entry(startKey);generationDraft.pinned=true;const savedDraftVersion=generationDraft.version;
   try {
     let item,confirmUsage=false;
     for(;;){
@@ -2278,7 +2294,9 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
     if(ticket!==task||workKey()!==startKey){
       // A successful old-chat request must consume its old one-off options as well, never the new chat's.
       const e=drafts.entry(startKey),same=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
-      if(draftsEnabled&&e.loaded&&e.data){const w={...e.data};
+      // 0.1.98 (GPT P2-2): only when work memory was connected at the press too. Started while paused, the old chat's
+      // saved work is left alone (the picture is in the history).
+      if(startedConnected&&draftsEnabled&&e.loaded&&e.data){const w={...e.data};
         if(same(w.finalOverride,submittedFinal)){w.finalOverride=null;w.isRestored=false;}
         if(same(w.optionsOverride,submittedOptions))w.optionsOverride=null;
         if(e.version===savedDraftVersion)w.result=item;
