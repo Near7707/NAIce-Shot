@@ -574,12 +574,13 @@ const emptyWork=w=>!w.scene.characters?.length&&!w.scene.unregistered?.length&&!
   !w.finalOverride&&!w.optionsOverride&&!w.result&&!w.undoClear&&!w.raw&&!w.target&&!w.wish&&!w.freeText;
 // 0.1.97, 0.1.98: whether work waiting off screen holds edits the queue does not keep (the same comparison as a load).
 function unsavedWork(key,w){
-  const retainRaw=settings().retainRawExtraction===true;let mine;try{mine=packWork(w,{retainRaw});}catch{return true;}
-  if(emptyWork(mine))return false;const e=drafts.entries.get(key);if(!e?.loaded||!e.data)return true;
-  if(compareForm(packWork(unpackWork(e.data),{retainRaw}))!==compareForm(mine))return true;
+  const retainRaw=settings().retainRawExtraction===true;let mine;try{mine=packWork(w,{retainRaw});}catch{return 'dropped';}
+  if(emptyWork(mine))return false;const e=drafts.entries.get(key);if(!e?.loaded||!e.data)return 'dropped';
+  if(compareForm(packWork(unpackWork(e.data),{retainRaw}))!==compareForm(mine))return 'dropped';
   // 0.1.98 (GPT P3): the queue has it. Saved, or still on its way, it is not lost; a failed save is kept for the next
   // try while work memory is connected, but a paused tab reads this work fresh when it connects, so that one is lost.
-  return !draftsEnabled&&e.dirty&&!!e.error;
+  // 0.1.99 (GPT P3): that edit may still come back here after a connect elsewhere, so the notice only says it was not saved.
+  return !draftsEnabled&&e.dirty&&!!e.error?'failed':false;
 }
 function rememberDraft(key=workKey(),work=null,{flush=false}={}){
   clearTimeout(captureTimer);captureTimer=null;
@@ -2263,7 +2264,10 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   const requestId=uuid(),canRecover=features.includes('generation-recovery');
   if(canRecover)rememberGeneration(startKey,requestId);
   dropUndo();setBusy(true,ticket);startProgress('generate',ticket);report('NAI에 생성 요청을 보내고 있어요. 창을 닫거나 채팅을 바꿔도 서버는 결과를 저장해요.');
-  rememberDraft(startKey,null,{flush:true});const startedConnected=draftsEnabled,generationDraft=drafts.entry(startKey);generationDraft.pinned=true;const savedDraftVersion=generationDraft.version;
+  rememberDraft(startKey,null,{flush:true});const startedConnected=draftsEnabled,generationDraft=drafts.entry(startKey);generationDraft.pinned=true;const savedDraftVersion=generationDraft.version,startGen=generationDraft.gen;
+  // 0.1.99 (GPT P2): the work this press belongs to is still going on only while its queue entry is the same one in the
+  // same generation. A connect, [서버 작업 다시 불러오기] or a pause replaces the entry; a deletion resets it (gen).
+  const sameWork=()=>drafts.entries.get(startKey)===generationDraft&&generationDraft.gen===startGen;
   try {
     let item,confirmUsage=false;
     for(;;){
@@ -2291,9 +2295,12 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
       }
     }
     if(pendingGenerations.get(startKey)===requestId)rememberGeneration(startKey,null);
+    // 0.1.99 (GPT P2): emptied or loaded again meanwhile, the late picture goes to the history only — not to the screen,
+    // whose next save would bring the deleted or replaced work back, and not to work memory.
+    if(!sameWork()){report('생성이 끝났어요. 그사이 작업이 바뀌어서 결과는 이력에만 남겼어요.');if(workKey()===startKey)loadHistory().catch(()=>{});refreshAccount().catch(()=>{});return;}
     if(ticket!==task||workKey()!==startKey){
       // A successful old-chat request must consume its old one-off options as well, never the new chat's.
-      const e=drafts.entry(startKey),same=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
+      const e=generationDraft,same=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
       // 0.1.98 (GPT P2-2): only when work memory was connected at the press too. Started while paused, the old chat's
       // saved work is left alone (the picture is in the history).
       if(startedConnected&&draftsEnabled&&e.loaded&&e.data){const w={...e.data};
@@ -3406,7 +3413,7 @@ function chatChanged() {
   if(isFree()){
     // 프리샷 work has nothing to do with the chat: keep it, and start the chat's work fresh for when 챗샷 returns.
     spare.chat=blankWork();
-    if(dialog){renderTargets();renderMatching();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';if(lost)notice('이전 채팅의 챗샷 편집은 저장되지 않은 채 비워졌어요.',true,'scene');}
+    if(dialog){renderTargets();renderMatching();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';if(lost)notice(lost==='failed'?'이전 채팅의 챗샷 편집은 서버에 저장되지 않았어요.':'이전 채팅의 챗샷 편집은 저장되지 않은 채 비워졌어요.',true,'scene');}
     renderChatImages();renderHistory();if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true,'history'));return;
   }
   pauseDraftCapture=true;try{cancelExtraction('');}finally{pauseDraftCapture=false;}

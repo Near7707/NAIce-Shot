@@ -294,7 +294,7 @@ try{
    for(let i=0;i<50&&await retry(page).textContent()!=='서버 작업 다시 불러오기';i++)await page.waitForTimeout(100);
    page.refuse=true;await mode(page,'free');assert.equal(asks(asked),1);
    await clearNotice(page);await page.evaluate(()=>mock.switchChat('B'));await page.waitForTimeout(1200);page.draftConflict=false;
-   assert.match(await notice(page),LOST,'the refused save is told');
+   assert.match(await notice(page),/이전 채팅의 챗샷 편집은 서버에 저장되지 않았어요\./,'the refused save is told (0.1.99 wording)');
    assert.deepEqual(errors,[]);await page.close();}
  }
  console.log('PASS: deletion record — the asked reload empties the screen, a connect or [다시 시도] with edits asks (취소 holds, 확인 empties), nothing written over it; a generation started while paused leaves the old chat\'s saved work alone (connected: still kept); a saved 챗샷 is not reported dropped (375/1100)');

@@ -1,3 +1,13 @@
+# v0.1.99 validation — 2026-11-08 (extension only, server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **83 of 83 Chromium browser scripts passed** (4 at a time). New `browser-v0199` (375 and 1100px): generating, deleted elsewhere, the next save refused (409), **서버 작업 다시 불러오기** empties the screen → the generation ends with no picture on screen and nothing saved ("…결과는 이력에만 남겼어요."); A connected and generating → B held → back in A, a connect loads newer work → the old generation ends without touching it; an ordinary edit saved during a generation → the result still shows and is remembered. `browser-v0198` now expects "서버에 저장되지 않았어요" for a refused save.
+- Reverted one at a time: the end-of-generation work check (same chat and old chat separately) and the new wording each made a test fail. Reverting only the `gen` part passes: a deletion that resets the same queue entry cannot start during a generation from the panel (deleting refuses while busy, a deletion check locks [이미지 생성]); it stays as a guard. `browser-v0199` fails on the 0.1.98 code.
+- Not checked: a real NovelAI account, a real SillyTavern (two windows), iPhone Safari's own confirm box.
+
+---
+
 # v0.1.98 validation — 2026-11-08 (extension only, server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed**.

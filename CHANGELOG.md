@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.99 — 2026-11-08 (extension only — server v0.1.25 unchanged)
+
+- Fixes from the GPT review of 0.1.98 (no P1). A generation that ends after its work was emptied or loaded again (a deletion record loaded with **서버 작업 다시 불러오기**, or a connect to newer work after a pause elsewhere) no longer puts its picture on the screen or in work memory: "생성이 끝났어요. 그사이 작업이 바뀌어서 결과는 이력에만 남겼어요." Ordinary edits and saves during a generation still take the result.
+- In 프리샷, a chat change after a refused save now says "이전 채팅의 챗샷 편집은 서버에 저장되지 않았어요." (the edit may still come back after a connect), instead of saying it was dropped.
+
 ## 0.1.98 — 2026-11-08 (extension only — server v0.1.25 unchanged)
 
 - Fixes from the GPT review of 0.1.97 (no P1). Work deleted in another window no longer comes back: the server's deletion record now counts as the server's state when saved work is loaded. **서버 작업 다시 불러오기** after a refused save empties the screen ("서버에서 삭제된 작업이라 화면을 비웠어요."); any other load that reads the record while the screen holds edits (connecting, the retry after a failed read, a chat read again) asks "서버에 이 작업의 삭제 기록이 있어요. 화면에 남은 편집도 비울까요?" — 확인 empties the screen, 취소 keeps the edit and pauses work memory. An empty screen connects without a question.
