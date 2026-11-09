@@ -714,8 +714,7 @@
  #naice-shot-dialog .ncs-header .ncs-mode button {min-height:36px;padding:4px 2px;font-size:13px;}
  #naice-shot-dialog .ncs-header small {white-space:nowrap;font-size:11.5px;}
 }
-@media(max-width:360px){ /* too narrow for both: the subtitle gives way on 그리기 */
- #naice-shot-dialog .ncs-header:has(.ncs-mode-fields:not([hidden])) small {display:none;}
+@media(max-width:360px){ /* 0.1.107 (GPT P2-1): the line under the name stays — it is the only way into the 사용 가이드 and fits under the name down to 320px */
  #naice-shot-dialog .ncs-header .ncs-mode {width:96px;}
  #naice-shot-dialog .ncs-brand {gap:6px;}
  #naice-shot-dialog .ncs-header .ncs-mode button {font-size:12.5px;}

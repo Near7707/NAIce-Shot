@@ -27,6 +27,11 @@ test('guide reader: everything is escaped, unsafe links become plain text',()=>{
   assert.equal(guideInline('[a](https://example.com)'),'a');
   assert.equal(guideInline('**`<b>`**'),'<b><code>&lt;b&gt;</code></b>');
   assert.equal(guideInline('[x](#cost)'),'<a href="#cost" data-guide-link="cost">x</a>');
+  // 0.1.107 (GPT P3-3): "../" would leave the account once the address is resolved
+  for(const bad of ['https://github.com/Near7707/../other/repo','https://github.com/Near7707/./../other','https://github.com/Near7707/x/../../other/repo'])
+    assert.equal(guideInline(`[a](${bad})`),'a',bad);
+  assert.match(guideInline('[a](https://github.com/Near7707/NAIce-Shot/blob/main/docs/PRIVACY.md)'),/^<a href="https:\/\/github\.com\/Near7707\/NAIce-Shot\/blob\/main\/docs\/PRIVACY\.md"/);
+  assert.match(guideInline('[a](https://github.com/Near7707/x/../NAIce-Shot)'),/^<a /,'resolving inside the account is fine');
   assert.equal(parseGuide('# A\n## B\n<script>x</script>')[0].topics[0].html,'<p>&lt;script&gt;x&lt;/script&gt;</p>');
 });
 test('guide: every [button] and quoted notice is on the real screen',async()=>{

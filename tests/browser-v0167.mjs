@@ -133,13 +133,13 @@ try{
   await page.locator('[data-mode="free"]').click();assert.equal(await page.locator('[data-mode="free"]').getAttribute('aria-pressed'),'true');
   assert.deepEqual(errors,[]);await page.close();
  }
- for(const narrow of [340,320]){// A very narrow phone: the subtitle gives way, the title row still fits and nothing overlaps.
+ for(const narrow of [340,320]){// A very narrow phone: the title row still fits and nothing overlaps. 0.1.107: the line under the name (now the 사용 가이드 entry) stays.
   const {page,errors}=await open(narrow);ask(page);
   const sw=await page.locator('#ncs-mode-fields').boundingBox(),close=await page.locator('.ncs-header [data-action="close"]').boundingBox();
   assert.ok(close.x>=sw.x+sw.width,`${narrow}px: ✕ does not cover the switch`);await page.locator('[data-mode="free"]').click();
-  assert.equal(await page.locator('.ncs-header small').isHidden(),true);assert.ok(await page.locator('.ncs-header').evaluate(e=>e.scrollWidth<=e.clientWidth+1),`fits at ${narrow}px`);
-  await page.locator('[data-tab="history"]').click();assert.equal(await page.locator('.ncs-header small').isHidden(),true,'0.1.68: the switch is on every tab, so the subtitle stays out of the way here too');
+  assert.equal(await page.locator('.ncs-header small').isVisible(),true);assert.ok(await page.locator('.ncs-header').evaluate(e=>e.scrollWidth<=e.clientWidth+1),`fits at ${narrow}px`);
+  await page.locator('[data-tab="history"]').click();assert.equal(await page.locator('.ncs-header small').isVisible(),true,'0.1.107: the guide entry stays on every tab');assert.ok(await page.locator('.ncs-header').evaluate(e=>e.scrollWidth<=e.clientWidth+1));
   assert.deepEqual(errors,[]);await page.close();
  }
- console.log('PASS: account box D for active Opus V4.5 (free, sent with consent off), V5 usage, 0% / isNegative / missing usage, active missing, inactive, grace period first, Tablet, failed check; title-row switch right after the title, subtitle kept, 그리기 only, waits with the work fields; 340/320px (375/1100)');
+ console.log('PASS: account box D for active Opus V4.5 (free, sent with consent off), V5 usage, 0% / isNegative / missing usage, active missing, inactive, grace period first, Tablet, failed check; title-row switch right after the title, subtitle kept, 그리기 only, waits with the work fields; 340/320px with the guide entry kept (375/1100)');
 }finally{await browser.close();server.close();}

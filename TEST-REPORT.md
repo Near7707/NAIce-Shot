@@ -1,3 +1,13 @@
+# v0.1.107 validation — 2026-11-09 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed** (`guide.test.mjs` now also refuses three `../` GitHub links and keeps the real ones).
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **91 of 91 Chromium browser scripts passed** (4 at a time). `browser-v0167` checked the old rule (subtitle hidden at 340/320px) and now checks that the line stays and the title row still fits. New `browser-v01107` (320, 360, 375px; 그리기, 설정, 이력; 챗샷 and 프리샷): **📖 사용 가이드 ›** is shown under the name, left of 챗샷/프리샷, nothing covers it and the title row does not overflow; a real tap opens the guide and group 2 names what goes to the extraction AI.
+- Reverted one at a time: the hiding CSS rule (fails `browser-v01107`: not shown at 320px), the resolved-address check (fails `guide.test.mjs`).
+- Not checked: a real 360px Android phone, iPhone Safari, a real SillyTavern.
+
+---
+
 # v0.1.106 validation — 2026-11-09 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed** (new `guide.test.mjs`: eight groups in order with privacy second and the summary first; links only to a guide group or the project on GitHub; the reader escapes everything and drops other links; every [button] and quoted notice in `guide.md` is on the real screen; no cost promise).

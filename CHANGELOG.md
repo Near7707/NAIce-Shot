@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.107 — 2026-11-09 (extension only — server v0.1.25 unchanged)
+
+- From the GPT review of 0.1.106 (no P1). **📖 사용 가이드 ›** under the name now shows on screens 360px wide or narrower too; an old rule for the earlier subtitle hid it there, so the guide could not be opened on many phones. It fits under the name down to 320px.
+- The guide and `docs/PRIVACY.md` now say exactly what goes to the extraction AI: in 챗샷 the chosen messages, the matched profiles' names, aliases, IDs and outfits, and the extra request; in 프리샷 the situation and **every** saved profile's name, aliases and ID; when a profile is made from a character card or persona, its description. Kept raw responses drop only what is inside `<think>`, `<thinking>`, `<analysis>` and `<reasoning>` tags.
+- The guide's V5 rule names its conditions (active Opus, not in a grace period, usage usable; otherwise the Anlas setting or a one-time question), and says the extraction AI is only needed for **장면 추출** and **설명으로 만들기**.
+- Guide links to GitHub are checked again after the address is resolved, so `../` cannot leave the project's account.
+
 ## 0.1.106 — 2026-11-09 (extension only — server v0.1.25 unchanged)
 
 - New Korean **사용 가이드** (user guide). **📖 사용 가이드 ›** under the name opens it over the whole panel: a contents list of eight groups (처음 사용하기, 개인정보와 저장되는 내용, 그리기, 인물, 그림 다루기, 비용, 작업 기억, 문제가 생겼을 때), one group at a time with **‹ 목차** / **다음 ›**, and **✕ 닫기** or Escape back to the tab you were on. The panel under it can't be pressed while it is open. The text lives in `guide.md` (drafted by GPT, checked against the code and edited by Claude); it opens with a three-line privacy summary.

@@ -3,11 +3,14 @@
 // Inline: **bold**, `code`, [text](#group-id) or [text](https://github.com/Near7707/…). Everything is escaped first.
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const LINK_OK=/^(#[a-z][a-z0-9-]*|https:\/\/github\.com\/Near7707\/[A-Za-z0-9._\-/#]*)$/;
+// 0.1.107 (GPT P3-3): "../" could leave the account once the browser resolves the address, so the resolved path is checked too.
+const linkOk=raw=>{if(!LINK_OK.test(raw))return false;if(raw.startsWith('#'))return true;
+  try{const u=new URL(raw);return u.origin==='https://github.com'&&u.pathname.startsWith('/Near7707/');}catch{return false;}};
 export function guideInline(text){
   const codes=[];let s=esc(text).replace(/`([^`]+)`/g,(_,c)=>`\u0000${codes.push(c)-1}\u0000`);
   s=s.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
   s=s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,(all,label,href)=>{
-    const raw=href.replace(/&amp;/g,'&');if(!LINK_OK.test(raw))return label;
+    const raw=href.replace(/&amp;/g,'&');if(!linkOk(raw))return label;
     return raw.startsWith('#')?`<a href="${raw}" data-guide-link="${raw.slice(1)}">${label}</a>`:`<a href="${raw}" target="_blank" rel="noopener noreferrer">${label}</a>`;});
   return s.replace(/\u0000(\d+)\u0000/g,(_,i)=>`<code>${codes[Number(i)]}</code>`);
 }
