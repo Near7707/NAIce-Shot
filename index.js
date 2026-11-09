@@ -3136,14 +3136,15 @@ function watchGenerateArea(){
   const target=$('ncs-generate-section'),button=$('ncs-jump-generate'),root=dialog.querySelector('.ncs-content');if(!target||!button||typeof IntersectionObserver!=='function')return;
   // 0.1.87: hidden while [장면 추출] could be under it. 0.1.104 (user): only while [장면 추출] is in the bottom strip where
   // the button floats (its 40px + 12px gap, with a little room), not while it is anywhere on the screen.
-  const extract=dialog.querySelector('[data-action="extract"]'),seen=new Map(),STRIP=64;
+  // 0.1.105 (GPT P3-1): [이 요청으로 다시 추출] (under the candidates, full width) is watched the same way.
+  const extracts=[...dialog.querySelectorAll('[data-action="extract"],[data-action="extract-again"]')],seen=new Map(),STRIP=64;
   const update=entries=>{for(const e of entries)seen.set(e.target,e.isIntersecting);button.hidden=[...seen.values()].some(Boolean);};
   new IntersectionObserver(update,{root,threshold:0}).observe(target);
-  if(!extract)return;
+  if(!extracts.length)return;
   // The strip is measured in pixels from the panel's current height, so the watcher is made again when that changes.
   let low=null,height=-1;
-  const watchExtract=()=>{const h=root.clientHeight;if(h===height)return;height=h;low?.disconnect();seen.delete(extract);
-    low=new IntersectionObserver(update,{root,threshold:0,rootMargin:`-${Math.max(0,h-STRIP)}px 0px 0px 0px`});low.observe(extract);};
+  const watchExtract=()=>{const h=root.clientHeight;if(h===height)return;height=h;low?.disconnect();for(const x of extracts)seen.delete(x);
+    low=new IntersectionObserver(update,{root,threshold:0,rootMargin:`-${Math.max(0,h-STRIP)}px 0px 0px 0px`});for(const x of extracts)low.observe(x);};
   watchExtract();if(typeof ResizeObserver==='function')new ResizeObserver(watchExtract).observe(root);
 }
 function bindEvents() {

@@ -1,3 +1,13 @@
+# v0.1.105 validation — 2026-11-09 (extension only, server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **89 of 89 Chromium browser scripts passed** (4 at a time; `browser-v0151` failed once under load and passed alone). New `browser-v01105` (375 and 1100px, 챗샷 with two candidates): with **장면 추출** above the strip and **이 요청으로 다시 추출** at the bottom edge or inside the strip, **↓ 생성** hides; just above the strip it shows and does not cover it; the same after the window gets shorter; **장면 추출** in the strip still hides it.
+- Reverted: watching only **장면 추출** (the 0.1.104 code) → `browser-v01105` fails (shown over 다시 추출 at the bottom edge).
+- Not checked: iPhone Safari, a real SillyTavern.
+
+---
+
 # v0.1.104 validation — 2026-11-09 (extension only, server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed**.

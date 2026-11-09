@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.105 — 2026-11-09 (extension only — server v0.1.25 unchanged)
+
+- From the GPT review of 0.1.104 (no P1/P2). The floating **↓ 생성** also hides while **이 요청으로 다시 추출** (under the candidates in 챗샷) is in the bottom strip, so it no longer covers that button's right end when **장면 추출** is scrolled above.
+
 ## 0.1.104 — 2026-11-09 (extension only — server v0.1.25 unchanged)
 
 - The floating **↓ 생성** on the drawing tab now hides only while **장면 추출** is in the strip at the bottom of the panel where the button floats, so it never covers it. Before, it hid as long as 장면 추출 was anywhere on the screen (on a phone, almost down to "2 · 장면 편집"). The strip follows the panel's height.
