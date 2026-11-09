@@ -1,3 +1,13 @@
+# v0.1.109 validation — 2026-11-10 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **93 of 93 Chromium browser scripts passed** (4 at a time; `browser-v0187` was slow under load once and passed on its own). `browser-v0130` and `browser-v0190` check the new 설정-tab V5 sentence. New `browser-v01109`: at the normal text size (320/360/375/1100) 챗샷 and 프리샷 fit their buttons; with every panel font raised to at least 20/24px at 320px, in all 17 themes the pixels of ✕ are the same with 프리샷's text shown or made transparent, and 프리샷 and ✕ each still work.
+- Reverted: without `overflow:hidden` on the mode buttons `browser-v01109` fails (프리샷 letters on ✕ in the classic theme at 24px).
+- Not checked: a real phone's text-size setting, iPhone Safari, a real SillyTavern, real NovelAI charges.
+
+---
+
 # v0.1.108 validation — 2026-11-10 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

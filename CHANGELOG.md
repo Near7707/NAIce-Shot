@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.109 — 2026-11-10 (extension only — server v0.1.25 unchanged)
+
+- From the GPT review of 0.1.108 (no P1 or P2). The 설정 tab's V5 sentence now says it generates without the Anlas setting only when the base usage is 2% or more **and usable now**, like the guide and README (the cost check itself is unchanged).
+- With a large text size, **프리샷** is cut inside its own button instead of running onto **✕** (it showed through the see-through ✕ of the glass theme). At the normal size nothing changes.
+
 ## 0.1.108 — 2026-11-10 (extension only — server v0.1.25 unchanged)
 
 - From the GPT review of 0.1.107 (no P1). With a large text size set on the phone or browser, the title row on narrow screens no longer slides **챗샷/프리샷** under **✕** (tapping 프리샷 could close the panel): the name and **📖 사용 가이드 ›** wrap and the row grows taller. At the normal size nothing moves.
