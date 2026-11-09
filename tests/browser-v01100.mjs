@@ -203,7 +203,8 @@ const checkHeld=page=>page.route('**/api/plugins/naice-shot/generation?requestId
 const pressCheck=async page=>{const g=gate();page.holdCheck=g;await clearNotice(page);await page.locator('[data-action="generation-check"]').evaluate(b=>b.click());await page.waitForTimeout(400);return {g};};
 const CHECKED=/같은 요청의 그림을 불러왔어요|이력에만 남겼어요/;
 // Chat B whose first read fails: the queue entry for B stays unread and [다시 시도] shows.
-const unreadB=async page=>{page.draftReadFails=true;await page.evaluate(()=>mock.switchChat('B'));await page.waitForTimeout(700);
+const unreadB=async page=>{page.draftReadFails=true;await page.evaluate(()=>mock.switchChat('B'));
+ for(let i=0;i<50&&await retry(page).textContent().catch(()=>'')!=='다시 시도';i++)await page.waitForTimeout(100); // slow under load
  assert.equal(await retry(page).textContent(),'다시 시도','read failed');page.draftReadFails=false;};
 try{
  const made=async(fill)=>{const {page}=await open(375);await fill(page);let before=-1;

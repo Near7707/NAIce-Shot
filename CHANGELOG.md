@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.102 — 2026-11-09 (extension only — server v0.1.25 unchanged)
+
+- Fixes from the GPT review of 0.1.101 (no P1). While **같은 요청으로 다시 확인** or the history's **저장 다시 시도** waits, the history card's **챗샷으로 보내기** is off too (**프리샷으로 보내기** already was), and sending from the enlarged view is refused with "진행 중인 작업이 끝난 뒤 보내 주세요." Before, the late answer could put the old picture on the imported work and save it. Without a chat, **챗샷으로 보내기** stays off as before.
+- A **↶ 가져오기 취소** button that appears while it waits (opening a chat whose saved work has one) now looks off too; pressing it was already refused.
+
 ## 0.1.101 — 2026-11-09 (extension only — server v0.1.25 unchanged)
 
 - Fix from the GPT review of 0.1.100 (no P1). While **같은 요청으로 다시 확인** or the history's **저장 다시 시도** waits for its answer, **그리기창 비우기** and **↶ 비우기 취소** are off, as they already are during a generation. Before, emptying the drawing window then let the late answer put the picture back on the emptied screen and save it into work memory. They come back as soon as the answer is in.

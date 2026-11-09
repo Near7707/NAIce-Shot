@@ -1,3 +1,13 @@
+# v0.1.102 validation — 2026-11-09 (extension only, server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **86 of 86 Chromium browser scripts passed** (4 at a time). `browser-v01100` once saw "연결 다시 확인" before the failed read settled under load; its wait now polls (4 parallel runs pass). New `browser-v01102` (375 and 1100px): while **같은 요청으로 다시 확인** waits, the card's **챗샷으로 보내기**/**프리샷으로 보내기** are off and pressing does not import; the enlarged view's **챗샷으로 보내기** is refused with the notice and the work stays; both are on again after, the picture shows and is remembered; without a chat **챗샷으로 보내기** stays off; opening a chat whose saved work has an import undo while it waits makes an off **↶ 가져오기 취소**, on again after.
+- Reverted one at a time: the card lock (fails), the no-chat mark (fails), the new button's lock (fails). The two refusals in the import (on entry, after a mode switch) each cover the other; both reverted together → the enlarged-view case fails. `browser-v01102` fails on the 0.1.101 code.
+- Not checked: a real NovelAI account, a real SillyTavern (two windows), iPhone Safari's own confirm box.
+
+---
+
 # v0.1.101 validation — 2026-11-09 (extension only, server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed**.

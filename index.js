@@ -783,7 +783,8 @@ function renderUndo(){
   b.title=clearUndo?'비우기 전으로 되돌려요. 다음에 고치거나 추출·생성하면 사라져요.':'인물·장면·후보·최종 프롬프트를 비워요. 공통 프롬프트와 설정은 그대로예요.';
   let u=row.querySelector('.ncs-import-undo');
   if(importUndo&&!u){u=document.createElement('button');u.type='button';u.className='ncs-import-undo';u.dataset.action='undo-clear';b.before(u);}
-  if(u){u.hidden=!importUndo;u.title=undoClear?.label??'';u.textContent=undoKind(undoClear)==='extract'?'↶ 추출 취소':'↶ 가져오기 취소';u.classList.toggle('ncs-extract-undo',undoKind(undoClear)==='extract');if(!importUndo)u.remove();}
+  if(u){u.disabled=busy||attaching||checkingGeneration; // 0.1.102 (GPT P3): a button made while locked looks locked too
+    u.hidden=!importUndo;u.title=undoClear?.label??'';u.textContent=undoKind(undoClear)==='extract'?'↶ 추출 취소':'↶ 가져오기 취소';u.classList.toggle('ncs-extract-undo',undoKind(undoClear)==='extract');if(!importUndo)u.remove();}
 }
 // 추가 요청 sits under the candidates once there are some (it re-picks or changes them), else above 장면 추출.
 function placeRequest(){
@@ -2366,7 +2367,7 @@ function renderResult() {
 function updateAttachButtons() {
   const locked=busy||attaching||checkingGeneration;
   for(const el of dialog.querySelectorAll('[data-action="blank"],[data-action="undo-clear"]'))el.disabled=locked; // 0.1.101: clearWork refuses then
-  for(const el of dialog.querySelectorAll('[data-action="attach"],[data-action="detach"],[data-history-free],[data-history-attach],[data-history-detach],[data-history-delete],[data-pending-save],[data-pending-discard],[data-action="delete-result"],[data-history-pick],[data-history-star],[data-history-tag-save]'))el.disabled=locked||el.dataset.unavailable==='true';
+  for(const el of dialog.querySelectorAll('[data-action="attach"],[data-action="detach"],[data-history-id],[data-history-free],[data-history-attach],[data-history-detach],[data-history-delete],[data-pending-save],[data-pending-discard],[data-action="delete-result"],[data-history-pick],[data-history-star],[data-history-tag-save]'))el.disabled=locked||el.dataset.unavailable==='true';
   for(const el of document.querySelectorAll('[data-ncs-inline-remove]'))el.disabled=locked;
   updateHistoryTools();renderGenerationCheck();
 }
@@ -2716,7 +2717,7 @@ const historyTagControls=item=>historyTagEdit===item.id?`<div class="ncs-wardrob
 function historyActions(item,{editable=false,attached=false}={}){
   const id=esc(item.id),menu=`ncs-history-menu-${id}`,save=saveMenu(item,`ncs-history-save-${item.id}`);
   // Order (docs/DESIGN.md): 챗샷으로 보내기 · 프리샷으로 보내기 · 설정을 프리셋으로 · 본문에 넣기.
-  const more=[`<button type="button" data-history-id="${id}" ${keyOf()?'':'disabled'}>챗샷으로 보내기<small>${keyOf()?'지금 열린 채팅의 그리기창으로 가져와요.':'채팅을 먼저 열어 주세요.'}</small></button>`,`<button type="button" data-history-free="${id}">프리샷으로 보내기</button>`,
+  const more=[`<button type="button" data-history-id="${id}" ${keyOf()?'':'disabled data-unavailable="true"'}>챗샷으로 보내기<small>${keyOf()?'지금 열린 채팅의 그리기창으로 가져와요.':'채팅을 먼저 열어 주세요.'}</small></button>`,`<button type="button" data-history-free="${id}">프리샷으로 보내기</button>`,
     item.options?`<button type="button" data-history-preset="${id}">설정을 프리셋으로</button>`:'',`<button type="button" data-history-attach="${id}" ${item.chatKey===keyOf()?'':'disabled data-unavailable="true"'}>본문에 넣기${item.chatKey===keyOf()?'':`<small>${item.chatKey===FREE_KEY?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.'}</small>`}</button>`,
     editable&&attached?`<button type="button" data-history-detach="${id}">채팅에서 이 그림 빼기${attachedCount(item.id)>1?` (${attachedCount(item.id)}곳)`:''}</button>`:'',
     // 0.1.84: 태그 편집 — 프리샷 pictures have no character, so tag suggestions never show them.
@@ -2937,7 +2938,9 @@ async function sendToFree(id){return importHistory(id,'free');}
 const workLockedFor=key=>deletingWork||drafts.paused||draftsEnabled&&!!key&&draftDeletionChecks.has(key);
 const WORK_LOCKED='작업 삭제를 확인하는 중이라 그리기창을 잠가 두었어요. 끝난 뒤 다시 보내 주세요.';
 async function importHistory(id,nextMode,record=null){
-  if(busy||attaching||draftLoading||outfitSaving)throw new Error('진행 중인 작업이 끝난 뒤 보내 주세요.');
+  // 0.1.102 (GPT P2): also while [같은 요청으로 다시 확인]/[저장 다시 시도] waits — its answer would put the old
+  // picture on the imported work. Checked again after the mode switch, right before the work is replaced.
+  if(busy||attaching||draftLoading||outfitSaving||checkingGeneration)throw new Error('진행 중인 작업이 끝난 뒤 보내 주세요.');
   if(workLockedFor(nextMode==='free'?FREE_KEY:keyOf()))throw new Error(WORK_LOCKED);
   const item=record??historyItems.find(x=>x.id===id);if(!item)return;
   const startChat=keyOf(),startTask=task,startRevision=revision,switched=mode!==nextMode,token=++historyImportToken;
@@ -2945,6 +2948,7 @@ async function importHistory(id,nextMode,record=null){
   if(switched)await setMode(nextMode);
   if(token!==historyImportToken||mode!==nextMode||keyOf()!==startChat||task!==startTask||revision!==startRevision+(switched?1:0))throw new Error('채팅이나 작업이 바뀌어서 가져오지 않았어요. 다시 선택해 주세요.');
   if(workLockedFor(workKey())||draftLoading)throw new Error(WORK_LOCKED);
+  if(busy||attaching||checkingGeneration)throw new Error('진행 중인 작업이 끝난 뒤 보내 주세요.');
   const name=nextMode==='free'?'프리샷':'챗샷';
   const before={...captureWork(),undoClear:null,targetShown,label:`이력에서 가져왔어요. 원래 ${name} 작업은 되돌리기로 돌아와요.`};
   const sameChat=nextMode==='chat'&&item.chatKey===startChat,known=c=>c.temp||settings().profiles.some(p=>p.id===c.id);
