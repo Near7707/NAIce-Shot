@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.110 — 2026-11-10 (extension only — server v0.1.25 unchanged)
+
+- 사용 가이드: example tag boxes are readable on light themes again (SillyTavern gives every `code` a near-white color; the guide now sets its own color, border and font).
+- **‹ 목차 · n / 8 · 다음 ›** sits under the guide's title and stays there while the text scrolls.
+- The contents show an icon, the group name and its topic names; numbered steps are circles on a line; quotes are 💡 boxes. The guide text itself is unchanged.
+- Glass theme: the guide is no longer see-through (the panel's text showed through it).
+
 ## 0.1.109 — 2026-11-10 (extension only — server v0.1.25 unchanged)
 
 - From the GPT review of 0.1.108 (no P1 or P2). The 설정 tab's V5 sentence now says it generates without the Anlas setting only when the base usage is 2% or more **and usable now**, like the guide and README (the cost check itself is unchanged).

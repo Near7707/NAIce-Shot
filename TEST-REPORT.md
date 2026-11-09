@@ -1,3 +1,13 @@
+# v0.1.110 validation — 2026-11-10 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **94 of 94 Chromium browser scripts passed** (4 at a time). `browser-v01106` now finds the bar above the scrolling text and the contents names by `.ncs-guide-toc-name`. New `browser-v01110`, with SillyTavern's `code` rule added to the page: in all 17 themes guide code has the text's color and font (≥4.5:1), contents names and topic headings are ≥4.5:1, and the guide is opaque; at 320/390/1100px 다음 › stays under the title after scrolling to the end and works, the next group starts at the top, the bar is hidden on the contents and 다음 is gone on the last group; 8 different icons, topic names, step circles and 💡 quotes.
+- Reverted one at a time (each fails `browser-v01110`): the code color/font rule, the bar back inside the scrolling text, the glass.css line.
+- Not checked: a real SillyTavern with the user's own theme, iPhone Safari.
+
+---
+
 # v0.1.109 validation — 2026-11-10 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

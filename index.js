@@ -3016,14 +3016,17 @@ function loadGuide(){
     .then(parseGuide).catch(e=>{guideData=null;throw e;});
   return guideData;
 }
+const GUIDE_ICONS={'처음 사용하기':'🚀','개인정보와 저장되는 내용':'🔒','그리기':'🎨','인물':'👤','그림 다루기':'🖼️','비용':'💰','작업 기억':'💾','문제가 생겼을 때':'🛟'};
 async function renderGuide(){
-  const body=$('ncs-guide-body');let groups;
+  const body=$('ncs-guide-body'),nav=$('ncs-guide-nav');let groups;nav.hidden=true;nav.textContent='';
   try{groups=await loadGuide();}catch{body.innerHTML='<p>가이드를 읽지 못했어요. 확장을 다시 설치하거나 새로고침한 뒤 열어 주세요.</p>';return;}
   if(guideAt===null||!groups[guideAt]){guideAt=null;
-    body.innerHTML=`<div class="ncs-guide-toc">${groups.map((g,i)=>`<button type="button" data-guide-group="${i}"><span>${i+1}. ${esc(g.title)}</span><small>${g.topics.length}개 ›</small></button>`).join('')}</div>`;}
+    // 0.1.110 (user choice B): each group shows an icon and the names of its topics, taken from guide.md.
+    body.innerHTML=`<div class="ncs-guide-toc">${groups.map((g,i)=>`<button type="button" data-guide-group="${i}"><i class="ncs-guide-toc-icon" aria-hidden="true">${GUIDE_ICONS[g.title]??'📘'}</i><span class="ncs-guide-toc-text"><span class="ncs-guide-toc-name">${i+1}. ${esc(g.title)}</span><small>${g.topics.map(t=>esc(t.title.split(' — ')[0])).join(' · ')}</small></span><i class="ncs-guide-toc-arrow" aria-hidden="true">›</i></button>`).join('')}</div>`;}
   else{const i=guideAt,g=groups[i];
-    body.innerHTML=`<div class="ncs-guide-bar"><button type="button" data-guide-toc>‹ 목차</button><small>${i+1} / ${groups.length}</small>${i<groups.length-1?`<button type="button" data-guide-group="${i+1}">다음 ›</button>`:'<span></span>'}</div>`+
-      `<div class="ncs-guide-text"><h3>${i+1}. ${esc(g.title)}</h3>${g.topics.map(t=>`<h4>${esc(t.title)}</h4>${t.html}`).join('')}</div>`;}
+    // 0.1.110 (user request): ‹ 목차 · n / 8 · 다음 › sits under the title outside the scrolling text, so it never scrolls away.
+    nav.innerHTML=`<div class="ncs-guide-bar"><button type="button" data-guide-toc>‹ 목차</button><small>${i+1} / ${groups.length}</small>${i<groups.length-1?`<button type="button" data-guide-group="${i+1}">다음 ›</button>`:'<span></span>'}</div>`;nav.hidden=false;
+    body.innerHTML=`<div class="ncs-guide-text"><h3>${i+1}. ${esc(g.title)}</h3>${g.topics.map(t=>`<h4>${esc(t.title)}</h4>${t.html}`).join('')}</div>`;}
   body.scrollTop=0;
 }
 async function openGuide(){

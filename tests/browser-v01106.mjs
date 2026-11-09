@@ -207,7 +207,7 @@ const offWhile=async(page,label)=>{assert.equal(await clearBtn(page).isDisabled(
  assert.equal(await page.locator('#ncs-location').inputValue(),'my place',`${label}: not emptied`);};
 const guide=page=>page.locator('#ncs-guide');
 const heading=page=>page.locator('#ncs-guide-body h3').innerText();
-const tocNames=page=>page.locator('#ncs-guide-body .ncs-guide-toc button span').allInnerTexts();
+const tocNames=page=>page.locator('#ncs-guide-body .ncs-guide-toc-name').allInnerTexts() /* 0.1.110: name beside an icon and topic names */;
 async function openGuide(page){await page.locator('[data-action="open-guide"]').click();await page.locator('#ncs-guide-body .ncs-guide-toc, #ncs-guide-body p').first().waitFor();}
 const inert=page=>page.evaluate(()=>document.querySelector('#naice-shot-dialog .ncs-shell').inert);
 try{
@@ -234,7 +234,7 @@ try{
   assert.equal(await heading(page),'6. 비용');assert.match(await page.locator('.ncs-guide-bar small').innerText(),/6 \/ 8/);
   assert.match(await page.locator('#ncs-guide-body').innerText(),/이번만 생성할까요\?/);
   // (pressed from script: a real click would scroll the button, and so the page, back to the top first)
-  assert.ok(await page.locator('#ncs-guide-body').evaluate(b=>{b.scrollTop=400;b.querySelector('.ncs-guide-bar [data-guide-group="6"]').click();return b.scrollTop>0;}));
+  assert.ok(await page.locator('#ncs-guide-body').evaluate(b=>{b.scrollTop=400;document.querySelector('.ncs-guide-bar [data-guide-group="6"]').click() /* 0.1.110: the bar sits above the scrolling text */;return b.scrollTop>0;}));
   await page.waitForFunction(()=>document.querySelector('#ncs-guide-body h3')?.textContent==='7. 작업 기억');
   assert.equal(await heading(page),'7. 작업 기억');assert.equal(await page.locator('#ncs-guide-body').evaluate(b=>b.scrollTop),0,'next group starts at the top');
   await page.locator('.ncs-guide-bar [data-guide-group="7"]').click();

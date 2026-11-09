@@ -36,3 +36,5 @@
 #naice-shot-dialog[data-skin="glass"] .ncs-character,#naice-shot-dialog[data-skin="glass"] .ncs-history-card,#naice-shot-dialog[data-skin="glass"] .ncs-skin {box-shadow:var(--ncs-card-shadow);}
 #naice-shot-dialog[data-skin="glass"] .ncs-primary {box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 6px 16px rgba(0,0,0,.2);}
 #ncs-viewer[data-skin="glass"] {--ncsv-accent:#a6f0ea;--ncsv-accent-fg:#0b2a2b;--ncsv-accent-hover:#c4f7f3;--ncsv-pressed:#2c5457;}
+/* 0.1.110: the 사용 가이드 covers the panel; with the see-through glass color the panel's own text showed through it */
+#naice-shot-dialog[data-skin="glass"] .ncs-guide {background:var(--ncs-menu-bg);}
