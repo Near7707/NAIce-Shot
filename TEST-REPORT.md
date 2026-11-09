@@ -1,3 +1,13 @@
+# v0.1.106 validation — 2026-11-09 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed** (new `guide.test.mjs`: eight groups in order with privacy second and the summary first; links only to a guide group or the project on GitHub; the reader escapes everything and drops other links; every [button] and quoted notice in `guide.md` is on the real screen; no cost promise).
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **90 of 90 Chromium browser scripts passed** (4 at a time; `browser-v0151` and `browser-v031` failed once under load and passed alone). `browser-v0186` caught the guide link's hover rule outside `@media (hover:hover)`; fixed. New `browser-v01106` (375 and 1100px): a failed read says so and opening again reads again; opened from the history tab it covers the panel, the panel is inert and a tap on the tab row lands on the guide, focus on **✕ 닫기**; 목차 has the eight groups; group 6 → 다음 → 7 starts at the top → 8 has no 다음; ‹ 목차; the summary's link opens group 2 without changing the page address; the PRIVACY.md link opens in a new tab with noopener; ✕ 닫기 returns to the same tab with focus on the entry; reopening starts at 목차; Escape closes the guide but not the panel; closing the panel with the guide open leaves it closed next time.
+- Reverted one at a time (each fails `browser-v01106`): the inert panel, forgetting a failed read, Escape closing the guide first, closing it with the panel, keeping in-guide links off the page address, scrolling a new group to the top.
+- Not checked: iPhone Safari, a real SillyTavern.
+
+---
+
 # v0.1.105 validation — 2026-11-09 (extension only, server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed**.

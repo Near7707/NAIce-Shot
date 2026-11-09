@@ -1048,3 +1048,27 @@
 #naice-shot-dialog .ncs-usage-note.ncs-usage-alert {color:var(--ncs-fg);}
 #naice-shot-dialog .ncs-usage-note b {color:var(--ncs-fg);font-weight:700;}
 #naice-shot-dialog .ncs-usage-note[hidden] {display:none;}
+
+/* 0.1.106 사용 가이드: "📖 사용 가이드 ›" under the name opens a sheet over the whole panel (user's choice B from the
+   real-panel mock-up). 목차 → one group at a time with ‹ 목차 / 다음 ›; [✕ 닫기] returns to the tab as it was. */
+#naice-shot-dialog .ncs-brand-text small .ncs-guide-open {display:inline;width:auto;min-height:0;margin:0;padding:0;border:0;background:none;box-shadow:none;color:var(--ncs-accent-text);font:inherit;font-weight:600;cursor:pointer;}
+@media (hover:hover) {#naice-shot-dialog .ncs-brand-text small .ncs-guide-open:hover {text-decoration:underline;}}
+#naice-shot-dialog .ncs-guide {position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;background:var(--ncs-bg);color:var(--ncs-fg);}
+#naice-shot-dialog .ncs-guide-head {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px 10px;border-bottom:1px solid var(--ncs-rule);}
+#naice-shot-dialog .ncs-guide-head strong {font-size:16px;}
+#naice-shot-dialog .ncs-guide-head button {width:auto;min-height:36px;margin:0;padding:4px 12px;}
+#naice-shot-dialog .ncs-guide-scroll {flex:1;min-height:0;overflow:auto;padding:12px 18px 24px;outline:none;}
+#naice-shot-dialog .ncs-guide-toc {display:grid;gap:8px;margin:4px 0 12px;}
+#naice-shot-dialog .ncs-guide-toc button {display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;min-height:44px;margin:0;padding:8px 12px;text-align:left;font-size:14px;}
+#naice-shot-dialog .ncs-guide-toc button small {color:var(--ncs-muted);font-size:12px;font-weight:400;white-space:nowrap;}
+#naice-shot-dialog .ncs-guide-bar {display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;}
+#naice-shot-dialog .ncs-guide-bar button {width:auto;min-height:36px;margin:0;padding:4px 12px;}
+#naice-shot-dialog .ncs-guide-bar small {color:var(--ncs-muted);font-size:12px;}
+#naice-shot-dialog .ncs-guide-text h3 {font-size:16px;margin:4px 0 10px;}
+#naice-shot-dialog .ncs-guide-text h4 {font-size:15px;margin:18px 0 6px;padding-top:12px;border-top:1px solid var(--ncs-rule);}
+#naice-shot-dialog .ncs-guide-text h4:first-of-type {margin-top:6px;padding-top:0;border-top:0;}
+#naice-shot-dialog .ncs-guide-text p,#naice-shot-dialog .ncs-guide-text li {margin:0 0 8px;font-size:14px;line-height:1.6;}
+#naice-shot-dialog .ncs-guide-text ul,#naice-shot-dialog .ncs-guide-text ol {margin:0 0 8px;padding-left:20px;}
+#naice-shot-dialog .ncs-guide-text blockquote {margin:0 0 10px;padding:10px 12px;border-left:3px solid var(--ncs-edge);border-radius:var(--ncs-radius-control);background:var(--ncs-control);font-size:14px;line-height:1.6;}
+#naice-shot-dialog .ncs-guide-text code {padding:1px 5px;border-radius:5px;background:var(--ncs-control);font-size:12.5px;overflow-wrap:anywhere;}
+#naice-shot-dialog .ncs-guide-text a {color:var(--ncs-accent-text);}

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.106 — 2026-11-09 (extension only — server v0.1.25 unchanged)
+
+- New Korean **사용 가이드** (user guide). **📖 사용 가이드 ›** under the name opens it over the whole panel: a contents list of eight groups (처음 사용하기, 개인정보와 저장되는 내용, 그리기, 인물, 그림 다루기, 비용, 작업 기억, 문제가 생겼을 때), one group at a time with **‹ 목차** / **다음 ›**, and **✕ 닫기** or Escape back to the tab you were on. The panel under it can't be pressed while it is open. The text lives in `guide.md` (drafted by GPT, checked against the code and edited by Claude); it opens with a three-line privacy summary.
+- New `docs/PRIVACY.md`: why the server plugin is needed, what goes where, how the NovelAI key is used, and the plugin's risks. Linked from the guide and the README.
+
 ## 0.1.105 — 2026-11-09 (extension only — server v0.1.25 unchanged)
 
 - From the GPT review of 0.1.104 (no P1/P2). The floating **↓ 생성** also hides while **이 요청으로 다시 추출** (under the candidates in 챗샷) is in the bottom strip, so it no longer covers that button's right end when **장면 추출** is scrolled above.

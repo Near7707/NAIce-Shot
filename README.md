@@ -49,6 +49,8 @@ Termux로 실리태번을 쓰는 경우에도 순서는 같아요. 명령은 Ter
 
 서버 플러그인 설치를 허용하지 않는 호스팅에서는 사용할 수 없어요. Node.js 20 이상을 사용하며, 개발 대상은 SillyTavern 1.19.0 staging이에요.
 
+패널 이름 아래 **📖 사용 가이드 ›**를 누르면 쓰는 법을 주제별로 볼 수 있어요(0.1.106, 글은 [guide.md](guide.md)).
+
 처음 사용할 때는 캐릭터와 유저의 이미지 프로필을 각각 만들고, **장면 추출 → 내용 확인·편집 → 이미지 생성** 순서로 진행해요. 별도 추출 AI 연결을 고를 수 있고, 추출 요청에도 해당 AI의 사용량·비용이 발생할 수 있어요. Opus의 V5 생성은 서버 플러그인 0.1.25 이상에서만 보내요(0.1.92). 기본 V5 사용량이 2% 이상이면 허용 없이 생성하고, 1% 이하이거나 계정 응답에 V5 사용량이 없으면 생성할 때마다 "이번만 생성할까요?"라고 물어봐요. 구독 조회 자체가 실패하면 예전처럼 Anlas 사용 가능성 허용 설정을 따라요. 확인한 뒤 실제 생성 사이에 다른 곳에서 사용량을 쓰면 Anlas가 차감될 수 있어요.
 
 **Opus가 아니어도 쓸 수 있어요.** Tablet·Scroll 구독은 그림마다 Anlas를 써서, **Anlas 사용 가능성 허용**을 켜야 생성돼요. 그리기창의 생성 버튼 위에 Anlas 잔액(↻로 다시 확인)과 이번 생성의 비용 조건이 보여요. 무료 체험 계정이 이 확장(외부 API)으로 그림을 만들 수 있는지는 확인되지 않았어요.
@@ -64,7 +66,7 @@ Termux로 실리태번을 쓰는 경우에도 순서는 같아요. 명령은 Ter
 - **접근 보호:** PNG는 채팅 표시를 위해 실리태번의 이미지 경로로 제공돼요. 인증과 접근 제한은 실리태번 설정을 사용하며, 확장이 별도의 로그인 기능을 추가하지는 않아요.
 - **오류 화면 공유:** 파일 처리나 예상치 못한 내부 오류는 정리한 메시지로 표시해 로컬 경로를 노출하지 않아요. 선택한 추출 연결에서 반환한 임의의 오류 원문도 그대로 표시하지 않아요.
 
-코드에 개발자용 별도 통계 수집·텔레메트리 전송 기능은 없어요. 자세한 저장 위치와 검토 범위는 아래 영문 안내 및 [SECURITY-REVIEW.md](SECURITY-REVIEW.md)를 참고해 주세요.
+코드에 개발자용 별도 통계 수집·텔레메트리 전송 기능은 없어요. 서버 플러그인이 왜 필요한지, 권한과 보안 위험은 [docs/PRIVACY.md](docs/PRIVACY.md)에 정리했어요. 자세한 저장 위치와 검토 범위는 아래 영문 안내 및 [SECURITY-REVIEW.md](SECURITY-REVIEW.md)를 참고해 주세요.
 
 ## Detailed documentation (English)
 
@@ -133,6 +135,8 @@ The server plugin imports SillyTavern's secrets module by relative path, so it m
 Per-version notes (UI-only or UI + server) are in `CHANGELOG.md`.
 
 ## First use
+
+The panel has a Korean user guide: **📖 사용 가이드 ›** under the name opens it over the panel (written in [guide.md](guide.md); privacy and server-plugin notes in [docs/PRIVACY.md](docs/PRIVACY.md)).
 
 1. Save your NovelAI key in SillyTavern. NAIce Shot reuses that key on the server.
 2. Open a character chat, then NAIce Shot.

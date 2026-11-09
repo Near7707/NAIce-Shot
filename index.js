@@ -20,6 +20,7 @@ import {saveMenu,downloadOriginal} from './download-choice.mjs';
 import { genericizeScene } from './tags.mjs';
 import { checkCompat, compareVersions } from './compat.mjs';
 import { makeZip } from './zip.mjs';
+import { parseGuide } from './guide.mjs';
 import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, exactName } from './missing.mjs';
 import { cleanImageFile, saveCleanImage } from './downloads.mjs';
 import { jumpTargets, locateSource, locateAttached } from './message-jump.mjs';
@@ -3007,11 +3008,45 @@ async function importSettings(file) {
   clean.imageMarks=cleanMarks(settings().imageMarks);clean.tagPopupChats=cleanPopupChats(settings().tagPopupChats); // 0.1.84: kept, never taken from a backup
   ctx().extensionSettings[KEY]=clean;syncGen(mode);ctx().saveSettingsDebounced();renderChatImages();scene=blankScene();finalOverride=null;optionsOverride=null;revision++;renderSettings();renderProfiles();editProfile();renderScene();useSkin(clean.skin).catch(()=>{});notice('백업을 가져왔어요. Anlas 사용 가능성 허용과 추출 원문 보관은 꺼진 상태로 가져왔어요.');
 }
+// 0.1.106: 사용 가이드. guide.md is read once and shown on a sheet over the whole panel (목차 → one group at a time).
+// While it is open the panel under it is inert, so nothing behind it can be pressed or focused.
+let guideData=null,guideAt=null;
+function loadGuide(){
+  if(!guideData)guideData=fetch(new URL('guide.md',import.meta.url)).then(r=>{if(!r.ok)throw new Error(String(r.status));return r.text();})
+    .then(parseGuide).catch(e=>{guideData=null;throw e;});
+  return guideData;
+}
+async function renderGuide(){
+  const body=$('ncs-guide-body');let groups;
+  try{groups=await loadGuide();}catch{body.innerHTML='<p>가이드를 읽지 못했어요. 확장을 다시 설치하거나 새로고침한 뒤 열어 주세요.</p>';return;}
+  if(guideAt===null||!groups[guideAt]){guideAt=null;
+    body.innerHTML=`<div class="ncs-guide-toc">${groups.map((g,i)=>`<button type="button" data-guide-group="${i}"><span>${i+1}. ${esc(g.title)}</span><small>${g.topics.length}개 ›</small></button>`).join('')}</div>`;}
+  else{const i=guideAt,g=groups[i];
+    body.innerHTML=`<div class="ncs-guide-bar"><button type="button" data-guide-toc>‹ 목차</button><small>${i+1} / ${groups.length}</small>${i<groups.length-1?`<button type="button" data-guide-group="${i+1}">다음 ›</button>`:'<span></span>'}</div>`+
+      `<div class="ncs-guide-text"><h3>${i+1}. ${esc(g.title)}</h3>${g.topics.map(t=>`<h4>${esc(t.title)}</h4>${t.html}`).join('')}</div>`;}
+  body.scrollTop=0;
+}
+async function openGuide(){
+  const box=$('ncs-guide');guideAt=null;box.hidden=false;dialog.querySelector('.ncs-shell').inert=true;
+  await renderGuide();box.querySelector('[data-action="close-guide"]').focus();
+}
+function closeGuide({focus=true}={}){
+  const box=$('ncs-guide');if(!box||box.hidden)return false;
+  box.hidden=true;dialog.querySelector('.ncs-shell').inert=false;if(focus)dialog.querySelector('[data-action="open-guide"]')?.focus();return true;
+}
+async function guideClick(event){
+  const el=event.target.closest('[data-guide-group],[data-guide-toc],[data-guide-link]');if(!el)return;event.preventDefault();
+  if(el.dataset.guideLink!==undefined){const groups=await loadGuide().catch(()=>[]),i=groups.findIndex(g=>g.id===el.dataset.guideLink);guideAt=i<0?null:i;}
+  else guideAt=el.dataset.guideGroup!==undefined?Number(el.dataset.guideGroup):null;
+  await renderGuide();$('ncs-guide-body').focus({preventScroll:true});
+}
 function dismissKeyboard(){if(document.activeElement?.matches?.('input,textarea'))document.activeElement.blur();}
 async function onAction(action,el) {
   if(['new-profile','clear-profile-form','quick-profile','close-quick-profile','new-preset','gen-preset-new','wardrobe-add','blank','add-temp','add-character'].includes(action))dismissKeyboard();
   switch(action) {
     case 'close':rememberScroll();dialog.close();break;
+    case 'open-guide':await openGuide();break;
+    case 'close-guide':closeGuide();break;
     case 'dismiss-compat':compatDismissed=true;renderCompat();break;
     case 'cancel-extract':if(!cancelExtraction())notice('진행 중인 추출이 없어요.');break;
     case 'target-more':targetShown+=TARGET_STEP;renderTargets();break;
@@ -3482,11 +3517,12 @@ async function initialize() {
   dialog.innerHTML=await template.text();document.body.append(dialog);
   // The 챗샷/프리샷 switch sits in the title row now, outside the work fields; it waits with them (draft loading, server check).
   {const work=$('ncs-work-fields'),sync=()=>{$('ncs-mode-fields').disabled=work.disabled;};new MutationObserver(sync).observe(work,{attributes:true,attributeFilter:['disabled']});sync();}
-  dialog.addEventListener('close',()=>{closeMissingDialog();closeAttachPicker();rememberDraft(workKey(),null,{flush:true});});
-  dialog.addEventListener('cancel',event=>{if(event.target===dialog)rememberScroll();});
+  dialog.addEventListener('close',()=>{closeGuide({focus:false});closeMissingDialog();closeAttachPicker();rememberDraft(workKey(),null,{flush:true});});
+  dialog.addEventListener('cancel',event=>{if(event.target!==dialog)return;if(closeGuide()){event.preventDefault();return;}rememberScroll();}); // Escape closes the guide first
   dialog.querySelector('.ncs-content').addEventListener('scroll',rememberScroll,{passive:true});
   $('ncs-missing-dialog').addEventListener('cancel',()=>{missingPrompt=null;}); // Escape closes only this box
   $('ncs-attach-dialog').addEventListener('close',()=>{attachPick=null;});
+  $('ncs-guide').addEventListener('click',event=>{guideClick(event).catch(e=>notice(e.message,true));});
   setupHelpFolds(dialog);
   for(const tab of dialog.querySelectorAll('[data-tab]')){const icon=document.createElement('span');icon.className='ncs-tab-icon';icon.innerHTML=TAB_ICONS[tab.dataset.tab]??'';tab.prepend(icon);}
   $('ncs-version').textContent=`v${VERSION}`;setProfileMode('direct');syncGen(mode);renderSettings();renderProfiles();editProfile();renderTargets();bindEvents();bindRefFields();watchGenerateArea();chatKey=keyOf();renderProgress();renderModeUI();renderScene();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';
