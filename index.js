@@ -799,7 +799,9 @@ function placeRequest(){
 const undoKind=u=>!u?null:u.kind??(String(u.label??'').startsWith('추출 전')?'extract':u.label?'import':'clear');
 function dropUndo(){if(undoClear){undoClear=null;renderUndo();}}
 function clearWork(){
-  if(busy||attaching)throw new Error('진행 중인 작업이 끝난 뒤 비워 주세요.');
+  // 0.1.101 (GPT P2): also while [같은 요청으로 다시 확인]/[저장 다시 시도] waits, as during a generation — its answer
+  // would put the picture back on the emptied screen (the queue entry is the same, so the work check cannot tell).
+  if(busy||attaching||checkingGeneration)throw new Error('진행 중인 작업이 끝난 뒤 비워 주세요.');
   const before={...captureWork(),targetShown,undoClear:null};
   scene=blankScene();draftSource=null;raw='';finalOverride=null;optionsOverride=null;restoredFinal=null;result=null;lastLink=null;linkTarget=null;wardrobeTarget=null;pendingTempConvert=null;
   if(isFree())$('ncs-free-text').value='';else{$('ncs-moment-wish').value='';$('ncs-target').value='';$('ncs-target-picker').open=false;targetScroll=0;targetShown=TARGET_STEP;renderTargets();}
@@ -809,7 +811,7 @@ function clearWork(){
 }
 // Everything comes back together: people, scene, candidates, target, final prompt, one-off options, preview.
 function undoClearWork(){
-  const w=undoClear;if(!w)return;if(busy||attaching)throw new Error('진행 중인 작업이 끝난 뒤 되돌려 주세요.');
+  const w=undoClear;if(!w)return;if(busy||attaching||checkingGeneration)throw new Error('진행 중인 작업이 끝난 뒤 되돌려 주세요.');
   loadWork({...w,undoClear:null});targetShown=w.targetShown??TARGET_STEP;
   revision++;renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();notice(undoKind(w)==='extract'?'추출 전으로 되돌렸어요.':w.label?'가져오기 전으로 되돌렸어요.':'비우기 전으로 되돌렸어요.');
   rememberDraft();
@@ -2363,6 +2365,7 @@ function renderResult() {
 }
 function updateAttachButtons() {
   const locked=busy||attaching||checkingGeneration;
+  for(const el of dialog.querySelectorAll('[data-action="blank"],[data-action="undo-clear"]'))el.disabled=locked; // 0.1.101: clearWork refuses then
   for(const el of dialog.querySelectorAll('[data-action="attach"],[data-action="detach"],[data-history-free],[data-history-attach],[data-history-detach],[data-history-delete],[data-pending-save],[data-pending-discard],[data-action="delete-result"],[data-history-pick],[data-history-star],[data-history-tag-save]'))el.disabled=locked||el.dataset.unavailable==='true';
   for(const el of document.querySelectorAll('[data-ncs-inline-remove]'))el.disabled=locked;
   updateHistoryTools();renderGenerationCheck();

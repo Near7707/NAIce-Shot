@@ -1,3 +1,13 @@
+# v0.1.101 validation — 2026-11-09 (extension only, server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **85 of 85 Chromium browser scripts passed** (4 at a time; `browser-v0193` timed out once under load on its update-notice close button and passed alone). New `browser-v01101` (375 and 1100px): while **같은 요청으로 다시 확인** waits, **그리기창 비우기** is off and pressing it empties nothing; after a clear, **↶ 비우기 취소** is off the same way; the history's **저장 다시 시도** the same; each time the buttons are on again when the answer is in, and the picture shows and is remembered.
+- Reverted: turning the buttons off → `browser-v01101` fails. Reverting only the refusal inside the clear itself still passes, as during a generation: the buttons are the guard and the refusal stays as a backup. `browser-v01101` fails on the 0.1.100 code.
+- Not checked: a real NovelAI account, a real SillyTavern (two windows), iPhone Safari's own confirm box.
+
+---
+
 # v0.1.100 validation — 2026-11-09 (extension only, server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed**.
