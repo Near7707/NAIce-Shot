@@ -1,3 +1,13 @@
+# v0.1.100 validation — 2026-11-09 (extension only, server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **84 of 84 Chromium browser scripts passed** (4 at a time). New `browser-v01100` (375 and 1100px; its fake server can hold the answer of **같은 요청으로 다시 확인**): chat B whose first read failed, edited and generating → **다시 시도** reads B's server work, 확인 loads it → the generation ends with no picture on the loaded work and nothing saved ("…결과는 이력에만 남겼어요."); a lost reply, the check waiting, **저장된 작업 모두 지우기** meanwhile → the answer comes, the emptied screen stays empty and nothing is saved back; the same read-in during the check → history only; the ordinary check → the picture shows and is remembered.
+- Reverted one at a time: the "still unread / read as it was" part of the work check (the generation and the check cases each fail; the delete-all case still passes because the deletion's `gen` catches it) and the work check in **같은 요청으로 다시 확인** (the delete-all and read-in cases fail). `browser-v01100` fails on the 0.1.99 code.
+- Not checked: a real NovelAI account, a real SillyTavern (two windows), iPhone Safari's own confirm box.
+
+---
+
 # v0.1.99 validation — 2026-11-08 (extension only, server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed**.

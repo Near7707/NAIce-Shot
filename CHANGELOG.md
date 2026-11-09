@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.100 — 2026-11-09 (extension only — server v0.1.25 unchanged)
+
+- Fixes from the GPT review of 0.1.99 (no P1). **같은 요청으로 다시 확인** now checks that its work is still the same before putting the picture on the screen: after **저장된 작업 모두 지우기** (or a reload) while the answer was on its way, the picture stays in the history only and the emptied work is not saved back ("생성이 끝났어요. 그사이 작업이 바뀌어서 결과는 이력에만 남겼어요.").
+- A work that could not be read when a generation (or that check) started, and was read in meanwhile with **다시 시도** (확인 loads the server's work), now counts as another work: the late picture goes to the history only instead of replacing the loaded work's last picture. If the server had nothing saved and the screen stayed as it was, the picture also goes to the history only (rare; nothing is lost).
+
 ## 0.1.99 — 2026-11-08 (extension only — server v0.1.25 unchanged)
 
 - Fixes from the GPT review of 0.1.98 (no P1). A generation that ends after its work was emptied or loaded again (a deletion record loaded with **서버 작업 다시 불러오기**, or a connect to newer work after a pause elsewhere) no longer puts its picture on the screen or in work memory: "생성이 끝났어요. 그사이 작업이 바뀌어서 결과는 이력에만 남겼어요." Ordinary edits and saves during a generation still take the result.

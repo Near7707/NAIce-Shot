@@ -2171,10 +2171,18 @@ function renderGenerationCheck(){
   const forget=dialog.querySelector('[data-action="generation-forget"]');
   forget.hidden=button.hidden;forget.disabled=button.disabled;$('ncs-generation-recover').hidden=button.hidden;
 }
+// 0.1.100 (GPT P2-1·P2-2): whether a late picture still belongs to the work it started with. Both ways a picture
+// reaches the screen (a finished generation, [같은 요청으로 다시 확인]) use this. The work is the same only while
+// its queue entry is the same one, in the same generation (a deletion resets it), and still unread or still read
+// as it was: a work that could not be read at the start and was read in meanwhile ([다시 시도]) is another work.
+function workMark(key){const e=drafts.entry(key);return {key,e,gen:e.gen,loaded:e.loaded};}
+const sameWorkMark=m=>drafts.entries.get(m.key)===m.e&&m.e.gen===m.gen&&m.e.loaded===m.loaded;
+const WORK_CHANGED_NOTE='생성이 끝났어요. 그사이 작업이 바뀌어서 결과는 이력에만 남겼어요.';
 async function checkGeneration(entry=null){
   const key=entry?.chatKey??workKey(),requestId=entry?.id??pendingGenerations.get(key);
   if(!requestId||busy||attaching||checkingGeneration)return;
   checkingGeneration=true;updateAttachButtons();
+  const mark=workMark(key);
   const current=()=>entry?historyPending.some(x=>x.id===requestId):workKey()===key&&pendingGenerations.get(key)===requestId;
   try{
     let reply=await api(`/generation?requestId=${encodeURIComponent(requestId)}`,{signal:draftSignal()});
@@ -2187,9 +2195,11 @@ async function checkGeneration(entry=null){
       if(reply.item?.id!==requestId||reply.item.chatKey!==key)throw new Error('현재 작업의 생성 결과를 확인하지 못했어요.');
       imageDownload(reply.item);
       if(pendingGenerations.get(key)===requestId)rememberGeneration(key,null);
-      if(workKey()===key){result=reply.item;renderResult();rememberDraft();}
+      // 0.1.100 (GPT P2-1): emptied or loaded again while the answer was on its way, the picture stays in the history only.
+      const changed=!sameWorkMark(mark);
+      if(workKey()===key&&!changed){result=reply.item;renderResult();rememberDraft();}
       loadHistory().catch(()=>{});
-      refreshAccount().catch(()=>{});notice(entry?'그림을 생성 이력에 저장했어요.':'같은 요청의 그림을 불러왔어요.',false,entry?'history':'scene');return;
+      refreshAccount().catch(()=>{});notice(entry?'그림을 생성 이력에 저장했어요.':changed?WORK_CHANGED_NOTE:'같은 요청의 그림을 불러왔어요.',false,entry?'history':'scene');return;
     }
     const tab=entry?'history':'scene';
     // 0.1.22 server (P3-2): cleared by "delete all" before its result was known — the 확인 필요 mark stays.
@@ -2264,10 +2274,11 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   const requestId=uuid(),canRecover=features.includes('generation-recovery');
   if(canRecover)rememberGeneration(startKey,requestId);
   dropUndo();setBusy(true,ticket);startProgress('generate',ticket);report('NAI에 생성 요청을 보내고 있어요. 창을 닫거나 채팅을 바꿔도 서버는 결과를 저장해요.');
-  rememberDraft(startKey,null,{flush:true});const startedConnected=draftsEnabled,generationDraft=drafts.entry(startKey);generationDraft.pinned=true;const savedDraftVersion=generationDraft.version,startGen=generationDraft.gen;
+  rememberDraft(startKey,null,{flush:true});const startedConnected=draftsEnabled,mark=workMark(startKey),generationDraft=mark.e;generationDraft.pinned=true;const savedDraftVersion=generationDraft.version;
   // 0.1.99 (GPT P2): the work this press belongs to is still going on only while its queue entry is the same one in the
   // same generation. A connect, [서버 작업 다시 불러오기] or a pause replaces the entry; a deletion resets it (gen).
-  const sameWork=()=>drafts.entries.get(startKey)===generationDraft&&generationDraft.gen===startGen;
+  // 0.1.100 (GPT P2-2): a read that succeeds meanwhile ([다시 시도] after a failed read) brings in another work too.
+  const sameWork=()=>sameWorkMark(mark);
   try {
     let item,confirmUsage=false;
     for(;;){
@@ -2297,7 +2308,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
     if(pendingGenerations.get(startKey)===requestId)rememberGeneration(startKey,null);
     // 0.1.99 (GPT P2): emptied or loaded again meanwhile, the late picture goes to the history only — not to the screen,
     // whose next save would bring the deleted or replaced work back, and not to work memory.
-    if(!sameWork()){report('생성이 끝났어요. 그사이 작업이 바뀌어서 결과는 이력에만 남겼어요.');if(workKey()===startKey)loadHistory().catch(()=>{});refreshAccount().catch(()=>{});return;}
+    if(!sameWork()){report(WORK_CHANGED_NOTE);if(workKey()===startKey)loadHistory().catch(()=>{});refreshAccount().catch(()=>{});return;}
     if(ticket!==task||workKey()!==startKey){
       // A successful old-chat request must consume its old one-off options as well, never the new chat's.
       const e=generationDraft,same=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
