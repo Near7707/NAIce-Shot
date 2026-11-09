@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.104 — 2026-11-09 (extension only — server v0.1.25 unchanged)
+
+- The floating **↓ 생성** on the drawing tab now hides only while **장면 추출** is in the strip at the bottom of the panel where the button floats, so it never covers it. Before, it hid as long as 장면 추출 was anywhere on the screen (on a phone, almost down to "2 · 장면 편집"). The strip follows the panel's height.
+
 ## 0.1.103 — 2026-11-09 (extension only — server v0.1.25 unchanged)
 
 - From the GPT review of 0.1.102 (no P1). **백업 가져오기** now says in its question that the scene being edited is emptied too ("편집 중인 장면도 비워져요."), as it always was. No lock was added while a generation or **같은 요청으로 다시 확인** runs (user decision: a rare action that empties the scene anyway; the picture stays in the history).

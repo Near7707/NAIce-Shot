@@ -3134,10 +3134,17 @@ async function onAction(action,el) {
 // [↓ 생성] shows while the generate area is out of sight on the drawing tab.
 function watchGenerateArea(){
   const target=$('ncs-generate-section'),button=$('ncs-jump-generate'),root=dialog.querySelector('.ncs-content');if(!target||!button||typeof IntersectionObserver!=='function')return;
-  // 0.1.87: also hidden while [장면 추출] is on the screen, which it used to cover near the bottom edge.
-  const extract=dialog.querySelector('[data-action="extract"]'),seen=new Map();
-  const io=new IntersectionObserver(entries=>{for(const e of entries)seen.set(e.target,e.isIntersecting);button.hidden=[...seen.values()].some(Boolean);},{root,threshold:0});
-  io.observe(target);if(extract)io.observe(extract);
+  // 0.1.87: hidden while [장면 추출] could be under it. 0.1.104 (user): only while [장면 추출] is in the bottom strip where
+  // the button floats (its 40px + 12px gap, with a little room), not while it is anywhere on the screen.
+  const extract=dialog.querySelector('[data-action="extract"]'),seen=new Map(),STRIP=64;
+  const update=entries=>{for(const e of entries)seen.set(e.target,e.isIntersecting);button.hidden=[...seen.values()].some(Boolean);};
+  new IntersectionObserver(update,{root,threshold:0}).observe(target);
+  if(!extract)return;
+  // The strip is measured in pixels from the panel's current height, so the watcher is made again when that changes.
+  let low=null,height=-1;
+  const watchExtract=()=>{const h=root.clientHeight;if(h===height)return;height=h;low?.disconnect();seen.delete(extract);
+    low=new IntersectionObserver(update,{root,threshold:0,rootMargin:`-${Math.max(0,h-STRIP)}px 0px 0px 0px`});low.observe(extract);};
+  watchExtract();if(typeof ResizeObserver==='function')new ResizeObserver(watchExtract).observe(root);
 }
 function bindEvents() {
   $('ncs-target-label').addEventListener('click',()=>{rememberTargetScroll();targetListRendered=false;}); // before the native details toggle

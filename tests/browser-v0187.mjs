@@ -261,8 +261,9 @@ try{
   if(phone)assert.equal(await helps('#ncs-free-source .ncs-help-short'),2,'프리샷: the box above, one under the field');
   assert.equal(await page.locator('#ncs-free-source .ncs-help').count(),2);
   // the floating ↓ 생성 never covers 장면 추출
-  await page.locator('[data-action="extract"]').scrollIntoViewIfNeeded();await page.waitForTimeout(150);
-  assert.equal(await page.locator('#ncs-jump-generate').isVisible(),false,'↓ 생성 hidden while 장면 추출 shows');
+  // (0.1.104: it may show while 장면 추출 is higher up, but never over it; browser-v01104 checks each position)
+  await page.locator('[data-action="extract"]').scrollIntoViewIfNeeded();await page.waitForTimeout(250);
+  assert.equal(await page.evaluate(()=>{const j=document.getElementById('ncs-jump-generate');if(j.hidden)return false;const a=j.getBoundingClientRect(),b=document.querySelector('[data-action="extract"]').getBoundingClientRect();return a.left<b.right&&b.left<a.right&&a.top<b.bottom&&b.top<a.bottom;}),false,'↓ 생성 never covers 장면 추출');
   await page.locator('[data-mode="chat"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
   assert.equal(await page.locator('#ncs-request .ncs-help').count(),1,'챗샷: one fold for the request field');
   if(phone)assert.match(await page.locator('#ncs-request .ncs-help-short').innerText(),/이번 추출에만 쓰는 요청이에요\. @로 고른 인물은 꼭 들어가요\./);

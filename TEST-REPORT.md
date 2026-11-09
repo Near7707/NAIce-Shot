@@ -1,3 +1,13 @@
+# v0.1.104 validation — 2026-11-09 (extension only, server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **88 of 88 Chromium browser scripts passed** (4 at a time; `browser-v01100` and `browser-v0151` failed once under load and passed alone and again in parallel). New `browser-v01104` (375 and 1100px, 챗샷 and 프리샷): with **장면 추출** mid-screen or just above the bottom strip, **↓ 생성** shows and does not cover it; at the bottom edge, inside the strip and at the generate area it hides; the same after the window gets shorter. `browser-v0187`'s "hidden while 장면 추출 shows" became "never covers 장면 추출".
+- Reverted: the 0.1.103 condition (fails: hidden mid-screen); without watching the panel's height (fails: measured before the panel opened, the whole screen counted as the strip).
+- Not checked: iPhone Safari (its address bar changes the height while scrolling), a real SillyTavern.
+
+---
+
 # v0.1.103 validation — 2026-11-09 (extension only, server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed**.
