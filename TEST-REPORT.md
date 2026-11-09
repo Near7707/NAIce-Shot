@@ -1,3 +1,13 @@
+# v0.1.103 validation — 2026-11-09 (extension only, server v0.1.25)
+
+- Extension Node suite: **191 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **87 of 87 Chromium browser scripts passed** (4 at a time). New `browser-v01103` (375 and 1100px): **백업 가져오기**'s question names the emptied scene; cancelled → settings and scene kept and the file field empty; the same file again → asked again, imported, scene emptied, field empty; a bad file → an error and the field empty.
+- Reverted one at a time: the question's wording (fails), emptying the file field (fails).
+- Not checked: a real NovelAI account, a real SillyTavern (two windows), iPhone Safari's own confirm box and file picker.
+
+---
+
 # v0.1.102 validation — 2026-11-09 (extension only, server v0.1.25)
 
 - Extension Node suite: **191 passed, 0 failed**.

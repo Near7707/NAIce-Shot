@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.103 — 2026-11-09 (extension only — server v0.1.25 unchanged)
+
+- From the GPT review of 0.1.102 (no P1). **백업 가져오기** now says in its question that the scene being edited is emptied too ("편집 중인 장면도 비워져요."), as it always was. No lock was added while a generation or **같은 요청으로 다시 확인** runs (user decision: a rare action that empties the scene anyway; the picture stays in the history).
+- After picking a backup file (imported, cancelled or failed) the file field is emptied, so picking the same file again works.
+
 ## 0.1.102 — 2026-11-09 (extension only — server v0.1.25 unchanged)
 
 - Fixes from the GPT review of 0.1.101 (no P1). While **같은 요청으로 다시 확인** or the history's **저장 다시 시도** waits, the history card's **챗샷으로 보내기** is off too (**프리샷으로 보내기** already was), and sending from the enlarged view is refused with "진행 중인 작업이 끝난 뒤 보내 주세요." Before, the late answer could put the old picture on the imported work and save it. Without a chat, **챗샷으로 보내기** stays off as before.

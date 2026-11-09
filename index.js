@@ -3001,7 +3001,9 @@ async function importSettings(file) {
       try{const options=freeOptions({...DEFAULTS.options,...g.options,scheduler:DEFAULTS.options.scheduler});buildPayload({base:'test',negative:'',characters:[]},{...options,seed:options.seed===-1?0:options.seed});
         clean.genByMode[m]={imagePresetId:clean.imagePresets.some(p=>p.id===g.imagePresetId)?g.imagePresetId:'',positive:g.positive,negative:g.negative,options};}catch{}}
   }
-  if(!confirm('현재 프로필과 공통 설정을 이 백업으로 바꿀까요? 현재 설정을 내보낸 뒤 진행할 수 있어요.'))return;
+  // 0.1.103 (GPT P2 → P3, user decision): the question names the emptied scene too. No lock: a backup import is rare and
+  // already empties the scene; during a generation the picture is kept in the history either way.
+  if(!confirm('현재 프로필과 공통 설정을 이 백업으로 바꿀까요? 편집 중인 장면도 비워져요. 현재 설정을 내보낸 뒤 진행할 수 있어요.'))return;
   clean.imageMarks=cleanMarks(settings().imageMarks);clean.tagPopupChats=cleanPopupChats(settings().tagPopupChats); // 0.1.84: kept, never taken from a backup
   ctx().extensionSettings[KEY]=clean;syncGen(mode);ctx().saveSettingsDebounced();renderChatImages();scene=blankScene();finalOverride=null;optionsOverride=null;revision++;renderSettings();renderProfiles();editProfile();renderScene();useSkin(clean.skin).catch(()=>{});notice('백업을 가져왔어요. Anlas 사용 가능성 허용과 추출 원문 보관은 꺼진 상태로 가져왔어요.');
 }
@@ -3300,7 +3302,7 @@ function bindEvents() {
       }
     }catch(e){notice(e.message,true);}finally{scheduleDraft();}
   });
-  $('ncs-import').addEventListener('change',event=>importSettings(event.target.files[0]).catch(e=>notice(e.message,true)));
+  $('ncs-import').addEventListener('change',event=>importSettings(event.target.files[0]).catch(e=>notice(e.message,true)).finally(()=>{event.target.value='';})); // 0.1.103: the same file can be picked again
 }
 // --- 0.1.84 태그 추천 팝업: a character reply that contains a tag shows one tagged picture of the same character (or
 // group), picked at random. It never writes the chat.
