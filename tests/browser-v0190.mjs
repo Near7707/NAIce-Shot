@@ -133,7 +133,7 @@ try{
   const {page,errors}=await open(width);const asked=dialogs(page);await fakeGenerate(page);
   await page.locator('#ncs-allow-anlas').uncheck();
   // The switch's own words say V5 no longer needs it.
-  assert.match(await page.locator('#ncs-allow-anlas').evaluate(e=>e.closest('label').nextElementSibling.textContent),/^Tablet·Scroll, 구독 확인이 안 될 때처럼 Anlas를 쓰는 생성에 필요해요\. 한 번 켜면 유지돼요\. Opus V5는 이 설정 없이 생성하고, 사용량이 1% 이하면 생성할 때마다 따로 물어봐요\./);
+  assert.match(await page.locator('#ncs-allow-anlas').evaluate(e=>e.closest('label').nextElementSibling.textContent),/^Tablet·Scroll, 구독 확인이 안 될 때처럼 Anlas를 쓰는 생성에 필요해요\. 한 번 켜면 유지돼요\. Opus V5는 사용량이 2% 이상이면 이 설정 없이 생성하고, 1% 이하이거나 사용량을 확인 못 함·지금 쓸 수 없음이면 생성할 때마다 따로 물어봐요\./);
   // 100 % (+100 %): green, the line in place of the switch, no switch by the box.
   await account(page,OPUS(100));
   assert.equal(await verdict(page),'Opus · V5 남은 사용량으로 생성');assert.equal(await state(page),'ok');

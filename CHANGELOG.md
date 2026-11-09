@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.108 — 2026-11-10 (extension only — server v0.1.25 unchanged)
+
+- From the GPT review of 0.1.107 (no P1). With a large text size set on the phone or browser, the title row on narrow screens no longer slides **챗샷/프리샷** under **✕** (tapping 프리샷 could close the panel): the name and **📖 사용 가이드 ›** wrap and the row grows taller. At the normal size nothing moves.
+- The guide, `docs/PRIVACY.md` and README also list the rest of what goes to the extraction AI: in 챗샷 each message's speaker name and character card file name, and which chat participant is which profile; in 프리샷 the names of people already in the scene (temporary ones too); with **설명으로 만들기** the name field.
+- V5 wording matches everywhere: it asks every time at 1% or less, when only the V5 usage could not be read, or when usage can't be used now; the 설정 tab no longer says Opus V5 always generates without the Anlas setting.
+- Milk theme: the guide entry is white like the line it sits on (the accent blue nearly vanished on the blue header).
+
 ## 0.1.107 — 2026-11-09 (extension only — server v0.1.25 unchanged)
 
 - From the GPT review of 0.1.106 (no P1). **📖 사용 가이드 ›** under the name now shows on screens 360px wide or narrower too; an old rule for the earlier subtitle hid it there, so the guide could not be opened on many phones. It fits under the name down to 320px.

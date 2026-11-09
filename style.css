@@ -702,7 +702,7 @@
 /* 0.1.67 — 챗샷/프리샷 in the title row, right after the title (user's choice A): as tall as title + subtitle, never
    covers the subtitle, shown on 그리기 only. No separate bar follows the content any more. */
 #naice-shot-dialog .ncs-brand {min-width:0;}
-#naice-shot-dialog .ncs-brand-text {flex:none;min-width:0;}
+#naice-shot-dialog .ncs-brand-text {flex:0 1 auto;min-width:0;} /* 0.1.108 (GPT P2-1): may narrow, see below */
 #naice-shot-dialog .ncs-mode-fields {flex:none;margin:0 0 0 2px;padding:0;border:0;min-width:0;}
 #naice-shot-dialog .ncs-mode-fields[hidden] {display:none;}
 #naice-shot-dialog .ncs-header .ncs-mode {width:180px;margin:0;padding:3px;gap:2px;}
@@ -722,6 +722,10 @@
  #naice-shot-dialog .ncs-header {gap:6px;}
  #naice-shot-dialog .ncs-header > [data-action="close"] {flex:none;min-width:40px;width:40px;padding:0;}
 }
+/* 0.1.108 (GPT P2-1): with a large text size set on the phone or browser, the name and the guide entry wrap instead of
+   pushing 챗샷/프리샷 under ✕ (the header grows taller). At the normal size nothing moves: they fit on one line. */
+#naice-shot-dialog .ncs-header strong {white-space:normal;overflow-wrap:anywhere;}
+#naice-shot-dialog .ncs-header small {white-space:normal;word-break:keep-all;overflow-wrap:anywhere;}
 
 #naice-shot-dialog .ncs-shape-help p {margin:6px 0;font-size:12.5px;line-height:1.55;color:var(--ncs-muted);}
 #naice-shot-dialog .ncs-shape-help b {color:var(--ncs-fg);}

@@ -1,3 +1,13 @@
+# v0.1.108 validation — 2026-11-10 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **92 of 92 Chromium browser scripts passed** (4 at a time). `browser-v0130` and `browser-v0190` check the new 설정-tab V5 sentence. New `browser-v01108`: at the normal text size (320/360/375/1100) the name and guide entry are one line each and nothing overlaps; with every panel font raised to at least 20 or 24px (as a minimum font size does) at 320/360/375 the header does not overflow, 챗샷/프리샷/guide entry/✕ never overlap, and real clicks switch to 프리샷 and back, open and close the guide, and ✕ closes the panel; milk's guide entry is white, other themes keep their accent.
+- Reverted one at a time (each fails `browser-v01108`): style.css (프리샷 under ✕ at 320px/20px), only the name area's `flex` line (same), milk.css (blue entry).
+- Not checked: a real phone's text-size setting, iPhone Safari, a real SillyTavern.
+
+---
+
 # v0.1.107 validation — 2026-11-09 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed** (`guide.test.mjs` now also refuses three `../` GitHub links and keeps the real ones).
