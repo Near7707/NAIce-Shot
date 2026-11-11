@@ -2951,6 +2951,11 @@ async function loadHistory({append=false}={}) {
     historyItems=append?[...historyItems,...items.filter(x=>!historyItems.some(y=>y.id===x.id))]:items;
     historyTotal=Number.isInteger(data.total)?data.total:historyItems.length;historyHasMore=data.hasMore===true;
     lastHistoryView={scope,filter,key:startKey,markFilter,items:historyItems,pending:historyPending,bytes:historyPendingBytes,total:historyTotal,more:historyHasMore,unfiltered:historyUnfiltered};
+  }catch(e){
+    // 0.1.113 (GPT P3): a failure that arrives after the range, chat or filter changed belongs to a list no longer
+    // shown: it ends silently, like a late answer does, so the new list never gets the old request's error.
+    if(stale())return;
+    throw e;
   }finally{if(request===historyRequest){historyLoading=false;updateHistoryTools();}}
   if(request===historyRequest)renderHistory();
 }

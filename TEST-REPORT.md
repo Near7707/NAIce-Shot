@@ -1,3 +1,14 @@
+# v0.1.113 validation — 2026-11-11 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **97 of 97 Chromium browser scripts passed** (4 at a time). New `browser-v01113` (375/1100px, the history answered by the test, a read held and then answered 503): the retry's first read held while switching to 프리샷 → no old error, the 프리샷 list stays; the retry's second read held while chat B opens → no old error, chat B's list stays; nothing switched → the error shows.
+- Reverted (the failure-path `stale()` check): `browser-v01113` fails at the 프리샷 case, and with that case skipped at the chat B case.
+- Left as it was: a list whose total stays the same while its content changes between pieces is not noticed (GPT P2 residue; needs a server cursor).
+- Not checked: a real SillyTavern in two windows, iPhone Safari.
+
+---
+
 # v0.1.112 validation — 2026-11-11 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

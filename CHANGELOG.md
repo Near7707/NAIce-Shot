@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.113 — 2026-11-11 (extension only — server v0.1.25 unchanged)
+
+- From the GPT review of 0.1.112 (no P1). A history read that fails after you switched the range or chat no longer shows its error over the new list (a late answer was already ignored the same way).
+- Known limit, left as is: the refresh notices a list that changed between its pieces only when the total changed. If a picture is deleted and another made in that short moment, one card can be off until the next refresh.
+
 ## 0.1.112 — 2026-11-11 (extension only — server v0.1.25 unchanged)
 
 - From the GPT review of 0.1.111 (no P1). When a long history list is read again in pieces of 100 and a picture is deleted or made elsewhere in between, the mixed result is not shown (it could keep a deleted card or miss one): the list is read again once from the start, and if it changes again only its first 100 are shown.
