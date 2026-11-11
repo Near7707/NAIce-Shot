@@ -965,6 +965,11 @@
  #naice-shot-dialog .ncs-help:not(.ncs-open) > .ncs-help-short {display:block;}
  #naice-shot-dialog .ncs-help.ncs-open > .ncs-help-less {display:inline-block;margin-top:2px;font-size:12px;}
 }
+/* 0.1.111 — the Anlas permission note folds on every screen (PC too); the opener is the warning color, never a button box. */
+#naice-shot-dialog .ncs-help-must:not(.ncs-open) > :not(.ncs-help-short) {display:none;}
+#naice-shot-dialog .ncs-help-must:not(.ncs-open) > .ncs-help-short {display:block;}
+#naice-shot-dialog .ncs-help-must.ncs-open > .ncs-help-less {display:inline-block;margin-top:2px;font-size:12px;}
+#naice-shot-dialog .ncs-help-toggle.ncs-help-must-open {color:var(--ncs-warning);}
 
 /* 0.1.86 태그 추천 팝업: only the picture. Fixed dark buttons (not the theme), white icons on see-through circles. */
 .ncs-tag-pop {position:fixed;z-index:9000;left:50%;top:calc(56px + env(safe-area-inset-top,0px));box-sizing:border-box;margin:0;padding:0;border:0;background:none;
@@ -1057,6 +1062,11 @@
 #naice-shot-dialog .ncs-brand-text small .ncs-guide-open {display:inline;width:auto;min-height:0;margin:0;padding:0;border:0;background:none;box-shadow:none;color:var(--ncs-accent-text);font:inherit;font-weight:600;cursor:pointer;}
 @media (hover:hover) {#naice-shot-dialog .ncs-brand-text small .ncs-guide-open:hover {text-decoration:underline;}}
 #naice-shot-dialog .ncs-guide {position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;background:var(--ncs-bg);color:var(--ncs-fg);}
+/* 0.1.111 (GPT P2): the panel under the guide is hidden while it is open (inert is set only by the guide). The default
+   theme takes SillyTavern's background, which can be see-through (Azure 61%); the tab, fields and notes showed through. */
+#naice-shot-dialog .ncs-shell[inert] {visibility:hidden;}
+/* 0.1.111 (GPT P3): SillyTavern dims every small (opacity .7); in the guide the topic names and n / 8 keep their color. */
+#naice-shot-dialog .ncs-guide small {opacity:1;}
 #naice-shot-dialog .ncs-guide-head {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px 10px;border-bottom:1px solid var(--ncs-rule);}
 #naice-shot-dialog .ncs-guide-head strong {font-size:16px;}
 #naice-shot-dialog .ncs-guide-head button {width:auto;min-height:36px;margin:0;padding:4px 12px;}

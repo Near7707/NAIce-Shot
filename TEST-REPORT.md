@@ -1,3 +1,13 @@
+# v0.1.111 validation — 2026-11-11 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **95 of 95 Chromium browser scripts passed** (4 at a time; `browser-v0169` and `browser-v0187` were slow under load once and passed on their own). `browser-v0130` opens the Anlas note before reading its V5 sentence, `browser-v0190` reads it inside the fold, and `browser-v0186`/`v0187` leave the Anlas note out of their "no cost words in folded notes" check (the one exception in DESIGN.md 4-2). New `browser-v01111`: at 320/375/1100px the Anlas note shows its first sentence and a red (theme warning color), boxless **꼭 확인해 주세요 ›**, opens to the full text with **접기 ‹** and closes again, other notes still fold only at 520px or less, and the opener is ≥4.5:1 in all 17 themes; with 300 pictures, 120 shown stay 120 after the enlarged view's panel icon and after another tab (reads of 100 + 20), 240 stay 240 (100 + 100 + 40, no card twice), 30 are read once as before; opened on the 120th card the enlarged view requests the 121st picture's file and not the 122nd, and one more after ›; with a 61%-opaque SillyTavern background the panel is hidden under the guide and comes back with its scroll position and focus; with SillyTavern's `small{opacity:.7}` the guide's small text stays at opacity 1 and topic names are ≥4.5:1 in all 17 themes; Enter on a group focuses ‹ 목차 and Tab reaches 다음 ›, a click keeps focus on the text.
+- Reverted one at a time (each fails `browser-v01111`): the all-screens fold CSS, the 꼭 확인해 주세요 label, the warning color, the refresh count, fetching the next picture (caught at the check after ›, since the fetch after a page load also covers the first), hiding the panel, the guide `small` rule, the keyboard focus.
+- Not checked: a real SillyTavern with the user's own theme, iPhone Safari, the real speed of › on a phone network.
+
+---
+
 # v0.1.110 validation — 2026-11-10 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

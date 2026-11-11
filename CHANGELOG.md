@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.111 — 2026-11-11 (extension only — server v0.1.25 unchanged)
+
+- The note under **Anlas 사용 가능성 허용** shows its first sentence on every screen (PC too), with a red **꼭 확인해 주세요 ›** to open the rest and **접기 ‹** to close it. The wording is unchanged.
+- History: a refresh (back from the enlarged view through the panel icon, another tab and back, a finished picture) keeps as many pictures as were shown. It used to fall back to 100 (120/300 → 100/300); longer lists are read again 100 at a time.
+- Enlarged view: the next picture's file is fetched while the current one is shown, so › past the end of the history list no longer waits for each download.
+- From the GPT review of 0.1.110 (no P1): the panel under the guide is hidden while the guide is open (it showed through on see-through SillyTavern themes such as Azure); the guide's small text is not dimmed by SillyTavern's `small` rule (milk theme topic names); opening a group with the keyboard puts focus on **‹ 목차**, so Tab reaches **다음 ›**.
+
 ## 0.1.110 — 2026-11-10 (extension only — server v0.1.25 unchanged)
 
 - 사용 가이드: example tag boxes are readable on light themes again (SillyTavern gives every `code` a near-white color; the guide now sets its own color, border and font).

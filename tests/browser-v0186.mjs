@@ -198,7 +198,7 @@ try{
     assert.equal(await fold.locator('[data-help-toggle]:visible').count(),0);
    }
    // never folded: costs, privacy, deleting, saved data
-   const folded=await page.locator('.ncs-help:not(#ncs-tag-view-help)').evaluateAll(els=>els.map(e=>e.textContent));
+   const folded=await page.locator('.ncs-help:not(#ncs-tag-view-help):not(.ncs-help-must)').evaluateAll(els=>els.map(e=>e.textContent));
    assert.ok(folded.length>=22,`${folded.length} folds`); // 0.1.87: three fewer (mode note unfolded, two pairs merged)
    for(const t of folded)assert.doesNotMatch(t,/Anlas|비용|개인정보|삭제|되돌릴 수 없|저장돼요|PNG|JSON\)|서버 플러그인/,t.slice(0,60));
    assert.equal(await page.locator('small',{hasText:'V4.5의 Opus 무료 생성 크기예요'}).isVisible(),true);

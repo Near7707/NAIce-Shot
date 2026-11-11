@@ -131,10 +131,20 @@ function build() {
 
     if(dialog.open&&!dialog.contains(document.activeElement))dialog.querySelector('[data-v="close"]').focus({preventScroll:true});
   }
+  // 0.1.111 (user): the next picture's file is fetched while this one is shown. Past the history list's end no
+  // card had loaded it, so every › waited for the download ("불러오는 중…"). One picture ahead only, never more.
+  let ahead=null;
+  function fetchAhead(){
+    const g=state.gallery,item=g?.items[state.index+1];if(!item)return;
+    let url='';try{url=imageDownload(item).url;}catch{return;}
+    if(ahead?.dataset.url===url)return;
+    ahead=new Image();ahead.dataset.url=url;ahead.decoding='async';ahead.src=url;
+  }
   function prefetch(){
     const g=state.gallery,epoch=state.epoch;
+    fetchAhead();
     if(!g?.hasMore||state.index<g.items.length-2)return;
-    g.loadMore().then(()=>{if(epoch===state.epoch)updateNavigation();}).catch(()=>{}); // explicit Next can retry
+    g.loadMore().then(()=>{if(epoch===state.epoch){updateNavigation();fetchAhead();}}).catch(()=>{}); // explicit Next can retry
   }
   async function navigate(delta){
     const g=state.gallery;if(!g||state.navBusy||state.actionBusy)return;

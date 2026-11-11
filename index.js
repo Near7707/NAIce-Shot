@@ -36,7 +36,7 @@ const isFree=()=>mode==='free';
 const workKey=()=>isFree()?FREE_KEY:keyOf();
 let dialog,scene=blankScene(),raw='',finalOverride=null,revision=0,busy=false,task=0,subscription=null,historyItems=[],chatKey='',result=null,attaching=false;
 let profileContext='profiles',busyOwner=0,extraction=null,progress=null,optionsOverride=null,historyTotal=0,historyHasMore=false,historyLoading=false;
-const selectedIds=new Set(),HISTORY_PAGE=20;
+const selectedIds=new Set(),HISTORY_PAGE=20,HISTORY_MAX=100;
 let historyScope='chat',historyFilter='',historyChats=[],historyPending=[],historyPendingBytes=0,historyBytes=0,historyImageCount=0,historyRequest=0;
 // 0.1.84: ★ only (the history view lists favorites through the server's ID filter); the unfiltered count is kept for
 // "delete all" questions. historyTagEdit: the card whose tag editor is open.
@@ -2665,7 +2665,9 @@ function setupHelpFolds(root){
     const first=box.firstElementChild,short=document.createElement(first?.tagName==='P'?'p':'small');
     short.className=`ncs-help-short${first?.classList.contains('ncs-small')?' ncs-small':''}`;
     short.append(box.dataset.short,' ');
-    const more=document.createElement('button');more.type='button';more.className='ncs-help-toggle';more.dataset.helpToggle='open';more.setAttribute('aria-expanded','false');more.textContent='더보기 ›';
+    const more=document.createElement('button');more.type='button';more.className='ncs-help-toggle';more.dataset.helpToggle='open';more.setAttribute('aria-expanded','false');
+    // 0.1.111: the Anlas permission note folds on every screen; its opener is red so it is not skipped (DESIGN.md 4-2).
+    const must=box.classList.contains('ncs-help-must');more.textContent=must?'꼭 확인해 주세요 ›':'더보기 ›';if(must)more.classList.add('ncs-help-must-open');
     short.append(more);
     const less=document.createElement('button');less.type='button';less.className='ncs-help-toggle ncs-help-less';less.dataset.helpToggle='close';less.setAttribute('aria-expanded','true');less.textContent='접기 ‹';
     box.prepend(short);box.append(less);box.classList.add('ncs-help-ready');
@@ -2910,11 +2912,23 @@ async function loadHistory({append=false}={}) {
   const scope=historyScope,startKey=scope==='free'?FREE_KEY:keyOf(),allScope=['chats','all'].includes(scope),filter=historyFilter,markFilter=historyMarkFilter;
   if(!startKey&&!allScope){historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>채팅을 먼저 열어 주세요. 다른 보기에서는 채팅 없이도 이력을 볼 수 있어요.</p>';updateHistoryTools();return;}
   if(append&&historyLoading)return;
-  const offset=append?historyItems.length:0,limit=append?HISTORY_PAGE:Math.min(100,Math.max(HISTORY_PAGE,historyItems.length));
+  // 0.1.111 (user): a refresh keeps as many pictures as were shown. The server gives at most 100 per request
+  // (HISTORY_MAX), so a longer list is read again in pieces of 100; before, it fell back to 100 (120/300 → 100/300).
+  const offset=append?historyItems.length:0,want=append?HISTORY_PAGE:Math.max(HISTORY_PAGE,historyItems.length);
   const request=++historyRequest;historyLoading=true;updateHistoryTools();
+  const stale=()=>request!==historyRequest||historyScope!==scope||historyFilter!==filter||historyMarkFilter!==markFilter||(!allScope&&scope!=='free'&&keyOf()!==startKey);
   try {
-    const data=await historyPage({scope,filter,key:startKey,offset,limit,markFilter});
-    if(request!==historyRequest||historyScope!==scope||historyFilter!==filter||historyMarkFilter!==markFilter||(!allScope&&scope!=='free'&&keyOf()!==startKey))return;
+    const data=await historyPage({scope,filter,key:startKey,offset,limit:Math.min(HISTORY_MAX,want),markFilter});
+    if(stale())return;
+    if(!append&&Array.isArray(data.items)){ // the rest of a long list, in pieces of 100, while the server says there is more
+      for(let got=data.items.length;got<want&&data.hasMore===true;){
+        const next=await historyPage({scope,filter,key:startKey,offset:got,limit:Math.min(HISTORY_MAX,want-got),markFilter});
+        if(stale())return;
+        const items=Array.isArray(next.items)?next.items:[];if(!items.length)break;
+        data.items=[...data.items,...items.filter(x=>!data.items.some(y=>y.id===x.id))];got+=items.length;data.hasMore=next.hasMore;
+        if(Number.isInteger(next.total))data.total=next.total;
+      }
+    }
     if(markFilter&&data.filtered!==true){historyItems=[];historyTotal=0;historyHasMore=false;historyUnfiltered=null;$('ncs-history').innerHTML='<p>즐겨찾기·태그 보기는 서버 플러그인 v0.1.22 이상이 필요해요. 서버를 업데이트하고 실리태번을 재시작해 주세요.</p>';return;}
     historyUnfiltered=markFilter&&Number.isInteger(data.unfilteredCount)?data.unfilteredCount:null;
     if(allScope&&(data.scope!=='all'||scope==='chats'&&data.kind!=='chat')){historyItems=[];historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>이 보기는 서버 플러그인 v0.1.13 이상이 필요해요. 서버를 업데이트하고 실리태번을 재시작해 주세요.</p>';return;}
@@ -3041,7 +3055,11 @@ async function guideClick(event){
   const el=event.target.closest('[data-guide-group],[data-guide-toc],[data-guide-link]');if(!el)return;event.preventDefault();
   if(el.dataset.guideLink!==undefined){const groups=await loadGuide().catch(()=>[]),i=groups.findIndex(g=>g.id===el.dataset.guideLink);guideAt=i<0?null:i;}
   else guideAt=el.dataset.guideGroup!==undefined?Number(el.dataset.guideGroup):null;
-  await renderGuide();$('ncs-guide-body').focus({preventScroll:true});
+  // 0.1.111 (GPT P3): opened with the keyboard (a click with no pointer: detail 0), focus starts on the bar above the
+  // text ([‹ 목차]), so Tab reaches 다음 › before the text's links. A finger or mouse keeps the focus on the text.
+  await renderGuide();
+  const bar=guideAt!==null&&event.detail===0?$('ncs-guide-nav').querySelector('[data-guide-toc]'):null;
+  (bar??$('ncs-guide-body')).focus({preventScroll:true});
 }
 function dismissKeyboard(){if(document.activeElement?.matches?.('input,textarea'))document.activeElement.blur();}
 async function onAction(action,el) {

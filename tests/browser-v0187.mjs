@@ -186,7 +186,7 @@ try{
    if(text.startsWith('고친'))await page.locator('#ncs-final-box > summary').click();
    assert.equal(await el.isVisible(),true,text);assert.equal(await el.evaluate(e=>!!e.closest('.ncs-help')),false,`${text} is outside the folds`);
   }
-  const folded=await page.locator('.ncs-help').evaluateAll(els=>els.map(e=>e.textContent));
+  const folded=await page.locator('.ncs-help:not(.ncs-help-must)').evaluateAll(els=>els.map(e=>e.textContent)); // 0.1.111: the Anlas note is the one exception (DESIGN.md 4-2)
   for(const t of folded)assert.doesNotMatch(t,/기억해요|Anlas|비용|개인정보|삭제|되돌릴 수 없|저장돼요|PNG|JSON\)|서버 플러그인/,t.slice(0,60));
   assert.deepEqual(errors,[]);await page.close();}
 
