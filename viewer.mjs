@@ -134,7 +134,9 @@ function build() {
   // 0.1.111 (user): the next picture's file is fetched while this one is shown. Past the history list's end no
   // card had loaded it, so every › waited for the download ("불러오는 중…"). One picture ahead only, never more.
   let ahead=null;
+  // 0.1.112 (GPT P3): not when the browser asks to save data (Chromium's Save-Data; Safari does not tell).
   function fetchAhead(){
+    if(navigator.connection?.saveData===true)return;
     const g=state.gallery,item=g?.items[state.index+1];if(!item)return;
     let url='';try{url=imageDownload(item).url;}catch{return;}
     if(ahead?.dataset.url===url)return;

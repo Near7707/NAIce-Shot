@@ -1,3 +1,14 @@
+# v0.1.112 validation — 2026-11-11 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **96 of 96 Chromium browser scripts passed** (4 at a time; `browser-v01106` was slow under load once and passed on its own). New `browser-v01112`, with the history list answered by the test so it can change between two reads (375/1100px, 300 pictures, 120 shown): the newest deleted between the pieces → read again from the start (100+20 twice), the current first 120, 총 299장; one made between the pieces → the new one first, 120 cards; changed during the second read too → that read's first 100 only, 더 보기 still there; unchanged → 100+20 once. With Save-Data the enlarged view fetches nothing ahead (› still works), without it one picture ahead.
+- Reverted one at a time (each fails `browser-v01112`): the total comparison, stopping after the second change, the Save-Data check.
+- Left as it was: 더 보기 (20 at a time) also continues by offset, so a picture deleted or made in another window in between can make one card repeat or go missing (older than 0.1.111, rare; fixing it means changing the server).
+- Not checked: a real SillyTavern in two windows, iPhone Safari, a real Save-Data setting.
+
+---
+
 # v0.1.111 validation — 2026-11-11 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

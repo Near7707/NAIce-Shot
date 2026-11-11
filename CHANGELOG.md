@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.112 — 2026-11-11 (extension only — server v0.1.25 unchanged)
+
+- From the GPT review of 0.1.111 (no P1). When a long history list is read again in pieces of 100 and a picture is deleted or made elsewhere in between, the mixed result is not shown (it could keep a deleted card or miss one): the list is read again once from the start, and if it changes again only its first 100 are shown.
+- The enlarged view no longer fetches the next picture ahead when the browser asks to save data (Chromium's Save-Data; iPhone Safari does not tell, so it still fetches one).
+
 ## 0.1.111 — 2026-11-11 (extension only — server v0.1.25 unchanged)
 
 - The note under **Anlas 사용 가능성 허용** shows its first sentence on every screen (PC too), with a red **꼭 확인해 주세요 ›** to open the rest and **접기 ‹** to close it. The wording is unchanged.

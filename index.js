@@ -2918,15 +2918,27 @@ async function loadHistory({append=false}={}) {
   const request=++historyRequest;historyLoading=true;updateHistoryTools();
   const stale=()=>request!==historyRequest||historyScope!==scope||historyFilter!==filter||historyMarkFilter!==markFilter||(!allScope&&scope!=='free'&&keyOf()!==startKey);
   try {
-    const data=await historyPage({scope,filter,key:startKey,offset,limit:Math.min(HISTORY_MAX,want),markFilter});
+    const first=()=>historyPage({scope,filter,key:startKey,offset,limit:Math.min(HISTORY_MAX,want),markFilter});
+    let data=await first();
     if(stale())return;
-    if(!append&&Array.isArray(data.items)){ // the rest of a long list, in pieces of 100, while the server says there is more
-      for(let got=data.items.length;got<want&&data.hasMore===true;){
-        const next=await historyPage({scope,filter,key:startKey,offset:got,limit:Math.min(HISTORY_MAX,want-got),markFilter});
-        if(stale())return;
-        const items=Array.isArray(next.items)?next.items:[];if(!items.length)break;
-        data.items=[...data.items,...items.filter(x=>!data.items.some(y=>y.id===x.id))];got+=items.length;data.hasMore=next.hasMore;
-        if(Number.isInteger(next.total))data.total=next.total;
+    // The rest of a long list, in pieces of 100, while the server says there is more. 0.1.112 (GPT P2): the server sorts
+    // the list again for every request, so a picture deleted or made in between moves what offset 100 points at (a gap,
+    // or a deleted card kept). When the total changes between pieces, nothing mixed is shown: the list is read again once
+    // from the start, and if it changes again, only its first piece (≤100) is shown.
+    if(!append&&Array.isArray(data.items)&&data.items.length<want&&data.hasMore===true){
+      for(let tries=0;;tries++){
+        const merged={...data,items:[...data.items]};let moved=false;
+        for(let got=data.items.length;got<want&&merged.hasMore===true;){
+          const next=await historyPage({scope,filter,key:startKey,offset:got,limit:Math.min(HISTORY_MAX,want-got),markFilter});
+          if(stale())return;
+          if(Number.isInteger(data.total)&&next.total!==data.total){moved=true;break;}
+          const items=Array.isArray(next.items)?next.items:[];if(!items.length)break;
+          merged.items=[...merged.items,...items.filter(x=>!merged.items.some(y=>y.id===x.id))];got+=items.length;merged.hasMore=next.hasMore;
+        }
+        if(!moved){data=merged;break;}
+        if(tries)break; // changed twice: the first piece alone (a whole, current list), [더 보기] goes on from it
+        data=await first();if(stale())return;
+        if(!Array.isArray(data.items)||data.items.length>=want||data.hasMore!==true)break;
       }
     }
     if(markFilter&&data.filtered!==true){historyItems=[];historyTotal=0;historyHasMore=false;historyUnfiltered=null;$('ncs-history').innerHTML='<p>즐겨찾기·태그 보기는 서버 플러그인 v0.1.22 이상이 필요해요. 서버를 업데이트하고 실리태번을 재시작해 주세요.</p>';return;}
