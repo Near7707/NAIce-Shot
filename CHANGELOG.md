@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.114 — 2026-11-12 (extension only — server v0.1.25 unchanged)
+
+- 사용 가이드 fix: the sentence after the size and Steps limits no longer says V5 is not free. It now says the limits match Opus's free generation conditions — inside them V4.5 is free and V5 follows the V5 usage rules above — and that Tablet·Scroll use Anlas even inside them. Only the guide text changed; the cost check is the same.
+
 ## 0.1.113 — 2026-11-11 (extension only — server v0.1.25 unchanged)
 
 - From the GPT review of 0.1.112 (no P1). A history read that fails after you switched the range or chat no longer shows its error over the new list (a late answer was already ignored the same way).

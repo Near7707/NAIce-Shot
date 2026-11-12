@@ -1,3 +1,12 @@
+# v0.1.114 validation — 2026-11-12 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed** (not re-run; no server change).
+- **97 of 97 Chromium browser scripts passed** (4 at a time). No new script: one guide sentence changed and no test checks it.
+- Not checked: a real SillyTavern, iPhone Safari.
+
+---
+
 # v0.1.113 validation — 2026-11-11 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.
