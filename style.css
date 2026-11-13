@@ -865,6 +865,9 @@
 #naice-shot-dialog .ncs-chipfield:focus {border-color:var(--ncs-edge);outline:2px solid var(--ncs-focus);outline-offset:2px;}
 #naice-shot-dialog .ncs-chipfield:empty::before {content:attr(data-placeholder);color:var(--ncs-muted);pointer-events:none;}
 #naice-shot-dialog fieldset:disabled .ncs-chipfield {opacity:.6;pointer-events:none;}
+/* 0.1.115: iPhone Safari will not type into a contenteditable box when a theme, custom CSS or another extension sets
+   user-select:none on something around it (the keyboard opens, nothing appears). The chip fields allow it themselves. */
+#naice-shot-dialog .ncs-chipfield {-webkit-user-select:text !important;user-select:text !important;}
 #naice-shot-dialog .ncs-chip {display:inline-block;max-width:min(100%,20em);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;box-sizing:border-box;margin:0 1px;padding:0 9px;border-radius:var(--ncs-radius-pill);border:var(--ncs-border-width) solid var(--ncs-edge);background:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);font-weight:650;line-height:1.45;white-space:nowrap;user-select:all;cursor:default;}
 #naice-shot-dialog .ncs-chip-broken {border-style:dashed;border-color:var(--ncs-warning);background:color-mix(in srgb,var(--ncs-warning) 16%,var(--ncs-bg));color:var(--ncs-fg);font-weight:500;}
 /* 0.1.75: @프로필 참조 — the list under the field while typing "@…". */

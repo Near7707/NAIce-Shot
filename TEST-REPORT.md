@@ -1,3 +1,13 @@
+# v0.1.115 validation — 2026-11-13 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed** (not re-run; no server change).
+- **98 of 98 Chromium browser scripts passed** (4 at a time), including the new `tests/browser-v01115.mjs`: with a theme rule that turns off text selection (plain and `!important`), both chip fields still compute `user-select: text` and take typed text, at 375px and 1100px.
+- Revert check: without the new CSS line the new script fails (`'none' !== 'text'`).
+- Not checked: a real iPhone. Chromium types into such a box anyway, so the check reads the style iPhone Safari depends on; the user should try typing on the iPhone after updating.
+
+---
+
 # v0.1.114 validation — 2026-11-12 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

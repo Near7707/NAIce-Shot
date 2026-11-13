@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.115 — 2026-11-13 (extension only — server v0.1.25 unchanged)
+
+- Fix (iPhone): typing did nothing in the 챗샷 추가 요청 box and the 프리샷 scene box (the keyboard opened, the placeholder stayed). These two are chip fields (contenteditable), and iPhone Safari will not type into one when a theme, custom CSS or another extension sets `user-select: none` around it. The chip fields now set `user-select: text` themselves (with `!important`, so a theme's `* { … !important }` does not win). Other boxes were plain text boxes and were not affected.
+
 ## 0.1.114 — 2026-11-12 (extension only — server v0.1.25 unchanged)
 
 - 사용 가이드 fix: the sentence after the size and Steps limits no longer says V5 is not free. It now says the limits match Opus's free generation conditions — inside them V4.5 is free and V5 follows the V5 usage rules above — and that Tablet·Scroll use Anlas even inside them. Only the guide text changed; the cost check is the same.
