@@ -1,3 +1,14 @@
+# v0.1.118 validation — 2026-11-13 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed** (not re-run; no server change).
+- **101 of 101 Chromium browser scripts passed** (4 at a time; `browser-v0148` was slow once in parallel and passed on its own), including the new `tests/browser-v01118.mjs`: on a touch screen (375px, coarse pointer) a pick by tap or Enter puts `@Mira` in and leaves the box (keyboard closed), and typing after tapping the box again goes on after the name; on a PC (1100px) the caret stays in the box.
+- Revert check: without the blur the new script fails at "the keyboard closes".
+- Checked by hand on the user's iPhone (test page, same chip-field code): without closing the keyboard every way tried (insert, blur + focus, write the whole value, move the caret, autocorrect off) gave "@클로클로가웃는다"; closing the keyboard and tapping again gave "@클로드 가 웃는다" with the link kept.
+- Not checked: this version on the iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.117 validation — 2026-11-13 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

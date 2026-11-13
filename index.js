@@ -1701,6 +1701,10 @@ function pickRef(i){
   if(!refList)return;const {field,q,items}=refList,it=items[i];if(!it)return;
   const p=settings().profiles.find(x=>x.id===it.id);if(!p)return;
   closeRefList();if(field.insertChip(q,p)===false)return;field.dispatchEvent(new Event('input',{bubbles:true}));
+  // 0.1.118: on a touch screen the keyboard is closed after a pick. The iPhone Hangul keyboard keeps the word it was
+  // typing ("클로") and, on the next letter, deletes that many letters and types the word again, so "@클로드 " became
+  // "@클로클로…". Closing the keyboard makes it forget that word; a tap on the box goes on typing. A PC keeps typing.
+  if(globalThis.matchMedia?.('(pointer: coarse)')?.matches)field.blur();
 }
 function bindRefFields(){
   const lengths={'ncs-free-text':{limit:LENGTH_LIMITS.free.visible,measure:displayLength},'ncs-moment-wish':{limit:LENGTH_LIMITS.wish.visible,measure:displayLength,singleLine:true}};

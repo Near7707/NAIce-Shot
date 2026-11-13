@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.118 — 2026-11-13 (extension only — server v0.1.25 unchanged)
+
+- Fix (iPhone): picking a profile from the `@` list no longer doubles letters ("@클로" → pick 클로드 → type "가" gave "@클로클로가"). The iPhone Hangul keyboard keeps the word it was typing and, on the next letter, deletes that many letters and types the whole word again. On a touch screen the keyboard now closes after a pick (tap or Enter), which makes it forget that word; tap the box to go on typing. On a PC the caret stays in the box as before. Checked on the user's iPhone with a test page before the change.
+
 ## 0.1.117 — 2026-11-13 (extension only — server v0.1.25 unchanged)
 
 - Fix (iPhone): the 챗샷 추가 요청 box and the 프리샷 situation box are plain text boxes (textarea) again, like 장소. On a real iPhone, Safari put no caret in the old pill-chip box inside SillyTavern, and the 0.1.115 CSS did not help; the same code worked on its own, so the cause sits somewhere in the page around it. The 0.1.115 CSS line is removed.
