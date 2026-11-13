@@ -858,18 +858,15 @@
 #naice-shot-dialog .ncs-attach-place > span {font-size:13px;color:var(--ncs-muted);margin-right:2px;}
 #naice-shot-dialog .ncs-attach-place button {padding:6px 10px;font-size:13px;min-height:36px;}
 #naice-shot-dialog .ncs-attach-place button[aria-pressed="true"] {border-color:var(--ncs-edge);background-color:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);font-weight:650;}
-/* 0.1.76: @프로필 참조 — a text box that holds @name chips. The chip keeps the profile's id inside; broken chips are dashed yellow. */
-#naice-shot-dialog .ncs-chipfield {display:block;width:100%;min-width:0;max-width:100%;margin-top:6px;padding:10px;min-height:42px;box-sizing:border-box;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;cursor:text;
- color:var(--ncs-fg);background-color:var(--ncs-control);border:var(--ncs-border-width) solid var(--ncs-border);border-radius:var(--ncs-radius-control);}
-#naice-shot-dialog .ncs-chipfield-multi {min-height:calc(4 * 1.5em + 22px);max-height:40dvh;overflow:auto;}
+/* 0.1.76: @프로필 참조. 0.1.117: a plain textarea that shows "@name" as text (iPhone Safari would not type into the old
+   contenteditable box inside SillyTavern); which profile each "@name" stands for is kept beside the text. */
+#naice-shot-dialog .ncs-chipfield {display:block;width:100%;min-width:0;max-width:100%;margin-top:6px;padding:10px;min-height:42px;box-sizing:border-box;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;
+ color:var(--ncs-fg);background-color:var(--ncs-control);border:var(--ncs-border-width) solid var(--ncs-border);border-radius:var(--ncs-radius-control);resize:none;}
+#naice-shot-dialog .ncs-chipfield-multi {min-height:calc(4 * 1.5em + 22px);max-height:40dvh;overflow:auto;resize:vertical;}
+#naice-shot-dialog .ncs-chipfield:not(.ncs-chipfield-multi) {overflow:hidden;}
 #naice-shot-dialog .ncs-chipfield:focus {border-color:var(--ncs-edge);outline:2px solid var(--ncs-focus);outline-offset:2px;}
-#naice-shot-dialog .ncs-chipfield:empty::before {content:attr(data-placeholder);color:var(--ncs-muted);pointer-events:none;}
-#naice-shot-dialog fieldset:disabled .ncs-chipfield {opacity:.6;pointer-events:none;}
-/* 0.1.115: iPhone Safari will not type into a contenteditable box when a theme, custom CSS or another extension sets
-   user-select:none on something around it (the keyboard opens, nothing appears). The chip fields allow it themselves. */
-#naice-shot-dialog .ncs-chipfield {-webkit-user-select:text !important;user-select:text !important;}
-#naice-shot-dialog .ncs-chip {display:inline-block;max-width:min(100%,20em);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;box-sizing:border-box;margin:0 1px;padding:0 9px;border-radius:var(--ncs-radius-pill);border:var(--ncs-border-width) solid var(--ncs-edge);background:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);font-weight:650;line-height:1.45;white-space:nowrap;user-select:all;cursor:default;}
-#naice-shot-dialog .ncs-chip-broken {border-style:dashed;border-color:var(--ncs-warning);background:color-mix(in srgb,var(--ncs-warning) 16%,var(--ncs-bg));color:var(--ncs-fg);font-weight:500;}
+#naice-shot-dialog .ncs-chipfield::placeholder {color:var(--ncs-muted);opacity:1;}
+#naice-shot-dialog fieldset:disabled .ncs-chipfield {opacity:.6;}
 /* 0.1.75: @프로필 참조 — the list under the field while typing "@…". */
 #naice-shot-dialog .ncs-ref-list {position:fixed;z-index:30;display:grid;gap:2px;max-height:min(280px,50dvh);overflow:auto;padding:4px;border:var(--ncs-border-width) solid var(--ncs-edge);border-radius:var(--ncs-radius-control);background:var(--ncs-bg);box-shadow:0 8px 28px #0006;}
 #naice-shot-dialog .ncs-ref-item {display:flex;align-items:baseline;gap:8px;width:100%;padding:8px 10px;border:0;border-radius:6px;background:transparent;text-align:left;min-height:40px;}

@@ -69,7 +69,7 @@ export const LENGTH_LIMITS={free:{visible:4000,stored:180000,label:'상황 글'}
 export function lengthProblem(value,kind){
   const rule=LENGTH_LIMITS[kind],text=String(value??''),shown=displayLength(text);
   if(shown>rule.visible)return `${rule.label}이 너무 길어요. 화면에 보이는 글자 기준 ${rule.visible.toLocaleString('en-US')}자까지예요. (지금 ${shown.toLocaleString('en-US')}자)`;
-  if(text.length>rule.stored)return `${rule.label}에 칩이 너무 많아요. 줄여 주세요.`;
+  if(text.length>rule.stored)return `${rule.label}에 @프로필 연결이 너무 많아요. 줄여 주세요.`;
   return null;
 }
 
@@ -94,7 +94,7 @@ export function readRefs(text,profiles){
     if(piece.legacy){problems.push({start,end,raw,message:`@${shown}: 예전 형식(@이름#ID)이거나 잘못된 형식이에요. 지우고 @를 쳐서 목록에서 다시 골라 주세요.`});continue;}
     const p=profiles.find(p=>String(p.id)===piece.id);
     if(piece.id&&p)refs.push({start,end,raw,id:p.id,typed:false});
-    else problems.push({start,end,raw,message:`@${shown}: 지워졌거나 찾을 수 없는 프로필이에요. 칩을 지우고 @를 쳐서 다시 골라 주세요.`});
+    else problems.push({start,end,raw,message:`@${shown}: 지워졌거나 찾을 수 없는 프로필이에요. 이 @이름을 지우고 @를 쳐서 목록에서 다시 골라 주세요.`});
   }
   const inClaimed=i=>claimed.some(([s,e])=>i>=s&&i<e);
   for(let i=0;i<value.length;i++){

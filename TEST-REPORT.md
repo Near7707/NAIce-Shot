@@ -1,3 +1,15 @@
+# v0.1.117 validation — 2026-11-13 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **100 of 100 Chromium browser scripts passed** (4 at a time; `browser-v031` timed out once on the empty-space tap close while running in parallel and passed twice on its own), including the new `tests/browser-v01117.mjs` (375px, 1100px): both @ boxes are textareas with the box's own limit; the one-line request ignores Enter and grows with wrapped text; two `Leo` links keep their ids; a link survives a letter typed right after it (also the name's own last letter) and iPhone-style Hangul (delete + insert, no composition events); an `@` typed before a link moves it along; a letter typed inside ends it; a picked name does not reopen the list; a history error from a request started on 이력 is not shown in 설정 and waits in 이력; a pen drag and a drag zoomed before lifting do not close the viewer while a touch swipe still does; a touch double tap followed by the browser's dblclick toggles once, and a later mouse double click still toggles.
+- Old scripts changed for the textarea: `browser-v0176`, `v0177`, `v0178`, `v0179`, `v0180` read links from the saved form instead of pill elements; the "Backspace removes the whole chip" and composition-trim checks became "Backspace into it ends the link" and "typing stops at the box limit"; `browser-v01115` checks the two boxes are textareas (its user-select rule is gone).
+- Revert checks: the history tab, the touch-only and still-at-fit close rules, the dblclick guard, the caret hint in moving links and the "picked name does not reopen the list" rule each make the new script fail at its own assert.
+- Checked by hand on the user's iPhone before the change (test page, not SillyTavern): the old chip code and the real panel layout took typing; the iPhone Hangul keyboard sends delete + insert without composition events.
+- Not checked: a real iPhone inside SillyTavern with this version, a real NovelAI account.
+
+---
+
 # v0.1.116 validation — 2026-11-13 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

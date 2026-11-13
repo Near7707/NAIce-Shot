@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.117 — 2026-11-13 (extension only — server v0.1.25 unchanged)
+
+- Fix (iPhone): the 챗샷 추가 요청 box and the 프리샷 situation box are plain text boxes (textarea) again, like 장소. On a real iPhone, Safari put no caret in the old pill-chip box inside SillyTavern, and the 0.1.115 CSS did not help; the same code worked on its own, so the cause sits somewhere in the page around it. The 0.1.115 CSS line is removed.
+- `@` references stay: type `@` and pick from the list as before; the box shows `@Leo` as text and remembers which profile that `@Leo` stands for by its place in the text. Two profiles with the same name stay apart, text typed right after `@Leo` keeps the link, and editing inside `@Leo` (or deleting part of it) ends the link. Saved work, history and the server see the same `@[Leo](ref:ID)` form as before. A typed or pasted `@Leo` is still linked just before extraction when exactly one profile fits.
+- What goes with the pills: no pill look, Backspace removes one letter (and ends the link) instead of the whole chip, a renamed profile keeps its old name in the box until picked again (the link itself holds), and a link to a deleted profile is no longer dashed yellow — extraction still stops with a note. The length limit is now the box's own (it holds while Hangul is typed), so the old after-typing trim is gone.
+- From the GPT review of 0.1.113~0.1.116 (no P1, no P2): a history error that arrives after you left the history tab stays in that tab; the guide says the free-generation conditions need an active Opus subscription (not in the grace period); swipe-down closes the viewer only for a finger (not a pen) and only if it is still at fit size when the finger lifts; a touch double tap toggles the size once (the browser's own double-click after it no longer toggles it back).
+
 ## 0.1.116 — 2026-11-13 (extension only — server v0.1.25 unchanged)
 
 - New: swipe down to close the picture viewer. Touch only, and only at fit size (when zoomed in or at 100%, a drag still moves the picture). It closes when the finger lifts after a clear downward swipe (at least 80px, much more down than sideways); short pulls, upward swipes and slanted moves do nothing. The picture does not follow the finger, the same way the sideways swipe works. The guide mentions it.

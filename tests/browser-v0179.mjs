@@ -62,7 +62,8 @@ const reply=(page,text)=>page.evaluate(t=>{mock.generateRaw=async function(o){th
 const field='#ncs-free-text';
 const val=(page,sel=field)=>page.locator(sel).evaluate(f=>f.value);
 const tok=(name,id)=>`@[${name}](ref:${id})`;
-const chips=(page,sel=field)=>page.locator(`${sel} .ncs-chip`).evaluateAll(els=>els.map(e=>({text:e.textContent,id:e.dataset.refId,broken:e.classList.contains('ncs-chip-broken')})));
+// 0.1.117: the field is a textarea; its links are read from the saved form (a link to a missing profile is broken).
+const chips=(page,sel=field)=>page.locator(sel).evaluate(f=>{const ps=mock.extensionSettings.naice_shot.profiles;return [...f.value.matchAll(/@\[([^\]\n]*)\]\(ref:([A-Za-z0-9_-]*)\)/g)].map(m=>{const p=ps.find(p=>p.id===m[2]);return {text:`@${p?p.name:m[1]}`,id:m[2],broken:!m[2]||!p};});});
 const items=page=>page.locator('#ncs-ref-list:not([hidden]) .ncs-ref-item').allInnerTexts();
 const noteText=page=>page.locator('#ncs-notice').innerText();
 const type=async(page,sel,text)=>{await page.locator(sel).focus();await page.keyboard.type(text);};
@@ -87,13 +88,13 @@ try{
   await page.evaluate(()=>{mock.extractCalls=0;});
   await page.locator('#ncs-moment-wish').fill('가'.repeat(190)+' @Q');
   await page.locator('[data-action="extract"]').click();
-  await page.waitForFunction(()=>/칩으로 바꾸면/.test(document.querySelector('#ncs-notice').innerText));
+  await page.waitForFunction(()=>/프로필에 연결하면/.test(document.querySelector('#ncs-notice').innerText));
   assert.equal(await page.evaluate(()=>mock.extractCalls??0),0);assert.equal(await val(page,'#ncs-moment-wish'),'가'.repeat(190)+' @Q','nothing changed in the field');
   // …and a list pick that would not fit is refused
   await page.evaluate(()=>{document.querySelector('#ncs-moment-wish').value='가'.repeat(190);});
   await page.locator('#ncs-moment-wish').focus();await page.keyboard.press('End');await page.keyboard.type(' @Q');
   await page.locator('#ncs-ref-list:not([hidden]) .ncs-ref-item').first().waitFor();await page.keyboard.press('Enter');
-  assert.equal(await page.locator('#ncs-moment-wish .ncs-chip').count(),0,'no chip');assert.match(await noteText(page),/칩을 넣지 못했어요/);
+  assert.equal((await chips(page,'#ncs-moment-wish')).length,0,'no link');assert.match(await noteText(page),/@이름을 넣지 못했어요/);
   await page.evaluate(()=>{document.querySelector('#ncs-moment-wish').value='';});
   assert.deepEqual(errors,[]);await page.close();
  }

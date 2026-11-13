@@ -62,7 +62,8 @@ const reply=(page,text)=>page.evaluate(t=>{mock.generateRaw=async function(o){th
 const field='#ncs-free-text';
 const val=(page,sel=field)=>page.locator(sel).evaluate(f=>f.value);
 const tok=(name,id)=>`@[${name}](ref:${id})`;
-const chips=(page,sel=field)=>page.locator(`${sel} .ncs-chip`).evaluateAll(els=>els.map(e=>({text:e.textContent,id:e.dataset.refId,broken:e.classList.contains('ncs-chip-broken')})));
+// 0.1.117: the field is a textarea; its links are read from the saved form (a link to a missing profile is broken).
+const chips=(page,sel=field)=>page.locator(sel).evaluate(f=>{const ps=mock.extensionSettings.naice_shot.profiles;return [...f.value.matchAll(/@\[([^\]\n]*)\]\(ref:([A-Za-z0-9_-]*)\)/g)].map(m=>{const p=ps.find(p=>p.id===m[2]);return {text:`@${p?p.name:m[1]}`,id:m[2],broken:!m[2]||!p};});});
 const items=page=>page.locator('#ncs-ref-list:not([hidden]) .ncs-ref-item').allInnerTexts();
 const noteText=page=>page.locator('#ncs-notice').innerText();
 const type=async(page,sel,text)=>{await page.locator(sel).focus();await page.keyboard.type(text);};
@@ -76,44 +77,32 @@ try{
   // UI-076-03: a 95-character name stays inside the field at this width
   await page.evaluate(()=>{document.querySelector('#ncs-free-text').value='';});
   await page.locator(field).focus();await page.keyboard.type('@가가');await page.locator('#ncs-ref-list:not([hidden]) .ncs-ref-item').first().click();
-  const box=await page.locator(`${field} .ncs-chip`).evaluate(c=>{const f=c.closest('.ncs-chipfield').getBoundingClientRect(),r=c.getBoundingClientRect();return {over:r.right>f.right+1,wide:r.width>f.width+1};});
-  assert.deepEqual(box,{over:false,wide:false},'long chip fits');
-  assert.equal(await page.locator(`${field} .ncs-chip`).getAttribute('title'),'@'+'가'.repeat(95));
+  // 0.1.117: a textarea wraps the long name inside itself.
+  const box=await page.locator(field).evaluate(f=>{const r=f.getBoundingClientRect();return {over:r.right>innerWidth+1,wide:f.scrollWidth>f.clientWidth+1};});
+  assert.deepEqual(box,{over:false,wide:false},'long name fits');
+  assert.deepEqual((await chips(page)).map(c=>c.id),['long']);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'no sideways page scroll');
   // UI-075-07: picking for "@Le|o" replaces the rest of the name
   await page.evaluate(()=>{document.querySelector('#ncs-free-text').value='';});
   await page.locator(field).focus();await page.keyboard.type('@Leo 가');
-  await page.evaluate(()=>{const f=document.querySelector('#ncs-free-text'),n=f.firstChild;const r=document.createRange();r.setStart(n,3);r.collapse(true);const s=getSelection();s.removeAllRanges();s.addRange(r);document.dispatchEvent(new Event('selectionchange'));});
+  await page.evaluate(()=>{const f=document.querySelector('#ncs-free-text');f.setSelectionRange(3,3);});
   await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowLeft'); // refresh the list at "@Le|o"
   await page.locator('#ncs-ref-list:not([hidden]) .ncs-ref-item').first().waitFor();
   await page.keyboard.press('Enter');
   assert.equal(await val(page),tok('Leo','leo')+' 가'.replace(' ',' ').replace(/^/,''),'no leftover "o"'.concat(await val(page)));
   // copy keeps a trailing newline
   await page.evaluate(()=>{document.querySelector('#ncs-free-text').value='첫줄\n둘째\n';});
-  const copied=await page.locator(field).evaluate(f=>{f.focus();const r=document.createRange();r.selectNodeContents(f);const s=getSelection();s.removeAllRanges();s.addRange(r);const h=document.createElement('div');h.append(r.cloneContents());return null;});
-  const sel=await page.locator(field).evaluate(f=>{f.focus();const n=f.childNodes;const r=document.createRange();r.setStart(f.firstChild,0);r.setEnd(f,2);const s=getSelection();s.removeAllRanges();s.addRange(r);const dt=new DataTransfer();f.dispatchEvent(new ClipboardEvent('copy',{clipboardData:dt,bubbles:true,cancelable:true}));return dt.getData('text/plain');});
+  const sel=await page.locator(field).evaluate(f=>{f.focus();f.setSelectionRange(0,3);const dt=new DataTransfer();f.dispatchEvent(new ClipboardEvent('copy',{clipboardData:dt,bubbles:true,cancelable:true}));return dt.getData('text/plain');});
   assert.equal(sel,'첫줄\n','copied text keeps the selected trailing newline: '+JSON.stringify(sel));
   assert.equal(await val(page),'첫줄\n둘째\n','the field itself still ignores its placeholder line');
   // Lengths: the limit is what is seen. 3,961 characters with a chip are fine; 4,001 are not.
   await page.evaluate(()=>{const f=document.querySelector('#ncs-free-text');f.value='@[Leo](ref:leo)'+'가'.repeat(3990);});
-  assert.equal(await page.locator(field).evaluate(f=>f.textContent.length>3990),true);
-  await page.locator(field).focus();await page.keyboard.press('End');await page.keyboard.type('나'.repeat(20));
-  assert.equal(await page.locator(field).evaluate(f=>f.textContent.replace(/[​]/g,'').length),4000,'typing stops at 4,000 seen characters (chip = @Leo = 4)');
-  // Hangul composition: only the part composed this time is trimmed; existing text and chips stay (UI-076-02)
-  const composeOver=(data,claim)=>page.locator(field).evaluate((f,[d,c])=>{
-   f.focus();const sel=getSelection(),r=document.createRange();r.selectNodeContents(f);r.collapse(false);sel.removeAllRanges();sel.addRange(r);
-   document.execCommand('insertText',false,d); // what the keyboard put in; beforeinput of a composition cannot be refused
-   f.dispatchEvent(new CompositionEvent('compositionend',{data:c??d,bubbles:true}));return f.value;},[data,claim]);
-  await page.evaluate(()=>{document.querySelector('#ncs-free-text').value='@[Leo](ref:leo)'+'가'.repeat(3990);});
-  await page.locator(field).evaluate(f=>{f.addEventListener('ncs-field-over',()=>{window.__over=(window.__over||0)+1;});});
-  let after=await composeOver('나'.repeat(12));
-  assert.equal(after,'@[Leo](ref:leo)'+'가'.repeat(3990)+'나'.repeat(6),'trimmed to 4,000 seen characters; old text and chip untouched');
-  // the composed part cannot be located: nothing is cut, the person is told, extraction stays blocked
-  await page.evaluate(()=>{document.querySelector('#ncs-free-text').value='@[Leo](ref:leo)'+'가'.repeat(3990);window.__over=0;});
-  after=await composeOver('나'.repeat(12),'다른글자');
-  assert.equal(after,'@[Leo](ref:leo)'+'가'.repeat(3990)+'나'.repeat(12),'nothing cut when the part is not found');
-  assert.equal(await page.evaluate(()=>window.__over),1);
-  await page.locator('[data-action="extract"]').click();assert.match(await noteText(page),/4,000자까지/);
+  assert.equal(await page.locator(field).evaluate(f=>f.textLength),3994);
+  await page.locator(field).focus();await page.keyboard.press('Control+End');await page.keyboard.type('나'.repeat(20));
+  assert.equal(await page.locator(field).evaluate(f=>f.textLength),4000,'typing stops at 4,000 seen characters (@Leo = 4)');
+  assert.equal(await val(page),'@[Leo](ref:leo)'+'가'.repeat(3990)+'나'.repeat(6),'the link stays');
+  // 0.1.117: the box's own limit holds while Hangul is composed (no trimming afterwards). Text loaded over the limit stays
+  // as it is and stops the extraction below.
   // Extract with an over-long field is stopped with a clear message before any call
   await page.evaluate(()=>{document.querySelector('#ncs-free-text').value='가'.repeat(4500);mock.extractCalls=0;});
   await page.locator('[data-action="extract"]').click();
@@ -121,10 +110,10 @@ try{
   // wish field: 200 seen characters; a chip counts as @name
   await page.evaluate(()=>{document.querySelector('#ncs-moment-wish').value='@[Leo](ref:leo)'+'가'.repeat(196);});
   await page.locator('#ncs-moment-wish').focus();await page.keyboard.press('End');await page.keyboard.type('나나나');
-  assert.equal(await page.locator('#ncs-moment-wish').evaluate(f=>f.textContent.replace(/[​]/g,'').length),200);
+  assert.equal(await page.locator('#ncs-moment-wish').evaluate(f=>f.textLength),200);
   assert.deepEqual(errors,[]);await page.close();
  }
- console.log('PASS: long chip names fit at 375px; list pick replaces the typed name rest; copy keeps the trailing newline; lengths follow what is seen and over-long text stops extraction');
+ console.log('PASS: long linked names fit at 375px; list pick replaces the typed name rest; copy keeps the trailing newline; lengths follow what is seen and over-long text stops extraction');
 
  {
   const {page,errors}=await open(375);

@@ -688,7 +688,7 @@ function showTab(tab) {
   for(const el of dialog.querySelectorAll('[data-tab]'))el.classList.toggle('ncs-active',el.dataset.tab===tab);
   for(const el of dialog.querySelectorAll('[data-tab]'))el.setAttribute('aria-selected',String(el.dataset.tab===tab));
   renderNotice();restoreScroll();
-  if(tab==='history')loadHistory().catch(e=>notice(e.message,true));
+  if(tab==='history')loadHistory().catch(e=>notice(e.message,true,'history'));
 }
 // Target picker: looks like a dropdown, opens into a short scrolling list (newest first) that grows
 // ten messages at a time. Nothing is built while it is closed.
@@ -769,7 +769,7 @@ async function setMode(next){
   if(next===mode)return;if(busy||attaching||draftLoading||outfitSaving)throw new Error('진행 중인 작업이 끝난 뒤 바꿔 주세요.');
   rememberDraft(workKey(),null,{flush:true});rememberScroll();spare[mode]=captureWork();mode=next;syncGen(next);loadWork(spare[mode]??blankWork());delete spare[mode];
   historyPresetTarget=null;
-  revision++;renderSettings();renderModeUI();renderTargets();renderScene({forceFinal:true});renderResult();renderPlacement();if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true));
+  revision++;renderSettings();renderModeUI();renderTargets();renderScene({forceFinal:true});renderResult();renderPlacement();if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true,'history'));
   notice(isFree()?'프리샷이에요. 채팅과 상관없이 자유롭게 그려요.':'챗샷이에요. 열린 채팅의 장면을 그려요.');
   await recallDraft();
 }
@@ -1651,11 +1651,11 @@ function prepareRefs(el,label){
   const profiles=settings().profiles,c=confirmRefs(el.value,profiles);
   if(c.problems.length)throw new Error(`${label}의 @참조를 확인해 주세요. ${c.problems.map(p=>p.message).join(' ')}`);
   // 0.1.79 (UI-076-02): a typed short alias can become a chip with a longer name — the result is checked again.
-  {const after=lengthProblem(c.text,el.id==='ncs-free-text'?'free':'wish');if(after)throw new Error(`@이름을 칩으로 바꾸면 ${after}`);}
+  {const after=lengthProblem(c.text,el.id==='ncs-free-text'?'free':'wish');if(after)throw new Error(`@이름을 프로필에 연결하면 ${after}`);}
   if(c.confirmed.length){el.value=c.text;el.dispatchEvent(new Event('input',{bubbles:true}));}
   const x=refsForExtraction(c.text,profiles),limit=MODELS[effectiveOptions().model]?.limit??6;
   if(x.required.length>limit)throw new Error(`@로 지정한 필수 인물이 ${x.required.length}명이라 지금 모델의 한도(${limit}명)를 넘어요. 일부의 @를 지워 주세요.`);
-  return {text:x.text,required:x.required,note:c.confirmed.length?`${c.confirmed.map(x=>x.from).join(', ')}을(를) 칩으로 확정했어요. `:''};
+  return {text:x.text,required:x.required,note:c.confirmed.length?`${c.confirmed.map(x=>x.from).join(', ')}을(를) 프로필에 연결했어요. `:''};
 }
 // Leftover reference marks never reach a card or NovelAI.
 const unmark=value=>JSON.parse(JSON.stringify(value),(k,v)=>typeof v==='string'?stripRefMarks(v):v);
@@ -1711,7 +1711,7 @@ function bindRefFields(){
     field.addEventListener('input',refresh);field.addEventListener('compositionend',refresh);field.addEventListener('click',refresh);
     field.addEventListener('keyup',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key))refresh();});
     field.addEventListener('blur',()=>setTimeout(()=>{if(refList?.field===field&&document.activeElement!==field)closeRefList();},150));
-    field.addEventListener('ncs-field-full',event=>notice(`${id==='ncs-free-text'?'상황 글':'추가 요청'}이 너무 길어서 ${event.detail?.chip?'칩을 넣지':'붙여 넣지'} 못했어요.`,true,'scene'));
+    field.addEventListener('ncs-field-full',event=>notice(`${id==='ncs-free-text'?'상황 글':'추가 요청'}이 너무 길어서 ${event.detail?.chip?'@이름을 넣지':'붙여 넣지'} 못했어요.`,true,'scene'));
     field.addEventListener('ncs-field-over',()=>notice(`${id==='ncs-free-text'?'상황 글':'추가 요청'}이 글자 수 한도를 넘었어요. 줄이기 전에는 추출하거나 생성할 수 없어요.`,true,'scene'));
     field.addEventListener('keydown',event=>{
       if(!refList||refList.field!==field||event.isComposing||event.keyCode===229)return;
@@ -2465,7 +2465,7 @@ function chatLabel(key) {
 }
 function setHistoryScope(scope) {
   closeImageMenu();historyScope=['chat','chats','free','all'].includes(scope)?scope:'chat';historyFilter='';historyTagEdit=null;historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;selectedIds.clear();
-  loadHistory().catch(e=>notice(e.message,true));
+  loadHistory().catch(e=>notice(e.message,true,'history'));
 }
 async function requestImageDeletion(key,list,knownIds){
   const all=list==='all';
@@ -2853,7 +2853,7 @@ function storeMarks(next){settings().imageMarks=next;ctx().saveSettingsDebounced
 function toggleStar(id){
   const item=historyItems.find(x=>x.id===id);if(!item)return;
   const on=!marks()[id]?.star;storeMarks(setMark(marks(),item,{star:on}));
-  if(historyMarkFilter==='star'&&!on){loadHistory().catch(e=>notice(e.message,true));return;}
+  if(historyMarkFilter==='star'&&!on){loadHistory().catch(e=>notice(e.message,true,'history'));return;}
   const button=dialog.querySelector(`[data-history-star="${CSS.escape(id)}"]`);
   if(button){const label=on?'즐겨찾기 해제':'즐겨찾기';button.textContent=on?'★':'☆';button.setAttribute('aria-pressed',String(on));button.title=label;button.setAttribute('aria-label',label);}
 }
@@ -2861,7 +2861,7 @@ function saveTags(id){
   const item=historyItems.find(x=>x.id===id);if(!item)return;
   const tags=parseTags($('ncs-history-tag-input')?.value??'');
   storeMarks(setMark(marks(),item,{tags}));historyTagEdit=null;renderHistory();renderTagPopupSetting();
-  if(historyMarkFilter==='tag'&&!tags.length)loadHistory().catch(e=>notice(e.message,true)); // no tags left: it leaves the # view
+  if(historyMarkFilter==='tag'&&!tags.length)loadHistory().catch(e=>notice(e.message,true,'history')); // no tags left: it leaves the # view
   notice(tags.length?`태그 ${tags.length}개를 저장했어요: ${tags.map(t=>'#'+t).join(' ')}`:'이 그림의 태그를 모두 지웠어요.',false,'history');
 }
 function saveHistoryPreset(id){
@@ -3300,7 +3300,7 @@ function bindEvents() {
       if(el.closest('#ncs-work-fields'))dropUndo();
       if(el.dataset.historyPick){if(el.checked)selectedIds.add(el.dataset.historyPick);else selectedIds.delete(el.dataset.historyPick);el.closest('.ncs-history-card')?.classList.toggle('ncs-picked',el.checked);updateHistoryTools();return;}
       if(el.id==='ncs-history-scope'){setHistoryScope(el.value);return;}
-      if(el.id==='ncs-history-filter'){historyFilter=el.value;historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;selectedIds.clear();loadHistory().catch(e=>notice(e.message,true));return;}
+      if(el.id==='ncs-history-filter'){historyFilter=el.value;historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;selectedIds.clear();loadHistory().catch(e=>notice(e.message,true,'history'));return;}
       if(el.name==='ncs-skin'){useSkin(el.value,{save:true}).catch(e=>notice(e.message,true));return;}
       if(el.id==='ncs-character-binding'||el.id==='ncs-user-binding'){
         const field=el.id==='ncs-character-binding'?'characterProfileId':'userProfileId';
@@ -3530,7 +3530,7 @@ async function open() {
   if(!dialog.open){dialog.showModal();dialog.focus({preventScroll:true});} // 0.1.88: the dialog itself takes the first focus, so no button opens with a focus ring
   restoreScroll();
   // The chat may have changed while the panel was closed: reload the visible history instead of showing it empty.
-  renderPlacement();renderGenerationCheck();if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true));
+  renderPlacement();renderGenerationCheck();if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true,'history'));
   const checking=!compatChecked;if(checking){compatChecking=true;syncWorkLock();}
   try{await checkServer();}finally{if(checking){compatChecking=false;syncWorkLock();}}
   if(!account.at&&!account.checking&&!account.failed)refreshAccount().catch(()=>{});

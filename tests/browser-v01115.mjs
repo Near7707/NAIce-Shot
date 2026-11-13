@@ -268,18 +268,18 @@ try{
   for(const css of ['body *{-webkit-user-select:none;user-select:none;}','*{-webkit-user-select:none !important;user-select:none !important;}']){
    const {page,errors}=await open(width,{touch:width===375});
    await page.addStyleTag({content:css});
-   const sel=id=>page.evaluate(i=>{const s=getComputedStyle(document.getElementById(i));return s.webkitUserSelect||s.userSelect;},id);
    // The other boxes really are switched off by that CSS (so the check below means something).
    assert.equal(await page.evaluate(()=>{const s=getComputedStyle(document.querySelector('#naice-shot-dialog .ncs-header'));return s.webkitUserSelect||s.userSelect;}),'none',`${width}px: the theme rule applies around the fields`);
-   assert.equal(await sel('ncs-moment-wish'),'text',`${width}px: 추가 요청 allows typing (${css})`);
+   // 0.1.117: the two fields are plain textareas now (the 0.1.115 user-select rule did not help on a real iPhone).
+   assert.equal(await page.evaluate(()=>document.getElementById('ncs-moment-wish').tagName),'TEXTAREA',`${width}px: 추가 요청 is a textarea (${css})`);
    await page.locator('#ncs-moment-wish').click();await page.keyboard.type('Mira waves');
    assert.equal(await page.evaluate(()=>document.getElementById('ncs-moment-wish').value),'Mira waves');
    await mode(page,'free');
-   assert.equal(await sel('ncs-free-text'),'text',`${width}px: 장면 글 allows typing (${css})`);
+   assert.equal(await page.evaluate(()=>document.getElementById('ncs-free-text').tagName),'TEXTAREA',`${width}px: 장면 글 is a textarea (${css})`);
    await page.locator('#ncs-free-text').click();await page.keyboard.type('Leo reads');
    assert.equal(await page.evaluate(()=>document.getElementById('ncs-free-text').value),'Leo reads');
    assert.deepEqual(errors,[]);await page.close();
   }
  }
- console.log('PASS: the chip fields allow typing even when a theme turns off text selection');
+ console.log('PASS: the @ fields (textareas since 0.1.117) take typing even when a theme turns off text selection');
 }finally{await browser.close();server.close();}

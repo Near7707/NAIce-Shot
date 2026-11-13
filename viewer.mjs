@@ -219,7 +219,7 @@ function build() {
   stage.addEventListener('wheel', event => { event.preventDefault(); zoomBy(Math.exp(-event.deltaY * 0.0015), local(event)); }, { passive: false });
 
   // One pointer pans, two pointers pinch. A short tap on empty space closes; a double tap toggles fit/100%.
-  const pointers = new Map(); let gesture = null, lastTap = null;
+  const pointers = new Map(); let gesture = null, lastTap = null, tapToggled = 0;
   stage.addEventListener('pointerdown', event => {
     if (event.button !== undefined && event.button > 0) return;
     try { stage.setPointerCapture?.(event.pointerId); } catch { /* capture is optional; some browsers reject it */ }
@@ -268,13 +268,14 @@ function build() {
       if(Math.abs(dx)>=60&&Math.abs(dx)>Math.abs(dy)*1.5){lastTap=null;gesture=null;navigate(dx<0?1:-1);}
     }
     // 0.1.116: a clear swipe down closes the viewer, only at fit size (zoomed in, a drag moves the picture) and only by touch.
-    if(event.type==='pointerup'&&gesture?.type==='pan'&&gesture.down&&gesture.pointerType!=='mouse'){
+    // 0.1.117: checked again when the finger lifts (zoomed meanwhile: no close), and a pen or mouse never closes it.
+    if(event.type==='pointerup'&&gesture?.type==='pan'&&gesture.down&&gesture.pointerType==='touch'&&state.mode==='fit'){
       const dx=local(event).x-gesture.start.x,dy=local(event).y-gesture.start.y;
       if(dy>=80&&dy>Math.abs(dx)*1.5){lastTap=null;gesture=null;dialog.close();}
     }
     if (event.type === 'pointerup' && gesture?.type === 'pan' && !gesture.moved) {
       const now = Date.now();
-      if (gesture.pointerType !== 'mouse' && lastTap && now - lastTap.time < 320 && Math.hypot(point.x - lastTap.point.x, point.y - lastTap.point.y) < 30) { lastTap = null; toggle(point); }
+      if (gesture.pointerType !== 'mouse' && lastTap && now - lastTap.time < 320 && Math.hypot(point.x - lastTap.point.x, point.y - lastTap.point.y) < 30) { lastTap = null; tapToggled = now; toggle(point); }
       // Closed just after this tap's own click, so the click never lands on what lies under the viewer (a chat picture).
       else { lastTap = { time: now, point }; if (!gesture.onImage) closeAfterTap(); }
     }
@@ -283,7 +284,8 @@ function build() {
   };
   stage.addEventListener('pointerup', end);
   stage.addEventListener('pointercancel', end);
-  stage.addEventListener('dblclick', event => { if (event.target === img) toggle(local(event)); });
+  // The browser also sends dblclick after a touch or pen double tap; that tap has toggled already (0.1.117).
+  stage.addEventListener('dblclick', event => { if (event.target === img && Date.now() - tapToggled > 600) toggle(local(event)); });
 
   new ResizeObserver(() => { if (!dialog.open || !state.nat.w) return; if (state.mode === 'fit') fit(); else set(clampPan(state.view, state.nat, stageSize())); }).observe(stage);
   dialog.addEventListener('close', () => { dropTap();state.epoch++;state.gallery=null;state.navBusy=false;state.navPage=false;pointers.clear();gesture=null;lastTap=null; });

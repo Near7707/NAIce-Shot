@@ -62,7 +62,8 @@ const reply=(page,text)=>page.evaluate(t=>{mock.generateRaw=async function(o){th
 const field='#ncs-free-text';
 const val=(page,sel=field)=>page.locator(sel).evaluate(f=>f.value);
 const tok=(name,id)=>`@[${name}](ref:${id})`;
-const chips=(page,sel=field)=>page.locator(`${sel} .ncs-chip`).evaluateAll(els=>els.map(e=>({text:e.textContent,id:e.dataset.refId,broken:e.classList.contains('ncs-chip-broken')})));
+// 0.1.117: the field is a textarea; its links are read from the saved form (a link to a missing profile is broken).
+const chips=(page,sel=field)=>page.locator(sel).evaluate(f=>{const ps=mock.extensionSettings.naice_shot.profiles;return [...f.value.matchAll(/@\[([^\]\n]*)\]\(ref:([A-Za-z0-9_-]*)\)/g)].map(m=>{const p=ps.find(p=>p.id===m[2]);return {text:`@${p?p.name:m[1]}`,id:m[2],broken:!m[2]||!p};});});
 const items=page=>page.locator('#ncs-ref-list:not([hidden]) .ncs-ref-item').allInnerTexts();
 const noteText=page=>page.locator('#ncs-notice').innerText();
 const type=async(page,sel,text)=>{await page.locator(sel).focus();await page.keyboard.type(text);};
@@ -93,10 +94,10 @@ try{
   // Escape closes only the list.
   await page.keyboard.type('@');await page.locator('#ncs-ref-list:not([hidden])').waitFor();await page.keyboard.press('Escape');
   assert.equal(await page.locator('#ncs-ref-list').isHidden(),true);assert.equal(await page.locator('#naice-shot-dialog').evaluate(d=>d.open),true);
-  // A chip is one block: Backspace takes it out whole; no leftover letters, no hidden link.
-  await page.locator(field).evaluate(f=>{f.value=`놀기 ${f.value}`;f.focus();const r=document.createRange();r.selectNodeContents(f);r.collapse(false);getSelection().removeAllRanges();getSelection().addRange(r);});
-  for(let i=0;i<3;i++)await page.keyboard.press('Backspace'); // '@' , the space, then the Mira chip
-  assert.deepEqual((await chips(page)).map(c=>c.id),['leo'],'the Mira chip went in one press');
+  // 0.1.117: Backspace into "@Mira" ends that link (no hidden link is left); the letters left are plain text.
+  await page.locator(field).evaluate(f=>{f.value=`놀기 ${f.value}`;f.focus();f.setSelectionRange(f.textLength,f.textLength);});
+  for(let i=0;i<3;i++)await page.keyboard.press('Backspace'); // '@' , the space, then the last letter of @Mira
+  assert.deepEqual((await chips(page)).map(c=>c.id),['leo'],'the Mira link ended');
   assert.ok(!/Mira|미라/.test(await val(page)),await val(page));
   // Ctrl+Z brings back what the browser removed (the browser's own undo still works with chips).
   // An email is not a reference.
@@ -117,7 +118,7 @@ try{
   await page.locator(field).fill('@레오랑 @카이가 걷는다');await page.evaluate(x=>{mock.extraction=x;},freeX([{id:'leo',name:'Leo'},{id:'kai',name:'Kai Lee'}]));
   await page.locator('[data-action="extract"]').click();await idle(page);
   assert.deepEqual((await chips(page)).map(c=>c.id),['leo','kai']);assert.equal(await val(page),`${tok('Leo','leo')}랑 ${tok('Kai Lee','kai')}가 걷는다`);
-  assert.match(await noteText(page),/@레오, @카이을\(를\) 칩으로 확정했어요/);
+  assert.match(await noteText(page),/@레오, @카이을\(를\) 프로필에 연결했어요/);
   // --- Unclear references stop before anything is sent: unknown names, stuck letters, old or malformed marks, a chip whose profile is gone.
   const calls=()=>page.evaluate(()=>mock.extractCalls??0);
   const stops=[['@미라클 산책',/이 이름의 프로필을 찾지 못했어요/],['@Leo가방 들기',/찾지 못했어요/],['@Leo#zz99 산책',/예전 형식/],['@Ada#a 산책',/예전 형식/],['@Ada#a3 산책',/예전 형식/],['@Ada# 산책',/예전 형식/],
@@ -137,7 +138,6 @@ try{
   // Broken chips look broken (dashed) and an old 0.1.75 mark shows as one; a good chip next to it does not.
   await page.locator(field).evaluate((f,t)=>{f.value=t;},`${tok('Ghost','gone-id')} ${tok('Leo','leo')} @Ada#a1b2`);
   assert.deepEqual(await chips(page),[{text:'@Ghost',id:'gone-id',broken:true},{text:'@Leo',id:'leo',broken:false},{text:'@Ada',id:'',broken:true}]);
-  assert.match(await page.locator(`${field} .ncs-chip-broken`).first().getAttribute('title'),/지우고 @를 쳐서 다시 골라/);
   // A profile deleted while the chip is in the field: the chip turns broken when the field is used again.
   await page.locator(field).evaluate((f,t)=>{f.value=t;},tok('Kai Lee','kai'));
   await page.evaluate(()=>{const ps=mock.extensionSettings.naice_shot.profiles;ps.splice(ps.findIndex(p=>p.id==='kai'),1);});
@@ -179,7 +179,7 @@ try{
   await addProfile(page,{id:'kai',name:'Kai Lee',aliases:['카이']});
   // --- Copy and paste: our fields keep the ids; another app gets "@Leo" and what comes back from there is a typed name.
   await page.locator(field).evaluate((f,t)=>{f.value=t;},`${tok('Leo','leo')}랑 ${tok('Mira','mira')}`);
-  const clip=await page.locator(field).evaluate(f=>{f.focus();const r=document.createRange();r.selectNodeContents(f);getSelection().removeAllRanges();getSelection().addRange(r);
+  const clip=await page.locator(field).evaluate(f=>{f.focus();f.select();
    const dt=new DataTransfer();f.dispatchEvent(new ClipboardEvent('copy',{clipboardData:dt,bubbles:true,cancelable:true}));return {plain:dt.getData('text/plain'),ref:dt.getData('text/x-ncs-ref')};});
   assert.equal(clip.plain,'@Leo랑 @Mira');assert.equal(clip.ref,`${tok('Leo','leo')}랑 ${tok('Mira','mira')}`);
   const paste=(sel,data)=>page.locator(sel).evaluate((f,d)=>{f.focus();const dt=new DataTransfer();if(d.ref)dt.setData('text/x-ncs-ref',d.ref);dt.setData('text/plain',d.plain);f.dispatchEvent(new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true}));},data);
@@ -248,5 +248,5 @@ try{
   await page.locator('[data-moment="0"]').click();assert.match(await noteText(page),/필수 인물을 넣었어요: Kai Lee/);assert.equal(await ticked(page,'kai'),true);
   assert.deepEqual(errors,[]);await page.close();
  }
- console.log('PASS: @ opens the profile list (aliases, a short look, no id) under the field; Enter/click puts a chip in (one block, Backspace takes it out whole, Ctrl+Z undoes it); Escape closes only the list; the arrow keys keep the chosen item in view; an email is no reference; required people reach the AI as name + roster id with a REQUIRED block, are added when left out (a left-over pose from an earlier scene is cleared, with a note) and never reach the final prompt; typed names are confirmed into chips with a note; unknown names, stuck particles, old and malformed marks, gone profiles and same names stop before sending; saved work and history keep the id and restore chips (broken when the profile is gone); copy between our fields keeps ids, text from another app is a typed name; twins stay apart (also with the chat connection); a person added only to another candidate is named again; more required people than the model allows stop; 챗샷 추가 요청 can require someone not in the message (375/1100)');
+ console.log('PASS: @ opens the profile list (aliases, a short look, no id) under the field; Enter/click puts "@name" in with its link (Backspace into it ends the link, Ctrl+Z undoes it); Escape closes only the list; the arrow keys keep the chosen item in view; an email is no reference; required people reach the AI as name + roster id with a REQUIRED block, are added when left out (a left-over pose from an earlier scene is cleared, with a note) and never reach the final prompt; typed names are confirmed into chips with a note; unknown names, stuck particles, old and malformed marks, gone profiles and same names stop before sending; saved work and history keep the id and restore chips (broken when the profile is gone); copy between our fields keeps ids, text from another app is a typed name; twins stay apart (also with the chat connection); a person added only to another candidate is named again; more required people than the model allows stop; 챗샷 추가 요청 can require someone not in the message (375/1100)');
 }finally{await browser.close();server.close();}
