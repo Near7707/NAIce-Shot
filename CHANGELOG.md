@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.121 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.120 (no P1):
+- Fix: undoing back to a text older than the last 60 remembered edits no longer keeps the wrong person. Such an undo now keeps a link only when one profile has that name; a name two profiles share is left unlinked so you pick it again.
+- Fix: typing the same plain letters over a linked `@Mira` and pressing undo brings the link back when only one profile is called Mira.
+- Fix: cutting a name no longer ends another link that was selected for an earlier input the browser dropped (for example over the length limit).
+
 ## 0.1.120 — 2026-11-13 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.119 (no P1):

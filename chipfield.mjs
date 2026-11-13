@@ -164,6 +164,9 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   };
   el.addEventListener('copy',copyOut);
   el.addEventListener('cut',event=>{
+    // 0.1.121 (GPT 0.1.120 P3-2): a note left by an input that never came (dropped, e.g. over the length limit) must not
+    // end links on this cut's own input (execCommand sends no beforeinput to replace it).
+    pending=null;
     if(!copyOut(event))return;
     if(!document.execCommand?.('delete')){el.setRangeText('',el.selectionStart,el.selectionEnd,'end');el.dispatchEvent(new Event('input',{bubbles:true}));}
     grow();
@@ -172,13 +175,25 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   // was seen. Which of those times the browser went back to cannot be told (its undo steps are not ours), so a place that
   // held two different profiles ("@Leo" pasted over another "@Leo") is left unlinked, to be picked again, never guessed.
   const same=(r,o)=>o.start===r.start&&o.label===r.label&&o.id===r.id;
+  // 0.1.121 (GPT 0.1.120 P2): a link is sure without its history only when no other profile has its name ("@Mira" can
+  // then mean nobody else). Used where the history cannot tell: a text no longer among the remembered ones (older than the
+  // last 60), and a place linked some of the times its text was seen and plain the other times (P3).
+  const sole=r=>profiles().every(p=>label(p.name)!==r.label||String(p.id)===r.id);
+  const undone=now=>{
+    const seen=states.filter(x=>x.text===now);
+    if(!seen.length){quiet=true;try{sync();}finally{quiet=false;}refs=refs.filter(sole);remember();return;}
+    const all=seen.flatMap(s=>s.refs),out=[];
+    for(const r of all){
+      if(out.some(o=>o.start===r.start))continue;
+      const here=all.filter(o=>o.start===r.start);
+      if(seen.every(s=>s.refs.some(o=>same(r,o)))||(here.every(o=>same(r,o))&&sole(r)))out.push({...r});
+    }
+    refs=out.sort((a,b)=>a.start-b.start);last=now;cleared=false;
+  };
   el.addEventListener('input',event=>{
     const p=pending;pending=null;
-    if(/^history(Undo|Redo)$/.test(event.inputType??'')){
-      const now=shown(),seen=states.filter(x=>x.text===now);
-      if(seen.length){refs=seen[0].refs.filter(r=>seen.every(s=>s.refs.some(o=>same(r,o)))).map(r=>({...r}));last=now;cleared=false;}
-      else sync();
-    }else{
+    if(/^history(Undo|Redo)$/.test(event.inputType??''))undone(shown());
+    else{
       // The text has changed already: the noted part is still in the old text's places (last), so no sync before this.
       if(p&&!p.event.defaultPrevented&&p.before===last){refs=refs.filter(r=>r.start+1+r.label.length<=p.a||r.start>=p.b);cleared=true;}
       sync();
