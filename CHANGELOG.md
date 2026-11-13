@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.116 — 2026-11-13 (extension only — server v0.1.25 unchanged)
+
+- New: swipe down to close the picture viewer. Touch only, and only at fit size (when zoomed in or at 100%, a drag still moves the picture). It closes when the finger lifts after a clear downward swipe (at least 80px, much more down than sideways); short pulls, upward swipes and slanted moves do nothing. The picture does not follow the finger, the same way the sideways swipe works. The guide mentions it.
+
 ## 0.1.115 — 2026-11-13 (extension only — server v0.1.25 unchanged)
 
 - Fix (iPhone): typing did nothing in the 챗샷 추가 요청 box and the 프리샷 scene box (the keyboard opened, the placeholder stayed). These two are chip fields (contenteditable), and iPhone Safari will not type into one when a theme, custom CSS or another extension sets `user-select: none` around it. The chip fields now set `user-select: text` themselves (with `!important`, so a theme's `* { … !important }` does not win). Other boxes were plain text boxes and were not affected.

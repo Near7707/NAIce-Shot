@@ -225,7 +225,7 @@ function build() {
     try { stage.setPointerCapture?.(event.pointerId); } catch { /* capture is optional; some browsers reject it */ }
     pointers.set(event.pointerId, local(event));
     const points = [...pointers.values()];
-    if (points.length === 1) gesture = { type: 'pan', start: points[0], view: { ...state.view }, moved: false, onImage: event.target === img, pointerType: event.pointerType, swipe: state.mode==='fit'&&!!state.gallery };
+    if (points.length === 1) gesture = { type: 'pan', start: points[0], view: { ...state.view }, moved: false, onImage: event.target === img, pointerType: event.pointerType, swipe: state.mode==='fit'&&!!state.gallery, down: state.mode==='fit' };
     else if (points.length === 2) {
       const [a, b] = points;
       gesture = { type: 'pinch', distance: Math.hypot(a.x - b.x, a.y - b.y) || 1, view: { ...state.view }, mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, moved: true };
@@ -266,6 +266,11 @@ function build() {
     if(event.type==='pointerup'&&gesture?.type==='pan'&&gesture.swipe&&gesture.pointerType!=='mouse'){
       const dx=local(event).x-gesture.start.x,dy=local(event).y-gesture.start.y;
       if(Math.abs(dx)>=60&&Math.abs(dx)>Math.abs(dy)*1.5){lastTap=null;gesture=null;navigate(dx<0?1:-1);}
+    }
+    // 0.1.116: a clear swipe down closes the viewer, only at fit size (zoomed in, a drag moves the picture) and only by touch.
+    if(event.type==='pointerup'&&gesture?.type==='pan'&&gesture.down&&gesture.pointerType!=='mouse'){
+      const dx=local(event).x-gesture.start.x,dy=local(event).y-gesture.start.y;
+      if(dy>=80&&dy>Math.abs(dx)*1.5){lastTap=null;gesture=null;dialog.close();}
     }
     if (event.type === 'pointerup' && gesture?.type === 'pan' && !gesture.moved) {
       const now = Date.now();

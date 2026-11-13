@@ -1,3 +1,13 @@
+# v0.1.116 validation — 2026-11-13 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed** (not re-run; no server change).
+- **99 of 99 Chromium browser scripts passed** (4 at a time), including the new `tests/browser-v01116.mjs` (375px, 1100px): a touch swipe down closes the viewer; a short pull, a swipe up, a slanted move, a drag at 100% and a mouse drag do not.
+- Revert checks: removing the close, the fit-only rule, the touch-only rule, the sideways limit or the downward-only rule each makes the new script fail at its own assert.
+- Not checked: a real iPhone (how the swipe feels by hand).
+
+---
+
 # v0.1.115 validation — 2026-11-13 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.
