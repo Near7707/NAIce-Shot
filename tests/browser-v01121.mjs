@@ -92,7 +92,7 @@ try{
   await select(W,0,5);await paste(W,'@Leo',tok('Leo','leo2'));assert.deepEqual(await ids(page,W),['leo2']);
   await caret(page,W,-1);await typeMany(65);
   await undoTo(W,'@Leo 웃는다');
-  assert.deepEqual(await ids(page,W),[],`${width}px: a forgotten text does not get the second Leo`);
+  assert.deepEqual(await ids(page,W),[''],`${width}px: a forgotten text does not get the second Leo`);
   // A name only one profile has is kept the same way (nothing else it could be).
   await set(W,`${tok('Mira','mira')} 웃는다`);await caret(page,W,-1);await typeMany(65);
   await undoTo(W,'@Mira 웃는다');assert.deepEqual(await ids(page,W),['mira'],`${width}px: a one-profile name keeps its link`);
@@ -105,7 +105,7 @@ try{
   await set(W,`${tok('Leo','leo')}x 웃는다`);await select(W,0,4);await page.keyboard.insertText('@Leo');
   assert.deepEqual(await ids(page,W),[]);
   await page.keyboard.press('Control+z');assert.equal(await text(W),'@Leox 웃는다');
-  assert.deepEqual(await ids(page,W),[],`${width}px: two profiles are called Leo, so it is picked again`);
+  assert.deepEqual(await ids(page,W),[''],`${width}px: two profiles are called Leo, so it is picked again`);
   // --- P3-2: an input the browser dropped (over the length limit, moved there by a listener further up) leaves its note;
   // a later cut ends only the links it cuts.
   await set(W,`${tok('Mira','mira')} ${tok('Leo','leo')}`);

@@ -94,6 +94,8 @@ export function readRefs(text,profiles){
     if(piece.legacy){problems.push({start,end,raw,message:`@${shown}: 예전 형식(@이름#ID)이거나 잘못된 형식이에요. 지우고 @를 쳐서 목록에서 다시 골라 주세요.`});continue;}
     const p=profiles.find(p=>String(p.id)===piece.id);
     if(piece.id&&p)refs.push({start,end,raw,id:p.id,typed:false});
+    // 0.1.123: an empty id is also what the @ box leaves where an undo could not tell who it was.
+    else if(!piece.id)problems.push({start,end,raw,message:`@${shown}: 어느 프로필인지 알 수 없어요(지워졌거나 찾을 수 없는 프로필, 또는 실행 취소로 풀린 연결). 이 @이름을 지우고 @를 쳐서 목록에서 다시 골라 주세요.`});
     else problems.push({start,end,raw,message:`@${shown}: 지워졌거나 찾을 수 없는 프로필이에요. 이 @이름을 지우고 @를 쳐서 목록에서 다시 골라 주세요.`});
   }
   const inClaimed=i=>claimed.some(([s,e])=>i>=s&&i<e);

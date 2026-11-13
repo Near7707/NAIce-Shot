@@ -1,3 +1,15 @@
+# v0.1.123 validation — 2026-11-14 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **106 of 106 Chromium browser scripts passed** (4 at a time, none slow), including the new `tests/browser-v01123.mjs` (375px, 1100px), which goes through the real extract button: the first Leo renamed to Leon, then the 65-letter undo leaves the old `@Leo` as a broken link (empty id) and the extraction stops with the "pick again" note, sending nothing; the second Leo pasted over the first and a typed `@Mira` confirmed by an extraction (same text set again), then Ctrl+Z gives no second Leo (that place empty id, Mira kept) and the extraction stops; after 65 letters a second Leo pasted, a letter typed and undone keeps `leo2`.
+- Checked in Chromium directly: setting a different value clears the textarea's undo, setting the same value keeps it.
+- Older scripts `browser-v01119`~`v01122` now expect an empty id ("pick again") where an undo cannot tell two Leos apart, instead of no link.
+- Revert checks: leaving the unsure place as plain text, clearing the states on a same-text set, and treating every text as dropped each make the new script fail at its own assert.
+- Not checked: a real iPhone inside SillyTavern (how Safari keeps undo when a value is set), a real NovelAI account.
+
+---
+
 # v0.1.122 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

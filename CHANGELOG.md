@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.123 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.122 (no P1):
+- Fix: when an undo cannot tell which of two same-named profiles an `@Leo` was, it no longer leaves plain `@Leo` letters that the extraction would link to whichever Leo is left. The place stays a broken link and the extraction stops and asks you to pick it again. A name no profile has now stays plain.
+- Fix: when the extraction confirms a typed name it sets the same text again, and the browser keeps its undo. The @ box now keeps its own record too, so undoing a paste afterwards no longer keeps the pasted Leo. The record of which profiles each name was linked to is never cleared.
+- Fix: after more than 60 edits, a same-named profile you just picked keeps its link through an ordinary undo. Only a text whose own earlier state was forgotten is treated as unsure.
+- The "pick again" note for a link with no id now also says it may come from an undo.
+
 ## 0.1.122 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.121 (no P1):

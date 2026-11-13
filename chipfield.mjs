@@ -57,9 +57,12 @@ export function moveRefs(before,after,refs,caret=null){
 export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}={}){
   const profiles=()=>getProfiles?.()??[];
   let refs=[],last='',states=[],cleared=false,quiet=false,pending=null;
-  // 0.1.122 (GPT 0.1.121 P2): which ids each "@name" was ever linked to in this box (since its text was last set), and
-  // whether older states were already dropped (more than 60): then the remembered ones may not show every time a text was seen.
-  let linked=new Map(),dropped=false;
+  // 0.1.122 (GPT 0.1.121 P2): which ids each "@name" was ever linked to in this box.
+  // 0.1.123 (GPT 0.1.122 P3): and a short mark of each text whose state was dropped (more than 60): for such a text the
+  // remembered states may not show every time it was seen. A mark that matches by chance only makes a place picked again.
+  // 0.1.123 (GPT 0.1.122 P2-2): neither is cleared when the value is set: the browser's undo may still go back past it.
+  const linked=new Map(),gone=new Set();
+  const mark=t=>{let h=0x811c9dc5;for(let i=0;i<t.length;i++)h=Math.imul(h^t.charCodeAt(i),16777619)>>>0;return `${t.length}:${h}`;};
   // The textarea's own value (what is seen). Looked up on the element's class, so small test pages without a DOM work too.
   let proto=Object.getPrototypeOf(el),native=null,plain=String(el.value??'');
   while(proto&&!(native=Object.getOwnPropertyDescriptor(proto,'value')))proto=Object.getPrototypeOf(proto);
@@ -82,7 +85,7 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   // 0.1.120 (GPT 0.1.119 P2-1): between putting text in and adding its links (paste, a pick) nothing is remembered: that
   // half-done state ("@Leo" without its link) would make an undo back to that text look unsure.
   const remember=()=>{
-    if(quiet)return;states.push({text:last,refs:refs.map(r=>({...r}))});if(states.length>60){states.shift();dropped=true;}
+    if(quiet)return;states.push({text:last,refs:refs.map(r=>({...r}))});if(states.length>60)gone.add(mark(states.shift().text));
     for(const r of refs){if(!linked.has(r.label))linked.set(r.label,new Set());linked.get(r.label).add(r.id);}
   };
   const sync=()=>{
@@ -101,7 +104,11 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   Object.defineProperty(el,'value',{configurable:true,
     get:()=>{sync();return linkRefs(last,refs);},
     set(v){
-      const r=showRefs(v,profiles(),{singleLine});native.set.call(el,r.text);refs=r.refs;last=r.text;states=[];linked=new Map();dropped=false;pending=null;remember();grow();
+      const r=showRefs(v,profiles(),{singleLine});
+      // 0.1.123 (GPT 0.1.122 P2-2): the remembered states go only when the text seen changes. Chromium keeps its undo when
+      // the same text is set again (the extraction does that to confirm a typed name) and drops it for a new text.
+      if(r.text!==shown())states=[];
+      native.set.call(el,r.text);refs=r.refs;last=r.text;pending=null;remember();grow();
       // 0.1.119 (GPT 0.1.117 P2-2): an "@…" list opened for the old text must not put a name into the new one.
       if(typeof CustomEvent==='function')el.dispatchEvent?.(new CustomEvent('ncs-field-set',{bubbles:true}));
     }});
@@ -191,17 +198,23 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   // 0.1.122 (GPT 0.1.121 P3): a link brought back by that rule must point at a profile that is there. A broken link that
   // was already in the text stays (it is moved along, or kept by every state) and still stops the extraction with a note.
   const alive=r=>r.id!==''&&profiles().some(p=>String(p.id)===r.id);
+  // 0.1.123 (GPT 0.1.122 P2-1): a place left unsure is not made plain text when a profile now has that name (or alias):
+  // the extraction would link a plain "@Leo" to the one Leo there is now. It stays as a broken link (no id), so the
+  // extraction stops and asks for it to be picked again. A name nobody has now stays plain (it links to nobody).
+  const named=r=>profiles().some(p=>[p.name,...(p.aliases??[])].some(n=>label(n).toLowerCase()===r.label.toLowerCase()));
+  const unsure=r=>named(r)?{...r,id:''}:null;
   const undone=now=>{
     const seen=states.filter(x=>x.text===now);
-    if(!seen.length){quiet=true;try{sync();}finally{quiet=false;}refs=refs.filter(sole);remember();return;}
-    const all=seen.flatMap(s=>s.refs),out=[];
+    if(!seen.length){quiet=true;try{sync();}finally{quiet=false;}refs=refs.map(r=>sole(r)?r:unsure(r)).filter(Boolean);remember();return;}
+    const all=seen.flatMap(s=>s.refs),out=[],old=gone.has(mark(now));
     for(const r of all){
       if(out.some(o=>o.start===r.start))continue;
       const here=all.filter(o=>o.start===r.start);
-      // 0.1.122 (GPT 0.1.121 P2): once older states were dropped, "every time" is only every remembered time: trusted only
+      // 0.1.122 (GPT 0.1.121 P2): once a state of this text was dropped, "every time" is only every remembered time: trusted only
       // for a name that could mean nobody else (a broken link kept that way still stops the extraction with its note).
       const always=seen.every(s=>s.refs.some(o=>same(r,o)));
-      if((always&&(!dropped||sole(r)))||(here.every(o=>same(r,o))&&sole(r)&&alive(r)))out.push({...r});
+      if((always&&(!old||sole(r)))||(here.every(o=>same(r,o))&&sole(r)&&alive(r)))out.push({...r});
+      else{const u=unsure(r);if(u)out.push(u);}
     }
     refs=out.sort((a,b)=>a.start-b.start);last=now;cleared=false;
   };

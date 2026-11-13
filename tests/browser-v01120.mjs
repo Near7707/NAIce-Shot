@@ -88,15 +88,15 @@ try{
   await set(W,`${tok('Leo','leo')} 웃는다`);await select(W,0,4);await paste(W,'@Leo',tok('Leo','leo2'));
   assert.deepEqual(await ids(page,W),['leo2']);
   await page.keyboard.press('Control+z');
-  assert.equal(await text(W),'@Leo 웃는다');assert.deepEqual(await ids(page,W),[],`${width}px: undo does not keep the pasted Leo`);
-  await page.keyboard.press('Control+Shift+z');assert.equal(await text(W),'@Leo 웃는다');assert.deepEqual(await ids(page,W),[],'nor does redo guess');
+  assert.equal(await text(W),'@Leo 웃는다');assert.deepEqual(await ids(page,W),[''],`${width}px: undo does not keep the pasted Leo`);
+  await page.keyboard.press('Control+Shift+z');assert.equal(await text(W),'@Leo 웃는다');assert.deepEqual(await ids(page,W),[''],'nor does redo guess');
   // ...also when letters were added first and the whole was replaced, then undone twice.
   await set(W,`${tok('Leo','leo')} 웃는다`);await caret(page,W,4);await page.keyboard.type('x');
   assert.deepEqual(await ids(page,W),['leo']); // text right after a name keeps its link (0.1.117)
   await select(W,0,5);await paste(W,'@Leo',tok('Leo','leo2'));assert.deepEqual(await ids(page,W),['leo2']);
   await page.keyboard.press('Control+z');assert.equal(await text(W),'@Leox 웃는다');assert.deepEqual(await ids(page,W),['leo'],'that text only ever had Leo');
   await page.keyboard.press('Control+z');assert.equal(await text(W),'@Leo 웃는다');
-  assert.deepEqual(await ids(page,W),[],`${width}px: the old place does not get the second Leo`);
+  assert.deepEqual(await ids(page,W),[''],`${width}px: the old place does not get the second Leo`);
   // A text that only ever had one link still gets it back.
   await set(W,`${tok('Mira','mira')} ${tok('Leo','leo2')}`);await select(W,6,10);await page.keyboard.press('Backspace');
   assert.deepEqual(await ids(page,W),['mira']);

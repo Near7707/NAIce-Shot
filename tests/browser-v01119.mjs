@@ -95,7 +95,7 @@ try{
   assert.deepEqual(await ids(page,W),['mira'],'typing the same name over a link ends it');
   // ...and an undo of a later edit back to that text does not bring the ended link back.
   await page.keyboard.press('Backspace');await page.keyboard.press('Control+z');
-  assert.equal(await page.locator(W).evaluate(f=>f.textLength),10);assert.deepEqual(await ids(page,W),['mira'],'an ended link stays ended');
+  assert.equal(await page.locator(W).evaluate(f=>f.textLength),10);assert.deepEqual(await ids(page,W),['mira',''],'an ended link stays ended (two Leos: picked again)');
   // A plain paste with nothing selected keeps the links around it.
   await set(W,`${tok('Mira','mira')} ${tok('Leo','leo')}`);await caret(page,W,6);await paste(W,'그리고 ');
   assert.equal(await val(page,W),`${tok('Mira','mira')} 그리고 ${tok('Leo','leo')}`);

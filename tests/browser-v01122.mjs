@@ -93,13 +93,13 @@ try{
   await caret(page,W,-1);await typeMany(65);
   await select(W,8,73);await cut(W);assert.equal(await text(W),'@Leo 웃는다');assert.deepEqual(await ids(page,W),['leo2']);
   await undoTo(W,'@Leox 웃는다');await page.keyboard.press('Control+z');assert.equal(await text(W),'@Leo 웃는다');
-  assert.deepEqual(await ids(page,W),[],`${width}px: the first state was dropped, so the second Leo is not brought back`);
+  assert.deepEqual(await ids(page,W),[''],`${width}px: the first state was dropped, so the second Leo is not brought back`);
   // --- P2: the first Leo renamed to Leon: the second Leo is the only "Leo" now, but this box linked "Leo" to both.
   await set(W,`${tok('Leo','leo')} 웃는다`);await one();
   await caret(page,W,-1);await typeMany(65);
   await page.evaluate(()=>{mock.extensionSettings.naice_shot.profiles.find(p=>p.id==='leo').name='Leon';});
   await undoTo(W,'@Leo 웃는다');
-  assert.deepEqual(await ids(page,W),[],`${width}px: after a rename the old text is not given the other Leo`);
+  assert.deepEqual(await ids(page,W),[''],`${width}px: after a rename the old text is not given the other Leo`);
   await page.evaluate(()=>{mock.extensionSettings.naice_shot.profiles.find(p=>p.id==='leo').name='Leo';});
   // --- P3: a link to a deleted profile, or with no id, typed over with the same plain letters: undo does not bring it back.
   for(const id of ['gone','']){
@@ -112,10 +112,10 @@ try{
   await set(W,`${tok('Mira','mira')}x 웃는다`);await select(W,0,5);await page.keyboard.insertText('@Mira');
   await page.keyboard.press('Control+z');assert.deepEqual(await ids(page,W),['mira'],`${width}px: one-profile link still comes back`);
   // A broken link that was in the text all along stays, so the extraction still says so.
-  await set(W,`${tok('Ghost','gone')} 웃는다`);await caret(page,W,-1);await page.keyboard.type('x');
-  await page.keyboard.press('Control+z');assert.equal(await text(W),'@Ghost 웃는다');
+  await set(W,`${tok('Shade','gone')} 웃는다`);await caret(page,W,-1);await page.keyboard.type('x');
+  await page.keyboard.press('Control+z');assert.equal(await text(W),'@Shade 웃는다');
   assert.deepEqual(await ids(page,W),['gone'],`${width}px: a broken link kept by every state stays`);
-  await caret(page,W,-1);await typeMany(65);await undoTo(W,'@Ghost 웃는다');
+  await caret(page,W,-1);await typeMany(65);await undoTo(W,'@Shade 웃는다');
   assert.deepEqual(await ids(page,W),['gone'],`${width}px: a broken link moved along stays`);
   await set(W,'');
   assert.deepEqual(errors,[]);await page.close();
