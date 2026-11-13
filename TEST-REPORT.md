@@ -1,3 +1,13 @@
+# v0.1.120 validation — 2026-11-13 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **103 of 103 Chromium browser scripts passed** (4 at a time; `browser-v01100` was slow once in parallel and passed on its own), including the new `tests/browser-v01120.mjs` (375px, 1100px): a linked `@Leo` pasted over the other `@Leo`, then Ctrl+Z and Ctrl+Shift+Z, leaves no id; `x` typed after the first `@Leo`, the whole replaced by the second, then two undos give `@Leox` with the first id and `@Leo` with none; a twin deleted and undone (only ever one link there) comes back; a `beforeinput` cancelled by a document listener keeps both links, and a later input does not use the old note; the same name typed over a link still ends it; a linked paste leaves no `@` list, a plain `@Le` paste still opens it.
+- Revert checks: `findLast`-style restore, the old immediate clear in `beforeinput` and the input after a paste each make the new script fail at its own assert; remembering the half-done state during a paste or pick makes `browser-v01119` fail ("redo of a pick keeps its link").
+- Not checked: a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.119 validation — 2026-11-13 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

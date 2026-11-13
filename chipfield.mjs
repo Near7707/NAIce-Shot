@@ -56,7 +56,7 @@ export function moveRefs(before,after,refs,caret=null){
 // Makes the textarea a reference field. options: getProfiles(), limit (letters as seen), singleLine.
 export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}={}){
   const profiles=()=>getProfiles?.()??[];
-  let refs=[],last='',states=[],cleared=false;
+  let refs=[],last='',states=[],cleared=false,quiet=false,pending=null;
   // The textarea's own value (what is seen). Looked up on the element's class, so small test pages without a DOM work too.
   let proto=Object.getPrototypeOf(el),native=null,plain=String(el.value??'');
   while(proto&&!(native=Object.getOwnPropertyDescriptor(proto,'value')))proto=Object.getPrototypeOf(proto);
@@ -76,7 +76,9 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   // Keeps the links in step with the text; every read checks first, so a change that sent no input event is caught too.
   // 0.1.119 (GPT 0.1.117 P2-3): the browser's undo brings back letters only. The recent states (text and its links) are
   // kept, so an undo or redo that brings back a text seen before brings back its links too.
-  const remember=()=>{states.push({text:last,refs:refs.map(r=>({...r}))});if(states.length>60)states.shift();};
+  // 0.1.120 (GPT 0.1.119 P2-1): between putting text in and adding its links (paste, a pick) nothing is remembered: that
+  // half-done state ("@Leo" without its link) would make an undo back to that text look unsure.
+  const remember=()=>{if(quiet)return;states.push({text:last,refs:refs.map(r=>({...r}))});if(states.length>60)states.shift();};
   const sync=()=>{
     const now=shown();
     if(now!==last){refs=moveRefs(last,now,refs,document.activeElement===el?el.selectionEnd:null);last=now;remember();}
@@ -88,10 +90,12 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   // same ("@Leo" pasted over another "@Leo", "@Leon" over "@Leo"). Comparing the text before and after cannot tell.
   // Remembered only after the edit (next sync): an undo back to the text before it wants the links it had then.
   const clear=(a,b)=>{if(a>=b)return;sync();refs=refs.filter(r=>r.start+1+r.label.length<=a||r.start>=b);cleared=true;};
+  // Puts text in with the links it brings (start relative to at). Nothing half-done is remembered in between.
+  const putWith=(at,text,list)=>{pending=null;quiet=true;try{put(text);}finally{quiet=false;}add(at,list);};
   Object.defineProperty(el,'value',{configurable:true,
     get:()=>{sync();return linkRefs(last,refs);},
     set(v){
-      const r=showRefs(v,profiles(),{singleLine});native.set.call(el,r.text);refs=r.refs;last=r.text;states=[];remember();grow();
+      const r=showRefs(v,profiles(),{singleLine});native.set.call(el,r.text);refs=r.refs;last=r.text;states=[];pending=null;remember();grow();
       // 0.1.119 (GPT 0.1.117 P2-2): an "@…" list opened for the old text must not put a name into the new one.
       if(typeof CustomEvent==='function')el.dispatchEvent?.(new CustomEvent('ncs-field-set',{bubbles:true}));
     }});
@@ -121,13 +125,16 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
     const name=label(profile.name),space=/\s/.test(data[end]??'')?'':' ',text=`@${name}${space}`;
     // 0.1.79 (UI-076-02): the reference must fit. Measured as seen: the typed "@que" goes, "@name" (and a space) comes.
     if(limit-(data.length-(end-q.start))-text.length<0){el.dispatchEvent(new CustomEvent('ncs-field-full',{bubbles:true,detail:{chip:true}}));return false;}
-    el.focus();el.setSelectionRange(q.start,end);clear(q.start,end);put(text);add(q.start,[{start:0,label:name,id:String(profile.id)}]);grow();
+    el.focus();el.setSelectionRange(q.start,end);clear(q.start,end);putWith(q.start,text,[{start:0,label:name,id:String(profile.id)}]);grow();
     return true;
   };
   el.addEventListener('beforeinput',event=>{
     if(singleLine&&(event.inputType==='insertParagraph'||event.inputType==='insertLineBreak'))event.preventDefault();
     if(event.inputType==='insertFromDrop')event.preventDefault();
-    if(!event.defaultPrevented&&!/^history/.test(event.inputType??''))clear(el.selectionStart,el.selectionEnd);
+    // 0.1.120 (GPT 0.1.119 P2-2): only noted here. A listener further up may still cancel this input; the links end when
+    // the input really comes (and was not cancelled), see 'input' below.
+    const a=el.selectionStart,b=el.selectionEnd;
+    pending=a<b&&!/^history/.test(event.inputType??'')?{a,b,event,before:shown()}:null;
   });
   el.addEventListener('drop',event=>event.preventDefault());
   // Pasting: our own fields hand over the links too; other apps give plain text. A paste that does not fit is refused
@@ -143,7 +150,9 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
     else if(singleLine)text=text.replace(/\s*\n\s*/g,' ');
     if(!text)return;
     if(room(text)<0){el.dispatchEvent(new CustomEvent('ncs-field-full',{bubbles:true}));return;}
-    const at=el.selectionStart;clear(at,el.selectionEnd);put(text);add(at,more);grow();
+    const at=el.selectionStart;clear(at,el.selectionEnd);putWith(at,text,more);grow();
+    // 0.1.120 (GPT 0.1.119 P3): the paste's own input came before its links were added; listeners (the @ list) look again.
+    el.dispatchEvent(new Event('input',{bubbles:true}));
   });
   // Copy and cut: other apps get "@Leo"; our own fields also get the links (with their ids) back on paste.
   const copyOut=event=>{
@@ -159,11 +168,21 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
     if(!document.execCommand?.('delete')){el.setRangeText('',el.selectionStart,el.selectionEnd,'end');el.dispatchEvent(new Event('input',{bubbles:true}));}
     grow();
   });
+  // 0.1.120 (GPT 0.1.119 P2-1): an undo or redo back to a text seen before keeps only the links that text had every time it
+  // was seen. Which of those times the browser went back to cannot be told (its undo steps are not ours), so a place that
+  // held two different profiles ("@Leo" pasted over another "@Leo") is left unlinked, to be picked again, never guessed.
+  const same=(r,o)=>o.start===r.start&&o.label===r.label&&o.id===r.id;
   el.addEventListener('input',event=>{
+    const p=pending;pending=null;
     if(/^history(Undo|Redo)$/.test(event.inputType??'')){
-      const now=shown(),seen=states.findLast(x=>x.text===now);sync();
-      if(seen){refs=seen.refs.map(r=>({...r}));remember();}
-    }else sync();
+      const now=shown(),seen=states.filter(x=>x.text===now);
+      if(seen.length){refs=seen[0].refs.filter(r=>seen.every(s=>s.refs.some(o=>same(r,o)))).map(r=>({...r}));last=now;cleared=false;}
+      else sync();
+    }else{
+      // The text has changed already: the noted part is still in the old text's places (last), so no sync before this.
+      if(p&&!p.event.defaultPrevented&&p.before===last){refs=refs.filter(r=>r.start+1+r.label.length<=p.a||r.start>=p.b);cleared=true;}
+      sync();
+    }
     grow();
   });
   el.addEventListener('focus',grow);

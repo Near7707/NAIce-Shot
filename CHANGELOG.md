@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.120 — 2026-11-13 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.119 (no P1):
+- Fix: undo and redo no longer bring back the wrong person when two profiles share a name. Pasting the second `Leo` over the first and pressing undo used to keep the second one's id. Now, when the text that comes back once had different profiles at the same place, that place is left unlinked so you pick it again (extraction stops with a note if it cannot tell). A text that only ever had one link still gets it back.
+- Fix: an input that something else cancels no longer ends a link. A link ends only when the input really goes in.
+- Fix: pasting an `@Leo` that brings its link (copied from the other box) no longer leaves an `@` list open that does nothing.
+
 ## 0.1.119 — 2026-11-13 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.117~0.1.118 (no P1):
