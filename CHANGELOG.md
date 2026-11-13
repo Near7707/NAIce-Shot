@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.122 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.121 (no P1):
+- Fix: undo no longer gives an `@Leo` the other Leo's id when the box cannot be sure which one it was. After more than 60 edits the oldest states are forgotten, and the ones left are no longer trusted on their own for a name two profiles share. A name also counts as "only one person" only when this box never linked it to a different profile, so renaming the first Leo to Leon does not make the second Leo the answer for old text. Such a place is left unlinked so you pick it again.
+- Fix: undo no longer brings back a link to a deleted profile or one with no id. A broken link that was already in the text stays and still stops the extraction with a note.
+- Known limit, left as is: after typing the same plain letters over a linked `@Mira`, undo and then redo bring the link back (the text before and after looks the same, so which step the browser went to cannot be told).
+
 ## 0.1.121 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.120 (no P1):

@@ -1,3 +1,13 @@
+# v0.1.122 validation — 2026-11-14 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **105 of 105 Chromium browser scripts passed** (4 at a time, none slow this time), including the new `tests/browser-v01122.mjs` (375px, 1100px): `x` typed after the first `@Leo`, the whole replaced by the second `@Leo`, 65 letters typed and cut again, then undo back to the first `@Leo 웃는다` gives no id; the same with the first Leo renamed to Leon before the undo gives no id; a link to a deleted profile and one with an empty id, typed over with the same letters and undone, are not brought back while a one-profile `@Mira` still is; a broken link that was in the text from the start stays after an undo and after 65 letters and an undo.
+- Revert checks: trusting the remembered states after older ones were dropped, judging "only one" by today's profile names alone, and relinking without checking the profile is there each make the new script fail at its own assert.
+- Not checked: a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.121 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

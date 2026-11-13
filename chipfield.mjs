@@ -57,6 +57,9 @@ export function moveRefs(before,after,refs,caret=null){
 export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}={}){
   const profiles=()=>getProfiles?.()??[];
   let refs=[],last='',states=[],cleared=false,quiet=false,pending=null;
+  // 0.1.122 (GPT 0.1.121 P2): which ids each "@name" was ever linked to in this box (since its text was last set), and
+  // whether older states were already dropped (more than 60): then the remembered ones may not show every time a text was seen.
+  let linked=new Map(),dropped=false;
   // The textarea's own value (what is seen). Looked up on the element's class, so small test pages without a DOM work too.
   let proto=Object.getPrototypeOf(el),native=null,plain=String(el.value??'');
   while(proto&&!(native=Object.getOwnPropertyDescriptor(proto,'value')))proto=Object.getPrototypeOf(proto);
@@ -78,7 +81,10 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   // kept, so an undo or redo that brings back a text seen before brings back its links too.
   // 0.1.120 (GPT 0.1.119 P2-1): between putting text in and adding its links (paste, a pick) nothing is remembered: that
   // half-done state ("@Leo" without its link) would make an undo back to that text look unsure.
-  const remember=()=>{if(quiet)return;states.push({text:last,refs:refs.map(r=>({...r}))});if(states.length>60)states.shift();};
+  const remember=()=>{
+    if(quiet)return;states.push({text:last,refs:refs.map(r=>({...r}))});if(states.length>60){states.shift();dropped=true;}
+    for(const r of refs){if(!linked.has(r.label))linked.set(r.label,new Set());linked.get(r.label).add(r.id);}
+  };
   const sync=()=>{
     const now=shown();
     if(now!==last){refs=moveRefs(last,now,refs,document.activeElement===el?el.selectionEnd:null);last=now;remember();}
@@ -95,7 +101,7 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   Object.defineProperty(el,'value',{configurable:true,
     get:()=>{sync();return linkRefs(last,refs);},
     set(v){
-      const r=showRefs(v,profiles(),{singleLine});native.set.call(el,r.text);refs=r.refs;last=r.text;states=[];pending=null;remember();grow();
+      const r=showRefs(v,profiles(),{singleLine});native.set.call(el,r.text);refs=r.refs;last=r.text;states=[];linked=new Map();dropped=false;pending=null;remember();grow();
       // 0.1.119 (GPT 0.1.117 P2-2): an "@…" list opened for the old text must not put a name into the new one.
       if(typeof CustomEvent==='function')el.dispatchEvent?.(new CustomEvent('ncs-field-set',{bubbles:true}));
     }});
@@ -175,10 +181,16 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   // was seen. Which of those times the browser went back to cannot be told (its undo steps are not ours), so a place that
   // held two different profiles ("@Leo" pasted over another "@Leo") is left unlinked, to be picked again, never guessed.
   const same=(r,o)=>o.start===r.start&&o.label===r.label&&o.id===r.id;
-  // 0.1.121 (GPT 0.1.120 P2): a link is sure without its history only when no other profile has its name ("@Mira" can
-  // then mean nobody else). Used where the history cannot tell: a text no longer among the remembered ones (older than the
-  // last 60), and a place linked some of the times its text was seen and plain the other times (P3).
-  const sole=r=>profiles().every(p=>label(p.name)!==r.label||String(p.id)===r.id);
+  // 0.1.121 (GPT 0.1.120 P2): a link is sure without its history only when its "@name" could mean nobody else. Used where
+  // the history cannot tell: a text no longer among the remembered ones (older than the last 60), and a place linked some
+  // of the times its text was seen and plain the other times (P3).
+  // 0.1.122 (GPT 0.1.121 P2): "nobody else" is what this box has linked that name to, not today's profile names: after a
+  // rename (Leo → Leon) the other Leo is the only "Leo" left, yet the old text meant the first one. So both must hold: no
+  // other profile is called that now, and this box never linked that name to another id. Otherwise it is picked again.
+  const sole=r=>profiles().every(p=>label(p.name)!==r.label||String(p.id)===r.id)&&[...(linked.get(r.label)??[])].every(id=>id===r.id);
+  // 0.1.122 (GPT 0.1.121 P3): a link brought back by that rule must point at a profile that is there. A broken link that
+  // was already in the text stays (it is moved along, or kept by every state) and still stops the extraction with a note.
+  const alive=r=>r.id!==''&&profiles().some(p=>String(p.id)===r.id);
   const undone=now=>{
     const seen=states.filter(x=>x.text===now);
     if(!seen.length){quiet=true;try{sync();}finally{quiet=false;}refs=refs.filter(sole);remember();return;}
@@ -186,7 +198,10 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
     for(const r of all){
       if(out.some(o=>o.start===r.start))continue;
       const here=all.filter(o=>o.start===r.start);
-      if(seen.every(s=>s.refs.some(o=>same(r,o)))||(here.every(o=>same(r,o))&&sole(r)))out.push({...r});
+      // 0.1.122 (GPT 0.1.121 P2): once older states were dropped, "every time" is only every remembered time: trusted only
+      // for a name that could mean nobody else (a broken link kept that way still stops the extraction with its note).
+      const always=seen.every(s=>s.refs.some(o=>same(r,o)));
+      if((always&&(!dropped||sole(r)))||(here.every(o=>same(r,o))&&sole(r)&&alive(r)))out.push({...r});
     }
     refs=out.sort((a,b)=>a.start-b.start);last=now;cleared=false;
   };
