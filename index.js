@@ -1699,6 +1699,10 @@ function updateRefList(field){
 }
 function pickRef(i){
   if(!refList)return;const {field,q,items}=refList,it=items[i];if(!it)return;
+  // 0.1.119 (GPT 0.1.117 P2-2): the list is only for the "@…" it was opened for. Text set from outside (another chat,
+  // a saved work) since then: nothing is put in.
+  const now=field.caretQuery?.();
+  if(!now||now.start!==q.start||now.end!==q.end||now.query!==q.query){closeRefList();return;}
   const p=settings().profiles.find(x=>x.id===it.id);if(!p)return;
   closeRefList();if(field.insertChip(q,p)===false)return;field.dispatchEvent(new Event('input',{bubbles:true}));
   // 0.1.118: on a touch screen the keyboard is closed after a pick. The iPhone Hangul keyboard keeps the word it was
@@ -1714,6 +1718,7 @@ function bindRefFields(){
     const refresh=()=>updateRefList(field);
     field.addEventListener('input',refresh);field.addEventListener('compositionend',refresh);field.addEventListener('click',refresh);
     field.addEventListener('keyup',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key))refresh();});
+    field.addEventListener('ncs-field-set',()=>{if(refList?.field===field)closeRefList();});
     field.addEventListener('blur',()=>setTimeout(()=>{if(refList?.field===field&&document.activeElement!==field)closeRefList();},150));
     field.addEventListener('ncs-field-full',event=>notice(`${id==='ncs-free-text'?'상황 글':'추가 요청'}이 너무 길어서 ${event.detail?.chip?'@이름을 넣지':'붙여 넣지'} 못했어요.`,true,'scene'));
     field.addEventListener('ncs-field-over',()=>notice(`${id==='ncs-free-text'?'상황 글':'추가 요청'}이 글자 수 한도를 넘었어요. 줄이기 전에는 추출하거나 생성할 수 없어요.`,true,'scene'));

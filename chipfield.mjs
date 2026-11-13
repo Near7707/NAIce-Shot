@@ -11,9 +11,11 @@ const label=name=>String(name??'').replace(/[\r\n]/g,' ')||EMPTY_NAME;
 // Text form → what the box shows ("@name") and the links it keeps: {start,label,id}, start = where its "@" is.
 // A link to a profile that is gone (or an old "@Name#short" mark) keeps its empty or unknown id, so it stays a broken
 // reference and still stops the extraction. Two profiles with the same name stay apart: a link is a place, not a name.
+// 0.1.119 (GPT 0.1.117 P3): line breaks become "\n" first. A textarea keeps only "\n", so a saved "\r\n" would have moved
+// every link after it by one letter.
 export function showRefs(value,profiles=[],{singleLine=false}={}){
   let text='';const refs=[];
-  for(const p of tokenize(value)){
+  for(const p of tokenize(String(value??'').replace(/\r\n?/g,'\n'))){
     if(p.type==='text'){text+=singleLine?p.text.replace(/\s*\n\s*/g,' '):p.text;continue;}
     const profile=p.id?profiles.find(x=>String(x.id)===p.id):null;
     const name=label(profile?profile.name:p.name);
@@ -54,7 +56,7 @@ export function moveRefs(before,after,refs,caret=null){
 // Makes the textarea a reference field. options: getProfiles(), limit (letters as seen), singleLine.
 export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}={}){
   const profiles=()=>getProfiles?.()??[];
-  let refs=[],last='';
+  let refs=[],last='',states=[],cleared=false;
   // The textarea's own value (what is seen). Looked up on the element's class, so small test pages without a DOM work too.
   let proto=Object.getPrototypeOf(el),native=null,plain=String(el.value??'');
   while(proto&&!(native=Object.getOwnPropertyDescriptor(proto,'value')))proto=Object.getPrototypeOf(proto);
@@ -65,17 +67,34 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   if(Number.isFinite(limit))el.maxLength=limit;
   el.setAttribute('spellcheck','false');
   // The one-line request grows with its text (it wraps). A hidden box has no size to measure: it starts over when shown.
+  // 0.1.119 (GPT 0.1.117 P3): measured again when its width changes too (a narrower panel wraps it onto more lines).
   const grow=()=>{
     if(!singleLine)return;el.style.height='';
     if(!el.getClientRects?.().length||!shown())return;
     el.style.height=`${el.scrollHeight+el.offsetHeight-el.clientHeight}px`;
   };
   // Keeps the links in step with the text; every read checks first, so a change that sent no input event is caught too.
-  const sync=()=>{const now=shown();if(now!==last){refs=moveRefs(last,now,refs,document.activeElement===el?el.selectionEnd:null);last=now;}};
-  const add=(at,list)=>{sync();refs=[...refs,...list.map(r=>({...r,start:r.start+at}))].sort((a,b)=>a.start-b.start);};
+  // 0.1.119 (GPT 0.1.117 P2-3): the browser's undo brings back letters only. The recent states (text and its links) are
+  // kept, so an undo or redo that brings back a text seen before brings back its links too.
+  const remember=()=>{states.push({text:last,refs:refs.map(r=>({...r}))});if(states.length>60)states.shift();};
+  const sync=()=>{
+    const now=shown();
+    if(now!==last){refs=moveRefs(last,now,refs,document.activeElement===el?el.selectionEnd:null);last=now;remember();}
+    else if(cleared)remember(); // the same-looking text replaced a selection: its links are the new state
+    cleared=false;
+  };
+  const add=(at,list)=>{sync();refs=[...refs,...list.map(r=>({...r,start:r.start+at}))].sort((a,b)=>a.start-b.start);remember();};
+  // 0.1.119 (GPT 0.1.117 P2-1): what replaces a selection ends every link inside it, even when the new text looks the
+  // same ("@Leo" pasted over another "@Leo", "@Leon" over "@Leo"). Comparing the text before and after cannot tell.
+  // Remembered only after the edit (next sync): an undo back to the text before it wants the links it had then.
+  const clear=(a,b)=>{if(a>=b)return;sync();refs=refs.filter(r=>r.start+1+r.label.length<=a||r.start>=b);cleared=true;};
   Object.defineProperty(el,'value',{configurable:true,
     get:()=>{sync();return linkRefs(last,refs);},
-    set(v){const r=showRefs(v,profiles(),{singleLine});native.set.call(el,r.text);refs=r.refs;last=r.text;grow();}});
+    set(v){
+      const r=showRefs(v,profiles(),{singleLine});native.set.call(el,r.text);refs=r.refs;last=r.text;states=[];remember();grow();
+      // 0.1.119 (GPT 0.1.117 P2-2): an "@…" list opened for the old text must not put a name into the new one.
+      if(typeof CustomEvent==='function')el.dispatchEvent?.(new CustomEvent('ncs-field-set',{bubbles:true}));
+    }});
   el.refs=()=>{sync();return refs.map(r=>({...r}));};
   const room=(extra='')=>limit-(shown().length-(el.selectionEnd-el.selectionStart))-extra.length;
   // Puts text where the selection is. execCommand keeps the browser's own undo; setRangeText is the fallback.
@@ -102,12 +121,13 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
     const name=label(profile.name),space=/\s/.test(data[end]??'')?'':' ',text=`@${name}${space}`;
     // 0.1.79 (UI-076-02): the reference must fit. Measured as seen: the typed "@que" goes, "@name" (and a space) comes.
     if(limit-(data.length-(end-q.start))-text.length<0){el.dispatchEvent(new CustomEvent('ncs-field-full',{bubbles:true,detail:{chip:true}}));return false;}
-    el.focus();el.setSelectionRange(q.start,end);put(text);add(q.start,[{start:0,label:name,id:String(profile.id)}]);grow();
+    el.focus();el.setSelectionRange(q.start,end);clear(q.start,end);put(text);add(q.start,[{start:0,label:name,id:String(profile.id)}]);grow();
     return true;
   };
   el.addEventListener('beforeinput',event=>{
     if(singleLine&&(event.inputType==='insertParagraph'||event.inputType==='insertLineBreak'))event.preventDefault();
     if(event.inputType==='insertFromDrop')event.preventDefault();
+    if(!event.defaultPrevented&&!/^history/.test(event.inputType??''))clear(el.selectionStart,el.selectionEnd);
   });
   el.addEventListener('drop',event=>event.preventDefault());
   // Pasting: our own fields hand over the links too; other apps give plain text. A paste that does not fit is refused
@@ -123,7 +143,7 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
     else if(singleLine)text=text.replace(/\s*\n\s*/g,' ');
     if(!text)return;
     if(room(text)<0){el.dispatchEvent(new CustomEvent('ncs-field-full',{bubbles:true}));return;}
-    const at=el.selectionStart;put(text);add(at,more);grow();
+    const at=el.selectionStart;clear(at,el.selectionEnd);put(text);add(at,more);grow();
   });
   // Copy and cut: other apps get "@Leo"; our own fields also get the links (with their ids) back on paste.
   const copyOut=event=>{
@@ -139,6 +159,14 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
     if(!document.execCommand?.('delete')){el.setRangeText('',el.selectionStart,el.selectionEnd,'end');el.dispatchEvent(new Event('input',{bubbles:true}));}
     grow();
   });
-  el.addEventListener('input',()=>{sync();grow();});el.addEventListener('focus',grow);
+  el.addEventListener('input',event=>{
+    if(/^history(Undo|Redo)$/.test(event.inputType??'')){
+      const now=shown(),seen=states.findLast(x=>x.text===now);sync();
+      if(seen){refs=seen.refs.map(r=>({...r}));remember();}
+    }else sync();
+    grow();
+  });
+  el.addEventListener('focus',grow);
+  if(singleLine&&typeof ResizeObserver==='function'){let width=-1;new ResizeObserver(()=>{const w=el.clientWidth;if(w!==width){width=w;grow();}}).observe(el);}
   return el;
 }

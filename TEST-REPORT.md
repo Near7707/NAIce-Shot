@@ -1,3 +1,13 @@
+# v0.1.119 validation — 2026-11-13 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **102 of 102 Chromium browser scripts passed** (4 at a time), including the new `tests/browser-v01119.mjs` (375px, 1100px): a linked `@Leo` pasted over the other `@Leo` takes the pasted id; plain `@Leon` pasted over `@Leo` ends the link; the same name typed over a selected link ends it, and undoing a later edit back to that text keeps it ended; a plain paste with no selection keeps the links around it; deleting a linked twin and pressing Ctrl+Z brings its id back, Ctrl+Shift+Z and Ctrl+Z again follow; undoing and redoing a pick keeps its link; a value set from outside closes an open `@` list and Enter then puts nothing in; an old list clicked after the text changed without an event writes nothing; a 프리샷 value with `\r\n` keeps three links; at 1100px a long request still fits after the viewport goes to 375px and back.
+- Revert checks: the `beforeinput` clear, the paste clear, the undo restore, the "remember after a same-looking replace" step, the list close on a new value, the pick recheck, the line-break step and the width watcher each make the new script fail at its own assert.
+- Not checked: a real iPhone inside SillyTavern (selection paste, shake to undo), a real NovelAI account.
+
+---
+
 # v0.1.118 validation — 2026-11-13 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

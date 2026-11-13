@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.119 — 2026-11-13 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.117~0.1.118 (no P1):
+- Fix: selecting an `@Leo` and pasting or typing over it now ends that link, even when the new text looks the same. Pasting the second `Leo` over the first one used to keep the first one's id, and `@Leon` typed over `@Leo` kept the `Leo` link, so extraction could use the wrong person.
+- Fix: an `@` list left open no longer puts a name into new text. When the box is filled from outside (another chat, a restored work) the list closes, and a pick checks first that the `@…` it was opened for is still there.
+- Fix: undo and redo bring a link back together with its letters (deleting a linked `@Leo` and pressing undo used to return the letters only; redoing a pick did the same).
+- Fix: saved 프리샷 text with Windows line breaks (`\r\n`) keeps all its links.
+- Fix: the one-line 추가 요청 box grows again when the panel gets narrower, so its end is not hidden.
+- Known limit, left as is: within 0.6 s after a touch double tap in the picture viewer, a mouse double click is ignored.
+
 ## 0.1.118 — 2026-11-13 (extension only — server v0.1.25 unchanged)
 
 - Fix (iPhone): picking a profile from the `@` list no longer doubles letters ("@클로" → pick 클로드 → type "가" gave "@클로클로가"). The iPhone Hangul keyboard keeps the word it was typing and, on the next letter, deletes that many letters and types the whole word again. On a touch screen the keyboard now closes after a pick (tap or Enter), which makes it forget that word; tap the box to go on typing. On a PC the caret stays in the box as before. Checked on the user's iPhone with a test page before the change.
