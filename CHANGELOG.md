@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.142 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.141 (three P2, two P3), with a changed rule:
+- Changed: coming back to a chat whose message was edited, deleted or rerolled no longer empties 대상 메시지 and 추가 요청; a note says the message changed. Closing the panel, switching to 프리샷 or reloading can no longer wipe them from the saved work.
+- New: [장면 추출] stops when the chosen 대상 메시지 changed and asks to pick it again (no AI call; 가장 최근 메시지 never stops).
+- Fix: while SillyTavern reloads the chat (its messages briefly empty), the chosen 대상 메시지 is no longer dropped.
+- Fix: the final-prompt JSON box no longer counts when comparing work unless the prompt was edited, so no needless "load the saved work?" question.
+
 ## 0.1.141 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.140 (four P2, one P3; one P2 kept as a known limit):

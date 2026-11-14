@@ -1,3 +1,16 @@
+# v0.1.142 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **125 of 125 Chromium browser scripts passed**, including the new `tests/browser-v01142.mjs` (375px, 1100px). Run 4 at a time, `browser-v0151` failed once (timing) and passed on its own. New script: back in a chat whose message changed, 대상 #0 and 추가 요청 stay on screen with the note; closing the panel and going to 프리샷 and back keep them saved and ask nothing. With the chosen message edited, [장면 추출] stops with no AI call and keeps 추가 요청; picked again it extracts; 가장 최근 메시지 extracts. A new 추가 요청 typed while the chat reloads stays, on screen and saved. The chat emptied with the target list open keeps target #0.
+- Changed rule: the "screen empties 추가 요청 for a changed message" checks in `browser-v01128`, `v01129`, `v01130` and `v01141` now check that it stays.
+- Old-code checks: the 0.1.141 code fails each of the four steps on its own.
+- Revert checks: bringing back the emptying, taking out the extraction check or the empty-chat target rule makes its own step fail.
+- P3-2 (the JSON box left out of the work comparison when the prompt was not edited) has no browser script: the reconnect flow is hard to build; checked in code, with the work-memory scripts passing.
+- Not checked: SillyTavern's real chat switch, chat reload and group replies (imitated), a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.141 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.

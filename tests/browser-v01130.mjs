@@ -80,7 +80,7 @@ try{
  const otherTabDeletes=(page,id)=>page.evaluate(x=>localStorage.setItem('naice-shot-deleted-pictures',JSON.stringify([x])),id);
  const count=page=>page.locator('#ncs-history-count').innerText();
  for(const width of [375,1100]){
-  // --- P2-1: A's message changes after its picture and 추가 요청 are saved; reopened, the screen empties 추가 요청 but
+  // --- P2-1: A's message changes after its picture and 추가 요청 are saved; reopened (0.1.142: 추가 요청 stays on screen),
   // the saved copy keeps it. Leaving for another browser tab keeps it too; an edit just before leaving is saved.
   {const {page,errors,items}=await open(width);ask(page);
    await run(page,'smiling',one(leo()));
@@ -90,7 +90,7 @@ try{
    await page.evaluate(()=>{mock.switchChat=function(id){this.chatId=id;this.characters[0].chat=id;this.chatMetadata={};this.savedChat=undefined;this.savedMetadata=undefined;
     this.chat=[{name:'Leo',mes:id==='A'?'Running along the river.':'Walking along the river.'}];this.renderChat();this.emit('chat');};mock.switchChat('B');});
    await page.waitForTimeout(800);await page.evaluate(()=>{mock.switchChat('A');});await page.waitForTimeout(1500);
-   assert.equal(await shownText(page,W),'','setup: the screen empties 추가 요청 for a changed message');
+   assert.equal(await shownText(page,W),'smiling','setup: 0.1.142: a changed message keeps 추가 요청 on screen');
    await hide(page,'hidden');await page.waitForTimeout(1200);
    assert.equal(page.store.get(keyA)?.work?.wish,'smiling',`${width}px: leaving the browser tab keeps A's saved 추가 요청`);
    await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));await page.waitForTimeout(800);

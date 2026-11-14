@@ -88,7 +88,7 @@ try{
    await tab(page,'scene');await page.waitForTimeout(1200);
    await tab(page,'settings');await tab(page,'history');await page.locator('[data-mode="chat"]').click();await page.waitForTimeout(1200);
    assert.equal(await pics(page),0,`${width}px: the deleted picture stays gone`);
-   assert.equal(await shownText(page,W),'',`${width}px: the screen still empties 추가 요청 for a changed message`);
+   assert.equal(await shownText(page,W),'smiling',`${width}px: 0.1.142: a changed message keeps 추가 요청 on screen`);
    assert.equal(page.store.get(keyA)?.work?.result??null,null,`${width}px: A's saved work no longer holds the picture`);
    assert.equal(page.store.get(keyA)?.work?.wish,'smiling',`${width}px: after moving between tabs A's saved 추가 요청 is still kept`);
    // An edit still saves what is on screen.

@@ -86,7 +86,7 @@ try{
    assert.equal(await pics(page),0,`${width}px: the deleted picture stays gone`);
    assert.equal(page.store.get(keyA)?.work?.result??null,null,`${width}px: A's saved work no longer holds the picture`);
    assert.equal(page.store.get(keyA)?.work?.wish,'smiling',`${width}px: A's saved 추가 요청 is kept`);
-   assert.equal(await shownText(page,W),'',`${width}px: the screen still empties 추가 요청 for a changed message`);
+   assert.equal(await shownText(page,W),'smiling',`${width}px: 0.1.142: a changed message keeps 추가 요청 on screen (extraction asks to pick the target again)`);
    assert.deepEqual(errors,[]);await page.close();}
   // --- P2-2: chat A's picture, deleted from chat B's history, the page reloaded, A's work comes back without it.
   {const {page,errors,items}=await open(width);ask(page);

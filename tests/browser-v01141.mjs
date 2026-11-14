@@ -127,14 +127,14 @@ try{
  const pickTarget=async page=>{await page.evaluate(()=>{document.getElementById('ncs-target-picker').open=true;});await page.locator('[data-action="target-message"][data-message-index="0"]').click();await page.waitForTimeout(500);};
  const reopen=async page=>{await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();await page.waitForTimeout(800);};
  for(const width of [375,1100]){
-  // --- P2-1: A's message changed; back in A the screen empties 대상·추가 요청; leaving for B without an edit keeps them saved.
+  // --- P2-1: A's message changed; back in A (0.1.142: kept on screen with a note); leaving for B without an edit keeps them saved.
   {const {page,errors}=await open(width);ask(page);
    await run(page,'smiling',at(one(leo()),'riverside cafe'));await page.waitForTimeout(800);
    await pickTarget(page);await page.locator(W).fill('smiling');await page.waitForTimeout(1500);
    assert.equal(page.store.get(KEY)?.work?.wish,'smiling','setup: 추가 요청 saved for A');
    await changeA(page);await page.evaluate(()=>mock.switchChat('B'));await page.waitForTimeout(1200);
    await page.evaluate(()=>mock.switchChat('A'));await page.waitForTimeout(1500);
-   assert.equal(await shownText(page,W),'','setup: the screen empties 추가 요청 for a changed message');
+   assert.equal(await shownText(page,W),'smiling','setup: 0.1.142: a changed message keeps 추가 요청 on screen');
    await page.evaluate(()=>mock.switchChat('B'));await page.waitForTimeout(1500);
    assert.equal(page.store.get(KEY)?.work?.wish,'smiling',`${width}px: A keeps its saved 추가 요청`);
    assert.equal(page.store.get(KEY)?.work?.target,'0',`${width}px: A keeps its saved target`);
@@ -152,7 +152,7 @@ try{
    if(back==='same'){
     assert.equal(await shownText(page,W),'smiling',`${width}px: 추가 요청 stays on screen after the reload`);
     assert.equal(await page.locator('#ncs-target').inputValue(),'0',`${width}px: the target stays on screen after the reload`);
-   }else assert.equal(await shownText(page,W),'',`${width}px: a changed message is still checked when the chat is back`);
+   }else assert.equal(await shownText(page,W),'smiling',`${width}px: 0.1.142: a changed message keeps 추가 요청 on screen too`);
    assert.equal(page.store.get(KEY)?.work?.wish,'smiling',`${width}px: A's saved 추가 요청 is kept (${back})`);
    assert.deepEqual(errors,[]);await page.close();}
   // --- P2-3: no final prompt edited in A; while B (with its own clothes) loads, a scene edit then a JSON edit: B's clothes stay out.

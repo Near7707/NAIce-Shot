@@ -594,6 +594,9 @@ const draftUnreadableNote=m=>`지금 작업을 확인하지 못해서 작업 기
 // 0.1.96 (GPT P3-1): what counts when comparing the screen with the saved copy — not how many target messages are
 // listed, and a valid final-prompt JSON by its content (key order aside). Saving still keeps the text as typed.
 const compareForm=w=>{const out={...w};delete out.targetShown;
+  // 0.1.142 (GPT 0.1.141 P3-2): with no edited final prompt the JSON box only shows the assembly (it may show the next
+  // chat's clothes while that chat loads); it is the person's own text only when it is an unfinished edit.
+  if(!out.finalOverride)delete out.finalText;
   if(typeof out.finalText==='string'&&out.finalText.trim())try{out.finalText={json:JSON.parse(out.finalText)};}catch{}
   if(out.undoClear)out.undoClear=JSON.parse(compareForm(out.undoClear));return sortedJson(out);};
 function syncWorkLock(){
@@ -626,17 +629,9 @@ function unsavedWork(key,w){
 // waiting to be saved; otherwise it only finishes the saves already queued. A changed source empties 대상·추가 요청 on
 // screen only, and a leave used to save that over the kept copy. Anything that changes work must schedule its save.
 function leaveSave(){const key=workKey();if(captureTimer)rememberDraft(key,null,{flush:true});else if(draftsEnabled&&key)drafts.flush(key).catch(()=>{});}
-// 대상·추가 요청 belong to the message they were picked for; a changed message empties them on screen only.
+// 대상·추가 요청 belong to the message they were picked for.
 const sourceChanged=()=>!sourceValid(scene.source,ctx().chat)||!sourceValid(draftSource,ctx().chat);
-const STALE_NOTE='이 채팅에서 작업하던 장면을 불러왔어요. 원문이나 리롤이 바뀌었으니 대상과 프롬프트를 다시 확인해 주세요.';
-// 0.1.141 (GPT 0.1.140 P2-2): the check recallDraft left for later, once the same chat is back (CHAT_CHANGED).
-let sourceCheck=false;
-function checkSourceLater(){
-  if(!sourceCheck||isFree()||chatLoading()||!ctx().chat?.length)return;
-  sourceCheck=false;if(!dialog)return;
-  const stale=sourceChanged();if(stale){$('ncs-target').value='';$('ncs-moment-wish').value='';draftNote=STALE_NOTE;}
-  renderTargets();if(stale){renderScene({forceFinal:true});renderDraftState();}
-}
+const STALE_NOTE='이 채팅에서 작업하던 장면을 불러왔어요. 원문이나 리롤이 바뀌었으니 대상·추가 요청과 프롬프트를 다시 확인해 주세요.';
 function rememberDraft(key=workKey(),work=null,{flush=false}={}){
   clearTimeout(captureTimer);captureTimer=null;
   // 0.1.134 (GPT 0.1.133 P2): a deletion holds only the capture of the work it deletes (all of them when it deletes all).
@@ -688,12 +683,10 @@ async function recallDraft(key=workKey(),{connect=false,asked=false}={}){
   // A connect keeps the screen when it is the same work (only how it is shown may differ); otherwise the saved copy shows.
   const load=!!saved&&(!connect||differs||!mine||emptyWork(mine));
   if(load){const base=unpackWork(packWork(saved,{retainRaw})),dropped=loadWork(base);
-    // 0.1.140 (GPT 0.1.139 P2-2): the source is checked against the chat only when it is this work's chat. A reply that
-    // arrives while the next chat loads is checked again when this chat comes back. 0.1.141 (GPT 0.1.140 P2-2): nor while
-    // the chat is empty — SillyTavern empties it to reload the same chat; the check waits for its CHAT_CHANGED.
-    sourceCheck=!isFree()&&(chatLoading()||!ctx().chat?.length);
-    const stale=!isFree()&&!sourceCheck&&sourceChanged();
-    if(stale){$('ncs-target').value='';$('ncs-moment-wish').value='';}
+    // 0.1.142 (GPT 0.1.141 P2-1·P2-3·P3-1, user decision A): a changed message no longer empties 대상·추가 요청; the screen
+    // stays the saved work and only the note says so. Extraction stops when the chosen message changed (see extract).
+    // Checked only when it is this work's chat and the chat is in (0.1.140: not while the next chat loads; nor empty).
+    const stale=!isFree()&&!chatLoading()&&!!ctx().chat?.length&&sourceChanged();
     const target=isFree()?'':$('ncs-target').value,where=isFree()?'':target===''?' · 대상 메시지: 최신':` · 대상 메시지 #${target}`;
     draftNote=stale?STALE_NOTE:isFree()?'프리샷에서 작업하던 장면을 불러왔어요. AI를 다시 호출하지 않았어요.':`이 채팅에서 작업하던 장면을 불러왔어요${where}`;
     renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();
@@ -776,15 +769,14 @@ function renderTargets() {
   // 0.1.138 (GPT 0.1.137 P2-1): while the next chat loads, the list keeps the chat on screen; reading the half-loaded
   // chat would drop (or later save) a target of the wrong chat.
   if(chatLoading())return;
-  // 0.1.141 (GPT 0.1.140 P2-2): nor while the same chat reloads (empty) with its source check waiting: the chosen target stays.
-  checkSourceLater();if(sourceCheck)return;
   rememberTargetScroll();
   const chat=ctx().chat??[],select=$('ncs-target'),rows=[];
   // Keep only indices here: format previews for the rows actually shown, never every message.
   for(let i=chat.length-1;i>=0;i--)if(isSceneMessage(chat[i]))rows.push(i);
-  if(select.value!==''&&!rows.includes(Number(select.value)))select.value='';
+  // 0.1.142 (GPT 0.1.141 P2-2): SillyTavern empties the chat to reload it (same id); an empty chat drops no chosen target.
+  if(select.value!==''&&chat.length&&!rows.includes(Number(select.value)))select.value='';
   const text=i=>chat[i].mes.replace(/\s+/g,' ').trim(),hidden=i=>isHiddenSceneMessage(chat[i])?' · 숨김':'';
-  $('ncs-target-label').textContent=select.value===''?'가장 최근 메시지':`#${select.value} · ${chat[select.value].name??''}${hidden(Number(select.value))} · ${text(Number(select.value)).slice(0,55)}`;
+  $('ncs-target-label').textContent=select.value===''?'가장 최근 메시지':!chat[select.value]?`#${select.value}`:`#${select.value} · ${chat[select.value].name??''}${hidden(Number(select.value))} · ${text(Number(select.value)).slice(0,55)}`;
   // Make sure the chosen message is among the shown rows, so its check mark is visible when the list opens.
   const at=select.value===''?-1:rows.indexOf(Number(select.value));
   targetShown=Math.max(TARGET_STEP,targetShown,at>=0?Math.ceil((at+1)/TARGET_STEP)*TARGET_STEP:0);
@@ -1938,11 +1930,15 @@ function applyFree(parsed,foreign=[],plan=planFreePeople(scene.characters,plainN
     before&&(plan.removed.length||plan.pinnedOut.length||out.refreshed.length)?'잘못됐다면 [↶ 추출 취소]를 눌러 주세요.':''];
   notice(parts.filter(Boolean).join(' '),false,'scene',{keep:!!(plan.removed.length||plan.pinnedOut.length||out.notShown.length||out.refreshed.length||unsure.length||foreign.length||emptyRequired.length||refs.note)});
 }
+const TARGET_CHANGED='고른 대상 메시지가 수정·삭제·리롤됐어요. 추가 요청이 맞는지 확인하고 대상 메시지를 다시 골라 주세요.';
 async function extract() {
   const originTab='scene',report=(message,error=false)=>notice(message,error,originTab);
   if(busy)return;assertChat();
   const s=settings();if(!s.profiles.length){openQuickProfile();report('등록된 프로필이 없어요. 아래에서 첫 프로필을 만들면 바로 추출할 수 있어요.');return;}
   if(ctx().streamingProcessor && !ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 추출해 주세요.');
+  // 0.1.142 (user decision A): the chosen message was edited, deleted or rerolled (its fingerprint differs), so 대상·추가 요청
+  // may belong to another message now. Nothing is emptied: the person picks the target again (가장 최근 메시지 never stops).
+  if($('ncs-target').value!==''&&draftSource&&!sourceValid(draftSource,ctx().chat))throw new Error(TARGET_CHANGED);
   const refs=prepareRefs($('ncs-moment-wish'),'추가 요청'),requiredIds=refs.required.map(p=>p.id);
   const selection=chooseSceneMessages(ctx().chat,{target:$('ncs-target').value===''?null:Number($('ncs-target').value),recent:Number($('ncs-recent').value),includeUser:$('ncs-include-user').checked});
   stampSource(selection.source,ctx().chat);
@@ -3679,7 +3675,7 @@ async function zoomTagPopup(){
 }
 function chatChanged() {
   closeImageMenu();closeAttachPicker();closeTagPopup();renderTagPopupSetting();
-  const key=keyOf();if(key===chatKey){checkSourceLater();return;}undoChatOutfit=null;historyImportToken++;sourceCheck=false;
+  const key=keyOf();if(key===chatKey)return;undoChatOutfit=null;historyImportToken++;
   // 0.1.97 (GPT P2-1): only the work on screen is saved here. 챗샷 work waiting off screen was saved when it left the
   // screen if it could be; saving it now could write work never compared with the server's copy.
   // 0.1.141 (GPT 0.1.140 P2-1): like leaving the page, only an edit waiting to be saved — a changed message empties
