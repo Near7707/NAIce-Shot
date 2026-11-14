@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.132 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.131 (no P1):
+- Fix: an edit made just before deleting all pictures of another chat (or 프리샷) is sent to the server before the deletion starts. Reloading while the deletion waits no longer brings back the old scene.
+- Fix: a picture deleted in another tab of this browser is not put in the chat (본문에 넣기 from the result, the history or the enlarged view). The note says it was already deleted.
+- Fix: a shown picture deleted while [더 보기] waits makes the list read again from the start, so no picture is skipped. The enlarged view's next page also starts one earlier after another tab deleted a picture of the view.
+
 ## 0.1.131 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.130 (no P1):

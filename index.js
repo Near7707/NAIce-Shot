@@ -253,13 +253,17 @@ function historyPage({scope,filter,key,offset,limit,markFilter}){
 // A viewer owns its range and page cursor; background refreshes cannot mix in another range.
 function historyGallery(){
   const scope=historyScope,filter=historyFilter,key=scope==='free'?FREE_KEY:keyOf(),all=['chats','all'].includes(scope),markFilter=historyMarkFilter;
-  let offset=historyItems.length,pending=null;
+  let offset=historyItems.length,pending=null;const counted=new Set();
+  // 0.1.132 (GPT 0.1.131 P3): a picture of this view deleted (here or in another tab) moved the server's list up by one.
+  // The next page starts one earlier; the picture stays in the view (a deletion here takes it out with removed()).
+  const uncount=id=>{if(!counted.has(id)){counted.add(id);offset=Math.max(0,offset-1);}};
   const gallery={items:[...historyItems],total:historyTotal,hasMore:historyHasMore,
     describe:item=>imageViewerOptions(item),
     waitForPage:()=>pending??Promise.resolve(),
     loadMore(){
       if(pending)return pending;if(!gallery.hasMore)return Promise.resolve();
       pending=(async()=>{
+        for(const x of gallery.items)if(isDeletedPicture(x.id))uncount(x.id);
         const data=await historyPage({scope,filter,key,offset,limit:HISTORY_PAGE,markFilter});
         if(all&&(data.scope!=='all'||scope==='chats'&&data.kind!=='chat'))throw new Error('이력 범위를 확인하지 못했어요. 다시 열어 주세요.');
         const items=Array.isArray(data.items)?data.items:[];offset+=items.length;
@@ -267,7 +271,7 @@ function historyGallery(){
         gallery.total=Number.isInteger(data.total)?data.total:gallery.total;gallery.hasMore=data.hasMore===true&&items.length>0;
       })().finally(()=>pending=null);return pending;
     },
-    removed(id){const at=gallery.items.findIndex(x=>x.id===id);if(at>=0){gallery.items.splice(at,1);gallery.total=Math.max(0,gallery.total-1);offset=Math.max(0,offset-1);}}
+    removed(id){const at=gallery.items.findIndex(x=>x.id===id);if(at>=0){gallery.items.splice(at,1);gallery.total=Math.max(0,gallery.total-1);uncount(id);}}
   };return gallery;
 }
 // 0.1.70: the enlarged view's ⋯ matches the history card's ⋯ — 챗샷/프리샷으로 보내기, 설정을 프리셋으로, 본문에 넣기,
@@ -896,6 +900,9 @@ async function settleDraftDeletion(key,hold,state){
 // then forget. Server requests of one user run in order, so nothing sent before can recreate the work.
 async function whileDeletingWork(keys,remove,forgetKeys=()=>keys){
   if(drafts.paused)throw new Error('진행 중인 작업 삭제가 끝난 뒤 시도해 주세요.');
+  // 0.1.132 (GPT 0.1.131 P2-1): an edit waiting to be saved is sent now. The pause below holds every save in the queue,
+  // so a leave during the deletion could not send it; the deletion of this same work waits for it (sent before).
+  if(captureTimer)rememberDraft(workKey(),null,{flush:true});
   pauseDraftCapture=true;clearTimeout(captureTimer);captureTimer=null;deletingWork=true;syncWorkLock();
   try{
     await drafts.pause(keys);
@@ -2668,6 +2675,8 @@ async function putImagesInChat(items,targetIndex,placement=null,expected=null) {
     const done=await withChatWrite(startKey,(context,guard)=>{
       const target=context.chat[targetIndex];
       if(expected&&(target!==expected.message||textSignature(target?.mes??'')!==expected.signature))throw new Error('선택한 메시지가 바뀌었어요. 그림을 넣을 메시지를 다시 골라 주세요.');
+      // 0.1.132 (GPT 0.1.131 P2-2): a picture deleted meanwhile (also in another tab) is not put in the chat file.
+      if(items.some(x=>isDeletedPicture(x.id)))throw new Error('이미 삭제한 그림이라 본문에 넣지 않았어요.');
       return attachInlineImages(context,items,{targetIndex,placement,...guard});
     });
     if(keyOf()!==startKey)return;
@@ -2959,7 +2968,7 @@ function renderHistory() {
   }).join(''):historyMarkFilter==='star'?'<p>이 범위에 즐겨찾기(★)한 그림이 없어요. 이력 카드의 ☆를 눌러 표시해요.</p>':historyMarkFilter==='tag'?'<p>이 범위에 태그를 붙인 그림이 없어요. 이력 카드 ⋯ → 태그 편집에서 붙여요.</p>':'<p>이 범위에 저장된 그림이 없어요.</p>';
   updateAttachButtons();restoreScroll();
 }
-async function loadHistory({append=false}={}) {
+async function loadHistory({append=false,show=null}={}) {
   const scope=historyScope,startKey=scope==='free'?FREE_KEY:keyOf(),allScope=['chats','all'].includes(scope),filter=historyFilter,markFilter=historyMarkFilter;
   if(!startKey&&!allScope){historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>채팅을 먼저 열어 주세요. 다른 보기에서는 채팅 없이도 이력을 볼 수 있어요.</p>';updateHistoryTools();return;}
   if(append&&historyLoading)return;
@@ -2969,7 +2978,8 @@ async function loadHistory({append=false}={}) {
     if(historyItems.length!==n){historyTotal=Math.max(0,historyTotal-(n-historyItems.length));for(const id of [...selectedIds])if(isDeletedPicture(id))selectedIds.delete(id);}}
   // 0.1.111 (user): a refresh keeps as many pictures as were shown. The server gives at most 100 per request
   // (HISTORY_MAX), so a longer list is read again in pieces of 100; before, it fell back to 100 (120/300 → 100/300).
-  const offset=append?historyItems.length:0,want=append?HISTORY_PAGE:Math.max(HISTORY_PAGE,historyItems.length);
+  const alive=append?historyItems.map(x=>x.id):[];let reread=false;
+  const offset=append?historyItems.length:0,want=append?HISTORY_PAGE:Math.max(HISTORY_PAGE,show??historyItems.length);
   const request=++historyRequest;historyLoading=true;updateHistoryTools();
   const stale=()=>request!==historyRequest||historyScope!==scope||historyFilter!==filter||historyMarkFilter!==markFilter||(!allScope&&scope!=='free'&&keyOf()!==startKey);
   try {
@@ -3005,6 +3015,9 @@ async function loadHistory({append=false}={}) {
     const kept=x=>!isDeletedPicture(x?.id),pend=Array.isArray(data.pending)?data.pending:[],got=Array.isArray(data.items)?data.items:[],items=got.filter(kept);
     historyPending=pend.filter(kept);historyPendingBytes=historyPending.length===pend.length?Number(data.pendingBytes)||0:pendingBytesOf(historyPending);
     historyItems=append?[...historyItems,...items.filter(x=>!historyItems.some(y=>y.id===x.id))]:items;
+    // 0.1.132 (GPT 0.1.131 P3): a shown picture deleted while [더 보기] waited moved the server's list after the offset
+    // was sent, so one picture would be skipped: the list is read again from the start (as many as shown).
+    reread=append&&alive.some(id=>isDeletedPicture(id));
     historyTotal=Number.isInteger(data.total)?Math.max(0,data.total-(got.length-items.length)):historyItems.length;historyHasMore=data.hasMore===true;
     lastHistoryView={scope,filter,key:startKey,markFilter,items:historyItems,pending:historyPending,bytes:historyPendingBytes,total:historyTotal,more:historyHasMore,unfiltered:historyUnfiltered};
   }catch(e){
@@ -3013,7 +3026,11 @@ async function loadHistory({append=false}={}) {
     if(stale())return;
     throw e;
   }finally{if(request===historyRequest){historyLoading=false;updateHistoryTools();}}
-  if(request===historyRequest)renderHistory();
+  if(request!==historyRequest)return;
+  if(reread){const n=historyItems.length;historyItems=historyItems.filter(x=>!isDeletedPicture(x.id));historyTotal=Math.max(0,historyTotal-(n-historyItems.length));
+    for(const id of [...selectedIds])if(isDeletedPicture(id))selectedIds.delete(id);
+    return loadHistory({show:alive.filter(id=>!isDeletedPicture(id)).length+HISTORY_PAGE});} // the cards left and one more page
+  renderHistory();
 }
 let historyImportToken=0;
 // 0.1.130 (GPT 0.1.129 P3-2): the size of 저장 대기 counted again from the entries left (each has its bytes).

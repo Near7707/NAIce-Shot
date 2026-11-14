@@ -1,3 +1,13 @@
+# v0.1.132 validation — 2026-11-14 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **115 of 115 Chromium browser scripts passed** (4 at a time; `browser-v0187` and `browser-v031` were slow in parallel and passed on their own), including the new `tests/browser-v01132.mjs` (375px, 1100px): chat A's scene saved, an edit and at once 프리샷 이력 전체 삭제 with the deletion held — the edit is on the server while the deletion still waits; a result picture marked deleted in the browser's store, then 본문에 넣기 → #1 puts nothing in message 1 and says why; 22 pictures (paged server) with 20 shown, [더 보기] held, one shown picture deleted on the server and marked deleted before it reads — 21 cards, 21st and 22nd shown, total 21; one shown picture deleted the same way, then the enlarged view opened on the 20th goes next to the 21st and the 22nd.
+- Revert checks: no save before the deletion, a save only put in the queue (the deletion holds the queue, so GPT's “put it in the queue” alone is not enough), no check before putting in the chat, no reread after [더 보기], and no shift of the enlarged view's next page each make the new script fail at its own step.
+- Not checked: a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.131 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.
