@@ -61,3 +61,13 @@ test('an unverified deletion keeps the affected draft from auto-saving while oth
  assert.deepEqual(sent,['B']);assert.equal(q.entry('A').dirty,true);
  q.release('A');await q.flush('A');assert.deepEqual(sent,['B','A']);
 });
+test('0.1.134: a pause for some works holds only those; other works keep saving; a pause for all holds all',async()=>{
+ const sent=[];const q=new DraftQueue({delay:100000,read:async()=>({revision:null,work:null}),write:async(key,b)=>{sent.push([key,b.work.value]);return {revision:`r${sent.length}`};}});
+ await q.ensure('A');await q.ensure('F');
+ await q.pause(['F']);assert.equal(q.paused,true,'the window stays locked');
+ q.put('A',{value:1});q.put('F',{value:2});await q.flush('A');await q.flush('F');
+ assert.deepEqual(sent,[['A',1]],'A is saved during the deletion of F; F is held');
+ q.resume();await q.flush('F');assert.deepEqual(sent,[['A',1],['F',2]],'F goes after the deletion');
+ await q.pause();q.put('A',{value:3});await q.flush('A');assert.equal(sent.length,2,'a pause for every work holds A too');
+ q.resume();await q.flush('A');assert.deepEqual(sent.at(-1),['A',3]);
+});

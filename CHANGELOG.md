@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.134 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.133 (no P1):
+- Fix: deleting the pictures (and work) of another chat or 프리샷 now holds only that work's saves. A change to the open work that ends meanwhile (for example a chat outfit save) is saved at once, so reloading while the deletion waits keeps it.
+- Fix: when the list read again after [더 보기] fails, a 저장 대기 picture deleted meanwhile also leaves, and the 저장 대기 size is counted again.
+
 ## 0.1.133 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.132 (no P1):

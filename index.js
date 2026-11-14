@@ -551,7 +551,7 @@ function renderRawRetention(){if(!dialog)return;const sum=$('ncs-retain-summary'
 // 0.1.88 (GPT P2 P3-3): one place decides whether the drawing window is locked, from everything that can lock it:
 // the work is loading, a work deletion is running, the result of a deletion of this work is unknown (anything typed
 // meanwhile could be emptied by it), or the first server check of the panel is running. Nothing sets it directly.
-let deletingWork=false,compatChecking=false;
+let deletingWork=false,deletingKeys=null,compatChecking=false;
 // 0.1.95: the held work-memory connection (see connectDrafts).
 let draftHold=false,draftHoldNote='',connectingDrafts=null,reconnectRun=null;
 const sortedJson=v=>JSON.stringify(v,(k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(n=>[n,x[n]])):x);
@@ -595,7 +595,9 @@ function unsavedWork(key,w){
 function leaveSave(){const key=workKey();if(captureTimer)rememberDraft(key,null,{flush:true});else if(draftsEnabled&&key)drafts.flush(key).catch(()=>{});}
 function rememberDraft(key=workKey(),work=null,{flush=false}={}){
   clearTimeout(captureTimer);captureTimer=null;
-  if(!draftsEnabled||!key||draftLoading||pauseDraftCapture)return;
+  // 0.1.134 (GPT 0.1.133 P2): a deletion holds only the capture of the work it deletes (all of them when it deletes all).
+  // Another work changed meanwhile (a chat outfit save ending) is saved as usual: the queue holds only the deleted works.
+  if(!draftsEnabled||!key||draftLoading||pauseDraftCapture&&!(deletingWork&&deletingKeys&&!deletingKeys.includes(key)))return;
   // 0.1.130 (GPT 0.1.129 P2-2): every save leaves out a picture deleted here or in another tab of this browser. When it
   // is the screen being saved, the screen drops it too, so the screen and the saved copy stay the same work.
   try{const w=withoutDeleted(work??captureWork());
@@ -902,17 +904,18 @@ async function whileDeletingWork(keys,remove,forgetKeys=()=>keys){
   if(drafts.paused)throw new Error('진행 중인 작업 삭제가 끝난 뒤 시도해 주세요.');
   // 0.1.132 (GPT 0.1.131 P2-1): an edit waiting to be saved is sent now. The pause below holds every save in the queue,
   // so a leave during the deletion could not send it; the deletion of this same work waits for it (sent before).
+  // 0.1.134: the pause holds only the works deleted (keys; all when null), so other works keep saving meanwhile.
   if(captureTimer)rememberDraft(workKey(),null,{flush:true});
   // 0.1.133 (GPT 0.1.132 P2): an edit already in the queue but not yet sent (its 650ms wait) is sent now too, for every
   // work; the pause would hold it and a leave during the deletion could not send it. A conflict (409) waits as before.
   for(const [k,e] of [...drafts.entries])if(e.loaded&&e.dirty&&!e.saving&&e.error?.status!==409)drafts.flush(k).catch(()=>{});
-  pauseDraftCapture=true;clearTimeout(captureTimer);captureTimer=null;deletingWork=true;syncWorkLock();
+  pauseDraftCapture=true;clearTimeout(captureTimer);captureTimer=null;deletingWork=true;deletingKeys=keys;syncWorkLock();
   try{
     await drafts.pause(keys);
     const response=await remove();
     const gone=forgetKeys(response);if(gone?.length)await forgetWork(gone);
     return response;
-  }finally{pauseDraftCapture=false;deletingWork=false;drafts.resume();renderDraftState();}
+  }finally{pauseDraftCapture=false;deletingWork=false;deletingKeys=null;drafts.resume();renderDraftState();}
 }
 async function deleteAllWork(){
   const originTab=activeTab(),report=(message,error=false)=>notice(message,error,originTab);
@@ -3036,6 +3039,8 @@ async function loadHistory({append=false,show=null}={}) {
   // The cards left stay with [더 보기] (it goes on from them, so a failed reread still loses nothing), then the reread.
   if(reread){const n=historyItems.length;historyItems=historyItems.filter(x=>!isDeletedPicture(x.id));historyTotal=Math.max(0,historyTotal-(n-historyItems.length));
     for(const id of [...selectedIds])if(isDeletedPicture(id))selectedIds.delete(id);
+    // 0.1.134 (GPT 0.1.133 P3): a 저장 대기 entry deleted meanwhile leaves too, with the size of the ones left.
+    const pend=historyPending.filter(x=>!isDeletedPicture(x?.id));if(pend.length!==historyPending.length){historyPending=pend;historyPendingBytes=pendingBytesOf(pend);}
     historyHasMore=true;renderHistory();
     return loadHistory({show:historyItems.length+HISTORY_PAGE});} // the cards left and one more page
   renderHistory();

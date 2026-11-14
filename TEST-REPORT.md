@@ -1,3 +1,13 @@
+# v0.1.134 validation — 2026-11-14 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed** (new in `tests/draft-work.test.mjs`: a pause for one work holds only that work, other works keep saving, a pause for all holds all).
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **117 of 117 Chromium browser scripts passed** (4 at a time; `browser-v0139` was slow in parallel and passed on its own), including the new `tests/browser-v01134.mjs` (375px, 1100px): chat A's outfit saved as the chat default, then cleared with that chat save held; 프리샷 이력 전체 삭제 starts and is held; the outfit save then ends — chat A's work (this picture's outfit emptied) is on the server while the deletion still waits, and stays after it; 22 pictures (20 shown) and two 저장 대기 entries, [더 보기] held, a shown picture and one 저장 대기 entry deleted in another tab, the reread answers 500 — the card and that entry leave, the other entry stays, the size no longer counts the deleted one, [더 보기] stays.
+- Revert checks: the queue holding every work again, the capture check holding every work again, and no 저장 대기 cleanup each make the new script fail at its own step. The 0.1.133 code fails the new outfit step (its click handler saved only after the deletion, so a reload during the deletion lost the change).
+- Not checked: a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.133 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.
