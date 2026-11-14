@@ -620,19 +620,20 @@ async function recallDraft(key=workKey(),{connect=false,asked=false}={}){
     draftNote='서버에서 삭제된 작업이라 화면을 비웠어요.';
     renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();renderDraftState();return 'connected';
   }
-  const differs=!asked&&!!saved&&!!mine&&!emptyWork(mine)&&compareForm(packWork(unpackWork(saved),{retainRaw}))!==compareForm(mine);
+  const differs=!asked&&!!saved&&!!mine&&!emptyWork(mine)&&compareForm(packWork(withoutDeleted(unpackWork(saved)),{retainRaw}))!==compareForm(mine);
   if(differs&&!confirm('서버에 저장된 마지막 작업을 불러올까요?\n취소하면 지금 편집은 화면에, 서버 작업은 서버에 그대로 두고 작업 기억 연결을 멈춰요.')){
     holdDrafts(key,DRAFT_HOLD_NOTE);return 'held';
   }
   if(connect){draftHold=false;draftHoldNote='';draftsEnabled=true;}
   // A connect keeps the screen when it is the same work (only how it is shown may differ); otherwise the saved copy shows.
   const load=!!saved&&(!connect||differs||!mine||emptyWork(mine));
-  if(load){loadWork(unpackWork(packWork(saved,{retainRaw})));
+  if(load){const dropped=loadWork(unpackWork(packWork(saved,{retainRaw})));
     const stale=!isFree()&&(!sourceValid(scene.source,ctx().chat)||!sourceValid(draftSource,ctx().chat));
     if(stale){$('ncs-target').value='';$('ncs-moment-wish').value='';}
     const target=isFree()?'':$('ncs-target').value,where=isFree()?'':target===''?' · 대상 메시지: 최신':` · 대상 메시지 #${target}`;
     draftNote=stale?'이 채팅에서 작업하던 장면을 불러왔어요. 원문이나 리롤이 바뀌었으니 대상과 프롬프트를 다시 확인해 주세요.':isFree()?'프리샷에서 작업하던 장면을 불러왔어요. AI를 다시 호출하지 않았어요.':`이 채팅에서 작업하던 장면을 불러왔어요${where}`;
     renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();
+    if(dropped)rememberDraft(key); // 0.1.127: so a reload does not bring the deleted picture back
   }else{draftNote='';rememberDraft(key);} // nothing saved, or the same work: keep the screen and remember it (a save error shows)
   renderDraftState();return 'connected';
 }
@@ -736,15 +737,22 @@ function chooseTarget(value,{reveal=false}={}) {
 // The active mode's work lives in the usual variables; the other mode's work waits in `spare`.
 const spare={};
 let undoClear=null;
+// 0.1.127 (GPT 0.1.126 P2·P3): pictures the server confirmed deleted in this session. Saved work and the undo copy may
+// still hold one (another chat's work memory, [비우기 취소]); every restore goes through loadWork, which drops it.
+const deletedPictures=new Set();
+const dropDeleted=w=>w?.result&&deletedPictures.has(w.result.id)?{...w,result:null}:w;
+// The work and its undo copy, each without a deleted picture. The same object back when nothing was dropped.
+const withoutDeleted=w0=>{const w=dropDeleted(w0),u=dropDeleted(w?.undoClear??null);return u===(w?.undoClear??null)?w:{...w,undoClear:u};};
 const blankWork=()=>({scene:blankScene(),raw:'',finalOverride:null,optionsOverride:null,restoredFinal:null,result:null,undoClear:null,target:'',wish:'',freeText:''});
 function captureWork(){return {scene,raw,finalOverride,optionsOverride,restoredFinal,result,undoClear,target:$('ncs-target').value,wish:$('ncs-moment-wish').value,freeText:$('ncs-free-text').value,targetSource:draftSource,targetShown,finalText:$('ncs-final').value};}
-function loadWork(w){
-  undoChatOutfit=null;
+function loadWork(w0){
+  const w=withoutDeleted(w0);undoChatOutfit=null;
   ({scene,raw,finalOverride,optionsOverride,restoredFinal,result,undoClear}=w);
   if(isFree())migratePins(scene.characters); // 0.1.59: cards from before 📌 existed are kept (pinned), never deleted unasked
   $('ncs-target').value=w.target??'';$('ncs-moment-wish').value=w.wish??'';$('ncs-free-text').value=w.freeText??'';
   draftSource=w.targetSource??null;targetShown=w.targetShown??TARGET_STEP;if(w.finalOverride?.invalid)$('ncs-final').value=w.finalText??'';
   lastLink=null;linkTarget=null;wardrobeTarget=null;pendingTempConvert=null;
+  return w!==w0; // a deleted picture was dropped: the caller saves the work without it
 }
 function renderModeUI(){
   if(!dialog)return;const free=isFree();
@@ -2558,10 +2566,12 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
       try{unverifiedDetach=!!(await withChatWrite(current,(context,guard)=>detachInlineImages(context,deleted,guard))).unverified;}
       catch{detachFailed=true;}
     }
+    for(const id of deleted)deletedPictures.add(id);
     if(result&&deleted.has(result.id))result=null;
+    {const w=withoutDeleted({undoClear});if(w.undoClear!==undoClear){undoClear=w.undoClear;rememberDraft();}}
     // 0.1.126: the other mode's waiting work drops a deleted picture too, and its saved copy follows (so coming back to it
     // neither shows the picture nor asks about a difference).
-    for(const m of Object.keys(spare))if(spare[m]?.result&&deleted.has(spare[m].result.id)){spare[m].result=null;rememberDraft(m==='free'?FREE_KEY:chatKey,spare[m]);}
+    for(const m of Object.keys(spare)){const w=withoutDeleted(spare[m]);if(w!==spare[m]){spare[m]=w;rememberDraft(m==='free'?FREE_KEY:chatKey,w);}}
     for(const id of deleted){selectedIds.delete(id);for(const [key,pending] of pendingGenerations)if(pending===id&&!unconfirmed.has(id))rememberGeneration(key,null);}
     for(const id of cleared)if(!unconfirmed.has(id))for(const [key,pending] of pendingGenerations)if(pending===id)rememberGeneration(key,null);
     // 0.1.84: tags and stars of pictures the server confirmed gone. A whole chat confirmed empty forgets all of its marks.

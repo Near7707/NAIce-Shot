@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.127 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.126 (no P1):
+- Fix: a chat's picture deleted from the history while you move to another chat no longer comes back as a broken preview when that chat's work is loaded again. Pictures the server confirmed deleted are left out whenever saved work comes back to the screen, and the work is saved again without them.
+- Fix: [비우기 취소] after deleting the picture brings back the scene and prompt without the deleted picture.
+
 ## 0.1.126 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.125 (no P1):

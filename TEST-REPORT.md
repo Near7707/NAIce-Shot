@@ -1,3 +1,13 @@
+# v0.1.127 validation — 2026-11-14 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **110 of 110 Chromium browser scripts passed** (4 at a time, none slow), including the new `tests/browser-v01127.mjs` (375px, 1100px): chat A's picture deleted from the history in 프리샷 with the answer held while the chat changes to B, then back to A in 챗샷, shows A's work without the picture and asks nothing; a 프리샷 picture, [그리기창 비우기], that picture deleted, [비우기 취소] brings back the situation text without the picture.
+- Revert checks: leaving out the filter in `loadWork` makes the new script fail at its first step; the 0.1.126 `index.js` fails it too. The [비우기 취소] case is covered twice (the undo copy is cleaned at deletion and filtered again in `loadWork`), so reverting one alone still passes. The filter on the saved copy before the comparison has no separate check.
+- Not checked: a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.126 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.
