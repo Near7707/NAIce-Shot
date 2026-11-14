@@ -1,3 +1,14 @@
+# v0.1.138 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **121 of 121 Chromium browser scripts passed**, including the new `tests/browser-v01138.mjs` (375px, 1100px). Run 4 at a time, `browser-v01117` failed once on its touch double-tap step (timing; it fails the same way on the 0.1.137 code now and then) and `browser-v0123` timed out once; both passed on their own. New script: in 프리샷 with A's history on screen, B opened and its history held: no deletion is sent, and the button comes back once B's list shows; the same for a 챗샷 ★ view (A's unfiltered count left). The panel opened while B's id is set and the chat is empty keeps A's chosen target; with B's messages in and no event, a picked message does not become A's target; after a chat-less panel, the first B opened keeps its saved 추가 요청. In a group chat, a reply's speaker id does not switch the work and extraction runs after it. 카드 연결 and the tag popup switch do not take the loading chat's card or setting.
+- Old-code checks: the 0.1.137 code fails each of the eight steps on its own.
+- Revert checks: taking out each change makes its own step fail; the history delete needs both the button state and the click check reverted (they overlap), and the picked-target step needs both the list and the pick check reverted. 메시지로 가기 (one line) has no browser step.
+- Not checked: SillyTavern's real chat switch and group replies (imitated), a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.137 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.

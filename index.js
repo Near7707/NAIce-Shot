@@ -38,8 +38,9 @@ const isFree=()=>mode==='free';
 const workKey=()=>isFree()?FREE_KEY:chatKey;
 // 0.1.137 (GPT 0.1.136 P1·P2): in that gap SillyTavern's id is already the next chat while the panel (history,
 // work, outfits) still shows the previous one. Whatever reads or writes a chat, or deletes by chat, waits for the
-// event. chatKey is '' only before the panel is built; nothing is checked then.
-const chatLoading=()=>!!chatKey&&keyOf()!==chatKey;
+// event. 0.1.138 (GPT 0.1.137 P2-1): also while chatKey is '' (the panel was built with no chat open): the first chat
+// opened afterwards is loading until its event, like any other.
+const chatLoading=()=>keyOf()!==chatKey;
 const CHAT_LOADING='채팅을 불러오는 중이에요. 채팅이 다 열린 뒤 다시 눌러 주세요.';
 let dialog,scene=blankScene(),raw='',finalOverride=null,revision=0,busy=false,task=0,subscription=null,historyItems=[],chatKey='',result=null,attaching=false;
 let profileContext='profiles',busyOwner=0,extraction=null,progress=null,optionsOverride=null,historyTotal=0,historyHasMore=false,historyLoading=false;
@@ -47,6 +48,9 @@ const selectedIds=new Set(),HISTORY_PAGE=20,HISTORY_MAX=100;
 let historyScope='chat',historyFilter='',historyChats=[],historyPending=[],historyPendingBytes=0,historyBytes=0,historyImageCount=0,historyRequest=0;
 // 0.1.84: ★ only (the history view lists favorites through the server's ID filter); the unfiltered count is kept for
 // "delete all" questions. historyTagEdit: the card whose tag editor is open.
+// 0.1.138 (GPT 0.1.137 P1): the key of the one-chat (or 프리샷) list whose pictures and count are on screen. [이력 전체 삭제]
+// works on that list only, so a list left from the previous chat while the next one loads never deletes the next chat.
+let historyShown=null;
 let historyMarkFilter=null,historyUnfiltered=null,historyTagEdit=null; // historyMarkFilter: null, 'star' (★ only) or 'tag' (# 태그, 0.1.86) — never both
 let availableSkins=SKINS.filter(s=>!s.file),skinsDetected=false;
 let serverFeatures=[],draftsEnabled=false,draftLoading=false,pauseDraftCapture=false,draftLoadToken=0,draftSource=null,draftNote='';
@@ -158,7 +162,10 @@ function renderBrand() {
 function keyOf(c=ctx()) {
   const id=c.getCurrentChatId?.() ?? c.chatId;
   if(!id)return '';
-  return JSON.stringify({group:c.groupId??null,card:c.characters?.[c.characterId]?.avatar??null,chat:id});
+  // 0.1.138 (GPT 0.1.137 P2-2): a group chat is known by the group and the chat only. SillyTavern sets the speaker's
+  // character id for each reply in a group and clears it after; that card is not part of the chat.
+  const group=c.groupId??null;
+  return JSON.stringify({group,card:group!==null?null:c.characters?.[c.characterId]?.avatar??null,chat:id});
 }
 function outfitState() {return isFree()?{}:ctx().chatMetadata?.[KEY]?.outfits??{};} // 프리샷 never reads or changes chat clothes
 function chatBindings(){return ctx().chatMetadata?.[KEY]?.bindings??{};}
@@ -735,6 +742,9 @@ function restoreTargetScroll() {
   box.scrollTop=targetScroll;targetScroll=box.scrollTop;
 }
 function renderTargets() {
+  // 0.1.138 (GPT 0.1.137 P2-1): while the next chat loads, the list keeps the chat on screen; reading the half-loaded
+  // chat would drop (or later save) a target of the wrong chat.
+  if(chatLoading())return;
   rememberTargetScroll();
   const chat=ctx().chat??[],select=$('ncs-target'),rows=[];
   // Keep only indices here: format previews for the rows actually shown, never every message.
@@ -754,6 +764,7 @@ function renderTargets() {
   targetListRendered=true;restoreTargetScroll();
 }
 function chooseTarget(value,{reveal=false}={}) {
+  if(chatLoading())throw new Error(CHAT_LOADING); // 0.1.138 (GPT 0.1.137 P2-1): a message of the next chat is not this work's target
   dropUndo();
   rememberTargetScroll();targetReveal=reveal;if(value==='')targetScroll=0;
   if($('ncs-target').value!==value)$('ncs-moment-wish').value=''; // a wished moment belongs to the message it was written for
@@ -2508,7 +2519,7 @@ function updateHistoryTools() {
   // 0.1.86: [# 태그] lists every picture with a tag, through the same ID filter. Only one of ★ and # is on.
   tagView.setAttribute('aria-pressed',String(historyMarkFilter==='tag'));tagView.disabled=locked||!canStar;
   tagView.title=canStar?(historyMarkFilter==='tag'?'모든 그림 보기로 돌아가요':'태그를 붙인 그림만 보여줘요'):'서버 플러그인 v0.1.22 이상이 필요해요';
-  const clear=dialog.querySelector('[data-action="delete-chat-history"]');clear.disabled=locked||!scopeCount||!singleKey;clear.hidden=allScope;clear.textContent=historyScope==='free'?'프리샷 이력 전체 삭제':'이 채팅 이력 전체 삭제';
+  const clear=dialog.querySelector('[data-action="delete-chat-history"]');clear.disabled=locked||!scopeCount||!singleKey||historyShown!==singleKey||chatLoading();clear.hidden=allScope;clear.textContent=historyScope==='free'?'프리샷 이력 전체 삭제':'이 채팅 이력 전체 삭제';
   const filterDelete=dialog.querySelector('[data-action="delete-filter-chat"]');filterDelete.hidden=!allScope||!historyFilter;filterDelete.disabled=locked||!scopeCount;
   $('ncs-history-all-tools').hidden=!allScope;
   const attachSel=dialog.querySelector('[data-action="attach-selected"]'),mine=historyItems.filter(x=>selectedIds.has(x.id)&&x.chatKey&&x.chatKey===keyOf()).length;
@@ -2898,6 +2909,7 @@ async function scrollToMessage(index){
 const toast=(text,error=false)=>{const t=globalThis.toastr;if(t)(error?t.warning:t.info).call(t,text,'NAIce Shot');};
 async function goToMessage(item,index,kind){
   if(!item)return;if(busy||attaching||draftLoading||outfitSaving)throw new Error('진행 중인 작업이 끝난 뒤 눌러 주세요.');
+  if(chatLoading())throw new Error(CHAT_LOADING); // 0.1.138 (GPT 0.1.137 P3): the chat is not drawn yet
   if(item.chatKey!==keyOf()){
     if(!confirm(`${chatLabel(item.chatKey)} 채팅으로 이동할까요?\n지금 채팅을 벗어나요. 그리기창 작업은 저장돼 있어요.`))return;
     await openChatByKey(item.chatKey);
@@ -3040,7 +3052,7 @@ async function loadHistory({append=false,show=null}={}) {
     const kept=x=>!isDeletedPicture(x?.id),pend=Array.isArray(data.pending)?data.pending:[],got=Array.isArray(data.items)?data.items:[],items=got.filter(kept);
     historyPending=pend.filter(kept);historyPendingBytes=historyPending.length===pend.length?Number(data.pendingBytes)||0:pendingBytesOf(historyPending);
     historyItems=append?[...historyItems,...items.filter(x=>!historyItems.some(y=>y.id===x.id))]:items;
-    historyTotal=Number.isInteger(data.total)?Math.max(0,data.total-(got.length-items.length)):historyItems.length;historyHasMore=data.hasMore===true;
+    historyTotal=Number.isInteger(data.total)?Math.max(0,data.total-(got.length-items.length)):historyItems.length;historyHasMore=data.hasMore===true;historyShown=allScope?null:startKey;
     lastHistoryView={scope,filter,key:startKey,markFilter,items:historyItems,pending:historyPending,bytes:historyPendingBytes,total:historyTotal,more:historyHasMore,unfiltered:historyUnfiltered};
     }
   }catch(e){
@@ -3194,7 +3206,7 @@ async function onAction(action,el) {
     case 'close-guide':closeGuide();break;
     case 'dismiss-compat':compatDismissed=true;renderCompat();break;
     case 'cancel-extract':if(!cancelExtraction())notice('진행 중인 추출이 없어요.');break;
-    case 'target-more':targetShown+=TARGET_STEP;renderTargets();break;
+    case 'target-more':if(chatLoading())throw new Error(CHAT_LOADING);targetShown+=TARGET_STEP;renderTargets();break;
     case 'target-latest':targetShown=TARGET_STEP;chooseTarget('');break;
     case 'target-message':chooseTarget(el.dataset.messageIndex);break;
     case 'extract':if(isFree())await freeFill();else await extract();break; // one button for both modes
@@ -3237,6 +3249,7 @@ async function onAction(action,el) {
       settings().profiles=settings().profiles.filter(p=>p.id!==id);scene.characters=scene.characters.filter(c=>c.id!==id);ctx().saveSettingsDebounced();changed();renderProfiles();editProfile();renderScene();break;
     }
     case 'bind-card':{
+      if(chatLoading())throw new Error(CHAT_LOADING); // 0.1.138 (GPT 0.1.137 P2-3): the card of the chat on screen only
       const card=ctx().characters?.[ctx().characterId];if(!card?.avatar)throw new Error('개별 캐릭터 채팅에서 카드를 연결해 주세요.');
       $('ncs-binding').dataset.cardKey=card.avatar;$('ncs-binding').textContent=`연결할 카드: ${card.avatar} · 프로필 저장을 눌러 주세요.`;break;
     }
@@ -3284,7 +3297,7 @@ async function onAction(action,el) {
       const scope=historyScope,filter=historyFilter,key=keyOf(),viewKey=scope==='free'?FREE_KEY:key,last=lastHistoryView;
       const before=historyLoading&&last&&last.scope===scope&&last.filter===filter&&(['chats','all'].includes(scope)||last.key===viewKey)
         ?{...last,picked:[]} // 0.1.89: the list on screen is still loading: go back to the last one that loaded
-        :{markFilter:historyMarkFilter,items:historyItems,pending:historyPending,bytes:historyPendingBytes,total:historyTotal,more:historyHasMore,unfiltered:historyUnfiltered,picked:[...selectedIds]};
+        :{markFilter:historyMarkFilter,items:historyItems,pending:historyPending,bytes:historyPendingBytes,total:historyTotal,more:historyHasMore,unfiltered:historyUnfiltered,picked:[...selectedIds],key:historyShown};
       historyMarkFilter=next;closeImageMenu();historyItems=[];historyPending=[];historyPendingBytes=0;historyTotal=0;historyHasMore=false;historyUnfiltered=null;selectedIds.clear();
       const loading=loadHistory(),request=historyRequest; // loadHistory numbers its request before its first wait
       try{await loading;}
@@ -3294,7 +3307,7 @@ async function onAction(action,el) {
         if(request!==historyRequest||historyScope!==scope||historyFilter!==filter||keyOf()!==key||historyMarkFilter!==next)break;
         // 0.1.129 (GPT 0.1.128 P3): a picture deleted since that list was read stays out.
         {const kept=x=>!isDeletedPicture(x.id),n=before.items.length;historyMarkFilter=before.markFilter;historyItems=before.items.filter(kept);historyPending=before.pending.filter(kept);
-          before.total=Math.max(0,before.total-(n-historyItems.length));historyPendingBytes=historyPending.length===before.pending.length?before.bytes:pendingBytesOf(historyPending);historyTotal=before.total;historyHasMore=before.more;historyUnfiltered=before.unfiltered;
+          before.total=Math.max(0,before.total-(n-historyItems.length));historyPendingBytes=historyPending.length===before.pending.length?before.bytes:pendingBytesOf(historyPending);historyTotal=before.total;historyHasMore=before.more;historyUnfiltered=before.unfiltered;historyShown=before.key??null;
           for(const id of before.picked)if(!isDeletedPicture(id))selectedIds.add(id);renderHistory();}
         throw e;
       }
@@ -3307,7 +3320,12 @@ async function onAction(action,el) {
     case 'save-selected':await saveSelected();break;
     case 'save-selected-clean':await saveSelected(true);break;
     case 'delete-selected':await deleteImages({ids:[...selectedIds]});break;
-    case 'delete-chat-history':await deleteImages({all:true,chatKey:historyScope==='free'?FREE_KEY:keyOf()});break;
+    case 'delete-chat-history':{
+      // 0.1.138 (GPT 0.1.137 P1): the list on screen, and only when it is this chat's (or 프리샷's) list.
+      const want=historyScope==='free'?FREE_KEY:keyOf();
+      if(!want||historyShown!==want)throw new Error('이력을 불러오는 중이에요. 이 채팅의 이력이 보인 뒤 다시 눌러 주세요.');
+      await deleteImages({all:true,chatKey:historyShown});break;
+    }
     case 'delete-filter-chat':if(historyFilter)await deleteImages({all:true,chatKey:historyFilter});break;
     case 'delete-result':if(result)await deleteImages({ids:[result.id],owners:typeof result.chatKey==='string'?{[result.id]:result.chatKey}:null});break;
     case 'export':exportSettings();break;
@@ -3456,6 +3474,7 @@ function bindEvents() {
       if(el.hasAttribute('data-lock')){const id=el.closest('[data-character]').dataset.character;saveOutfit(id,el.checked).catch(e=>notice(e.message,true));return;}
       for(const field of ['location','lighting','camera','interaction'])if(el.id===`ncs-${field}`){scene[field]=el.value;changed();return;}
       if(el.id==='ncs-tag-popup'){
+        if(chatLoading()){renderTagPopupSetting();notice(CHAT_LOADING,true);return;} // 0.1.138 (GPT 0.1.137 P3)
         const s=settings(),key=keyOf();if(!key){el.checked=false;return;}
         const next=cleanPopupChats(s.tagPopupChats);if(el.checked)next[key]=true;else delete next[key];
         s.tagPopupChats=next;ctx().saveSettingsDebounced();if(!el.checked)closeTagPopup();renderTagPopupSetting();

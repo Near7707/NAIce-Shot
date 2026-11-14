@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.138 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.137 (one P1, three P2, two P3):
+- Fix: right after moving to another chat, 이 채팅 이력 전체 삭제 / 프리샷 이력 전체 삭제 no longer deletes the new chat's pictures while the previous chat's list (or its ★ count) is still on screen. The button works only on the list actually shown.
+- Fix: while the next chat loads, the 대상 메시지 list keeps the chat on screen and picking a message waits, so a target is neither dropped nor taken from the other chat. The first chat opened after none waits for its event too.
+- Fix: in group chats the chat no longer changes while a member replies, so the panel is not stuck on "채팅을 불러오는 중" after the reply.
+- Fix: 카드 연결 in the profile form, the tag popup switch and 메시지로 가기 wait while the next chat loads.
+
 ## 0.1.137 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.136 (two P1, three P2):
