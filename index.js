@@ -248,8 +248,15 @@ function findRecord(item){
       const records=page.items??[],found=records.find(x=>x.id===item.id);
       if(found)return found;
       offset+=records.length;
-      if(!records.length||page.hasMore===false||offset>=(page.total??offset))return null;
+      if(!records.length||page.hasMore===false||offset>=(page.total??offset))break;
     }
+    // 0.1.140 (GPT 0.1.139 P2-4): a group picture saved during a reply before 0.1.138 keeps the speaker's card in its
+    // key; opened from the chat it is looked up by id, and used only when it belongs to this same group chat.
+    if(chatOnly(item.chatKey)===item.chatKey&&JSON.parse(item.chatKey)?.group!=null){
+      const page=await api('/history',{method:'POST',body:{scope:'all',ids:[item.id],offset:0,limit:1}}),found=(page.items??[]).find(x=>x.id===item.id);
+      if(found&&sameChat(found.chatKey,item.chatKey))return found;
+    }
+    return null;
   })().catch(e=>{recordLookups.delete(key);throw e;}));
   return recordLookups.get(key);
 }
@@ -271,7 +278,8 @@ function historyPage({scope,filter,key,offset,limit,markFilter}){
 }
 // A viewer owns its range and page cursor; background refreshes cannot mix in another range.
 function historyGallery(){
-  const scope=historyScope,filter=historyFilter,key=scope==='free'?FREE_KEY:keyOf(),all=['chats','all'].includes(scope),markFilter=historyMarkFilter;
+  // 0.1.140 (GPT 0.1.139 P2-1): the next pages come from the list it copies (historyShown), not from a chat opened since.
+  const scope=historyScope,filter=historyFilter,key=scope==='free'?FREE_KEY:historyShown??keyOf(),all=['chats','all'].includes(scope),markFilter=historyMarkFilter;
   let offset=historyItems.length,pending=null;const counted=new Set();
   // 0.1.132 (GPT 0.1.131 P3): a picture of this view deleted (here or in another tab) moved the server's list up by one.
   // The next page starts one earlier; the picture stays in the view (a deletion here takes it out with removed()).
@@ -328,7 +336,9 @@ function imageViewerOptions(item,{attachment=null}={}){
     // Also from the chat (0.1.63): deleteImages asks first and takes the picture out of every message it is in.
     // UI-070-04: a failure is thrown to the enlarged view, which shows it where the person is looking.
     onDelete:async()=>{
-      const reply=await deleteImages({ids:[item.id],owners:typeof item.chatKey==='string'?{[item.id]:item.chatKey}:null});
+      // 0.1.140 (GPT 0.1.139 P2-4): deleted under the key the record was saved with (an older group key differs).
+      const rec=await findRecord(item).catch(()=>null),owner=typeof rec?.chatKey==='string'&&sameChat(rec.chatKey,item.chatKey)?rec.chatKey:item.chatKey;
+      const reply=await deleteImages({ids:[item.id],owners:typeof owner==='string'?{[item.id]:owner}:null});
       if(reply?.deleted.includes(item.id))return true;
       if(reply?.issue)throw new Error(reply.issue);
       return false;
@@ -666,7 +676,9 @@ async function recallDraft(key=workKey(),{connect=false,asked=false}={}){
   // A connect keeps the screen when it is the same work (only how it is shown may differ); otherwise the saved copy shows.
   const load=!!saved&&(!connect||differs||!mine||emptyWork(mine));
   if(load){const base=unpackWork(packWork(saved,{retainRaw})),dropped=loadWork(base);
-    const stale=!isFree()&&(!sourceValid(scene.source,ctx().chat)||!sourceValid(draftSource,ctx().chat));
+    // 0.1.140 (GPT 0.1.139 P2-2): the source is checked against the chat only when it is this work's chat. A reply that
+    // arrives while the next chat loads is checked again when this chat comes back.
+    const stale=!isFree()&&!chatLoading()&&(!sourceValid(scene.source,ctx().chat)||!sourceValid(draftSource,ctx().chat));
     if(stale){$('ncs-target').value='';$('ncs-moment-wish').value='';}
     const target=isFree()?'':$('ncs-target').value,where=isFree()?'':target===''?' · 대상 메시지: 최신':` · 대상 메시지 #${target}`;
     draftNote=stale?'이 채팅에서 작업하던 장면을 불러왔어요. 원문이나 리롤이 바뀌었으니 대상과 프롬프트를 다시 확인해 주세요.':isFree()?'프리샷에서 작업하던 장면을 불러왔어요. AI를 다시 호출하지 않았어요.':`이 채팅에서 작업하던 장면을 불러왔어요${where}`;
@@ -1697,6 +1709,8 @@ function renderFinalForm(a,{force=false}={}) {
     :'<small>장면에 인물이 없어요. 공통 프롬프트만 보내요.</small>');
 }
 function editFinalField(el) {
+  // 0.1.140 (GPT 0.1.139 P2-3): a new edit assembles the rest from the chat's clothes; not while the next chat loads.
+  if(!(finalOverride&&!finalOverride.invalid)&&!isFree()&&chatLoading())throw new Error(CHAT_LOADING);
   const base=finalOverride&&!finalOverride.invalid?finalOverride:assembleScene();
   const next=clone(base),slot=el.dataset.slot;
   if(slot===undefined)next[el.dataset.final]=el.value;else next.characters[Number(slot)][el.dataset.final]=el.value;
@@ -2590,9 +2604,9 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
   const ownerOf=id=>owners?.[id]??historyItems.find(x=>x.id===id)?.chatKey??historyPending.find(x=>x.id===id)?.chatKey??(isFree()?FREE_KEY:current||null); // a 프리샷 picture belongs to the 프리샷 key, not to the open chat
   const groups=new Map();
   if(all)groups.set(target,'all');else for(const id of ids){const key=ownerOf(id);if(key===null)continue;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(id);}
-  const here=all?target===current:false,localIds=all?[]:ids.filter(id=>ownerOf(id)===current);
+  const here=all?target===current:false,localIds=all?[]:ids.filter(id=>sameChat(ownerOf(id),current));
   const attached=here?countInlineImages(chat):localIds.filter(id=>hasInlineImage(chat,{id})).length;
-  const elsewhere=all?target!==current:ids.some(id=>ownerOf(id)!==current);
+  const elsewhere=all?target!==current:ids.some(id=>!sameChat(ownerOf(id),current));
   const scopeCount=historyUnfiltered??historyTotal+historyPending.length;
   const allCount=['chats','all'].includes(historyScope)?historyChats.find(c=>c.chatKey===target)?.count??scopeCount:scopeCount;
   // 0.1.84: favorites go too; the question says how many.
@@ -2729,7 +2743,7 @@ async function putImagesInChat(items,targetIndex,placement=null,expected=null) {
 }
 async function removeImageFromChat(item) {
   if(!item||attaching||busy)return;assertChat();const startKey=keyOf();
-  if(item.chatKey!==startKey)throw new Error('현재 채팅의 이미지만 뺄 수 있어요.');
+  if(!sameChat(item.chatKey,startKey))throw new Error('현재 채팅의 이미지만 뺄 수 있어요.'); // 0.1.140 (GPT 0.1.139 P2-4)
   if(ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 이미지를 빼 주세요.');
   attaching=true;updateAttachButtons();
   try{
@@ -2822,7 +2836,7 @@ function historyActions(item,{editable=false,attached=false}={}){
   const id=esc(item.id),menu=`ncs-history-menu-${id}`,save=saveMenu(item,`ncs-history-save-${item.id}`);
   // Order (docs/DESIGN.md): 챗샷으로 보내기 · 프리샷으로 보내기 · 설정을 프리셋으로 · 본문에 넣기.
   const more=[`<button type="button" data-history-id="${id}" ${keyOf()?'':'disabled data-unavailable="true"'}>챗샷으로 보내기<small>${keyOf()?'지금 열린 채팅의 그리기창으로 가져와요.':'채팅을 먼저 열어 주세요.'}</small></button>`,`<button type="button" data-history-free="${id}">프리샷으로 보내기</button>`,
-    item.options?`<button type="button" data-history-preset="${id}">설정을 프리셋으로</button>`:'',`<button type="button" data-history-attach="${id}" ${sameChat(item.chatKey,keyOf())?'':'disabled data-unavailable="true"'}>본문에 넣기${item.chatKey===keyOf()?'':`<small>${item.chatKey===FREE_KEY?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.'}</small>`}</button>`,
+    item.options?`<button type="button" data-history-preset="${id}">설정을 프리셋으로</button>`:'',`<button type="button" data-history-attach="${id}" ${sameChat(item.chatKey,keyOf())?'':'disabled data-unavailable="true"'}>본문에 넣기${sameChat(item.chatKey,keyOf())?'':`<small>${item.chatKey===FREE_KEY?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.'}</small>`}</button>`,
     editable&&attached?`<button type="button" data-history-detach="${id}">채팅에서 이 그림 빼기${attachedCount(item.id)>1?` (${attachedCount(item.id)}곳)`:''}</button>`:'',
     // 0.1.84: 태그 편집 — 프리샷 pictures have no character, so tag suggestions never show them.
     item.chatKey&&item.chatKey!==FREE_KEY?`<button type="button" data-history-tags="${id}">태그 편집</button>`:`<button type="button" data-history-tags="${id}" disabled data-unavailable="true">태그 편집<small>프리샷 그림은 캐릭터가 없어서 태그 추천에 쓰이지 않아요.</small></button>`,
@@ -3005,7 +3019,7 @@ function renderHistory() {
     ${entry.orphaned===true?'<small>저장에 실패해 서버에 파일이 남아 있어요.</small>':`<button type="button" data-pending-save="${esc(entry.id)}">저장 다시 시도</button>`}
     <button type="button" data-pending-discard="${esc(entry.id)}" class="ncs-danger-outline">버리기</button></div>`).join('')}`:'';
   $('ncs-history').innerHTML=historyItems.length?historyItems.map(item=>{
-    const id=esc(item.id),here=item.chatKey===current,editable=here||item.chatKey===FREE_KEY;
+    const id=esc(item.id),here=sameChat(item.chatKey,current),editable=here||item.chatKey===FREE_KEY; // 0.1.140: an older group key is this chat too
     return `<article class="ncs-history-card${selectedIds.has(item.id)?' ncs-picked':''}"><div class="ncs-history-top"><label class="ncs-check ncs-pick"><input type="checkbox" data-history-pick="${id}" ${selectedIds.has(item.id)?'checked':''}>선택</label>${historyStar(item)}</div><button type="button" class="ncs-image-open" data-view-history="${id}" aria-label="생성 이력 크게 보기"><img loading="lazy" src="${esc(item.image)}" alt="생성 이력"></button>${multi?`<small class="ncs-chat-name${here?' ncs-here':''}">${esc(chatLabel(item.chatKey))}${here?' · 지금 채팅':''}</small>`:''}${historyMarks(item)}${historyActions(item,{editable,attached:here&&hasInlineImage(chat,item)})}</article>`;
   }).join(''):historyMarkFilter==='star'?'<p>이 범위에 즐겨찾기(★)한 그림이 없어요. 이력 카드의 ☆를 눌러 표시해요.</p>':historyMarkFilter==='tag'?'<p>이 범위에 태그를 붙인 그림이 없어요. 이력 카드 ⋯ → 태그 편집에서 붙여요.</p>':'<p>이 범위에 저장된 그림이 없어요.</p>';
   updateAttachButtons();restoreScroll();

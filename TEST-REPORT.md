@@ -1,3 +1,14 @@
+# v0.1.140 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **123 of 123 Chromium browser scripts passed**, including the new `tests/browser-v01140.mjs` (375px, 1100px). Run 4 at a time, `browser-v0123` (timeout) and `browser-v0148` failed once; both passed on their own (`v0123` on the second solo run, timing). New script: in 프리샷 with A's list shown and B's first read failed, the enlarged view of A's 20th picture reads no page of B. After a reload, A's saved work (target #0, 추가 요청) held until B's id is set and the chat is empty, then released, keeps both in A after the switch. With no final prompt edited, changing 공통 Positive while B (with its own clothes) loads leaves B's clothes out of A's work. In a group chat, a picture whose key has the speaker's card is put in message #0 and taken out again from its history card; on a fresh page it opens from the message with its prompt (found by id), and 삭제 sends its saved key. Its 본문에 넣기 has no "another chat" note.
+- Old-code checks: the 0.1.139 code fails each of the six steps on its own.
+- Revert checks: taking out each change makes its own step fail (the take-out step fails with either the history card's "this chat" check or the check in the take-out itself reverted; the chat view step fails with either the id lookup or the delete key reverted).
+- Not checked: SillyTavern's real chat switch and group replies (imitated), a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.139 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.

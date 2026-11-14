@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.140 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.139 (four P2, one P3):
+- Fix: the enlarged history view no longer adds the next chat's pictures after the previous chat's list when the next chat's first read failed.
+- Fix: a chat's saved work that arrives late, while another chat is loading, keeps its 대상 메시지 and 추가 요청 instead of emptying and saving them.
+- Fix: the first edit of a final-prompt field while the next chat loads waits, so that chat's clothes are not saved into the previous chat's prompt.
+- Fix: group pictures saved during a reply before 0.1.138 can be taken out of the chat, show their prompt and be deleted from the chat's enlarged view.
+- Fix: their 본문에 넣기 button no longer says the picture is from another chat.
+
 ## 0.1.139 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.138 (one P1, three P2, one P3):
