@@ -1,3 +1,13 @@
+# v0.1.133 validation — 2026-11-14 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **116 of 116 Chromium browser scripts passed** (4 at a time; `browser-v01106` was slow in parallel and passed on its own), including the new `tests/browser-v01133.mjs` (375px, 1100px): an edit in chat A and, 0.56s later (its 450ms capture done, its queue wait not), 프리샷 이력 전체 삭제 with the deletion held — the edit is on the server while the deletion still waits; 22 pictures with 20 shown, [더 보기] held, a shown one deleted in another tab, then the reread answers 500 — the deleted card is gone, [더 보기] is still there, and pressing it shows the 21st and 22nd (21 cards).
+- Revert checks: no send of the queued edits, using the answer that needs a reread, and no redraw with [더 보기] before the reread each make the new script fail at its own step.
+- Not checked: a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.132 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

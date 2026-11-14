@@ -903,6 +903,9 @@ async function whileDeletingWork(keys,remove,forgetKeys=()=>keys){
   // 0.1.132 (GPT 0.1.131 P2-1): an edit waiting to be saved is sent now. The pause below holds every save in the queue,
   // so a leave during the deletion could not send it; the deletion of this same work waits for it (sent before).
   if(captureTimer)rememberDraft(workKey(),null,{flush:true});
+  // 0.1.133 (GPT 0.1.132 P2): an edit already in the queue but not yet sent (its 650ms wait) is sent now too, for every
+  // work; the pause would hold it and a leave during the deletion could not send it. A conflict (409) waits as before.
+  for(const [k,e] of [...drafts.entries])if(e.loaded&&e.dirty&&!e.saving&&e.error?.status!==409)drafts.flush(k).catch(()=>{});
   pauseDraftCapture=true;clearTimeout(captureTimer);captureTimer=null;deletingWork=true;syncWorkLock();
   try{
     await drafts.pause(keys);
@@ -3011,15 +3014,18 @@ async function loadHistory({append=false,show=null}={}) {
     if(allScope&&(data.scope!=='all'||scope==='chats'&&data.kind!=='chat')){historyItems=[];historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>이 보기는 서버 플러그인 v0.1.13 이상이 필요해요. 서버를 업데이트하고 실리태번을 재시작해 주세요.</p>';return;}
     if(allScope){historyChats=Array.isArray(data.chats)?data.chats:[];historyBytes=Number(data.bytes)||0;historyImageCount=Number(data.imageCount)||0;
       if(historyFilter&&!historyChats.some(c=>c.chatKey===historyFilter)){historyFilter='';historyItems=[];historyLoading=false;return loadHistory();}}
+    // 0.1.132 (GPT 0.1.131 P3): a shown picture deleted while [더 보기] waited moved the server's list after the offset
+    // was sent, so one picture would be skipped: the list is read again from the start (as many as shown).
+    // 0.1.133 (GPT 0.1.132 P3): that answer is not used at all (its 'no more' would hide [더 보기] if the reread fails).
+    reread=append&&alive.some(id=>isDeletedPicture(id));
+    if(!reread){
     // 0.1.130 (GPT 0.1.129 P3-1): a list read before a deletion (here or in another tab) arrives without that picture.
     const kept=x=>!isDeletedPicture(x?.id),pend=Array.isArray(data.pending)?data.pending:[],got=Array.isArray(data.items)?data.items:[],items=got.filter(kept);
     historyPending=pend.filter(kept);historyPendingBytes=historyPending.length===pend.length?Number(data.pendingBytes)||0:pendingBytesOf(historyPending);
     historyItems=append?[...historyItems,...items.filter(x=>!historyItems.some(y=>y.id===x.id))]:items;
-    // 0.1.132 (GPT 0.1.131 P3): a shown picture deleted while [더 보기] waited moved the server's list after the offset
-    // was sent, so one picture would be skipped: the list is read again from the start (as many as shown).
-    reread=append&&alive.some(id=>isDeletedPicture(id));
     historyTotal=Number.isInteger(data.total)?Math.max(0,data.total-(got.length-items.length)):historyItems.length;historyHasMore=data.hasMore===true;
     lastHistoryView={scope,filter,key:startKey,markFilter,items:historyItems,pending:historyPending,bytes:historyPendingBytes,total:historyTotal,more:historyHasMore,unfiltered:historyUnfiltered};
+    }
   }catch(e){
     // 0.1.113 (GPT P3): a failure that arrives after the range, chat or filter changed belongs to a list no longer
     // shown: it ends silently, like a late answer does, so the new list never gets the old request's error.
@@ -3027,9 +3033,11 @@ async function loadHistory({append=false,show=null}={}) {
     throw e;
   }finally{if(request===historyRequest){historyLoading=false;updateHistoryTools();}}
   if(request!==historyRequest)return;
+  // The cards left stay with [더 보기] (it goes on from them, so a failed reread still loses nothing), then the reread.
   if(reread){const n=historyItems.length;historyItems=historyItems.filter(x=>!isDeletedPicture(x.id));historyTotal=Math.max(0,historyTotal-(n-historyItems.length));
     for(const id of [...selectedIds])if(isDeletedPicture(id))selectedIds.delete(id);
-    return loadHistory({show:alive.filter(id=>!isDeletedPicture(id)).length+HISTORY_PAGE});} // the cards left and one more page
+    historyHasMore=true;renderHistory();
+    return loadHistory({show:historyItems.length+HISTORY_PAGE});} // the cards left and one more page
   renderHistory();
 }
 let historyImportToken=0;

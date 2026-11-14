@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.133 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.132 (no P1):
+- Fix: an edit already waiting in the save queue (about half a second after the edit) is also sent before deleting all pictures of another chat (or 프리샷). Reloading while the deletion waits no longer brings back the old scene.
+- Fix: when the list read again after [더 보기] (a shown picture was deleted meanwhile) fails, the deleted card still leaves and [더 보기] stays; pressing it brings the picture that moved up.
+
 ## 0.1.132 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.131 (no P1):
