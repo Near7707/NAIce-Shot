@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.139 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.138 (one P1, three P2, one P3):
+- Fix: when the next chat's history failed to load and the previous chat's cards were still on screen, [더 보기] mixed the two lists and turned 이 채팅 이력 전체 삭제 on for the new chat. [더 보기] now reads the new chat from the start instead.
+- Fix: 기본 복장 입기 and 옷장에 저장 wait while the next chat loads, so its clothes never go into the previous chat's work or the shared wardrobe.
+- Fix: 직접 만들기 / 설명으로 만들기 / linking for a person without a profile wait while the next chat loads, so that chat's card is not linked to a profile.
+- Fix: group pictures saved during a reply before 0.1.138 can again be put in their chat (본문에 넣기) and opened at their message.
+- Fix: the tag popup switch, pressed while the next chat loads, keeps showing the chat on screen.
+
 ## 0.1.138 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.137 (one P1, three P2, two P3):

@@ -1,3 +1,14 @@
+# v0.1.139 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **122 of 122 Chromium browser scripts passed** (4 at a time), including the new `tests/browser-v01139.mjs` (375px, 1100px). In 프리샷 with A's one-chat history (more than one page) on screen, B opens and its first read fails; [더 보기] then shows B's pictures only, with no card of A. While B's id is set and its chat settings are in: 기본 복장 입기 leaves A's work and the card without B's clothes, and 옷장에 저장 adds none of B's clothes to the wardrobe. With "Kai" listed in A's scene without a profile and Kai's card chat loading, 직접 만들기 → 저장 links no profile to Kai's card. In a group chat, a picture whose key still has the speaker's card (saved before 0.1.138) is offered for 본문에 넣기 and put in the message. The tag popup switch, on in A, pressed while another chat loads stays on and saves nothing.
+- Old-code checks: the 0.1.138 code fails each of the six steps on its own.
+- Revert checks: taking out each change makes its own step fail (for the group picture, either the attach list or the check just before attaching).
+- Not checked: SillyTavern's real chat switch and group replies (imitated), a real iPhone inside SillyTavern, a real NovelAI account. The profile step clicks a 직접 만들기 button for Kai, adding one when the redraw did not.
+
+---
+
 # v0.1.138 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.

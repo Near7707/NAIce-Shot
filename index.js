@@ -42,6 +42,11 @@ const workKey=()=>isFree()?FREE_KEY:chatKey;
 // opened afterwards is loading until its event, like any other.
 const chatLoading=()=>keyOf()!==chatKey;
 const CHAT_LOADING='채팅을 불러오는 중이에요. 채팅이 다 열린 뒤 다시 눌러 주세요.';
+// 0.1.139 (GPT 0.1.138 P2-3): pictures saved during a group reply before 0.1.138 carry the speaker's card in their key.
+// Opening their message or putting them in the chat compares the chat only (group + chat); stored keys stay as they
+// are, since the server deletes by the key it saved.
+const chatOnly=k=>{try{const o=JSON.parse(k);return o&&o.group!==null&&o.group!==undefined?JSON.stringify({group:o.group,card:null,chat:o.chat}):k;}catch{return k;}};
+const sameChat=(a,b)=>!!a&&!!b&&chatOnly(a)===chatOnly(b);
 let dialog,scene=blankScene(),raw='',finalOverride=null,revision=0,busy=false,task=0,subscription=null,historyItems=[],chatKey='',result=null,attaching=false;
 let profileContext='profiles',busyOwner=0,extraction=null,progress=null,optionsOverride=null,historyTotal=0,historyHasMore=false,historyLoading=false;
 const selectedIds=new Set(),HISTORY_PAGE=20,HISTORY_MAX=100;
@@ -292,7 +297,7 @@ function historyGallery(){
 // 채팅에서 이 그림 빼기 — and ends with 메시지로 가기, or 이력에서 보기 for a picture opened from its message.
 async function recordOf(item){const rec=await findRecord(item);if(!rec?.assembled)throw new Error('이 그림의 기록을 찾지 못했어요. 지워졌을 수 있어요.');return rec;}
 function viewerActions(item,{attachment=null}={}){
-  const here=item.chatKey===keyOf(),free=item.chatKey===FREE_KEY;
+  const here=sameChat(item.chatKey,keyOf()),free=item.chatKey===FREE_KEY;
   // Leaving the enlarged view: errors go to the panel notice and a toast, since the view is closed.
   const away=fn=>()=>Promise.resolve().then(fn).catch(e=>{toast(e.message,true);notice(e.message,true);});
   const send=nextMode=>away(async()=>{const rec=await recordOf(item);await showPanel('scene');await importHistory(rec.id,nextMode,rec);});
@@ -1315,6 +1320,9 @@ async function undoLink(){
   notice(`"${u.name}" 연결을 되돌렸어요.${u.aliasAdded?' 추가했던 별칭도 지웠어요.':''}`);
 }
 async function missingAction(kind,name){
+  // 0.1.139 (GPT 0.1.138 P2-2): making, describing or linking a profile reads the open chat's card; while the next
+  // chat loads, that card is not the one on screen.
+  if(!['link','link-cancel'].includes(kind)&&chatLoading())throw new Error(CHAT_LOADING);
   if(kind==='dialog-source'){closeMissingDialog();kind='source';}
   if(kind==='link-undo'){await undoLink();return;}
   if(kind==='link-cancel'){linkTarget=null;renderSceneExtras();return;}
@@ -1525,6 +1533,7 @@ async function undoChatOutfitClear(id){
   renderScene();notice('채팅 기본 복장과 잠금·이번 그림 편집을 해제 전으로 되돌렸어요.');
 }
 function resetImageOutfit(id,{defaultOnly=false}={}){
+  if(defaultOnly&&!isFree()&&chatLoading())throw new Error(CHAT_LOADING); // 0.1.139 (GPT 0.1.138 P2-1): the chat's clothes on screen only
   const c=scene.characters.find(c=>c.id===id),p=settings().profiles.find(p=>p.id===id);if(!c||!p)return;
   c.manualOutfit=defaultOnly?(outfitState()[id]?.value??p.defaultOutfit??''):null;
   changed();renderScene();notice(defaultOnly?'이번 그림에 기본 복장을 입혔어요. 채팅·프로필에 저장한 복장은 그대로예요.':(isFree()?'직접 고른 옷을 풀고 자동으로 되돌렸어요(AI가 찾은 옷 → 없으면 프로필 기본 복장).':'직접 고친 옷을 버리고 자동으로 다시 골랐어요(잠금 → AI 후보 → 채팅 기본 → 프로필 기본).'));
@@ -1539,6 +1548,7 @@ function wearOnce(id,wardrobeId){
   c.manualOutfit=w.outfit;changed();renderScene();notice(`이번 그림에만 "${w.name}"을(를) 입혀요. 채팅에 저장된 옷은 그대로예요.`);
 }
 function saveToWardrobe(id){
+  if(!isFree()&&chatLoading())throw new Error(CHAT_LOADING); // 0.1.139 (GPT 0.1.138 P2-1)
   const s=settings(),p=s.profiles.find(p=>p.id===id),c=scene.characters.find(c=>c.id===id);if(!p||!c)return;
   const name=($('ncs-wardrobe-name')?.value??'').trim();if(!name)throw new Error('옷장에 넣을 이름을 적어 주세요.');
   if((p.wardrobe??[]).some(w=>w.name.toLowerCase()===name.toLowerCase()))throw new Error(`"${name}"은(는) 이미 ${p.name}의 옷장에 있어요. 다른 이름을 붙여 주세요.`);
@@ -2522,7 +2532,7 @@ function updateHistoryTools() {
   const clear=dialog.querySelector('[data-action="delete-chat-history"]');clear.disabled=locked||!scopeCount||!singleKey||historyShown!==singleKey||chatLoading();clear.hidden=allScope;clear.textContent=historyScope==='free'?'프리샷 이력 전체 삭제':'이 채팅 이력 전체 삭제';
   const filterDelete=dialog.querySelector('[data-action="delete-filter-chat"]');filterDelete.hidden=!allScope||!historyFilter;filterDelete.disabled=locked||!scopeCount;
   $('ncs-history-all-tools').hidden=!allScope;
-  const attachSel=dialog.querySelector('[data-action="attach-selected"]'),mine=historyItems.filter(x=>selectedIds.has(x.id)&&x.chatKey&&x.chatKey===keyOf()).length;
+  const attachSel=dialog.querySelector('[data-action="attach-selected"]'),mine=historyItems.filter(x=>selectedIds.has(x.id)&&sameChat(x.chatKey,keyOf())).length;
   attachSel.textContent='본문에 넣기';attachSel.disabled=locked||!mine;attachSel.hidden=historyScope==='free';
   attachSel.title=mine?`고른 그림 중 ${mine}장을 본문에 넣어요`:'지금 열린 채팅에서 만든 그림을 골라 주세요.';
   renderHistoryCount();
@@ -2664,7 +2674,7 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
 const ATTACH_STEP=20;
 let attachPick=null; // {items, skipped, target, shown}
 function openAttachPicker(list,{prefer=null}={}){
-  assertChat();const all=list.filter(Boolean),items=all.filter(x=>x.chatKey&&x.chatKey===keyOf());
+  assertChat();const all=list.filter(Boolean),items=all.filter(x=>sameChat(x.chatKey,keyOf()));
   if(!items.length)throw new Error('지금 열린 채팅에서 만든 그림만 넣을 수 있어요.');
   if(!chatRows().length)throw new Error('그림을 넣을 RP 메시지가 없어요.');
   items.sort((a,b)=>String(a.created??'').localeCompare(String(b.created??'')));
@@ -2699,7 +2709,7 @@ function renderAttachPicker(){
 }
 async function putImagesInChat(items,targetIndex,placement=null,expected=null) {
   if(!items?.length||attaching||busy)return;assertChat();const startKey=keyOf();
-  if(items.some(x=>x.chatKey!==startKey))throw new Error('현재 채팅의 이미지만 첨부할 수 있어요.');
+  if(items.some(x=>!sameChat(x.chatKey,startKey)))throw new Error('현재 채팅의 이미지만 첨부할 수 있어요.');
   if(ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 첨부해 주세요.');
   attaching=true;updateAttachButtons();
   try {
@@ -2812,7 +2822,7 @@ function historyActions(item,{editable=false,attached=false}={}){
   const id=esc(item.id),menu=`ncs-history-menu-${id}`,save=saveMenu(item,`ncs-history-save-${item.id}`);
   // Order (docs/DESIGN.md): 챗샷으로 보내기 · 프리샷으로 보내기 · 설정을 프리셋으로 · 본문에 넣기.
   const more=[`<button type="button" data-history-id="${id}" ${keyOf()?'':'disabled data-unavailable="true"'}>챗샷으로 보내기<small>${keyOf()?'지금 열린 채팅의 그리기창으로 가져와요.':'채팅을 먼저 열어 주세요.'}</small></button>`,`<button type="button" data-history-free="${id}">프리샷으로 보내기</button>`,
-    item.options?`<button type="button" data-history-preset="${id}">설정을 프리셋으로</button>`:'',`<button type="button" data-history-attach="${id}" ${item.chatKey===keyOf()?'':'disabled data-unavailable="true"'}>본문에 넣기${item.chatKey===keyOf()?'':`<small>${item.chatKey===FREE_KEY?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.'}</small>`}</button>`,
+    item.options?`<button type="button" data-history-preset="${id}">설정을 프리셋으로</button>`:'',`<button type="button" data-history-attach="${id}" ${sameChat(item.chatKey,keyOf())?'':'disabled data-unavailable="true"'}>본문에 넣기${item.chatKey===keyOf()?'':`<small>${item.chatKey===FREE_KEY?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.'}</small>`}</button>`,
     editable&&attached?`<button type="button" data-history-detach="${id}">채팅에서 이 그림 빼기${attachedCount(item.id)>1?` (${attachedCount(item.id)}곳)`:''}</button>`:'',
     // 0.1.84: 태그 편집 — 프리샷 pictures have no character, so tag suggestions never show them.
     item.chatKey&&item.chatKey!==FREE_KEY?`<button type="button" data-history-tags="${id}">태그 편집</button>`:`<button type="button" data-history-tags="${id}" disabled data-unavailable="true">태그 편집<small>프리샷 그림은 캐릭터가 없어서 태그 추천에 쓰이지 않아요.</small></button>`,
@@ -2828,7 +2838,7 @@ const NO_SOURCE='장면 추출 없이 만들었거나 예전 그림이라 연결
 function jumpChoices(item){
   if(!item||item.chatKey===FREE_KEY)return {disabled:'프리샷 그림은 연결된 메시지가 없어요.'};
   const source=item.snapshot?.scene?.source;
-  if(item.chatKey!==keyOf()){
+  if(!sameChat(item.chatKey,keyOf())){
     if(!item.chatKey)return {disabled:NO_SOURCE};
     if(!source)return {disabled:NO_SOURCE};
     return [{label:'메시지로 가기',note:'다른 채팅이에요. 이동 전에 물어봐요.',index:null,kind:'other'}];
@@ -2886,8 +2896,8 @@ async function openChatByKey(key){
     if(!right())throw new Error('캐릭터가 바뀌어서 이동을 멈췄어요. 다시 눌러 주세요.');
     if(keyOf()!==key)await ctx().openCharacterChat(o.chat);
   }
-  for(let i=0;i<150&&keyOf()!==key;i++)await new Promise(r=>setTimeout(r,100));
-  if(keyOf()!==key)throw new Error('채팅을 열지 못했어요. 그 채팅을 직접 연 뒤 다시 눌러 주세요.');
+  for(let i=0;i<150&&!sameChat(keyOf(),key);i++)await new Promise(r=>setTimeout(r,100));
+  if(!sameChat(keyOf(),key))throw new Error('채팅을 열지 못했어요. 그 채팅을 직접 연 뒤 다시 눌러 주세요.');
 }
 // Scrolls the chat to one message, loading older messages while each press still adds some (no fixed count,
 // UI-052-06), and lights it for 2 s. Stops when the chat changes or nothing more loads.
@@ -2910,7 +2920,7 @@ const toast=(text,error=false)=>{const t=globalThis.toastr;if(t)(error?t.warning
 async function goToMessage(item,index,kind){
   if(!item)return;if(busy||attaching||draftLoading||outfitSaving)throw new Error('진행 중인 작업이 끝난 뒤 눌러 주세요.');
   if(chatLoading())throw new Error(CHAT_LOADING); // 0.1.138 (GPT 0.1.137 P3): the chat is not drawn yet
-  if(item.chatKey!==keyOf()){
+  if(!sameChat(item.chatKey,keyOf())){
     if(!confirm(`${chatLabel(item.chatKey)} 채팅으로 이동할까요?\n지금 채팅을 벗어나요. 그리기창 작업은 저장돼 있어요.`))return;
     await openChatByKey(item.chatKey);
     const {targets}=jumpTargets(item,ctx().chat);const t=targets[0];
@@ -3004,6 +3014,9 @@ async function loadHistory({append=false,show=null}={}) {
   const scope=historyScope,startKey=scope==='free'?FREE_KEY:keyOf(),allScope=['chats','all'].includes(scope),filter=historyFilter,markFilter=historyMarkFilter;
   if(!startKey&&!allScope){historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>채팅을 먼저 열어 주세요. 다른 보기에서는 채팅 없이도 이력을 볼 수 있어요.</p>';updateHistoryTools();return;}
   if(append&&historyLoading)return;
+  // 0.1.139 (GPT 0.1.138 P1): [더 보기] goes on only from the list of the chat it reads. A list left from the previous
+  // chat (its first read here failed) is read again from the start instead of mixed into this chat's list.
+  if(append&&!allScope&&historyShown!==startKey){append=false;show=HISTORY_PAGE;}
   // 0.1.131 (GPT 0.1.130 P3): a card deleted in another tab moved the server's list up by one; [더 보기] goes on from
   // the cards still alive, so no picture is skipped and the deleted card leaves.
   if(append){const n=historyItems.length;historyItems=historyItems.filter(x=>!isDeletedPicture(x.id));
@@ -3474,7 +3487,7 @@ function bindEvents() {
       if(el.hasAttribute('data-lock')){const id=el.closest('[data-character]').dataset.character;saveOutfit(id,el.checked).catch(e=>notice(e.message,true));return;}
       for(const field of ['location','lighting','camera','interaction'])if(el.id===`ncs-${field}`){scene[field]=el.value;changed();return;}
       if(el.id==='ncs-tag-popup'){
-        if(chatLoading()){renderTagPopupSetting();notice(CHAT_LOADING,true);return;} // 0.1.138 (GPT 0.1.137 P3)
+        if(chatLoading()){el.checked=!el.checked;notice(CHAT_LOADING,true);return;} // 0.1.138 (GPT 0.1.137 P3); 0.1.139 (GPT 0.1.138 P3): the switch goes back to what it showed
         const s=settings(),key=keyOf();if(!key){el.checked=false;return;}
         const next=cleanPopupChats(s.tagPopupChats);if(el.checked)next[key]=true;else delete next[key];
         s.tagPopupChats=next;ctx().saveSettingsDebounced();if(!el.checked)closeTagPopup();renderTagPopupSetting();
