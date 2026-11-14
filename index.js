@@ -2559,13 +2559,17 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
       catch{detachFailed=true;}
     }
     if(result&&deleted.has(result.id))result=null;
+    // 0.1.126: the other mode's waiting work drops a deleted picture too, and its saved copy follows (so coming back to it
+    // neither shows the picture nor asks about a difference).
+    for(const m of Object.keys(spare))if(spare[m]?.result&&deleted.has(spare[m].result.id)){spare[m].result=null;rememberDraft(m==='free'?FREE_KEY:chatKey,spare[m]);}
     for(const id of deleted){selectedIds.delete(id);for(const [key,pending] of pendingGenerations)if(pending===id&&!unconfirmed.has(id))rememberGeneration(key,null);}
     for(const id of cleared)if(!unconfirmed.has(id))for(const [key,pending] of pendingGenerations)if(pending===id)rememberGeneration(key,null);
     // 0.1.84: tags and stars of pictures the server confirmed gone. A whole chat confirmed empty forgets all of its marks.
     {let next=forgetIds(marks(),deleted),changedMarks=next.changed;
       if(all&&(allGone||!requestUnverified&&!failed.length&&!deleteError)){const chatGone=forgetChat(next.marks,target);next=chatGone;changedMarks||=chatGone.changed;}
       if(changedMarks){storeMarks(next.marks);renderTagPopupSetting();}}
-    if(current&&keyOf()===current){renderChatImages();renderResult();}
+    if(current&&keyOf()===current)renderChatImages();
+    renderResult(); // 0.1.126: also with no chat open (프리샷 before any chat): the deleted picture left the screen only on the next one
     const skippedText=(skipped.length?` 찾지 못한 ${skipped.length}장은 지우지 않았어요.`:'')+
       (failed.length?` ${failed.length}장은 삭제가 끝나지 않았어요. 이력에서 다시 삭제해 주세요.`:'')+
       (workDeleteFailed?' 마지막 작업 기억은 지우지 못했어요.':'')+

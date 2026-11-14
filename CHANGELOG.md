@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.126 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.125 (no P1):
+- Fix: an `@Ada` link with letters typed right after it (seen as `@Adamx`), later relinked to Adam over the same letters, and undone a long way back no longer comes back linked to Adam. Where the box cannot tell from its history, a link whose letters also start another name this box once linked comes back as a broken link (pick again).
+- Fix: picking a profile again at a broken `@Leo` replaces only that `@Leo`. A longer alias (`Leo walks`) no longer takes the words after it.
+- Fix: a picture deleted in 프리샷 with no chat open leaves the drawing window at once (it used to stay until the next picture; the history and the saved work were already right).
+- Fix: a picture deleted while the other mode's work waits (a 프리샷 picture deleted from the history in 챗샷, or the other way) is gone there too when you switch back.
+
 ## 0.1.125 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.124 (no P1):

@@ -139,7 +139,8 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
     }
     end+=best;
     // 0.1.125 (GPT 0.1.124 P3): picked again at a broken link: its whole "@name" goes, wherever the caret is in it.
-    const broken=refs.find(r=>r.start===q.start&&r.id==='');if(broken)end=Math.max(end,broken.start+1+broken.label.length);
+    // 0.1.126 (GPT 0.1.125 P3): and no more than that. A longer alias ("Leo walks") must not take the words after it.
+    const broken=refs.find(r=>r.start===q.start&&r.id==='');if(broken)end=Math.max(q.end,broken.start+1+broken.label.length);
     const name=label(profile.name),space=/\s/.test(data[end]??'')?'':' ',text=`@${name}${space}`;
     // 0.1.79 (UI-076-02): the reference must fit. Measured as seen: the typed "@que" goes, "@name" (and a space) comes.
     if(limit-(data.length-(end-q.start))-text.length<0){el.dispatchEvent(new CustomEvent('ncs-field-full',{bubbles:true,detail:{chip:true}}));return false;}
@@ -199,7 +200,10 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   // 0.1.122 (GPT 0.1.121 P2): "nobody else" is what this box has linked that name to, not today's profile names: after a
   // rename (Leo → Leon) the other Leo is the only "Leo" left, yet the old text meant the first one. So both must hold: no
   // other profile is called that now, and this box never linked that name to another id. Otherwise it is picked again.
-  const sole=r=>profiles().every(p=>label(p.name)!==r.label||String(p.id)===r.id)&&[...(linked.get(r.label)??[])].every(id=>id===r.id);
+  // 0.1.126 (GPT 0.1.125 P2): nor may the letters there start another name this box has linked: "@Adamx" now linked to
+  // Adam may be an older "@Ada" link with "mx" typed after it (a link keeps letters typed right after it).
+  const sole=(r,text=last)=>profiles().every(p=>label(p.name)!==r.label||String(p.id)===r.id)&&[...(linked.get(r.label)??[])].every(id=>id===r.id)
+    &&![...linked.keys()].some(n=>n!==r.label&&text.startsWith(n,r.start+1));
   // 0.1.122 (GPT 0.1.121 P3): a link brought back by that rule must point at a profile that is there. A broken link that
   // was already in the text stays (it is moved along, or kept by every state) and still stops the extraction with a note.
   const alive=r=>r.id!==''&&profiles().some(p=>String(p.id)===r.id);
@@ -225,7 +229,7 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   };
   const undone=now=>{
     const seen=states.filter(x=>x.text===now);
-    if(!seen.length){quiet=true;try{sync();}finally{quiet=false;}refs=plainLinked(now,refs.map(r=>sole(r)?r:unsure(r)));remember();return;}
+    if(!seen.length){quiet=true;try{sync();}finally{quiet=false;}refs=plainLinked(now,refs.map(r=>sole(r,now)?r:unsure(r)));remember();return;}
     const all=seen.flatMap(s=>s.refs),out=[],old=gone.has(mark(now));
     for(const r of all){
       if(out.some(o=>o.start===r.start))continue;
@@ -233,7 +237,7 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
       // 0.1.122 (GPT 0.1.121 P2): once a state of this text was dropped, "every time" is only every remembered time: trusted only
       // for a name that could mean nobody else (a broken link kept that way still stops the extraction with its note).
       const always=seen.every(s=>s.refs.some(o=>same(r,o)));
-      if((always&&(!old||sole(r)))||(here.every(o=>same(r,o))&&sole(r)&&alive(r)))out.push({...r});
+      if((always&&(!old||sole(r,now)))||(here.every(o=>same(r,o))&&sole(r,now)&&alive(r)))out.push({...r});
       else out.push(unsure(r));
     }
     refs=old?plainLinked(now,out):out.sort((a,b)=>a.start-b.start);last=now;cleared=false;

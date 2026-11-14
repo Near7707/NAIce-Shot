@@ -1,3 +1,13 @@
+# v0.1.126 validation — 2026-11-14 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **109 of 109 Chromium browser scripts passed** (4 at a time; `browser-v01117` was slow in parallel and passed on its own), including the new `tests/browser-v01126.mjs` (375px, 1100px): `@Ada` linked, `m` typed after it, the same letters relinked to Adam by a paste, 65 letters, then undo back past the paste gives an empty id and the extraction stops without sending Adam; a broken `@Leo walks home` picked as Leon (alias `Leo walks`) gives `@Leon walks home`; in 프리샷 with no chat open a generated picture deleted from the drawing window leaves it at once; a 프리샷 picture deleted from the history in 챗샷 is gone when 프리샷 comes back, with no question about the saved work.
+- Revert checks: the new check in `sole()`, the broken-link range in `insertChip`, the result redraw with no chat, and both the emptying and the save of the other mode's waiting work each make the new script fail at its own step.
+- Not checked: a real iPhone inside SillyTavern (and how Safari or Firefox keep undo when a value is set), a real NovelAI account.
+
+---
+
 # v0.1.125 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.
