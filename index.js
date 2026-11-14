@@ -583,10 +583,18 @@ function unsavedWork(key,w){
   // 0.1.99 (GPT P3): that edit may still come back here after a connect elsewhere, so the notice only says it was not saved.
   return !draftsEnabled&&e.dirty&&!!e.error?'failed':false;
 }
+// 0.1.130 (GPT 0.1.129 P2-1): leaving the page (another tab, closing, reloading) saves the screen only when an edit is
+// waiting to be saved; otherwise it only finishes the saves already queued. A changed source empties 대상·추가 요청 on
+// screen only, and a leave used to save that over the kept copy. Anything that changes work must schedule its save.
+function leaveSave(){const key=workKey();if(captureTimer)rememberDraft(key,null,{flush:true});else if(draftsEnabled&&key)drafts.flush(key).catch(()=>{});}
 function rememberDraft(key=workKey(),work=null,{flush=false}={}){
   clearTimeout(captureTimer);captureTimer=null;
   if(!draftsEnabled||!key||draftLoading||pauseDraftCapture)return;
-  try{const packed=packWork(work??captureWork(),{retainRaw:settings().retainRawExtraction===true}),e=drafts.entry(key);
+  // 0.1.130 (GPT 0.1.129 P2-2): every save leaves out a picture deleted here or in another tab of this browser. When it
+  // is the screen being saved, the screen drops it too, so the screen and the saved copy stay the same work.
+  try{const w=withoutDeleted(work??captureWork());
+    if(!work&&(w.result!==result||w.undoClear!==undoClear)){result=w.result;undoClear=w.undoClear;if(dialog){renderResult();renderUndo();}}
+    const packed=packWork(w,{retainRaw:settings().retainRawExtraction===true}),e=drafts.entry(key);
     if(e.loaded&&e.data===null&&emptyWork(packed))return; // nothing saved and nothing to save: no empty file
     drafts.put(key,packed);if(flush)drafts.flush(key);}
   catch(e){drafts.entry(key).error=e;}finally{renderDraftState();}
@@ -606,7 +614,7 @@ async function recallDraft(key=workKey(),{connect=false,asked=false}={}){
   draftLoading=false;
   if(key!==workKey()){renderDraftState();return 'moved';}
   const retainRaw=settings().retainRawExtraction===true;
-  let mine=null;try{mine=packWork(captureWork(),{retainRaw});}
+  let mine=null;try{mine=packWork(withoutDeleted(captureWork()),{retainRaw});}
   catch(e){if(saved&&!asked){holdDrafts(key,draftUnreadableNote(e.message));return 'held';}} // 0.1.96 (GPT P2-2): never replace it
   // 0.1.98 (GPT P2-1, user decision): the server keeps a deletion record for this work. Edits left on screen are never
   // saved over it unasked: 확인 empties the screen, 취소 keeps it and holds. [서버 작업 다시 불러오기] already asked.
@@ -2228,10 +2236,10 @@ async function checkGeneration(entry=null){
       imageDownload(reply.item);
       if(pendingGenerations.get(key)===requestId)rememberGeneration(key,null);
       // 0.1.100 (GPT P2-1): emptied or loaded again while the answer was on its way, the picture stays in the history only.
-      const changed=!sameWorkMark(mark);
-      if(workKey()===key&&!changed){result=reply.item;renderResult();rememberDraft();}
+      const changed=!sameWorkMark(mark),gone=isDeletedPicture(reply.item.id); // 0.1.130 (GPT 0.1.129 P2-2): deleted meanwhile
+      if(workKey()===key&&!changed&&!gone){result=reply.item;renderResult();rememberDraft();}
       loadHistory().catch(()=>{});
-      refreshAccount().catch(()=>{});notice(entry?'그림을 생성 이력에 저장했어요.':changed?WORK_CHANGED_NOTE:'같은 요청의 그림을 불러왔어요.',false,entry?'history':'scene');return;
+      refreshAccount().catch(()=>{});notice(entry?'그림을 생성 이력에 저장했어요.':gone?'이미 삭제한 그림이라 결과 칸에 넣지 않았어요.':changed?WORK_CHANGED_NOTE:'같은 요청의 그림을 불러왔어요.',false,entry?'history':'scene');return;
     }
     const tab=entry?'history':'scene';
     // 0.1.22 server (P3-2): cleared by "delete all" before its result was known — the 확인 필요 mark stays.
@@ -2349,7 +2357,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
       if(startedConnected&&draftsEnabled&&e.loaded&&e.data){const w={...e.data};
         if(same(w.finalOverride,submittedFinal)){w.finalOverride=null;w.isRestored=false;}
         if(same(w.optionsOverride,submittedOptions))w.optionsOverride=null;
-        if(e.version===savedDraftVersion)w.result=item;
+        if(e.version===savedDraftVersion&&!isDeletedPicture(item.id))w.result=item;
         drafts.put(startKey,packWork(w,{retainRaw:s.retainRawExtraction===true}));drafts.flush(startKey);
         if(workKey()===startKey){if(same(finalOverride,submittedFinal))finalOverride=null;if(same(optionsOverride,submittedOptions))optionsOverride=null;result=w.result;renderScene({forceFinal:true});renderResult();}
       }
@@ -2360,7 +2368,8 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
     if(resetFinal)finalOverride=null;
     if(optionsOverride===submittedOptions)optionsOverride=null;
     revision++;updateFinal({force:resetFinal});
-    result=item;renderResult();report('생성했어요 · 그림을 누르면 크게 볼 수 있어요.');loadHistory().catch(()=>{});
+    if(!isDeletedPicture(item.id))result=item; // 0.1.130: deleted from another tab's 저장 대기 before it arrived
+    renderResult();report('생성했어요 · 그림을 누르면 크게 볼 수 있어요.');loadHistory().catch(()=>{});
     refreshAccount().catch(()=>{}); // a failed balance check never turns a finished image into a failure
   }catch(e){
     const refused=['anlas-consent','usage-confirm','nai-account','nai-auth','nai-anlas','nai-permission','nai-busy','nai-rejected','generation-not-sent'];
@@ -2581,6 +2590,9 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
     // 0.1.128 (GPT 0.1.127 P3): the cards of confirmed deleted pictures leave the history now, so a failed refresh
     // below does not leave a card that could send the picture back to the drawing window.
     if(deleted.size&&historyItems.some(x=>deleted.has(x.id))){const n=historyItems.length;historyItems=historyItems.filter(x=>!deleted.has(x.id));historyTotal=Math.max(0,historyTotal-(n-historyItems.length));if(dialog)renderHistory();}
+    // 0.1.130 (GPT 0.1.129 P3-2): a discarded 저장 대기 entry leaves now too (one still to be checked waits for the refresh).
+    {const gone=id=>(deleted.has(id)||cleared.includes(id))&&!unconfirmed.has(id);
+      if(historyPending.some(x=>gone(x.id))){historyPending=historyPending.filter(x=>!gone(x.id));historyPendingBytes=pendingBytesOf(historyPending);if(dialog)renderHistory();}}
     if(result&&deleted.has(result.id))result=null;
     {const w=withoutDeleted({undoClear});if(w.undoClear!==undoClear){undoClear=w.undoClear;rememberDraft();}}
     // 0.1.126: the other mode's waiting work drops a deleted picture too, and its saved copy follows (so coming back to it
@@ -2983,10 +2995,11 @@ async function loadHistory({append=false}={}) {
     if(allScope&&(data.scope!=='all'||scope==='chats'&&data.kind!=='chat')){historyItems=[];historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>이 보기는 서버 플러그인 v0.1.13 이상이 필요해요. 서버를 업데이트하고 실리태번을 재시작해 주세요.</p>';return;}
     if(allScope){historyChats=Array.isArray(data.chats)?data.chats:[];historyBytes=Number(data.bytes)||0;historyImageCount=Number(data.imageCount)||0;
       if(historyFilter&&!historyChats.some(c=>c.chatKey===historyFilter)){historyFilter='';historyItems=[];historyLoading=false;return loadHistory();}}
-    historyPending=Array.isArray(data.pending)?data.pending:[];historyPendingBytes=Number(data.pendingBytes)||0;
-    const items=Array.isArray(data.items)?data.items:[];
+    // 0.1.130 (GPT 0.1.129 P3-1): a list read before a deletion (here or in another tab) arrives without that picture.
+    const kept=x=>!isDeletedPicture(x?.id),pend=Array.isArray(data.pending)?data.pending:[],got=Array.isArray(data.items)?data.items:[],items=got.filter(kept);
+    historyPending=pend.filter(kept);historyPendingBytes=historyPending.length===pend.length?Number(data.pendingBytes)||0:pendingBytesOf(historyPending);
     historyItems=append?[...historyItems,...items.filter(x=>!historyItems.some(y=>y.id===x.id))]:items;
-    historyTotal=Number.isInteger(data.total)?data.total:historyItems.length;historyHasMore=data.hasMore===true;
+    historyTotal=Number.isInteger(data.total)?Math.max(0,data.total-(got.length-items.length)):historyItems.length;historyHasMore=data.hasMore===true;
     lastHistoryView={scope,filter,key:startKey,markFilter,items:historyItems,pending:historyPending,bytes:historyPendingBytes,total:historyTotal,more:historyHasMore,unfiltered:historyUnfiltered};
   }catch(e){
     // 0.1.113 (GPT P3): a failure that arrives after the range, chat or filter changed belongs to a list no longer
@@ -2997,6 +3010,8 @@ async function loadHistory({append=false}={}) {
   if(request===historyRequest)renderHistory();
 }
 let historyImportToken=0;
+// 0.1.130 (GPT 0.1.129 P3-2): the size of 저장 대기 counted again from the entries left (each has its bytes).
+const pendingBytesOf=list=>list.reduce((sum,e)=>sum+(Number(e?.bytes)||0),0);
 // 0.1.89 (GPT P3-1): the last view that loaded completely. While another list is still loading, a failed ★/# switch
 // goes back to this one, never to the half-loaded (empty) list.
 let lastHistoryView=null;
@@ -3226,7 +3241,7 @@ async function onAction(action,el) {
         if(request!==historyRequest||historyScope!==scope||historyFilter!==filter||keyOf()!==key||historyMarkFilter!==next)break;
         // 0.1.129 (GPT 0.1.128 P3): a picture deleted since that list was read stays out.
         {const kept=x=>!isDeletedPicture(x.id),n=before.items.length;historyMarkFilter=before.markFilter;historyItems=before.items.filter(kept);historyPending=before.pending.filter(kept);
-          before.total=Math.max(0,before.total-(n-historyItems.length));historyPendingBytes=before.bytes;historyTotal=before.total;historyHasMore=before.more;historyUnfiltered=before.unfiltered;
+          before.total=Math.max(0,before.total-(n-historyItems.length));historyPendingBytes=historyPending.length===before.pending.length?before.bytes:pendingBytesOf(historyPending);historyTotal=before.total;historyHasMore=before.more;historyUnfiltered=before.unfiltered;
           for(const id of before.picked)if(!isDeletedPicture(id))selectedIds.add(id);renderHistory();}
         throw e;
       }
@@ -3614,10 +3629,10 @@ async function initialize() {
   renderSkins();useSkin(skinById(settings().skin)?.file?DEFAULT_SKIN:settings().skin).catch(()=>{});
   detectSkins(new URL('./',import.meta.url).href).then(list=>{availableSkins=list;skinsDetected=true;return useSkin(settings().skin);}).catch(e=>console.warn('[NAIce Shot] skin detection failed',e?.message));
   bindImageMenus();
-  window.addEventListener('beforeunload',event=>{if(!draftsEnabled)return;rememberDraft(workKey(),null,{flush:true});if([...drafts.entries.values()].some(e=>e.dirty||e.saving)){event.preventDefault();event.returnValue='';}});
+  window.addEventListener('beforeunload',event=>{if(!draftsEnabled)return;leaveSave();if([...drafts.entries.values()].some(e=>e.dirty||e.saving)){event.preventDefault();event.returnValue='';}});
   window.addEventListener('resize',()=>fitTagPop()); // the tag popup stays on the screen after a resize or rotation
-  window.addEventListener('pagehide',()=>rememberDraft(workKey(),null,{flush:true}));
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')rememberDraft(workKey(),null,{flush:true});});
+  window.addEventListener('pagehide',()=>leaveSave());
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')leaveSave();});
   const c=ctx(),events=c.eventTypes??c.event_types;c.eventSource.on(events.CHAT_CHANGED,()=>{chatLoadEpoch++;noteTimed();chatChanged();});noteTimed();
   // ST usually saves the chat after these (not after a stopped generation): look at the disk once it has (0.1.89).
   for(const type of ['GENERATION_ENDED','GENERATION_STOPPED'])if(events[type])c.eventSource.on(events[type],()=>checkTimedSoon());

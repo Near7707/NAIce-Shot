@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.130 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.129 (no P1):
+- Fix: switching to another browser tab, closing or reloading the page no longer saves the screen over the work. Work reopened after its message changed keeps its saved 추가 요청; an edit still waiting to be saved is saved when you leave, as before.
+- Fix: a picture deleted in another tab of this browser is left out whenever the work is saved here (it also leaves the screen), and a late answer to [같은 요청으로 다시 확인] for that picture is not put in the result.
+- Fix: a history list read before a deletion and arriving after it no longer shows the deleted picture's card.
+- Fix: a discarded 저장 대기 picture leaves the list at once, with the size of the ones left, even when the refresh or a ★/# view fails.
+
 ## 0.1.129 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.128 (no P1):

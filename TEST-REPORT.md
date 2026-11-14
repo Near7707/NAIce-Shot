@@ -1,3 +1,13 @@
+# v0.1.130 validation — 2026-11-14 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **113 of 113 Chromium browser scripts passed** (4 at a time, none slow), including the new `tests/browser-v01130.mjs` (375px, 1100px): chat A's work with 추가 요청, its message changed, back to A, then `visibilitychange` (hidden) and `pagehide` keep the saved 추가 요청, and an edit made just before leaving (inside the 450 ms wait) is saved; the picture on screen marked deleted in the browser's store, then an edit, saves the work without it and the screen drops it; [같은 요청으로 다시 확인] held, the picture marked deleted meanwhile, the answer is not put in the result nor saved; a history refresh held while the picture is marked deleted shows no card; two 저장 대기 entries, one discarded while the refresh is held, then ★ failing and the refresh failing, leave one entry with its own size.
+- Revert checks: the old leave save, the save without the deleted-picture filter, the history answer unfiltered, not removing the discarded entry, and the ★ restore with the old size each make the new script fail at its own step. The screen check of the late [같은 요청으로 다시 확인] answer is covered twice (the save filter also drops it from the screen), so reverting it alone still passes; with both reverted, its step fails.
+- Not checked: a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.129 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.
