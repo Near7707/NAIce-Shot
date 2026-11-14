@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.124 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.123 (no P1):
+- Fix: cutting a linked `@Leo`, editing a lot (more than 60 steps) and undoing the cut no longer leaves plain `@Leo` letters that the extraction would link to another Leo. When the box cannot tell from its history, a plain `@name` that this box once linked comes back as a broken link, and the extraction stops and asks you to pick it again. A name this box never linked stays plain, as typed.
+- Fix: a place an undo leaves unsure is now always a broken link, also when no profile has that name any more. Left as plain letters, `@Mira Rae` could be read by the extraction as `@Mira` (another profile's name or alias).
+- Fix: at the end of a broken `@Leo` (no id, "pick again") the @ list opens, so you can pick the profile again without deleting a letter first.
+- Known limit, left as is: when an earlier work in the same box had the exact same text, a link you just picked in the new one can come back broken after an undo (the box keeps those records across works). Only a "pick again", never another person.
+
 ## 0.1.123 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.122 (no P1):

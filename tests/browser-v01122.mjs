@@ -101,12 +101,14 @@ try{
   await undoTo(W,'@Leo 웃는다');
   assert.deepEqual(await ids(page,W),[''],`${width}px: after a rename the old text is not given the other Leo`);
   await page.evaluate(()=>{mock.extensionSettings.naice_shot.profiles.find(p=>p.id==='leo').name='Leo';});
-  // --- P3: a link to a deleted profile, or with no id, typed over with the same plain letters: undo does not bring it back.
+  // --- P3: a link to a deleted profile, or with no id, typed over with the same plain letters: undo does not bring it back
+  // (0.1.124: it is left as a broken link with no id instead of plain letters).
   for(const id of ['gone','']){
    await set(W,`${tok('Ghost',id)}x 웃는다`);await select(W,0,6);await page.keyboard.insertText('@Ghost');
    assert.deepEqual(await ids(page,W),[]);
    await page.keyboard.press('Control+z');assert.equal(await text(W),'@Ghostx 웃는다');
-   assert.deepEqual(await ids(page,W),[],`${width}px: a broken link ("${id}") is not brought back`);
+   // 0.1.124 (GPT 0.1.123 P2-2): an unsure place is always left broken (no id, pick again), also for a name nobody has.
+   assert.deepEqual(await ids(page,W),[''],`${width}px: a broken link ("${id}") is not brought back as a link`);
   }
   // ...a one-profile link still is (0.1.121).
   await set(W,`${tok('Mira','mira')}x 웃는다`);await select(W,0,5);await page.keyboard.insertText('@Mira');

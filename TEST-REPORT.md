@@ -1,3 +1,14 @@
+# v0.1.124 validation — 2026-11-14 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **107 of 107 Chromium browser scripts passed** (4 at a time, none slow), including the new `tests/browser-v01124.mjs` (375px, 1100px), through the real extract button: a linked `@Leo` cut, 65 letters typed, that Leo renamed to Leon, then undo back to `@Leo 웃는다` gives an empty id and the extraction stops, sending nothing; a plain `@Kai` this box never linked stays plain after the same kind of undo; two `Mira Rae` profiles at one place, both renamed away, then undo (after 65 letters, and on an ordinary undo with a different text) leaves an empty id and the extraction stops instead of sending the profile `Mira`; a broken `@Leo` opens the @ list with the caret at its end and Enter links it to the first Leo, while a linked `@Leo` still opens none.
+- Older script `browser-v01122` now expects an empty id where a broken link typed over with the same letters is undone (an unsure place is always left broken now).
+- Revert checks: leaving cut-and-undone plain names as they are, keeping the old "plain when nobody has that name" rule (with the ids check removed the extraction sends `Mira`), and the old `caretQuery` check (no list) each make the new script fail at its own step.
+- Not checked: a real iPhone inside SillyTavern (and how Safari or Firefox keep undo when a value is set), a real NovelAI account.
+
+---
+
 # v0.1.123 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

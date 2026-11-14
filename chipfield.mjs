@@ -6,6 +6,8 @@
 // history and extraction see exactly what they saw before.
 import {tokenize,chipToken,queryAt,boundaryAfter,EMPTY_NAME} from './mentions.mjs';
 
+const WORD=/[\p{L}\p{N}_]/u;
+
 const label=name=>String(name??'').replace(/[\r\n]/g,' ')||EMPTY_NAME;
 
 // Text form → what the box shows ("@name") and the links it keeps: {start,label,id}, start = where its "@" is.
@@ -122,7 +124,8 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   // The text before the caret decides the "@…" list. Returns {node,start,end,query} or null (node: the field itself).
   el.caretQuery=()=>{
     if(el.selectionStart!==el.selectionEnd)return null;
-    sync();const at=el.selectionStart,q=queryAt(last,at);if(!q||refs.some(r=>r.start===q.start))return null; // a picked "@name" is done
+    // 0.1.124 (GPT 0.1.123 P3): a broken link (no id: "pick again") opens the list too, so it can be picked again as it is.
+    sync();const at=el.selectionStart,q=queryAt(last,at);if(!q||refs.some(r=>r.start===q.start&&r.id!==''))return null; // a picked "@name" is done
     return {node:el,start:q.start,end:at,query:q.query};
   };
   // Puts "@name" of a profile where the "@query" is and remembers which profile it is.
@@ -198,14 +201,27 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   // 0.1.122 (GPT 0.1.121 P3): a link brought back by that rule must point at a profile that is there. A broken link that
   // was already in the text stays (it is moved along, or kept by every state) and still stops the extraction with a note.
   const alive=r=>r.id!==''&&profiles().some(p=>String(p.id)===r.id);
-  // 0.1.123 (GPT 0.1.122 P2-1): a place left unsure is not made plain text when a profile now has that name (or alias):
-  // the extraction would link a plain "@Leo" to the one Leo there is now. It stays as a broken link (no id), so the
-  // extraction stops and asks for it to be picked again. A name nobody has now stays plain (it links to nobody).
-  const named=r=>profiles().some(p=>[p.name,...(p.aliases??[])].some(n=>label(n).toLowerCase()===r.label.toLowerCase()));
-  const unsure=r=>named(r)?{...r,id:''}:null;
+  // 0.1.123 (GPT 0.1.122 P2-1): a place left unsure is not made plain text: the extraction would link a plain "@Leo" to the
+  // one Leo there is now. It stays as a broken link (no id), so the extraction stops and asks for it to be picked again.
+  // 0.1.124 (GPT 0.1.123 P2-2): also when nobody has that name now: inside a plain "@Mira Rae" the extraction would read
+  // "@Mira" as someone's alias.
+  const unsure=r=>({...r,id:''});
+  // 0.1.124 (GPT 0.1.123 P2-1): where the history cannot tell, a plain "@name" that this box once linked may be a link the
+  // undo brought back as letters only (a cut undone: the link was gone before, so there is nothing to check). It is left
+  // as a broken link too, to be picked again. A name this box never linked was always typed by hand and stays plain.
+  const plainLinked=(text,list)=>{
+    const names=[...linked.keys()].sort((a,b)=>b.length-a.length),out=[...list];
+    for(let i=0;i<text.length;i++){
+      if(text[i]!=='@'||(i>0&&WORD.test(text[i-1])))continue;
+      if(out.some(r=>i>=r.start&&i<r.start+1+r.label.length))continue;
+      const n=names.find(n=>text.startsWith(n,i+1)&&boundaryAfter(text,i+1+n.length)>=0);
+      if(n){out.push({start:i,label:n,id:''});i+=n.length;}
+    }
+    return out.sort((a,b)=>a.start-b.start);
+  };
   const undone=now=>{
     const seen=states.filter(x=>x.text===now);
-    if(!seen.length){quiet=true;try{sync();}finally{quiet=false;}refs=refs.map(r=>sole(r)?r:unsure(r)).filter(Boolean);remember();return;}
+    if(!seen.length){quiet=true;try{sync();}finally{quiet=false;}refs=plainLinked(now,refs.map(r=>sole(r)?r:unsure(r)));remember();return;}
     const all=seen.flatMap(s=>s.refs),out=[],old=gone.has(mark(now));
     for(const r of all){
       if(out.some(o=>o.start===r.start))continue;
@@ -214,9 +230,9 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
       // for a name that could mean nobody else (a broken link kept that way still stops the extraction with its note).
       const always=seen.every(s=>s.refs.some(o=>same(r,o)));
       if((always&&(!old||sole(r)))||(here.every(o=>same(r,o))&&sole(r)&&alive(r)))out.push({...r});
-      else{const u=unsure(r);if(u)out.push(u);}
+      else out.push(unsure(r));
     }
-    refs=out.sort((a,b)=>a.start-b.start);last=now;cleared=false;
+    refs=old?plainLinked(now,out):out.sort((a,b)=>a.start-b.start);last=now;cleared=false;
   };
   el.addEventListener('input',event=>{
     const p=pending;pending=null;
