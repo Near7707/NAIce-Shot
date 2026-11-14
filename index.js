@@ -32,8 +32,10 @@ const KEY='naice_shot',API='/api/plugins/naice-shot';
 const FREE_KEY=JSON.stringify({free:true});
 let mode='chat';
 const isFree=()=>mode==='free';
-// The key the current work belongs to: the open chat, or the shared 프리샷 bucket.
-const workKey=()=>isFree()?FREE_KEY:keyOf();
+// The key the current work belongs to: the chat whose work is on screen (chatKey), or the shared 프리샷 bucket.
+// 0.1.136 (GPT 0.1.135 P1-1·P1-2): not the open chat's id. SillyTavern sets the next chat's id first, loads it, and only
+// then sends CHAT_CHANGED; in between the screen still holds the previous chat's work, which must stay under its own key.
+const workKey=()=>isFree()?FREE_KEY:chatKey;
 let dialog,scene=blankScene(),raw='',finalOverride=null,revision=0,busy=false,task=0,subscription=null,historyItems=[],chatKey='',result=null,attaching=false;
 let profileContext='profiles',busyOwner=0,extraction=null,progress=null,optionsOverride=null,historyTotal=0,historyHasMore=false,historyLoading=false;
 const selectedIds=new Set(),HISTORY_PAGE=20,HISTORY_MAX=100;
@@ -936,7 +938,8 @@ async function deleteAllWork(){
   },reply=>{
     if(reply.unverified)return [];
     for(const k of Object.keys(spare))delete spare[k];
-    return keys;
+    // 0.1.136 (GPT 0.1.135 P2): a work first opened in this tab during the deletion is gone on the server too.
+    return [...new Set([...keys,...drafts.entries.keys(),workKey(),chatKey,FREE_KEY].filter(Boolean))];
   });
   if(r.unverified){report(`전체 삭제 응답을 받지 못했어요. 작업 ${r.deleted}개의 삭제를 확인했어요.${r.held?' 확인하지 못한 작업은 확인할 때까지 잠갔어요.':''}`,true);return;}
   report(`저장된 작업 ${r.deleted??0}개를 지웠어요. 그림 이력은 그대로예요.`);

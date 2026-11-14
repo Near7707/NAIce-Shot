@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.136 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.135 (two P1, one P2):
+- Fix: while SillyTavern is still loading the next chat, a profile conversion ending or a 챗샷/프리샷 switch saves the work on screen to its own chat, never over the next chat's saved work.
+- Fix: deleting another chat's pictures no longer empties the open chat's work when the answer arrives while SillyTavern is loading that other chat.
+- Fix: a chat first opened in this tab while 저장된 작업 모두 지우기 is running is emptied too when the deletion ends.
+
 ## 0.1.135 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.134 (one P1):

@@ -1,3 +1,13 @@
+# v0.1.136 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **119 of 119 Chromium browser scripts passed** (4 at a time), including the new `tests/browser-v01136.mjs` (375px, 1100px), which sets the next chat's id without the event first, like SillyTavern: a profile conversion ending, and 프리샷 → 챗샷 and back, while B loads — B's saved work stays B's, A's stays A's, and B shows B after the event; all of B's pictures deleted from A with the answer arriving while B loads — A's saved work and screen stay; 저장된 작업 모두 지우기 held while B is first opened — after it B's screen is empty and an edit is saved.
+- Revert checks: the 0.1.135 code fails each of the three chat-switch steps on its own; the deletion list made only at the start fails the 모두 지우기 step.
+- Not checked: SillyTavern's real chat switch (the order is imitated), a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.135 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.
