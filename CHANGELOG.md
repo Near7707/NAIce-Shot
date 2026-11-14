@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.128 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.127 (no P1):
+- Fix: when saved work comes back without a deleted picture and its message has changed since, the saved 추가 요청 is kept. Only the picture is taken out of the saved copy; the screen still empties the target and 추가 요청 for the changed message, as before.
+- Fix: a deleted picture no longer comes back as a broken preview after a page reload. Deleted picture ids are also kept in this browser (the last 500), so other tabs of the same browser know them too. Another browser or device still does not (only the picture fails to show).
+- Fix: when the history refresh fails right after a deletion, the deleted picture's card leaves anyway, and a deleted picture is never brought into the drawing window from the history.
+
 ## 0.1.127 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.126 (no P1):

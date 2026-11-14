@@ -1,3 +1,13 @@
+# v0.1.128 validation — 2026-11-14 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **111 of 111 Chromium browser scripts passed** (4 at a time, none slow), including the new `tests/browser-v01128.mjs` (375px, 1100px; the mock keeps saved work on the test side so a reload reads it back): chat A with 추가 요청 and a picture, A's message changed, the picture deleted from chat B, back to A keeps the saved 추가 요청 and drops the picture (the screen field is emptied as before); A's picture deleted from B, the page reloaded, A's work comes back without the picture and its saved copy drops it; a deletion while `/history` fails leaves no card of the deleted picture.
+- Revert checks: saving the screen instead of the saved copy, not reading the browser's deleted ids, and not removing the card each make the new script fail at its own step. The check before importing from the history is a backup behind the card removal and has no separate check.
+- Not checked: a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.127 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

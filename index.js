@@ -627,13 +627,15 @@ async function recallDraft(key=workKey(),{connect=false,asked=false}={}){
   if(connect){draftHold=false;draftHoldNote='';draftsEnabled=true;}
   // A connect keeps the screen when it is the same work (only how it is shown may differ); otherwise the saved copy shows.
   const load=!!saved&&(!connect||differs||!mine||emptyWork(mine));
-  if(load){const dropped=loadWork(unpackWork(packWork(saved,{retainRaw})));
+  if(load){const base=unpackWork(packWork(saved,{retainRaw})),dropped=loadWork(base);
     const stale=!isFree()&&(!sourceValid(scene.source,ctx().chat)||!sourceValid(draftSource,ctx().chat));
     if(stale){$('ncs-target').value='';$('ncs-moment-wish').value='';}
     const target=isFree()?'':$('ncs-target').value,where=isFree()?'':target===''?' · 대상 메시지: 최신':` · 대상 메시지 #${target}`;
     draftNote=stale?'이 채팅에서 작업하던 장면을 불러왔어요. 원문이나 리롤이 바뀌었으니 대상과 프롬프트를 다시 확인해 주세요.':isFree()?'프리샷에서 작업하던 장면을 불러왔어요. AI를 다시 호출하지 않았어요.':`이 채팅에서 작업하던 장면을 불러왔어요${where}`;
     renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();
-    if(dropped)rememberDraft(key); // 0.1.127: so a reload does not bring the deleted picture back
+    // 0.1.127: so a reload does not bring the deleted picture back. 0.1.128 (GPT 0.1.127 P2-1): the saved copy minus that
+    // picture is saved, never the screen — a changed source empties 대상·추가 요청 on screen only, as before.
+    if(dropped)rememberDraft(key,withoutDeleted(base));
   }else{draftNote='';rememberDraft(key);} // nothing saved, or the same work: keep the screen and remember it (a save error shows)
   renderDraftState();return 'connected';
 }
@@ -740,7 +742,16 @@ let undoClear=null;
 // 0.1.127 (GPT 0.1.126 P2·P3): pictures the server confirmed deleted in this session. Saved work and the undo copy may
 // still hold one (another chat's work memory, [비우기 취소]); every restore goes through loadWork, which drops it.
 const deletedPictures=new Set();
-const dropDeleted=w=>w?.result&&deletedPictures.has(w.result.id)?{...w,result:null}:w;
+// 0.1.128 (GPT 0.1.127 P2-2): also kept in this browser (the last DELETED_KEEP ids), so a reload or another tab of the
+// same browser knows them too. Another browser or device still does not (the picture only fails to show there).
+const DELETED_STORE='naice-shot-deleted-pictures',DELETED_KEEP=500;
+function readDeletedPictures(){try{const list=JSON.parse(localStorage.getItem(DELETED_STORE)??'[]');if(Array.isArray(list))for(const id of list)if(typeof id==='string')deletedPictures.add(id);}catch{}}
+function keepDeletedPictures(ids){
+  readDeletedPictures();for(const id of ids){deletedPictures.delete(id);deletedPictures.add(id);} // newest last
+  try{localStorage.setItem(DELETED_STORE,JSON.stringify([...deletedPictures].slice(-DELETED_KEEP)));}catch{}
+}
+const isDeletedPicture=id=>{readDeletedPictures();return deletedPictures.has(id);};
+const dropDeleted=w=>w?.result&&isDeletedPicture(w.result.id)?{...w,result:null}:w;
 // The work and its undo copy, each without a deleted picture. The same object back when nothing was dropped.
 const withoutDeleted=w0=>{const w=dropDeleted(w0),u=dropDeleted(w?.undoClear??null);return u===(w?.undoClear??null)?w:{...w,undoClear:u};};
 const blankWork=()=>({scene:blankScene(),raw:'',finalOverride:null,optionsOverride:null,restoredFinal:null,result:null,undoClear:null,target:'',wish:'',freeText:''});
@@ -2566,7 +2577,10 @@ async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
       try{unverifiedDetach=!!(await withChatWrite(current,(context,guard)=>detachInlineImages(context,deleted,guard))).unverified;}
       catch{detachFailed=true;}
     }
-    for(const id of deleted)deletedPictures.add(id);
+    keepDeletedPictures(deleted);
+    // 0.1.128 (GPT 0.1.127 P3): the cards of confirmed deleted pictures leave the history now, so a failed refresh
+    // below does not leave a card that could send the picture back to the drawing window.
+    if(deleted.size&&historyItems.some(x=>deleted.has(x.id))){const n=historyItems.length;historyItems=historyItems.filter(x=>!deleted.has(x.id));historyTotal=Math.max(0,historyTotal-(n-historyItems.length));if(dialog)renderHistory();}
     if(result&&deleted.has(result.id))result=null;
     {const w=withoutDeleted({undoClear});if(w.undoClear!==undoClear){undoClear=w.undoClear;rememberDraft();}}
     // 0.1.126: the other mode's waiting work drops a deleted picture too, and its saved copy follows (so coming back to it
@@ -2998,6 +3012,7 @@ async function importHistory(id,nextMode,record=null){
   if(busy||attaching||draftLoading||outfitSaving||checkingGeneration)throw new Error('진행 중인 작업이 끝난 뒤 보내 주세요.');
   if(workLockedFor(nextMode==='free'?FREE_KEY:keyOf()))throw new Error(WORK_LOCKED);
   const item=record??historyItems.find(x=>x.id===id);if(!item)return;
+  if(isDeletedPicture(item.id))throw new Error('이미 삭제한 그림이라 가져오지 않았어요.'); // 0.1.128 (GPT 0.1.127 P3)
   const startChat=keyOf(),startTask=task,startRevision=revision,switched=mode!==nextMode,token=++historyImportToken;
   if(nextMode==='chat'&&!startChat)throw new Error('채팅을 먼저 열어 주세요.');
   if(switched)await setMode(nextMode);
