@@ -1,3 +1,14 @@
+# v0.1.131 validation — 2026-11-14 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **114 of 114 Chromium browser scripts passed** (4 at a time, none slow), including the new `tests/browser-v01131.mjs` (375px, 1100px): a settings backup imported through the file input saves the emptied scene with no further edit; with one save held on its way and the next one waiting in the queue, the picture marked deleted in the browser's store is not in the save sent after it; 22 pictures with 20 shown, one shown picture deleted on the (paged) server and marked deleted, [더 보기] drops its card and shows the two others (21 cards, total 21).
+- Revert checks: leaving out the save after the import, the filter right before sending, and the filter before [더 보기] each make the new script fail at its own step.
+- Other places that change the work were checked for a save: extraction, generation, the history import, the message button's target, the @ picker and every panel click already save; the backup import (a file pick, not a click) was the only one.
+- Not checked: a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.130 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

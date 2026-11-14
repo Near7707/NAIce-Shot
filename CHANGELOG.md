@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.131 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.130 (no P1):
+- Fix: importing a settings backup saves the emptied scene at once. A reload right after the import no longer brings back the old scene.
+- Fix: a save already waiting to be sent leaves out a picture deleted meanwhile in another tab of this browser (also when a generation started here ends while another chat is open).
+- Fix: [더 보기] after a shown picture was deleted in another tab drops that card and skips no picture.
+
 ## 0.1.130 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.129 (no P1):

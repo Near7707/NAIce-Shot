@@ -538,7 +538,9 @@ const draftSignal=()=>globalThis.AbortSignal?.timeout?.(15000);
 const ambiguousDelete=error=>!(error.status>=400&&error.status<500&&error.status!==408);
 const draftDeletionChecks=new Map();
 const drafts=new DraftQueue({read:key=>api(`/draft?chatKey=${encodeURIComponent(key)}`,{signal:draftSignal()}),
-  write:(key,body)=>{const value={...body,chatKey:key,retainRawExtraction:settings().retainRawExtraction===true};return api('/draft',{method:'POST',body:value,keepalive:new Blob([JSON.stringify(value)]).size<60000,signal:draftSignal()});},onState:()=>renderDraftState()});
+  // 0.1.131 (GPT 0.1.130 P2-2): right before sending, so work waiting in the queue (or finished in another chat) never
+  // carries a picture deleted meanwhile, here or in another tab of this browser.
+  write:(key,body)=>{const value={...body,work:withoutDeleted(body.work),chatKey:key,retainRawExtraction:settings().retainRawExtraction===true};return api('/draft',{method:'POST',body:value,keepalive:new Blob([JSON.stringify(value)]).size<60000,signal:draftSignal()});},onState:()=>renderDraftState()});
 let captureTimer=null;
 function scheduleDraft(){clearTimeout(captureTimer);captureTimer=null;if(draftsEnabled){captureTimer=setTimeout(()=>rememberDraft(),450);renderDraftState();}}
 function renderRawRetention(){if(!dialog)return;const sum=$('ncs-retain-summary');if(sum)sum.textContent=settings().retainRawExtraction===true?' · 켜짐':' · 꺼짐';$('ncs-retain-state').textContent=settings().retainRawExtraction===true?'켜짐 · 새로 만드는 그림의 이력과 마지막 작업에 응답 원문도 보관해요.':'꺼짐 · 응답 원문은 보관하지 않아요(생성 기록은 저장돼요).';}
@@ -2961,6 +2963,10 @@ async function loadHistory({append=false}={}) {
   const scope=historyScope,startKey=scope==='free'?FREE_KEY:keyOf(),allScope=['chats','all'].includes(scope),filter=historyFilter,markFilter=historyMarkFilter;
   if(!startKey&&!allScope){historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;$('ncs-history').innerHTML='<p>채팅을 먼저 열어 주세요. 다른 보기에서는 채팅 없이도 이력을 볼 수 있어요.</p>';updateHistoryTools();return;}
   if(append&&historyLoading)return;
+  // 0.1.131 (GPT 0.1.130 P3): a card deleted in another tab moved the server's list up by one; [더 보기] goes on from
+  // the cards still alive, so no picture is skipped and the deleted card leaves.
+  if(append){const n=historyItems.length;historyItems=historyItems.filter(x=>!isDeletedPicture(x.id));
+    if(historyItems.length!==n){historyTotal=Math.max(0,historyTotal-(n-historyItems.length));for(const id of [...selectedIds])if(isDeletedPicture(id))selectedIds.delete(id);}}
   // 0.1.111 (user): a refresh keeps as many pictures as were shown. The server gives at most 100 per request
   // (HISTORY_MAX), so a longer list is read again in pieces of 100; before, it fell back to 100 (120/300 → 100/300).
   const offset=append?historyItems.length:0,want=append?HISTORY_PAGE:Math.max(HISTORY_PAGE,historyItems.length);
@@ -3091,7 +3097,9 @@ async function importSettings(file) {
   // already empties the scene; during a generation the picture is kept in the history either way.
   if(!confirm('현재 프로필과 공통 설정을 이 백업으로 바꿀까요? 편집 중인 장면도 비워져요. 현재 설정을 내보낸 뒤 진행할 수 있어요.'))return;
   clean.imageMarks=cleanMarks(settings().imageMarks);clean.tagPopupChats=cleanPopupChats(settings().tagPopupChats); // 0.1.84: kept, never taken from a backup
-  ctx().extensionSettings[KEY]=clean;syncGen(mode);ctx().saveSettingsDebounced();renderChatImages();scene=blankScene();finalOverride=null;optionsOverride=null;revision++;renderSettings();renderProfiles();editProfile();renderScene();useSkin(clean.skin).catch(()=>{});notice('백업을 가져왔어요. Anlas 사용 가능성 허용과 추출 원문 보관은 꺼진 상태로 가져왔어요.');
+  ctx().extensionSettings[KEY]=clean;syncGen(mode);ctx().saveSettingsDebounced();renderChatImages();scene=blankScene();finalOverride=null;optionsOverride=null;revision++;renderSettings();renderProfiles();editProfile();renderScene();
+  rememberDraft(); // 0.1.131 (GPT 0.1.130 P2-1): the emptied scene is saved (a file pick is not a panel click; leaving no longer saves the screen)
+  useSkin(clean.skin).catch(()=>{});notice('백업을 가져왔어요. Anlas 사용 가능성 허용과 추출 원문 보관은 꺼진 상태로 가져왔어요.');
 }
 // 0.1.106: 사용 가이드. guide.md is read once and shown on a sheet over the whole panel (목차 → one group at a time).
 // While it is open the panel under it is inert, so nothing behind it can be pressed or focused.
