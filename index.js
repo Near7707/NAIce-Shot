@@ -551,7 +551,9 @@ function renderRawRetention(){if(!dialog)return;const sum=$('ncs-retain-summary'
 // 0.1.88 (GPT P2 P3-3): one place decides whether the drawing window is locked, from everything that can lock it:
 // the work is loading, a work deletion is running, the result of a deletion of this work is unknown (anything typed
 // meanwhile could be emptied by it), or the first server check of the panel is running. Nothing sets it directly.
-let deletingWork=false,deletingKeys=null,compatChecking=false;
+// 0.1.135 (GPT 0.1.134 P1): switchingChat is the chat switch's own mark. While it is on, the work key is already the
+// new chat's but the screen still shows the old chat's work, so no capture is saved; the deletion's hold is not touched.
+let deletingWork=false,deletingKeys=null,compatChecking=false,switchingChat=false;
 // 0.1.95: the held work-memory connection (see connectDrafts).
 let draftHold=false,draftHoldNote='',connectingDrafts=null,reconnectRun=null;
 const sortedJson=v=>JSON.stringify(v,(k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(n=>[n,x[n]])):x);
@@ -597,7 +599,7 @@ function rememberDraft(key=workKey(),work=null,{flush=false}={}){
   clearTimeout(captureTimer);captureTimer=null;
   // 0.1.134 (GPT 0.1.133 P2): a deletion holds only the capture of the work it deletes (all of them when it deletes all).
   // Another work changed meanwhile (a chat outfit save ending) is saved as usual: the queue holds only the deleted works.
-  if(!draftsEnabled||!key||draftLoading||pauseDraftCapture&&!(deletingWork&&deletingKeys&&!deletingKeys.includes(key)))return;
+  if(!draftsEnabled||!key||draftLoading||switchingChat||pauseDraftCapture&&!(deletingWork&&deletingKeys&&!deletingKeys.includes(key)))return;
   // 0.1.130 (GPT 0.1.129 P2-2): every save leaves out a picture deleted here or in another tab of this browser. When it
   // is the screen being saved, the screen drops it too, so the screen and the saved copy stay the same work.
   try{const w=withoutDeleted(work??captureWork());
@@ -3614,7 +3616,7 @@ function chatChanged() {
     if(dialog){renderTargets();renderMatching();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';if(lost)notice(lost==='failed'?'이전 채팅의 챗샷 편집은 서버에 저장되지 않았어요.':'이전 채팅의 챗샷 편집은 저장되지 않은 채 비워졌어요.',true,'scene');}
     renderChatImages();renderHistory();if(activeTab()==='history')loadHistory().catch(e=>notice(e.message,true,'history'));return;
   }
-  pauseDraftCapture=true;try{cancelExtraction('');}finally{pauseDraftCapture=false;}
+  switchingChat=true;try{cancelExtraction('');}finally{switchingChat=false;}
   wardrobeTarget=null;pendingTempConvert=null;lastLink=null;linkTarget=null;task++;revision++;scene=blankScene();draftSource=null;raw='';finalOverride=null;optionsOverride=null;restoredFinal=null;result=null;undoClear=null;historyItems=[];historyPending=[];historyPendingBytes=0;$('ncs-history-pending').hidden=true;historyTotal=0;historyHasMore=false;selectedIds.clear();
   if(dialog){targetScroll=0;targetReveal=false;targetListRendered=false;targetShown=TARGET_STEP;$('ncs-target').value='';$('ncs-moment-wish').value='';$('ncs-target-picker').open=false;renderTargets();renderMatching();renderScene({forceFinal:true});renderResult();renderUndo();renderHistory();$('ncs-chat-label').textContent=ctx().getCurrentChatId?.()??'열린 채팅 없음';notice('채팅이 바뀌었어요. 이 채팅의 연결·복장과 이력을 사용해요.',false,'scene');}
   renderChatImages();

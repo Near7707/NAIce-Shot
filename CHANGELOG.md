@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.135 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.134 (one P1):
+- Fix: switching chats while 프리샷 pictures are being deleted and a profile tag conversion is running no longer saves the previous chat's scene and wish over the new chat's saved work. A chat switch never saves the screen while it is switching; the deletion's own hold is left as it is.
+
 ## 0.1.134 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.133 (no P1):

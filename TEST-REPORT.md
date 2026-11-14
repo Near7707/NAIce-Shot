@@ -1,3 +1,13 @@
+# v0.1.135 validation — 2026-11-14 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **118 of 118 Chromium browser scripts passed** (4 at a time), including the new `tests/browser-v01135.mjs` (375px, 1100px): chat B opened once in this tab and saved (its own scene and wish); back in chat A, 프리샷 이력 전체 삭제 is held, a profile tag conversion waits, and the chat goes to B — while the deletion waits and after it, B's saved work and screen are still B's, and A's saved work is still A's. `tests/browser-v01134.mjs` (a chat outfit save ending during a 프리샷 deletion) still passes.
+- Revert checks: the 0.1.134 code fails the new script at B's saved work; taking the new switch check out of the capture makes it fail at the same step.
+- Not checked: a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.134 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed** (new in `tests/draft-work.test.mjs`: a pause for one work holds only that work, other works keep saving, a pause for all holds all).
