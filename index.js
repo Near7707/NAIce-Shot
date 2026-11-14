@@ -3019,6 +3019,7 @@ async function importHistory(id,nextMode,record=null){
   if(token!==historyImportToken||mode!==nextMode||keyOf()!==startChat||task!==startTask||revision!==startRevision+(switched?1:0))throw new Error('채팅이나 작업이 바뀌어서 가져오지 않았어요. 다시 선택해 주세요.');
   if(workLockedFor(workKey())||draftLoading)throw new Error(WORK_LOCKED);
   if(busy||attaching||checkingGeneration)throw new Error('진행 중인 작업이 끝난 뒤 보내 주세요.');
+  if(isDeletedPicture(item.id))throw new Error('이미 삭제한 그림이라 가져오지 않았어요.'); // 0.1.129 (GPT 0.1.128 P2-2): deleted elsewhere while the mode switched
   const name=nextMode==='free'?'프리샷':'챗샷';
   const before={...captureWork(),undoClear:null,targetShown,label:`이력에서 가져왔어요. 원래 ${name} 작업은 되돌리기로 돌아와요.`};
   const sameChat=nextMode==='chat'&&item.chatKey===startChat,known=c=>c.temp||settings().profiles.some(p=>p.id===c.id);
@@ -3223,8 +3224,10 @@ async function onAction(action,el) {
         // 0.1.88 (GPT P2): only this request's failure, with the view still the one it was made for, brings the old
         // view back. A late failure after the scope, chat or filter changed leaves the current view alone, silently.
         if(request!==historyRequest||historyScope!==scope||historyFilter!==filter||keyOf()!==key||historyMarkFilter!==next)break;
-        {historyMarkFilter=before.markFilter;historyItems=before.items;historyPending=before.pending;historyPendingBytes=before.bytes;historyTotal=before.total;historyHasMore=before.more;historyUnfiltered=before.unfiltered;
-          for(const id of before.picked)selectedIds.add(id);renderHistory();}
+        // 0.1.129 (GPT 0.1.128 P3): a picture deleted since that list was read stays out.
+        {const kept=x=>!isDeletedPicture(x.id),n=before.items.length;historyMarkFilter=before.markFilter;historyItems=before.items.filter(kept);historyPending=before.pending.filter(kept);
+          before.total=Math.max(0,before.total-(n-historyItems.length));historyPendingBytes=before.bytes;historyTotal=before.total;historyHasMore=before.more;historyUnfiltered=before.unfiltered;
+          for(const id of before.picked)if(!isDeletedPicture(id))selectedIds.add(id);renderHistory();}
         throw e;
       }
       break;}
@@ -3273,6 +3276,9 @@ function bindEvents() {
   dialog.addEventListener('click',event=>{
     const el=event.target.closest('button,a');if(!el)return;
     const originTab=activeTab();
+    // 0.1.129 (GPT 0.1.128 P2-1): a click that only moves around (a tab, the 챗샷/프리샷 already chosen, the history
+    // range, the profile view) changes no work, so it saves nothing — a reopened work keeps its saved copy until edited.
+    const moves=!!el.dataset.tab||!!el.dataset.historyScope||!!el.dataset.profileMode||!!el.dataset.mode&&el.dataset.mode===mode;
     Promise.resolve().then(async()=>{
       if(el.dataset.cleanSave){const id=el.dataset.cleanSave;await saveCleanImage({id,image:`/user/images/naice-shot/${id}.png`});notice('클린 PNG(메타데이터 제거)를 저장했어요.',false,originTab);}
       else if(el.dataset.tab)showTab(el.dataset.tab);
@@ -3323,7 +3329,7 @@ function bindEvents() {
       else if(el.dataset.pendingDiscard&&historyPending.some(x=>x.id===el.dataset.pendingDiscard))await deleteImages({ids:[el.dataset.pendingDiscard]});
       else if(el.dataset.historyDelete)await deleteImages({ids:[el.dataset.historyDelete]});
       else if(el.dataset.historyDetach)await removeImageFromChat(historyItems.find(x=>x.id===el.dataset.historyDetach));
-    }).catch(e=>notice(e.message,true,originTab)).finally(()=>rememberDraft());
+    }).catch(e=>notice(e.message,true,originTab)).finally(()=>{if(!moves)rememberDraft();});
   });
   // Thumbnails whose PNG was removed by hand show a short note instead of a broken image.
   dialog.addEventListener('error',event=>{const img=event.target;if(img?.tagName==='IMG')img.closest('.ncs-image-open')?.classList.add('ncs-missing');},true);

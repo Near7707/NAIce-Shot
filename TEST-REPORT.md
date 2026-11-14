@@ -1,3 +1,13 @@
+# v0.1.129 validation — 2026-11-14 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **112 of 112 Chromium browser scripts passed** (4 at a time; `browser-v01106` and `browser-v040` were slow in parallel and passed on their own), including the new `tests/browser-v01129.mjs` (375px, 1100px): chat A's work with 추가 요청, its message changed, the picture deleted from B, back to A, then the 그리기·설정·이력 tabs and 챗샷 tapped again keep the saved 추가 요청, and typing a new one saves it; [프리샷으로 보내기] with the 프리샷 work load held and the picture marked deleted in the browser's store meanwhile brings nothing in (screen and saved 프리샷 work); a deletion while the history refresh is held, then ★ with its request failing, brings back no deleted card.
+- Revert checks: saving after every click, leaving out the check after the mode switch, and restoring the old list unfiltered each make the new script fail at its own step.
+- Not checked: a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.128 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.

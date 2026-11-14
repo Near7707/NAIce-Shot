@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.129 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.128 (no P1):
+- Fix: moving around the panel (a tab, the 챗샷/프리샷 already chosen, the history range, the profile view) no longer saves the work. Work reopened after its message changed keeps its saved 추가 요청 until you edit something; an edit saves what is on screen, as before.
+- Fix: a picture deleted in another tab while [프리샷으로 보내기] (or [챗샷으로 보내기]) was switching the mode is not brought in and saved again.
+- Fix: when the ★ or # history view cannot be read and the previous list comes back, pictures deleted in the meantime stay out of it.
+
 ## 0.1.128 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.127 (no P1):
