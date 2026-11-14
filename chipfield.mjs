@@ -138,6 +138,8 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
       if(data.slice(q.end,q.end+rest.length).toLowerCase()===rest&&boundaryAfter(data,q.end+rest.length)>=0)best=Math.max(best,rest.length);
     }
     end+=best;
+    // 0.1.125 (GPT 0.1.124 P3): picked again at a broken link: its whole "@name" goes, wherever the caret is in it.
+    const broken=refs.find(r=>r.start===q.start&&r.id==='');if(broken)end=Math.max(end,broken.start+1+broken.label.length);
     const name=label(profile.name),space=/\s/.test(data[end]??'')?'':' ',text=`@${name}${space}`;
     // 0.1.79 (UI-076-02): the reference must fit. Measured as seen: the typed "@que" goes, "@name" (and a space) comes.
     if(limit-(data.length-(end-q.start))-text.length<0){el.dispatchEvent(new CustomEvent('ncs-field-full',{bubbles:true,detail:{chip:true}}));return false;}
@@ -214,7 +216,9 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
     for(let i=0;i<text.length;i++){
       if(text[i]!=='@'||(i>0&&WORD.test(text[i-1])))continue;
       if(out.some(r=>i>=r.start&&i<r.start+1+r.label.length))continue;
-      const n=names.find(n=>text.startsWith(n,i+1)&&boundaryAfter(text,i+1+n.length)>=0);
+      // 0.1.125 (GPT 0.1.124 P2): letters right after the name do not make it another name: a link keeps letters typed right
+      // after it ("@Ada" + "m" looks like "@Adam"), so where the name ends cannot be told from the text. Picked again.
+      const n=names.find(n=>text.startsWith(n,i+1));
       if(n){out.push({start:i,label:n,id:''});i+=n.length;}
     }
     return out.sort((a,b)=>a.start-b.start);

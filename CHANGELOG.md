@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.125 — 2026-11-14 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.124 (no P1):
+- Fix: a linked `@Ada` with letters typed right after it (seen as `@Adam`), cut, edited a lot and undone, no longer comes back as plain letters that the extraction reads as Adam. Where the box cannot tell from its history, any `@` followed by a name this box once linked comes back as a broken link (pick again), whatever follows it.
+- Fix: picking a profile again with the caret in the middle of a broken `@Leo` replaces the whole `@Leo` (no leftover letters).
+- Known limit, left as is: in that same rare undo, a longer name typed by hand that starts with a name this box once linked (`@Leo Rae` after `@Leo`) is also asked to be picked again. From the text alone it cannot be told apart from an old `@Leo` link followed by more letters, and reading it as the longer name could send another person.
+- The undo handling of the @ box is meant to stop and ask ("pick again") when it cannot be sure; it does not try to tell every case apart.
+
 ## 0.1.124 — 2026-11-14 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.123 (no P1):

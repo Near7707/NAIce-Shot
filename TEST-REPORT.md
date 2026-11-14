@@ -1,3 +1,13 @@
+# v0.1.125 validation — 2026-11-14 (extension only, server v0.1.25)
+
+- Extension Node suite: **196 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **108 of 108 Chromium browser scripts passed** (4 at a time; `browser-v01100` and `browser-v031` were slow in parallel and passed on their own), including the new `tests/browser-v01125.mjs` (375px, 1100px), through the real extract button: `@Ada` linked, `m` typed after it, `@Ada` cut, 65 letters typed, then undo back to `@Adam 웃는다` gives an empty id and the extraction stops without sending Adam; a broken `@Leo walks` with the caret after `@Le` (and at the end) gives `@Leon walks` with `leon` when Leon is picked.
+- Revert checks: keeping the name-end check in `plainLinked` (with the ids check removed the extraction sends Adam) and leaving out the broken link's whole range in `insertChip` each make the new script fail at its own step.
+- Not checked: a real iPhone inside SillyTavern (and how Safari or Firefox keep undo when a value is set), a real NovelAI account.
+
+---
+
 # v0.1.124 validation — 2026-11-14 (extension only, server v0.1.25)
 
 - Extension Node suite: **196 passed, 0 failed**.
