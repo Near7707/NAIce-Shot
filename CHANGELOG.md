@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.137 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.136 (two P1, three P2):
+- Fix: while SillyTavern is still loading the next chat (its id already changed, the panel still showing the previous chat), 이 채팅 이력 전체 삭제 no longer deletes the next chat's pictures and work. Deleting, 장면 추출, [챗샷으로 보내기], outfit saves, image generation and 본문에 넣기 wait with "채팅을 불러오는 중이에요" until the chat has opened.
+- Fix: when the reply of 저장된 작업 모두 지우기 is lost, a chat first opened meanwhile is checked (and emptied) too.
+- Fix: opening the panel before SillyTavern has filled the next chat no longer empties that chat's 대상 메시지 and 추가 요청; the panel switches when the chat has loaded.
+
 ## 0.1.136 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.135 (two P1, one P2):

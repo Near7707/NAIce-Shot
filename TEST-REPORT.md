@@ -1,3 +1,14 @@
+# v0.1.137 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **120 of 120 Chromium browser scripts passed** (4 at a time), including the new `tests/browser-v01137.mjs` (375px, 1100px). With chat A on screen and only the next chat's id set (no event yet, like SillyTavern): 이 채팅 이력 전체 삭제 sends no deletion; 장면 추출 with B's text in sends no extraction and A's work keeps A's scene; [챗샷으로 보내기] of a B picture leaves A's work alone; 복장 저장 saves no chat settings and 이미지 생성 sends no request; then each chat opens normally on the event. A 저장된 작업 모두 지우기 whose reply is lost after the server deleted everything empties chat B opened meanwhile, and the next edit saves without a conflict. The panel opened while SillyTavern has emptied the chat and set B's id shows B's 추가 요청 after the chat loads, and an edit plus closing keeps B's saved 추가 요청.
+- Old-code checks: the 0.1.136 code fails each of the six steps on its own (B deletion sent, extraction sent, B scene in A's work, chat settings saved, B left on screen, B's saved 추가 요청 emptied).
+- Revert checks: taking out each new check makes its own step fail; the outfit step needs both `assertChat` and `withChatWrite` reverted (they overlap), and `assertChat` alone fails the generation step.
+- Not checked: SillyTavern's real chat switch (the order is imitated; read from SillyTavern's code), a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.136 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.

@@ -36,6 +36,11 @@ const isFree=()=>mode==='free';
 // 0.1.136 (GPT 0.1.135 P1-1·P1-2): not the open chat's id. SillyTavern sets the next chat's id first, loads it, and only
 // then sends CHAT_CHANGED; in between the screen still holds the previous chat's work, which must stay under its own key.
 const workKey=()=>isFree()?FREE_KEY:chatKey;
+// 0.1.137 (GPT 0.1.136 P1·P2): in that gap SillyTavern's id is already the next chat while the panel (history,
+// work, outfits) still shows the previous one. Whatever reads or writes a chat, or deletes by chat, waits for the
+// event. chatKey is '' only before the panel is built; nothing is checked then.
+const chatLoading=()=>!!chatKey&&keyOf()!==chatKey;
+const CHAT_LOADING='채팅을 불러오는 중이에요. 채팅이 다 열린 뒤 다시 눌러 주세요.';
 let dialog,scene=blankScene(),raw='',finalOverride=null,revision=0,busy=false,task=0,subscription=null,historyItems=[],chatKey='',result=null,attaching=false;
 let profileContext='profiles',busyOwner=0,extraction=null,progress=null,optionsOverride=null,historyTotal=0,historyHasMore=false,historyLoading=false;
 const selectedIds=new Set(),HISTORY_PAGE=20,HISTORY_MAX=100;
@@ -449,6 +454,7 @@ async function confirmTimed(){
 const chatState=(messages,metadata)=>stableChatJson({messages,metadata});
 async function withChatWrite(key,apply){
   if(!key||keyOf()!==key)throw new Error(CHAT_NOT_CURRENT);
+  if(chatLoading())throw new Error(CHAT_LOADING); // 0.1.137 (GPT 0.1.136 P2-1): chat settings (outfits) of the chat on screen only
   if(chatWritePending)throw new Error('진행 중인 채팅 저장이 끝난 뒤 다시 시도해 주세요.');
   chatWritePending=true;
   try{
@@ -931,8 +937,10 @@ async function deleteAllWork(){
     try{return await api('/draft',{method:'POST',body:{delete:true,all:true},signal:draftSignal()});}
     catch(e){
       if(!ambiguousDelete(e))throw e;
-      for(const key of keys)holdDraftDeletion(key);
-      const confirmed=await Promise.all(keys.map(key=>reconcileDraftDeletion(key)));
+      // 0.1.137 (GPT 0.1.136 P2-2): a work first opened while the request was out is checked too, as on success.
+      const now=[...new Set([...keys,...drafts.entries.keys(),workKey(),chatKey,FREE_KEY].filter(Boolean))];
+      for(const key of now)holdDraftDeletion(key);
+      const confirmed=await Promise.all(now.map(key=>reconcileDraftDeletion(key)));
       return {unverified:true,held:confirmed.includes('unknown'),deleted:confirmed.filter(state=>state==='deleted').length};
     }
   },reply=>{
@@ -1684,7 +1692,7 @@ function addCharacter(id) {
   const {restored}=attachSceneProfile(scene,profile,profileSceneNames(profile));changed();renderScene();
   notice(restored?`${profile.name}을(를) 추가하고 추출해 둔 표정·행동·복장을 채웠어요.`:`${profile.name}을(를) 추가했어요. 장면 추출을 다시 누르면 이 인물도 후보에 넣어 표정·행동·복장을 확인해요. 실제 장면에 없으면 자동으로 넣지 않아요.`);
 }
-function assertChat(){if(!keyOf())throw new Error('먼저 캐릭터 채팅을 열어 주세요.');}
+function assertChat(){if(!keyOf())throw new Error('먼저 캐릭터 채팅을 열어 주세요.');if(chatLoading())throw new Error(CHAT_LOADING);} // 0.1.137 (GPT 0.1.136 P1-2·P2-1): extraction, outfits, generation, 본문에 넣기
 // Where the response length comes from depends on the connection used for extraction.
 function limitHint(){
   return settings().extractionProfileId?`설정 → 추출 AI의 "독립 추출 응답 한도"(지금 ${settings().extractionMaxTokens})를 올려 주세요.`
@@ -2552,6 +2560,7 @@ async function requestImageDeletion(key,list,knownIds){
 async function deleteImages({ids=[],all=false,chatKey:allOf=null,owners=null}) {
   const originTab=activeTab(),report=(message,error=false)=>notice(message,error,originTab);
   if(busy||attaching||checkingGeneration)throw new Error('진행 중인 작업이 끝난 뒤 삭제해 주세요.');
+  if(chatLoading())throw new Error(CHAT_LOADING); // 0.1.137 (GPT 0.1.136 P1-1): the history on screen is the previous chat's
   const current=keyOf(),chat=current?ctx().chat:[];
   if(current&&ctx().streamingProcessor&&!ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 삭제해 주세요.');
   const target=all?(allOf??current):null;
@@ -3071,6 +3080,7 @@ async function importHistory(id,nextMode,record=null){
   if(isDeletedPicture(item.id))throw new Error('이미 삭제한 그림이라 가져오지 않았어요.'); // 0.1.128 (GPT 0.1.127 P3)
   const startChat=keyOf(),startTask=task,startRevision=revision,switched=mode!==nextMode,token=++historyImportToken;
   if(nextMode==='chat'&&!startChat)throw new Error('채팅을 먼저 열어 주세요.');
+  if(nextMode==='chat'&&chatLoading())throw new Error(CHAT_LOADING); // 0.1.137 (GPT 0.1.136 P1-2): [챗샷으로 보내기] goes to the chat on screen
   if(switched)await setMode(nextMode);
   if(token!==historyImportToken||mode!==nextMode||keyOf()!==startChat||task!==startTask||revision!==startRevision+(switched?1:0))throw new Error('채팅이나 작업이 바뀌어서 가져오지 않았어요. 다시 선택해 주세요.');
   if(workLockedFor(workKey())||draftLoading)throw new Error(WORK_LOCKED);
@@ -3628,7 +3638,11 @@ function chatChanged() {
 const activeTab=()=>dialog?.querySelector('[data-tab][aria-selected="true"]')?.dataset.tab??'scene';
 async function open() {
   rememberScroll();
-  chatChanged();renderTargets();renderProfiles();renderScene();renderExtractionProfiles();
+  // 0.1.137 (GPT 0.1.136 P2-3): SillyTavern empties the chat, sets the next id, then fills the chat and sends CHAT_CHANGED.
+  // Opened before the chat is filled, the panel stays on the previous chat (its actions wait, chatLoading) and the event
+  // switches it; switching now would check 대상·추가 요청 against an empty chat and empty them.
+  if(!(chatLoading()&&!ctx().chat?.length))chatChanged();
+  renderTargets();renderProfiles();renderScene();renderExtractionProfiles();
   if(!dialog.open){dialog.showModal();dialog.focus({preventScroll:true});} // 0.1.88: the dialog itself takes the first focus, so no button opens with a focus ring
   restoreScroll();
   // The chat may have changed while the panel was closed: reload the visible history instead of showing it empty.
