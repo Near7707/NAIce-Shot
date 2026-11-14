@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.141 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.140 (four P2, one P3; one P2 kept as a known limit):
+- Fix: leaving a chat whose message changed no longer saves its emptied 대상 메시지 and 추가 요청 over the kept work; like leaving the page, only an edit waiting to be saved is saved.
+- Fix: while SillyTavern reloads the same chat (its messages briefly empty), saved work arriving then keeps its 대상 메시지 and 추가 요청; the message is checked once the chat is back.
+- Fix: the advanced JSON edit of the final prompt waits while the next chat loads, like the field edits, so that chat's clothes are not saved into the previous chat's prompt.
+- Fix: 이력에서 보기 for an older group picture opened from the chat finds its card (under 모든 채팅).
+- Known limit: in a branched chat, a copied picture's prompt shows only when that picture is already loaded in the 모든 채팅 history.
+
 ## 0.1.140 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.139 (four P2, one P3):

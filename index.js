@@ -321,7 +321,8 @@ function viewerActions(item,{attachment=null}={}){
     const move=(placement,done)=>away(async()=>{const r=await placeChatImage(item,attachment,placement);if(!r?.unverified)toast(done);}); // UI-072-01: no success note when the save could not be checked
     actions.push({label:other==='above'?'글 위로 옮기기':'글 아래로 옮기기',note:'이 그림만 옮겨요.',divider:true,leave:true,run:move(other,other==='above'?'그림을 글 위로 옮겼어요.':'그림을 글 아래로 옮겼어요.')});
     if(entry?.placement)actions.push({label:'기본 위치로 되돌리기',note:`지금 기본: 글 ${fallback==='above'?'위':'아래'}`,leave:true,run:move(null,'그림을 기본 위치로 되돌렸어요.')});}
-  if(attachment)actions.push({label:'이력에서 보기',note:'이력 탭에서 이 그림 카드로 가요.',divider:true,leave:true,run:away(()=>goToHistoryCard(item))});
+  // 0.1.141 (GPT 0.1.140 P3): the record found by id carries the key it was saved with (an older group key is listed in "모든 채팅").
+  if(attachment)actions.push({label:'이력에서 보기',note:'이력 탭에서 이 그림 카드로 가요.',divider:true,leave:true,run:away(async()=>goToHistoryCard(await findRecord(item).catch(()=>null)??item))});
   else{const jumps=jumpChoices(item);
     if(Array.isArray(jumps))jumps.forEach((j,i)=>actions.push({label:j.label,note:j.note,divider:i===0,leave:true,run:away(()=>goToMessage(item,j.index,j.kind))}));
     else actions.push({label:'메시지로 가기',note:jumps?.disabled??'',disabled:true,divider:true,run:()=>{}});}
@@ -625,6 +626,17 @@ function unsavedWork(key,w){
 // waiting to be saved; otherwise it only finishes the saves already queued. A changed source empties 대상·추가 요청 on
 // screen only, and a leave used to save that over the kept copy. Anything that changes work must schedule its save.
 function leaveSave(){const key=workKey();if(captureTimer)rememberDraft(key,null,{flush:true});else if(draftsEnabled&&key)drafts.flush(key).catch(()=>{});}
+// 대상·추가 요청 belong to the message they were picked for; a changed message empties them on screen only.
+const sourceChanged=()=>!sourceValid(scene.source,ctx().chat)||!sourceValid(draftSource,ctx().chat);
+const STALE_NOTE='이 채팅에서 작업하던 장면을 불러왔어요. 원문이나 리롤이 바뀌었으니 대상과 프롬프트를 다시 확인해 주세요.';
+// 0.1.141 (GPT 0.1.140 P2-2): the check recallDraft left for later, once the same chat is back (CHAT_CHANGED).
+let sourceCheck=false;
+function checkSourceLater(){
+  if(!sourceCheck||isFree()||chatLoading()||!ctx().chat?.length)return;
+  sourceCheck=false;if(!dialog)return;
+  const stale=sourceChanged();if(stale){$('ncs-target').value='';$('ncs-moment-wish').value='';draftNote=STALE_NOTE;}
+  renderTargets();if(stale){renderScene({forceFinal:true});renderDraftState();}
+}
 function rememberDraft(key=workKey(),work=null,{flush=false}={}){
   clearTimeout(captureTimer);captureTimer=null;
   // 0.1.134 (GPT 0.1.133 P2): a deletion holds only the capture of the work it deletes (all of them when it deletes all).
@@ -677,11 +689,13 @@ async function recallDraft(key=workKey(),{connect=false,asked=false}={}){
   const load=!!saved&&(!connect||differs||!mine||emptyWork(mine));
   if(load){const base=unpackWork(packWork(saved,{retainRaw})),dropped=loadWork(base);
     // 0.1.140 (GPT 0.1.139 P2-2): the source is checked against the chat only when it is this work's chat. A reply that
-    // arrives while the next chat loads is checked again when this chat comes back.
-    const stale=!isFree()&&!chatLoading()&&(!sourceValid(scene.source,ctx().chat)||!sourceValid(draftSource,ctx().chat));
+    // arrives while the next chat loads is checked again when this chat comes back. 0.1.141 (GPT 0.1.140 P2-2): nor while
+    // the chat is empty — SillyTavern empties it to reload the same chat; the check waits for its CHAT_CHANGED.
+    sourceCheck=!isFree()&&(chatLoading()||!ctx().chat?.length);
+    const stale=!isFree()&&!sourceCheck&&sourceChanged();
     if(stale){$('ncs-target').value='';$('ncs-moment-wish').value='';}
     const target=isFree()?'':$('ncs-target').value,where=isFree()?'':target===''?' · 대상 메시지: 최신':` · 대상 메시지 #${target}`;
-    draftNote=stale?'이 채팅에서 작업하던 장면을 불러왔어요. 원문이나 리롤이 바뀌었으니 대상과 프롬프트를 다시 확인해 주세요.':isFree()?'프리샷에서 작업하던 장면을 불러왔어요. AI를 다시 호출하지 않았어요.':`이 채팅에서 작업하던 장면을 불러왔어요${where}`;
+    draftNote=stale?STALE_NOTE:isFree()?'프리샷에서 작업하던 장면을 불러왔어요. AI를 다시 호출하지 않았어요.':`이 채팅에서 작업하던 장면을 불러왔어요${where}`;
     renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();
     // 0.1.127: so a reload does not bring the deleted picture back. 0.1.128 (GPT 0.1.127 P2-1): the saved copy minus that
     // picture is saved, never the screen — a changed source empties 대상·추가 요청 on screen only, as before.
@@ -762,6 +776,8 @@ function renderTargets() {
   // 0.1.138 (GPT 0.1.137 P2-1): while the next chat loads, the list keeps the chat on screen; reading the half-loaded
   // chat would drop (or later save) a target of the wrong chat.
   if(chatLoading())return;
+  // 0.1.141 (GPT 0.1.140 P2-2): nor while the same chat reloads (empty) with its source check waiting: the chosen target stays.
+  checkSourceLater();if(sourceCheck)return;
   rememberTargetScroll();
   const chat=ctx().chat??[],select=$('ncs-target'),rows=[];
   // Keep only indices here: format previews for the rows actually shown, never every message.
@@ -3478,6 +3494,8 @@ function bindEvents() {
       if(el.dataset.gen){editGenField(el);return;}
       if(el.dataset.final!==undefined){editFinalField(el);return;}
       if(el.id==='ncs-final'){
+        // 0.1.141 (GPT 0.1.140 P2-3): the box shows the assembled prompt (with the open chat's clothes) until it is edited.
+        if(!finalOverride&&!isFree()&&chatLoading())throw new Error(CHAT_LOADING);
         revision++;try{const value=JSON.parse(el.value);buildPayload(value,{...effectiveOptions(),seed:0});if(typeof value.base!=='string'||typeof value.negative!=='string'||value.characters.some(c=>typeof c.prompt!=='string'||typeof c.name!=='string'))throw new Error('base·negative·characters[].name·prompt는 문자열이어야 해요.');finalOverride=value;renderFinalForm(value);$('ncs-final-badge').hidden=false;$('ncs-warnings').textContent='직접 수정한 최종 프롬프트를 이번 생성에 사용해요.';}catch(e){finalOverride={invalid:true,message:e.message};$('ncs-warnings').textContent=`최종 프롬프트 JSON을 확인해 주세요: ${e.message}`;}return;
       }
       if(el.hasAttribute('data-profile-switch')){
@@ -3661,11 +3679,13 @@ async function zoomTagPopup(){
 }
 function chatChanged() {
   closeImageMenu();closeAttachPicker();closeTagPopup();renderTagPopupSetting();
-  const key=keyOf();if(key===chatKey)return;undoChatOutfit=null;historyImportToken++;
+  const key=keyOf();if(key===chatKey){checkSourceLater();return;}undoChatOutfit=null;historyImportToken++;sourceCheck=false;
   // 0.1.97 (GPT P2-1): only the work on screen is saved here. 챗샷 work waiting off screen was saved when it left the
   // screen if it could be; saving it now could write work never compared with the server's copy.
+  // 0.1.141 (GPT 0.1.140 P2-1): like leaving the page, only an edit waiting to be saved — a changed message empties
+  // 대상·추가 요청 on screen only, and leaving the chat used to save that over the kept copy.
   const oldKey=chatKey,lost=isFree()&&!!oldKey&&!!spare.chat&&unsavedWork(oldKey,spare.chat);
-  if(oldKey&&!isFree())rememberDraft(oldKey,captureWork(),{flush:true});
+  if(oldKey&&!isFree())leaveSave();
   if(!isFree()){draftLoadToken++;draftLoading=false;syncWorkLock();}
   closeMissingDialog();pendingBind=null;quickProfileName='';chatKey=key;renderPlacement();
   tabNotices.delete('scene');renderNotice();

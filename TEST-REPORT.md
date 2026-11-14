@@ -1,3 +1,14 @@
+# v0.1.141 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **124 of 124 Chromium browser scripts passed**, including the new `tests/browser-v01141.mjs` (375px, 1100px). Run 4 at a time, `browser-v0140` failed once (element detached, timing) and passed on its own. New script: A's message changed, back in A the screen empties 추가 요청, then leaving for B without an edit keeps A's saved target and 추가 요청. After a reload with A's work reply held, the chat is emptied (same id, like SillyTavern reloading the chat) and the reply released: with the same messages back, target #0 and 추가 요청 stay; with a changed message they empty on screen, and the saved copy is kept. While B's id and clothes are set, a scene edit then a JSON edit of the final prompt leave no B clothes in A's edited prompt. An older group picture opened from the chat: 이력에서 보기 reaches its card.
+- Old-code checks: the 0.1.140 code fails each of the four steps on its own.
+- Revert checks: taking out each change makes its own step fail (P2-2: the empty-chat skip, the target-list wait and the same-chat recheck each on their own).
+- Not checked: SillyTavern's real chat switch, chat reload and group replies (imitated), a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.140 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.
