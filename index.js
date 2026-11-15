@@ -318,7 +318,10 @@ function viewerActions(item,{attachment=null}={}){
   const here=sameChat(item.chatKey,keyOf()),free=item.chatKey===FREE_KEY;
   // Leaving the enlarged view: errors go to the panel notice and a toast, since the view is closed.
   const away=fn=>()=>Promise.resolve().then(fn).catch(e=>{toast(e.message,true);notice(e.message,true);});
-  const send=nextMode=>away(async()=>{const rec=await recordOf(item);await showPanel('scene');await importHistory(rec.id,nextMode,rec);});
+  // 0.1.150 (GPT 0.1.149 P2): the press count at the click; a message's draw button pressed while the record or the panel
+  // is still on its way is the newer choice — this send stops before the tab switch and the import.
+  const send=nextMode=>away(async()=>{const press=drawPress;const rec=await recordOf(item);if(press!==drawPress)return;
+    await showPanel();if(press!==drawPress)return;if(activeTab()!=='scene')showTab('scene');await importHistory(rec.id,nextMode,rec);});
   const actions=[
     {label:'챗샷으로 보내기',note:keyOf()?'지금 열린 채팅의 그리기창으로 가져와요.':'채팅을 먼저 열어 주세요.',disabled:!keyOf(),leave:true,run:send('chat')},
     {label:'프리샷으로 보내기',leave:true,run:send('free')},

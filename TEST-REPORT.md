@@ -1,3 +1,14 @@
+# v0.1.150 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **133 of 133 Chromium browser scripts passed** (run 4 at a time; `browser-v0148` failed once in parallel (a known slow script) and passed run alone), including the new `tests/browser-v01150.mjs` (375px, 1100px). New script: a picture drawn from #0 with 추가 요청 put in message #0, a fresh page. [챗샷으로 보내기] from the enlarged view with the record lookup held, then #1's draw button: after the lookup ends #1 stays the target, no 추가 요청, scene not replaced. The same with the first server check held instead (panel wait). [챗샷으로 보내기] alone still brings back #0 with its 추가 요청.
+- Old-code checks: the 0.1.149 code fails both wait steps on their own.
+- Revert checks: taking out the check after the panel opens fails the panel-wait step. The check after the record lookup is also covered by the later one (taking it out alone still passes; taking out both is the old code).
+- Not checked: SillyTavern with a slow first server check or record lookup, a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.149 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.

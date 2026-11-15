@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.150 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.149 (one P2):
+- Fix: [챗샷으로 보내기]/[프리샷으로 보내기] from the enlarged view, still waiting for the picture's record or the panel, no longer replaces a message picked meanwhile with a message's draw button (its target and 추가 요청 stay).
+
 ## 0.1.149 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.148 (one P2, one P3):
