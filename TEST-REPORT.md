@@ -1,3 +1,14 @@
+# v0.1.157 validation — 2026-11-16 (extension only, server v0.1.25)
+
+- Extension Node suite: **198 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **138 of 138 Chromium browser scripts passed** (run 4 at a time, none re-run).
+- `tests/browser-v01155.mjs` gains a step (320px, 375px, 1100px): profile Ada now has no look, Adam has one (taller); with `@Ad` and room under the field for Ada's row and a little more, ↓ chooses Adam, his name is inside the seen list though the list is shorter than his row, and Enter links `adam`.
+- Old-code check: the 0.1.156 code fails the new step (the chosen name is scrolled out of the list).
+- Not checked: a real iPhone in landscape with the keyboard open, a real SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.156 validation — 2026-11-16 (extension only, server v0.1.25)
 
 - Extension Node suite: **198 passed, 0 failed**.

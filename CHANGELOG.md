@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.157 — 2026-11-16 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.156 (one P2, one P3):
+- Fix: in a short @ list, moving with the arrow keys to a name taller than the list (one with a look line) shows the top of that name instead of its bottom, so Enter no longer links a name whose name part was cut off.
+- Known limit: when the first name has a look line, a list with room only for shorter names after it still closes; type more of the name to narrow it.
+
 ## 0.1.156 — 2026-11-16 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.155 (one P2, one P3):

@@ -41,7 +41,7 @@ async function open(width,{cardName,extra,seed,clock}={}){
  await page.addInitScript(()=>{const real=window.visualViewport,t=new EventTarget();
   for(const [k,f] of Object.entries({offsetTop:()=>window.__vvTop??real?.offsetTop??0,height:()=>window.__vvH??real?.height??innerHeight,width:()=>real?.width??innerWidth,offsetLeft:()=>0,pageTop:()=>scrollY,pageLeft:()=>scrollX,scale:()=>1}))Object.defineProperty(t,k,{get:f});
   Object.defineProperty(window,'visualViewport',{value:t,configurable:true});window.__vvEvent=type=>t.dispatchEvent(new Event(type));});
- if(extra)await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{for(const [id,name] of [['mira','Mira'],['ada','Ada'],['adam','Adam'],['alba','Alba'],['alex','Alex'],['ana','Ana'],['andy','Andy'],['ari','Ari'],['asa','Asa']])mock.extensionSettings.naice_shot.profiles.push({id,name,aliases:[],subject:'girl',appearance:'long black hair',defaultOutfit:'',positive:'',negative:'',cardKey:''});}));
+ if(extra)await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{for(const [id,name] of [['mira','Mira'],['ada','Ada'],['adam','Adam'],['alba','Alba'],['alex','Alex'],['ana','Ana'],['andy','Andy'],['ari','Ari'],['asa','Asa']])mock.extensionSettings.naice_shot.profiles.push({id,name,aliases:[],subject:id==='ada'?'':'girl',appearance:id==='ada'?'':'long black hair',defaultOutfit:'',positive:'',negative:'',cardKey:''});}));
  if(cardName)await page.addInitScript(n=>document.addEventListener('DOMContentLoaded',()=>{mock.characters[0].name=n;mock.name2=n;}),cardName);
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
  await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
@@ -115,6 +115,17 @@ try{
   {await room(30,30);await set(W,'');await caret(page,W,0);await page.keyboard.type('@');await page.waitForTimeout(150);
    await page.keyboard.press('Enter');await page.keyboard.press('Tab');await page.waitForTimeout(100);
    assert.deepEqual(await ids(page,W),[],'nothing linked');assert.equal((await list(page)).hidden,true,'no list without room for one name');await reset();}
+  // --- 0.1.157 (GPT 0.1.156 P2): a list with room for the short first item but not the taller second (Mira has a look):
+  // ↓ to Adam shows his name, not just his look, and Enter links him (Ada has no look)
+  {const ad=async()=>{await set(W,'');await caret(page,W,0);await page.keyboard.type('@Ad');await page.waitForFunction(()=>!document.getElementById('ncs-ref-list').hidden);};
+   await ad();const m=await page.evaluate(()=>{const b=document.getElementById('ncs-ref-list'),it=b.querySelectorAll('.ncs-ref-item');
+    return {h1:it[0].offsetHeight,h2:it[1].offsetHeight,edge:b.offsetHeight-b.clientHeight+8,n2:it[1].querySelector('b').textContent};});
+   await page.keyboard.press('Escape');assert.equal(m.n2,'Adam');assert.ok(m.h2>m.h1+8,`second taller: ${m.h1} / ${m.h2}`);
+   await room(20,m.h1+m.edge+12+4);await ad();await page.keyboard.press('ArrowDown');
+   const v=await page.evaluate(()=>{const b=document.getElementById('ncs-ref-list'),s=b.querySelector('[aria-selected="true"]'),n=s.querySelector('b').getBoundingClientRect(),r=b.getBoundingClientRect();
+    return {name:s.querySelector('b').textContent,in:n.top>=r.top-0.5&&n.bottom<=r.bottom+0.5,cut:r.height<s.offsetHeight};});
+   assert.equal(v.name,'Adam');assert.equal(v.cut,true,'the list is shorter than the item');assert.equal(v.in,true,'the name of the chosen item is seen');
+   await page.keyboard.press('Enter');assert.deepEqual(await ids(page,W),['adam']);await reset();}
   // --- the keyboard going away: the same open list goes back to its full height under the field
   {await room(40,130);await openList();assert.notEqual((await list(page)).max,'');await reset();
    await page.waitForFunction(()=>document.getElementById('ncs-ref-list').style.maxHeight==='');
@@ -126,5 +137,5 @@ try{
    await reset();await openList();const r=await rects(page);near(r.lTop,r.fBottom+4,'opens again');await page.keyboard.press('Escape');}
   assert.deepEqual(errors,[]);await page.close();
  }
- console.log('PASS: with little room the @ list goes to the larger side cut to fit (never over the field, last item reachable), grows back when the keyboard goes, and closes when the field leaves what is seen or there is no room for one name');
+ console.log('PASS: with little room the @ list goes to the larger side cut to fit (never over the field, last item reachable), grows back when the keyboard goes, and closes when the field leaves what is seen or there is no room for one name; a chosen item taller than the list shows its name');
 }finally{await browser.close();server.close();}

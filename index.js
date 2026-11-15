@@ -1839,7 +1839,8 @@ function updateRefList(field){
   box.style.top=`${want}px`;const off=box.getBoundingClientRect().top-want;if(Math.abs(off)>1)box.style.top=`${want-off}px`;
   // UI-075-06: the chosen item stays inside the list when the arrow keys go past what fits.
   const row=box.querySelector('[aria-selected="true"]');
-  if(row){if(row.offsetTop<box.scrollTop)box.scrollTop=row.offsetTop-4;else if(row.offsetTop+row.offsetHeight>box.scrollTop+box.clientHeight)box.scrollTop=row.offsetTop+row.offsetHeight-box.clientHeight+4;}
+  // 0.1.157 (GPT 0.1.156 P2): an item taller than the list shows its top (the name), not its bottom (the look).
+  if(row){if(row.offsetTop<box.scrollTop||row.offsetHeight+8>box.clientHeight)box.scrollTop=row.offsetTop-4;else if(row.offsetTop+row.offsetHeight>box.scrollTop+box.clientHeight)box.scrollTop=row.offsetTop+row.offsetHeight-box.clientHeight+4;}
 }
 function pickRef(i){
   if(!refList)return;const {field,q,items}=refList,it=items[i];if(!it)return;
