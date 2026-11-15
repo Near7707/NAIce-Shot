@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.146 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.145 (two P2, one P3 kept as a known limit):
+- Fix: a target row drawn for an older text of the same number (the message's body came in before the list was drawn again) no longer takes the new text's check while keeping 추가 요청; nothing changes and a note asks to pick from the list drawn again. Picking the same number again from the new list works as before.
+- Fix: changing 추가 요청 while an extraction runs also stops the retry after a broken first answer, so the old request is not sent to the AI again.
+- Known limit: when a target with no 추가 요청 falls back to 가장 최근 메시지 as saved work is loaded, the loaded-work note may still say the message changed.
+
 ## 0.1.145 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.144 (two P2, two P3):

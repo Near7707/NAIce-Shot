@@ -787,14 +787,18 @@ function renderTargets() {
   const more=dialog.querySelector('[data-action="target-more"]');more.hidden=left<=0;more.textContent=`이전 메시지 ${Math.min(TARGET_STEP,left)}개 더 보기`;
   if(!$('ncs-target-picker').open){targetListRendered=false;$('ncs-target-list').innerHTML='';return;}
   const latest=`<button type="button" class="ncs-target-item" data-action="target-latest" aria-pressed="${select.value===''}"><span class="ncs-target-meta">가장 최근 메시지</span><span class="ncs-target-preview">숨기지 않은 최근 메시지를 따라가요</span></button>`;
-  $('ncs-target-list').innerHTML=latest+shown.map(i=>`<button type="button" class="ncs-target-item" data-action="target-message" data-message-index="${i}" aria-pressed="${select.value===String(i)}"><span class="ncs-target-meta">#${i} · ${esc(chat[i].name??'')}${hidden(i)}</span><span class="ncs-target-preview">${esc(text(i).slice(0,90))}</span></button>`).join('');
+  $('ncs-target-list').innerHTML=latest+shown.map(i=>`<button type="button" class="ncs-target-item" data-action="target-message" data-message-index="${i}" data-message-mark="${rowMark(chat[i])}" aria-pressed="${select.value===String(i)}"><span class="ncs-target-meta">#${i} · ${esc(chat[i].name??'')}${hidden(i)}</span><span class="ncs-target-preview">${esc(text(i).slice(0,90))}</span></button>`).join('');
   targetListRendered=true;restoreTargetScroll();
 }
-function chooseTarget(value,{reveal=false}={}) {
+// 0.1.146 (GPT 0.1.145 P2-1): the text a target row was drawn for. A row drawn for an older text of the same number
+// (the body came in before the list was drawn again) changes nothing; the list drawn again picks as before.
+const rowMark=m=>`${m.swipe_id??0}:${textSignature(m.mes)}`;
+function chooseTarget(value,{reveal=false,mark}={}) {
   if(chatLoading())throw new Error(CHAT_LOADING); // 0.1.138 (GPT 0.1.137 P2-1): a message of the next chat is not this work's target
   // 0.1.145 (GPT 0.1.144 P2-1): a row left from before the chat emptied (reload) has no message to fingerprint; the
   // chosen target and its fingerprint stay as they were.
   if(value!==''&&!isSceneMessage(ctx().chat?.[Number(value)])){renderTargets();throw new Error(TARGET_MISSING);}
+  if(mark!==undefined&&rowMark(ctx().chat[Number(value)])!==mark){renderTargets();throw new Error(TARGET_STALE);}
   dropUndo();
   rememberTargetScroll();targetReveal=reveal;if(value==='')targetScroll=0;
   if($('ncs-target').value!==value)$('ncs-moment-wish').value=''; // a wished moment belongs to the message it was written for
@@ -1935,6 +1939,7 @@ function applyFree(parsed,foreign=[],plan=planFreePeople(scene.characters,plainN
     before&&(plan.removed.length||plan.pinnedOut.length||out.refreshed.length)?'잘못됐다면 [↶ 추출 취소]를 눌러 주세요.':''];
   notice(parts.filter(Boolean).join(' '),false,'scene',{keep:!!(plan.removed.length||plan.pinnedOut.length||out.notShown.length||out.refreshed.length||unsure.length||foreign.length||emptyRequired.length||refs.note)});
 }
+const TARGET_STALE='목록을 연 뒤 그 메시지가 바뀌었어요. 다시 그린 목록에서 확인하고 골라 주세요.';
 const TARGET_MISSING='그 메시지를 지금 찾을 수 없어요. 채팅이 다 열린 뒤 대상 목록을 다시 열어 골라 주세요.';
 const TARGET_CHANGED='고른 대상 메시지가 수정·삭제·리롤됐어요. 추가 요청이 맞는지 확인하고 대상 메시지를 다시 골라 주세요.';
 async function extract() {
@@ -1969,6 +1974,7 @@ async function extract() {
       if(ticket!==task||keyOf()!==startKey||revision!==rev||controller.signal.aborted)return;
       if($('ncs-target').value!==startTarget){report('추출하는 동안 대상 메시지가 바뀌어서 결과를 적용하지 않았어요. 고른 대상으로 다시 눌러 주세요.');return;} // 0.1.144 (GPT 0.1.143 P2-2): no retry for the old target
       if(attempt&&!sourceValid(selection.source,ctx().chat)){report('채팅·장면 또는 원문이 바뀌어서 추출 결과를 적용하지 않았어요.');return;} // 0.1.145 (GPT 0.1.144 P2-2): nor for a changed message
+      if(attempt&&$('ncs-moment-wish').value.trim()!==wish){report('추출하는 동안 추가 요청이 바뀌어서 결과를 적용하지 않았어요. 바꾼 요청으로 다시 눌러 주세요.');return;} // 0.1.146 (GPT 0.1.145 P2-2): nor for a changed 추가 요청
       if(progress?.owner===ticket){progress.attempt=attempt+1;renderProgress();}
       let received=false;
       try {
@@ -3267,7 +3273,7 @@ async function onAction(action,el) {
     case 'cancel-extract':if(!cancelExtraction())notice('진행 중인 추출이 없어요.');break;
     case 'target-more':if(chatLoading())throw new Error(CHAT_LOADING);targetShown+=TARGET_STEP;renderTargets();break;
     case 'target-latest':targetShown=TARGET_STEP;chooseTarget('');break;
-    case 'target-message':chooseTarget(el.dataset.messageIndex);break;
+    case 'target-message':chooseTarget(el.dataset.messageIndex,{mark:el.dataset.messageMark});break;
     case 'extract':if(isFree())await freeFill();else await extract();break; // one button for both modes
     case 'extract-again':await extract();break; // 추가 요청 box under the candidates (챗샷 only)
     case 'blank':clearWork();break;

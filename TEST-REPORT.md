@@ -1,3 +1,14 @@
+# v0.1.146 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **129 of 129 Chromium browser scripts passed** (run 4 at a time, no reruns), including the new `tests/browser-v01146.mjs` (375px, 1100px). New script: with #1 chosen and 추가 요청 filled, #1's text changes while the open list still shows the old row; pressing that row changes nothing (target, 추가 요청 and check stay) and [장면 추출] stops with no AI call; picked again from the list drawn again, 추가 요청 stays and it extracts. 추가 요청 changed while a broken first answer is held: one AI call only, with a note.
+- Old-code checks: the 0.1.145 code fails both steps on their own.
+- Revert checks: taking out the row check, or the row's text passed by the click handler, makes the first step fail (judged by the AI call); taking out the retry check makes the second step fail.
+- Not checked: SillyTavern's real chat reload (imitated by changing the text without an event), a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.145 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.
