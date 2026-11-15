@@ -1,3 +1,14 @@
+# v0.1.152 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **135 of 135 Chromium browser scripts passed** (run 4 at a time, none re-run), including the new `tests/browser-v01152.mjs` (375px, 1100px). New script: pictures A and B both put in message #0, a fresh page, record lookups held one by one in arrival order. [본문에 넣기] on A, then on B: A's record arrives first and opens no picker; B's record then opens B's picker and [넣기] puts B in #1. [본문에 넣기] on A alone still opens A's picker.
+- Old-code checks: the 0.1.151 code fails the new step (A's picker opens).
+- Revert checks: taking out the press check at both spots fails; taking it out at one spot alone still passes (the other spot covers it).
+- Not checked: SillyTavern with a slow record lookup, a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.151 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.

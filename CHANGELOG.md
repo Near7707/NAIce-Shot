@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.152 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.151 (one P2):
+- Fix: of two [본문에 넣기] pressed from the enlarged view while both wait for their records, only the last one opens the picker (the earlier picture no longer stays in it).
+
 ## 0.1.151 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.150 (one P2; the P3 is kept as a known limit):

@@ -313,6 +313,7 @@ function historyGallery(){
 }
 // 0.1.70: the enlarged view's ⋯ matches the history card's ⋯ — 챗샷/프리샷으로 보내기, 설정을 프리셋으로, 본문에 넣기,
 // 채팅에서 이 그림 빼기 — and ends with 메시지로 가기, or 이력에서 보기 for a picture opened from its message.
+let viewerAttachPress=0; // 0.1.152: the enlarged view's [본문에 넣기] presses, the last one wins
 async function recordOf(item){const rec=await findRecord(item);if(!rec?.assembled)throw new Error('이 그림의 기록을 찾지 못했어요. 지워졌을 수 있어요.');return rec;}
 function viewerActions(item,{attachment=null}={}){
   const here=sameChat(item.chatKey,keyOf()),free=item.chatKey===FREE_KEY;
@@ -329,8 +330,10 @@ function viewerActions(item,{attachment=null}={}){
     {label:'본문에 넣기',note:here?'':free?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.',disabled:!here,leave:true,run:away(async()=>{
       // 0.1.151 (GPT 0.1.150 P2): a picker opened meanwhile (from the history, say) is the newer choice — it stays as it is.
       // Checked before the panel opens too: opening it runs chatChanged, which closes the picker.
-      const picking=()=>$('ncs-attach-dialog')?.open;const rec=await recordOf(item);if(picking())return;
-      await showPanel();if(picking())return;openAttachPicker([rec]);})}];
+      // 0.1.152 (GPT 0.1.151 P2): and only the last [본문에 넣기] pressed here opens one (an earlier picture still waiting stops).
+      const press=++viewerAttachPress,stale=()=>press!==viewerAttachPress||$('ncs-attach-dialog')?.open;
+      const rec=await recordOf(item);if(stale())return;
+      await showPanel();if(stale())return;openAttachPicker([rec]);})}];
   const count=here&&!attachment?attachedCount(item.id):0;
   if(count)actions.push({label:`채팅에서 이 그림 빼기${count>1?` (${count}곳)`:''}`,run:async()=>removeImageFromChat(await recordOf(item))});
   // 0.1.74: a chat picture can move above or below the text on its own, or go back to the default place.
