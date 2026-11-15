@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.151 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.150 (one P2; the P3 is kept as a known limit):
+- Fix: [본문에 넣기] from the enlarged view, still waiting for the picture's record or the panel, no longer replaces a picker opened meanwhile (from the history, say) — the picture and message picked there stay.
+- Known limit: a send from the enlarged view whose record lookup fails after a draw button picked another message still shows its error, though the new target stays.
+
 ## 0.1.150 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.149 (one P2):

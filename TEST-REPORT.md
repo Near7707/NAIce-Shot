@@ -1,3 +1,14 @@
+# v0.1.151 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **134 of 134 Chromium browser scripts passed** (run 4 at a time, none re-run), including the new `tests/browser-v01151.mjs` (375px, 1100px). New script: picture A put in message #0 and a second picture B of the same chat, a fresh page. [본문에 넣기] on A from the enlarged view with the record lookup held; meanwhile B's picker opened from the history and #1 picked: after the lookup ends the picker still shows #1 and [넣기] puts B (not A) in #1. The same with the first server check held instead (panel wait). [본문에 넣기] alone still opens A's picker and puts A in #1.
+- Old-code checks: the 0.1.150 code fails both wait steps on their own.
+- Revert checks: taking out the check before the panel opens fails the record-wait step (opening the panel closes the picker); taking out the check after it fails the panel-wait step.
+- Not checked: SillyTavern with a slow record lookup or first server check, a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.150 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.

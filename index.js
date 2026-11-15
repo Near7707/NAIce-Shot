@@ -326,7 +326,11 @@ function viewerActions(item,{attachment=null}={}){
     {label:'챗샷으로 보내기',note:keyOf()?'지금 열린 채팅의 그리기창으로 가져와요.':'채팅을 먼저 열어 주세요.',disabled:!keyOf(),leave:true,run:send('chat')},
     {label:'프리샷으로 보내기',leave:true,run:send('free')},
     {label:'설정을 프리셋으로',note:'이력 카드에서 이름을 적어 저장해요.',leave:true,run:away(async()=>{const rec=await recordOf(item);if(!rec.options)throw new Error('이 그림에는 저장된 생성 설정이 없어요.');historyPresetTarget=rec.id;await goToHistoryCard(rec);})},
-    {label:'본문에 넣기',note:here?'':free?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.',disabled:!here,leave:true,run:away(async()=>{const rec=await recordOf(item);await showPanel();openAttachPicker([rec]);})}];
+    {label:'본문에 넣기',note:here?'':free?'프리샷 그림은 채팅에 연결되어 있지 않아요.':'지금 열린 채팅에서 만든 그림만 넣을 수 있어요.',disabled:!here,leave:true,run:away(async()=>{
+      // 0.1.151 (GPT 0.1.150 P2): a picker opened meanwhile (from the history, say) is the newer choice — it stays as it is.
+      // Checked before the panel opens too: opening it runs chatChanged, which closes the picker.
+      const picking=()=>$('ncs-attach-dialog')?.open;const rec=await recordOf(item);if(picking())return;
+      await showPanel();if(picking())return;openAttachPicker([rec]);})}];
   const count=here&&!attachment?attachedCount(item.id):0;
   if(count)actions.push({label:`채팅에서 이 그림 빼기${count>1?` (${count}곳)`:''}`,run:async()=>removeImageFromChat(await recordOf(item))});
   // 0.1.74: a chat picture can move above or below the text on its own, or go back to the default place.
