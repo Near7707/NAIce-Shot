@@ -1830,7 +1830,11 @@ function updateRefList(field){
   // room and is cut to that room (it scrolls inside), so it never covers the field nor ends behind the keyboard.
   const below=bottom-(r.bottom+4),above=(r.top-4)-top;
   const under=h<=below||(h>above&&below>=above);
-  if(h>below&&h>above){h=Math.max(0,Math.floor(under?below:above));box.style.maxHeight=`${h}px`;h=box.offsetHeight;}
+  if(h>below&&h>above){
+    // 0.1.156 (GPT 0.1.155 P2): no room for even one name: the list closes, so Enter·Tab do not link a name nobody sees.
+    const room=Math.floor(under?below:above),item=box.querySelector('.ncs-ref-item');
+    if(room<(item?.offsetHeight??0)+(box.offsetHeight-box.clientHeight)+8){closeRefList();return;}
+    h=room;box.style.maxHeight=`${h}px`;h=box.offsetHeight;}
   const want=under?r.bottom+4:r.top-4-h;
   box.style.top=`${want}px`;const off=box.getBoundingClientRect().top-want;if(Math.abs(off)>1)box.style.top=`${want-off}px`;
   // UI-075-06: the chosen item stays inside the list when the arrow keys go past what fits.

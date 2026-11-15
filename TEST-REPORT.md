@@ -1,3 +1,14 @@
+# v0.1.156 validation — 2026-11-16 (extension only, server v0.1.25)
+
+- Extension Node suite: **198 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **138 of 138 Chromium browser scripts passed** (run 4 at a time, none re-run).
+- `tests/browser-v01155.mjs` gains a step (320px, 375px, 1100px): with about 30px seen above and under the field, typing `@` opens no list, and Enter then Tab link nobody.
+- Old-code check: the 0.1.155 code fails the new step (`leo` is linked by Enter on a list too thin to show a name).
+- Not checked: a real iPhone in landscape with the keyboard open, a real SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.155 validation — 2026-11-16 (extension only, server v0.1.25)
 
 - Extension Node suite: **198 passed, 0 failed**.

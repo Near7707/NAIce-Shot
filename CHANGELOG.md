@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.156 — 2026-11-16 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.155 (one P2, one P3):
+- Fix: with no room for even one name next to the field (a landscape phone with the keyboard open), the @ list closes instead of shrinking to a thin strip, so Enter or Tab no longer link a first name nobody could see.
+- Known limit: if the field is pushed out of view for a moment while the keyboard opens, the list stays closed when the field comes back; tap the field or type to open it.
+
 ## 0.1.155 — 2026-11-16 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.154 (one P2, two P3):

@@ -111,6 +111,10 @@ try{
    const last=await lastItem(page);assert.ok(last.bottom<=v.bottom+0.5,`last item behind the keyboard: ${last.bottom} > ${v.bottom}`);
    // ... and the cut list still picks
    await page.locator('#ncs-ref-list .ncs-ref-item',{hasText:last.name}).click();await waitPills(page,WID,['@'+last.name]);}
+  // --- 0.1.156 (GPT 0.1.155 P2): no room for one name on either side: no list, and Enter·Tab link nobody
+  {await room(30,30);await set(W,'');await caret(page,W,0);await page.keyboard.type('@');await page.waitForTimeout(150);
+   await page.keyboard.press('Enter');await page.keyboard.press('Tab');await page.waitForTimeout(100);
+   assert.deepEqual(await ids(page,W),[],'nothing linked');assert.equal((await list(page)).hidden,true,'no list without room for one name');await reset();}
   // --- the keyboard going away: the same open list goes back to its full height under the field
   {await room(40,130);await openList();assert.notEqual((await list(page)).max,'');await reset();
    await page.waitForFunction(()=>document.getElementById('ncs-ref-list').style.maxHeight==='');
@@ -122,5 +126,5 @@ try{
    await reset();await openList();const r=await rects(page);near(r.lTop,r.fBottom+4,'opens again');await page.keyboard.press('Escape');}
   assert.deepEqual(errors,[]);await page.close();
  }
- console.log('PASS: with little room the @ list goes to the larger side cut to fit (never over the field, last item reachable), grows back when the keyboard goes, and closes when the field leaves what is seen');
+ console.log('PASS: with little room the @ list goes to the larger side cut to fit (never over the field, last item reachable), grows back when the keyboard goes, and closes when the field leaves what is seen or there is no room for one name');
 }finally{await browser.close();server.close();}
