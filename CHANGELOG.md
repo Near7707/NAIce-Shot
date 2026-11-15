@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.144 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.143 (two P2, one P3 kept as a known limit):
+- Fix: when the chosen 대상 메시지 is deleted (in the chat, or missing after the chat is loaded again) and 추가 요청 is filled, the target stays as "찾을 수 없는 메시지" and [장면 추출] asks to pick it again, instead of sending 추가 요청 to the latest message. Without 추가 요청 it still becomes 가장 최근 메시지.
+- Fix: choosing another 대상 메시지 while an extraction runs also stops the retry after a broken first answer, so the old message is not sent to the AI again.
+- Known limit: a picture made again from a picture brought back from history keeps 추가 요청 without its target, so bringing that new picture back leaves 추가 요청 out (the original picture still brings it back).
+
 ## 0.1.143 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.142 (three P2, one P3; one P2 kept as a known limit):

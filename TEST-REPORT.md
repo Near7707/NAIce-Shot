@@ -1,3 +1,14 @@
+# v0.1.144 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **127 of 127 Chromium browser scripts passed** (run 4 at a time, no reruns), including the new `tests/browser-v01144.mjs` (375px, 1100px). New script: with #1 chosen and 추가 요청 filled, deleting #1 in the chat, or loading the same chat again without #1, keeps target #1 as "찾을 수 없는 메시지" with 추가 요청, and [장면 추출] stops with no AI call. Without 추가 요청 a deleted #1 becomes 가장 최근 메시지 and extracts (unchanged). #1 chosen while #0's first extraction answer (broken) is held: one AI call only, with a note.
+- Old-code checks: the 0.1.143 code fails the two deletion steps and the retry step on their own; the unchanged-behavior step passes on both.
+- Revert checks: taking out the 추가 요청 condition or the retry check makes its own step fail.
+- Not checked: SillyTavern's real chat reload (imitated), a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.143 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.

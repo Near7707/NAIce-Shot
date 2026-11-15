@@ -774,9 +774,11 @@ function renderTargets() {
   // Keep only indices here: format previews for the rows actually shown, never every message.
   for(let i=chat.length-1;i>=0;i--)if(isSceneMessage(chat[i]))rows.push(i);
   // 0.1.142 (GPT 0.1.141 P2-2): SillyTavern empties the chat to reload it (same id); an empty chat drops no chosen target.
-  if(select.value!==''&&chat.length&&!rows.includes(Number(select.value)))select.value='';
+  // 0.1.144 (GPT 0.1.143 P2-1): a chosen message that is gone falls back to 가장 최근 메시지 only without 추가 요청;
+  // with one, the number stays so [장면 추출] stops at TARGET_CHANGED instead of sending it to another message.
+  if(select.value!==''&&chat.length&&!rows.includes(Number(select.value))&&!$('ncs-moment-wish').value.trim())select.value='';
   const text=i=>chat[i].mes.replace(/\s+/g,' ').trim(),hidden=i=>isHiddenSceneMessage(chat[i])?' · 숨김':'';
-  $('ncs-target-label').textContent=select.value===''?'가장 최근 메시지':!chat[select.value]?`#${select.value}`:`#${select.value} · ${chat[select.value].name??''}${hidden(Number(select.value))} · ${text(Number(select.value)).slice(0,55)}`;
+  $('ncs-target-label').textContent=select.value===''?'가장 최근 메시지':!chat[select.value]?`#${select.value}${chat.length?' · 찾을 수 없는 메시지':''}`:`#${select.value} · ${chat[select.value].name??''}${hidden(Number(select.value))} · ${text(Number(select.value)).slice(0,55)}`;
   // Make sure the chosen message is among the shown rows, so its check mark is visible when the list opens.
   const at=select.value===''?-1:rows.indexOf(Number(select.value));
   targetShown=Math.max(TARGET_STEP,targetShown,at>=0?Math.ceil((at+1)/TARGET_STEP)*TARGET_STEP:0);
@@ -1960,6 +1962,7 @@ async function extract() {
     let retryForLanguage=false;
     for(let attempt=0;attempt<2;attempt++) {
       if(ticket!==task||keyOf()!==startKey||revision!==rev||controller.signal.aborted)return;
+      if($('ncs-target').value!==startTarget){report('추출하는 동안 대상 메시지가 바뀌어서 결과를 적용하지 않았어요. 고른 대상으로 다시 눌러 주세요.');return;} // 0.1.144 (GPT 0.1.143 P2-2): no retry for the old target
       if(progress?.owner===ticket){progress.attempt=attempt+1;renderProgress();}
       let received=false;
       try {
