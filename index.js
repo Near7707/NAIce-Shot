@@ -1819,7 +1819,13 @@ function updateRefList(field){
   const r=field.getBoundingClientRect(),width=Math.min(Math.max(r.width,220),360);
   box.style.width=`${width}px`;box.style.left=`${Math.max(8,Math.min(r.left,innerWidth-width-8))}px`;
   box.hidden=false;const h=box.offsetHeight;
-  box.style.top=`${r.bottom+4+h<=innerHeight-8?r.bottom+4:Math.max(8,r.top-4-h)}px`;
+  // 0.1.154: room is measured in the part of the screen a phone keyboard leaves (visualViewport, as the tag form does), so
+  // a field above the keyboard gets its list just above it. Then the list is measured where it really landed and moved by
+  // the difference: on the iPhone a fixed box and the field's rectangle can be counted from different tops while the
+  // keyboard is open, and the list went far above the field (or off the screen).
+  const vv=window.visualViewport,top=(vv?.offsetTop??0)+8,bottom=(vv?vv.offsetTop+vv.height:innerHeight)-8;
+  const want=r.bottom+4+h<=bottom?r.bottom+4:Math.max(top,r.top-4-h);
+  box.style.top=`${want}px`;const off=box.getBoundingClientRect().top-want;if(Math.abs(off)>1)box.style.top=`${want-off}px`;
   // UI-075-06: the chosen item stays inside the list when the arrow keys go past what fits.
   const row=box.querySelector('[aria-selected="true"]');
   if(row){if(row.offsetTop<box.scrollTop)box.scrollTop=row.offsetTop-4;else if(row.offsetTop+row.offsetHeight>box.scrollTop+box.clientHeight)box.scrollTop=row.offsetTop+row.offsetHeight-box.clientHeight+4;}
@@ -1844,7 +1850,7 @@ function renderRefPills(field){
   const pills=linkedPills(field.refs(),settings().profiles);
   box.hidden=!pills.length;
   box.innerHTML=pills.length?`<span class="ncs-ref-pills-cap">연결됨</span>${pills.map(p=>p.broken
-    ?`<span class="ncs-ref-pill ncs-ref-pill-broken" title="어느 프로필인지 알 수 없어요. 칸 안의 @이름을 눌러 다시 골라 주세요."><b>@${esc(p.label)}</b><small>끊김</small></span>`
+    ?`<span class="ncs-ref-pill ncs-ref-pill-broken" title="어느 프로필인지 알 수 없어요. 칸 안의 이 @이름을 지우고 @를 쳐서 다시 골라 주세요."><b>@${esc(p.label)}</b><small>끊김</small></span>`
     :`<span class="ncs-ref-pill"><b>@${esc(p.label)}</b>${p.look?`<small>${esc(p.look)}</small>`:''}</span>`).join('')}`:'';
 }
 function renderAllRefPills(){for(const id of ['ncs-free-text','ncs-moment-wish']){const f=$(id);if(f)renderRefPills(f);}}
@@ -1875,6 +1881,7 @@ function bindRefFields(){
   // Scrolling (also the field scrolling itself into view while typing) moves the list along instead of closing it.
   const follow=()=>{if(refList)updateRefList(refList.field);};
   dialog.querySelector('.ncs-content')?.addEventListener('scroll',follow,{passive:true});addEventListener('resize',follow);
+  window.visualViewport?.addEventListener?.('resize',follow);window.visualViewport?.addEventListener?.('scroll',follow); // 0.1.154: the keyboard opening or moving
 }
 // --- 프리샷: 적은 상황으로 장면 추출 -------------------------------------------------------------------------------
 const FOREIGN_TEXT=/[\u1100-\u11FF\u3040-\u30FF\u3130-\u318F\u3400-\u9FFF\uAC00-\uD7A3]/;

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.154 — 2026-11-16 (extension only — server v0.1.25 unchanged)
+
+- Fix: with a phone keyboard open, the @ list opens just under or just above its field (it went far above the field, sometimes off the screen, most of all for 추가 요청 under several moments). Room is measured in the part of the screen the keyboard leaves, and the list follows the keyboard moving.
+From the GPT review of 0.1.153 (three P3):
+- Fix: a broken pill's tip says to delete the `@name` and type `@` to pick again (a removed profile's link does not reopen the list in place); the guide says the same.
+- Fix: on a narrow screen a broken pill with a long name keeps `끊김` readable; only the name is cut.
+- Known limit: the stored form `@[name](ref:ID)` pasted as plain text from another app (or typed) shows no pill, but the extraction still reads it by its ID.
+
 ## 0.1.153 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 - New: under the 추가 요청 and 프리샷 상황 fields, a **연결됨** row of pills shows who each `@name` in the box is linked to (shown only; typing, undo and paste work as before). Each profile shows once, by its current name.

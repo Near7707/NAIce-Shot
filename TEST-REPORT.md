@@ -1,3 +1,15 @@
+# v0.1.154 validation — 2026-11-16 (extension only, server v0.1.25)
+
+- Extension Node suite: **198 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **137 of 137 Chromium browser scripts passed** (run 4 at a time, none re-run).
+- New `tests/browser-v01154.mjs` (320px, 375px, 1100px), with a stand-in `visualViewport` whose height a step can shrink (a keyboard): a broken pill with a very long name keeps `끊김` at full width while the name is cut, and its tip says to delete the `@name` and type `@`; with no keyboard the @ list opens just under the field; with the seen screen ending just under the field the list opens just above it and inside the screen, and goes back under the field on a `visualViewport` resize; with the panel moved under its fixed box (a transform on the dialog) the list still lands just under the field; picking from the list still links.
+- Old-code checks: the 0.1.153 code fails the `끊김` width step (4px of 21px), the keyboard step (list under the field) and the moved-panel step (60px off).
+- Revert checks: without the `visualViewport` room the keyboard step fails; without measuring where the list landed the moved-panel step fails; without following `visualViewport` resize the list stays above after the keyboard goes.
+- Not checked: a real iPhone keyboard inside SillyTavern (Chromium cannot open one), a real NovelAI account.
+
+---
+
 # v0.1.153 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **198 passed, 0 failed** (new: `linkedPills` — text order, one pill per profile, broken links, current name, a look only for shared names or aliases).

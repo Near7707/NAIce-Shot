@@ -876,7 +876,7 @@
 #naice-shot-dialog .ncs-ref-pill b {font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
 #naice-shot-dialog .ncs-ref-pill small {color:var(--ncs-muted);font-size:.92em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
 #naice-shot-dialog .ncs-ref-pill-broken {border-style:dashed;border-color:var(--ncs-warning);background:transparent;color:var(--ncs-warning);}
-#naice-shot-dialog .ncs-ref-pill-broken small {color:inherit;}
+#naice-shot-dialog .ncs-ref-pill-broken small {color:inherit;flex:none;} /* 0.1.154: "끊김" keeps its width, only the name is cut */
 #naice-shot-dialog .ncs-ref-list {position:fixed;z-index:30;display:grid;gap:2px;max-height:min(280px,50dvh);overflow:auto;padding:4px;border:var(--ncs-border-width) solid var(--ncs-edge);border-radius:var(--ncs-radius-control);background:var(--ncs-bg);box-shadow:0 8px 28px #0006;}
 #naice-shot-dialog .ncs-ref-item {display:flex;align-items:baseline;gap:8px;width:100%;padding:8px 10px;border:0;border-radius:6px;background:transparent;text-align:left;min-height:40px;}
 #naice-shot-dialog .ncs-ref-item[aria-selected="true"] {background:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);}
