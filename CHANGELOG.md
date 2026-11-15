@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.149 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.148 (one P2, one P3):
+- Fix: a message's draw button pressed earlier, still waiting for the first server check, no longer switches 프리샷 back to 챗샷 after a later press, and no longer covers the "프리샷으로 가져왔어요" note.
+- Fix: the same applies when only one button was pressed and a picture was sent to 프리샷 from 이력 while the panel waited.
+- Fix: an earlier press that took the "busy" path no longer shows its note over the note of a later press that picked a message.
+- Known limit: pressing a draw button again while 챗샷 work is still loading (coming from 프리샷) shows the busy note and the first press stops; press once more after it loads.
+
 ## 0.1.148 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.147 (one P2, one P3):

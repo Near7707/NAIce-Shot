@@ -1,3 +1,15 @@
+# v0.1.149 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **132 of 132 Chromium browser scripts passed** (run 4 at a time, no reruns), including the new `tests/browser-v01149.mjs` (375px, 1100px). New script: the first server check held, #0's draw button pressed, the panel closed, #1 pressed, then a picture sent to 프리샷 from 이력: after the check ends 프리샷 stays and the import note stays. One press only, the picture sent to 프리샷 while the panel waits: 프리샷 stays, nothing picked. A single press still picks its message.
+- Old-code checks: the 0.1.148 code fails both 프리샷 steps on their own.
+- Revert checks: taking out the latest-press check after the panel opens fails the first step; taking out the press count in the 이력 import fails the one-press step.
+- The busy-note order (P3) has no browser script: in the real UI the busy path waits long only on the very first panel opening, before drafts can be loading. The same latest-press check covers it.
+- Not checked: SillyTavern with a slow first server check, a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.148 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.

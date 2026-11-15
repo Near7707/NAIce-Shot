@@ -154,8 +154,11 @@ async function drawFromMessage(index){
   // 0.1.148 (P3): fingerprinted only when it can be picked (a message with no text gets the usual note).
   const press=++drawPress,key=keyOf(),clicked=ctx().chat?.[index],mark=isSceneMessage(clicked)?rowMark(clicked):undefined;
   await (panelReady??Promise.resolve());
-  if(busy||attaching||draftLoading){await open();notice('진행 중인 작업이 끝난 뒤 선택해 주세요.',true);return;}
+  // 0.1.149 (GPT 0.1.148 P2·P3): checked again right after the panel opens, before the busy note or the switch to 챗샷 —
+  // a later press, or a picture brought in from 이력 meanwhile, is the newer choice and keeps its own mode and note.
+  if(busy||attaching||draftLoading){await open();if(press!==drawPress)return;notice('진행 중인 작업이 끝난 뒤 선택해 주세요.',true);return;}
   await open();
+  if(press!==drawPress)return;
   if(isFree())await setMode('chat'); // the message button always draws in 챗샷; 프리샷 work waits as it was
   if(press!==drawPress)return; // a later press took over (its own tab, note and pick)
   showTab('scene');
@@ -3156,6 +3159,7 @@ async function importHistory(id,nextMode,record=null){
   const startChat=keyOf(),startTask=task,startRevision=revision,switched=mode!==nextMode,token=++historyImportToken;
   if(nextMode==='chat'&&!startChat)throw new Error('채팅을 먼저 열어 주세요.');
   if(nextMode==='chat'&&chatLoading())throw new Error(CHAT_LOADING); // 0.1.137 (GPT 0.1.136 P1-2): [챗샷으로 보내기] goes to the chat on screen
+  drawPress++; // 0.1.149: a message-button press still waiting for the panel stops (it would switch the mode back)
   if(switched)await setMode(nextMode);
   if(token!==historyImportToken||mode!==nextMode||keyOf()!==startChat||task!==startTask||revision!==startRevision+(switched?1:0))throw new Error('채팅이나 작업이 바뀌어서 가져오지 않았어요. 다시 선택해 주세요.');
   if(workLockedFor(workKey())||draftLoading)throw new Error(WORK_LOCKED);
