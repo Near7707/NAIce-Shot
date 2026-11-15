@@ -1,0 +1,134 @@
+// v0.1.153: the pills under an @ field show who its links are (shown only): each profile once, a broken link as a dashed
+// "끊김" pill (picked again in the box), a short look when two profiles share a name, kept in step with profile changes.
+import zlib from 'node:zlib';
+import http from 'node:http';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import assert from 'node:assert/strict';
+import {pick} from './menu-helper.mjs';
+const modules=process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES;
+const {chromium}=await import(modules?`${modules}/playwright/index.mjs`:'playwright');
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const crc=b=>{let c=~0;for(const x of b){c^=x;for(let k=0;k<8;k++)c=c&1?(c>>>1)^0xedb88320:c>>>1;}return ~c>>>0;};
+const chunk=(t,d)=>{const l=Buffer.alloc(4);l.writeUInt32BE(d.length);const td=Buffer.concat([Buffer.from(t),d]);const c=Buffer.alloc(4);c.writeUInt32BE(crc(td));return Buffer.concat([l,td,c]);};
+function pngOf(w,h){const ih=Buffer.alloc(13);ih.writeUInt32BE(w,0);ih.writeUInt32BE(h,4);ih[8]=8;ih[9]=2;
+ const raw=Buffer.alloc((w*3+1)*h);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const o=y*(w*3+1)+1+x*3;raw[o]=w;raw[o+1]=h;raw[o+2]=120;}
+ return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',ih),chunk('IDAT',zlib.deflateSync(raw)),chunk('IEND',Buffer.alloc(0))]);}
+const server=http.createServer(async(req,res)=>{try{
+ const rel=new URL(req.url,'http://localhost').pathname;
+ const file=path.join(root,rel==='/'?'tests/fixture.html':rel);if(!file.startsWith(root+path.sep))throw Error();
+ res.setHeader('Content-Type',file.endsWith('.html')?'text/html':file.endsWith('.css')?'text/css':'text/javascript');res.end(await fs.readFile(file));
+}catch{res.writeHead(404).end();}});
+await new Promise(r=>server.listen(0,'127.0.0.1',r));
+const browser=await chromium.launch({headless:true,executablePath:process.env.NAICE_SHOT_CHROMIUM||undefined,args:['--no-sandbox','--disable-gpu','--disable-dev-shm-usage']});
+const features=['paged-history','delete','private-records','all-history','history-kinds','privacy-controls','draft-work','draft-delete','free-text','draft-tombstone','nai-error-codes'];
+async function open(width,{cardName,extra,seed,clock}={}){
+ const page=await browser.newPage({viewport:{width,height:900}}),errors=[],items=[];page.setDefaultTimeout(9000);page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());if(seed)items.push(...seed);if(clock)await page.clock.install();
+ // Pictures: a real PNG per id in one of three shapes, never cached, and holdable to slow the next one down.
+ const sizes=[[64,96],[96,64],[80,80]],seen=new Map();page.hold=null;
+ await page.route('**/user/images/naice-shot/**',async r=>{const id=new URL(r.request().url()).pathname;if(!seen.has(id))seen.set(id,sizes[seen.size%3]);
+  if(page.hold)await page.hold;const [w,h]=seen.get(id);await r.fulfill({status:200,headers:{'Content-Type':'image/png','Cache-Control':'no-store'},body:pngOf(w,h)});});
+ await page.route('**/api/plugins/naice-shot/**',r=>{const u=new URL(r.request().url());
+  if(u.pathname.endsWith('/generate')){const q=r.request().postDataJSON(),it={id:q.requestId,created:new Date().toISOString(),chatKey:q.chatKey,image:`/user/images/naice-shot/${q.requestId}.png`,seed:q.options.seed,assembled:q.assembled,options:q.options,snapshot:q.snapshot};items.unshift(it);return r.fulfill({json:it});}
+  if(u.pathname.endsWith('/delete')){const q=r.request().postDataJSON(),ids=q.ids??[];for(const id of ids){const i=items.findIndex(x=>x.id===id);if(i>=0)items.splice(i,1);}return r.fulfill({json:{deleted:ids,skipped:[]}});}
+  if(u.pathname.endsWith('/history'))return r.fulfill({json:{items,total:items.length,hasMore:false,scope:u.searchParams.get('scope')||'chat',kind:u.searchParams.get('kind')||'all',chats:[],imageCount:items.length,bytes:1}});
+  if(u.pathname.endsWith('/draft'))return r.fulfill({json:r.request().method()==='GET'?{revision:null,work:null}:{revision:'r'}});
+  return r.fulfill({json:{keyConfigured:true,version:'0.1.13',features,minClient:'0.1.44',subscription:{tier:3,active:true,isGracePeriod:false,usage:{percent:82,purchasedPercent:0,isNegative:false,timeUntilNextPercent:600},perks:{unlimitedImageGeneration:true},anlas:{subscription:1000,purchased:0}}}});});
+ await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{mock.extensionSettings.naice_shot.allowAnlas=true;}));
+ if(extra)await page.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{mock.extensionSettings.naice_shot.profiles.push({id:'mira',name:'Mira',aliases:[],subject:'girl',appearance:'long black hair',defaultOutfit:'',positive:'',negative:'',cardKey:''});}));
+ if(cardName)await page.addInitScript(n=>document.addEventListener('DOMContentLoaded',()=>{mock.characters[0].name=n;mock.name2=n;}),cardName);
+ await page.goto(`http://127.0.0.1:${server.address().port}/`);
+ await page.locator('#ncs-extension-settings .inline-drawer-toggle').click();await page.locator('.ncs-launch-button').click();
+ await page.locator('[data-action="extract"]').click();await page.locator('[data-character="leo"]').waitFor();
+ return {page,errors,items};
+}
+const idle=page=>page.waitForFunction(()=>document.querySelector('#ncs-progress').hidden&&!document.querySelector('[data-action="generate"]').disabled); // 0.1.92: V5 checks the server first (buttons off, no banner)
+const names=page=>page.evaluate(()=>JSON.parse(document.querySelector('#ncs-final').value).characters.map(c=>c.name));
+const one=(c,extra={})=>({moments:[{title:'앉는다',characters:[c],unregistered:[],location:'cafe',lighting:'moonlight',camera:'medium shot',interaction:''}],defaultIndex:0,requestMatched:true,requestApplied:[],requestIgnored:[],requestOutfits:[],requestVisibleOnly:false,...extra});
+const leo=(extra={})=>({id:'leo',name:'Leo',expression:'calm',action:'sitting',position:'auto',outfitMode:'unchanged',outfit:'',...extra});
+const run=async(page,wish,extraction)=>{await page.evaluate(x=>{mock.extraction=x;},extraction);await page.locator('#ncs-moment-wish').fill(wish);await page.locator('[data-action="extract"]').click();await idle(page);};
+const freeOn=async page=>{await page.locator('[data-mode="free"]').click();await page.waitForFunction(()=>document.querySelector('[data-mode="free"]').getAttribute('aria-pressed')==='true');};
+const ask=page=>{const st={answer:true,asked:[]};page.removeAllListeners('dialog');page.on('dialog',d=>{st.asked.push(d.message());st.answer?d.accept():d.dismiss();});return st;};
+const freeX=(people)=>({characters:people.map(c=>({id:'',name:'',subject:'boy',appearance:'',outfit:'',expression:'smile',action:'standing',position:'auto',...c})),location:'bridge',lighting:'night',camera:'wide shot',interaction:''});
+const freeRun=async(page,text,x)=>{await page.evaluate(x=>{mock.extraction=x;},x);await page.locator('#ncs-free-text').fill(text);await page.locator('[data-action="extract"]').click();await idle(page);};
+const cardIds=page=>page.locator('#ncs-characters [data-character]').evaluateAll(els=>els.map(e=>e.dataset.character));
+const ticked=(page,id)=>page.locator(`[data-character="${id}"] [data-field="included"]`).isChecked();
+const addTemp=async(page,name)=>{await page.locator('[data-action="add-temp"]').click();await page.locator('[data-temp="name"]').last().fill(name);};
+const two={moments:[{title:'앉는 순간',characters:[{id:'leo',name:'Leo',expression:'calm',action:'sitting',position:'auto',outfitMode:'unchanged',outfit:''}],unregistered:[],location:'cafe',lighting:'moonlight',camera:'medium shot',interaction:''},
+ {title:'일어나는 순간',characters:[{id:'leo',name:'Leo',expression:'calm',action:'standing up',position:'auto',outfitMode:'unchanged',outfit:''}],unregistered:[],location:'cafe',lighting:'moonlight',camera:'medium shot',interaction:''}],defaultIndex:1,requestMatched:true,requestApplied:[],requestIgnored:[],requestOutfits:[],requestVisibleOnly:false};
+const shown=page=>page.locator('#ncs-notice').isVisible();
+const reply=(page,text)=>page.evaluate(t=>{mock.generateRaw=async function(o){this.extractCalls=(this.extractCalls??0)+1;this.lastExtract=o;return t;};},text);
+const viewerReady=page=>page.waitForFunction(()=>{const d=document.getElementById('ncs-viewer'),i=d?.querySelector('.ncsv-stage img');return d?.open&&d.dataset.loaded&&i?.naturalWidth&&i.style.visibility!=='hidden';});
+const holdDecode=page=>page.evaluate(()=>{const real=HTMLImageElement.prototype.decode;window.__hold=new Promise(r=>window.__release=r);
+ HTMLImageElement.prototype.decode=async function(){const h=window.__hold;await real.call(this);if(h)await h;};});
+const releaseDecode=page=>page.evaluate(()=>{const r=window.__release;window.__hold=null;r?.();});
+// One touch drag on the viewer stage, from a point to a point (several moves in between).
+const drag=(page,fx,fy,tx,ty,id)=>page.locator('#ncs-viewer .ncsv-stage').evaluate((s,[fx,fy,tx,ty,id])=>{const b=s.getBoundingClientRect(),x0=b.left+b.width*fx,y0=b.top+b.height*fy,x1=b.left+b.width*fx+tx,y1=b.top+b.height*fy+ty;
+ const send=(t,x,y)=>s.dispatchEvent(new PointerEvent(t,{bubbles:true,pointerId:id,pointerType:'touch',clientX:x,clientY:y,button:0}));
+ send('pointerdown',x0,y0);for(let i=1;i<=5;i++)send('pointermove',x0+(x1-x0)*i/5,y0+(y1-y0)*i/5);send('pointerup',x1,y1);},[fx,fy,tx,ty,id]);
+const isOpen=page=>page.evaluate(()=>document.getElementById('ncs-viewer').open);
+const tok=(name,id)=>`@[${name}](ref:${id})`;
+const val=(page,sel)=>page.locator(sel).evaluate(f=>f.value);
+const ids=(page,sel)=>page.locator(sel).evaluate(f=>[...f.value.matchAll(/\(ref:([A-Za-z0-9_-]*)\)/g)].map(m=>m[1]));
+const caret=(page,sel,at)=>page.locator(sel).evaluate((f,a)=>{f.focus();const n=a<0?f.textLength:a;f.setSelectionRange(n,n);},at);
+const W='#ncs-moment-wish',F='#ncs-free-text';
+const fitPressed=page=>page.locator('#ncs-viewer [data-v="fit"]').getAttribute('aria-pressed');
+const pillsOf=(page,field)=>page.evaluate(id=>{const b=document.querySelector(`[data-pills-for="${id}"]`);
+ return {hidden:b.hidden||!b.getClientRects().length,pills:[...b.querySelectorAll('.ncs-ref-pill')].map(p=>({name:p.querySelector('b').textContent,note:p.querySelector('small')?.textContent??'',broken:p.classList.contains('ncs-ref-pill-broken')}))};},field);
+const waitPills=(page,field,names)=>page.waitForFunction(([id,names])=>{const b=document.querySelector(`[data-pills-for="${id}"]`);
+ return JSON.stringify([...b.querySelectorAll('.ncs-ref-pill b')].map(x=>x.textContent))===JSON.stringify(names);},[field,names]);
+try{
+ for(const width of [375,1100]){
+  const {page,errors}=await open(width,{extra:true});ask(page);
+  const set=(sel,v)=>page.locator(sel).evaluate((f,v)=>{f.value=v;},v);
+  const listOpen=()=>page.locator('#ncs-ref-list').isVisible();
+  const WID='ncs-moment-wish',FID='ncs-free-text';
+  // --- no link: no row (the help text stays where it was)
+  {await set(W,'smiling');await page.waitForTimeout(50);assert.equal((await pillsOf(page,WID)).hidden,true);
+   await set(W,'@Leo typed by hand');await page.waitForTimeout(50);assert.equal((await pillsOf(page,WID)).hidden,true,'a typed name is not a link yet');}
+  // --- a pick from the @ list shows its pill; the same profile twice shows once, in text order
+  {await set(W,'');await caret(page,W,0);await page.keyboard.type('@Mi');await page.waitForFunction(()=>!document.getElementById('ncs-ref-list').hidden);
+   await page.locator('#ncs-ref-list .ncs-ref-item',{hasText:'Mira'}).click();await waitPills(page,WID,['@Mira']);
+   const p=await pillsOf(page,WID);assert.equal(p.hidden,false);assert.deepEqual(p.pills,[{name:'@Mira',note:'',broken:false}]);
+   assert.equal(await page.locator(`[data-pills-for="${WID}"] .ncs-ref-pills-cap`).textContent(),'연결됨');
+   await set(W,`${tok('Leo','leo')} and ${tok('Mira','mira')} with ${tok('Leo','leo')}`);await waitPills(page,WID,['@Leo','@Mira']);}
+  // --- editing inside "@Leo" ends that link: its pill goes, the other stays
+  {await caret(page,W,2);await page.keyboard.type('x');await waitPills(page,WID,['@Mira','@Leo']); // the second @Leo is still linked (now after Mira)
+   await set(W,`${tok('Leo','leo')} and ${tok('Mira','mira')}`);await waitPills(page,WID,['@Leo','@Mira']);
+   await caret(page,W,2);await page.keyboard.type('x');await waitPills(page,WID,['@Mira']);}
+  // --- a broken link is a dashed "끊김" pill before any extraction; picking it again in the box makes it whole
+  {await set(W,`hold ${tok('Mira','')}`);await waitPills(page,WID,['@Mira']);
+   assert.deepEqual((await pillsOf(page,WID)).pills,[{name:'@Mira',note:'끊김',broken:true}]);
+   assert.equal(await page.locator(`[data-pills-for="${WID}"] .ncs-ref-pill-broken`).evaluate(e=>getComputedStyle(e).borderTopStyle),'dashed');
+   await caret(page,W,7);await page.keyboard.press('ArrowRight');await page.waitForFunction(()=>!document.getElementById('ncs-ref-list').hidden);assert.equal(await listOpen(),true);
+   await page.locator('#ncs-ref-list .ncs-ref-item',{hasText:'Mira'}).click();
+   await page.waitForFunction(id=>!document.querySelector(`[data-pills-for="${id}"] .ncs-ref-pill-broken`),WID);
+   assert.deepEqual((await pillsOf(page,WID)).pills,[{name:'@Mira',note:'',broken:false}]);assert.deepEqual(await ids(page,W),['mira']);}
+  // --- two profiles named Leo: each pill shows its short look
+  {await page.evaluate(()=>{mock.extensionSettings.naice_shot.profiles.push({id:'leo2',name:'Leo',aliases:[],subject:'boy',appearance:'blond hair, grey eyes',defaultOutfit:'',positive:'',negative:'',cardKey:''});});
+   await set(W,`${tok('Leo','leo')} meets ${tok('Leo','leo2')}`);await waitPills(page,WID,['@Leo','@Leo']);
+   const notes=(await pillsOf(page,WID)).pills.map(p=>p.note);assert.match(notes[0],/brown hair/);assert.match(notes[1],/blond hair/);}
+  // --- a removed profile turns its pill broken at once (no edit in the box), and the pills follow a renamed one
+  {await set(W,`${tok('Mira','mira')} waves`);await waitPills(page,WID,['@Mira']);
+   await page.locator('[data-tab="profiles"]').click();await page.locator('[data-profile="mira"]').click();
+   await page.locator('[data-action="delete-profile"]').click();await page.waitForFunction(()=>!mock.extensionSettings.naice_shot.profiles.some(p=>p.id==='mira'));
+   await page.locator('[data-tab="scene"]').click();
+   assert.deepEqual((await pillsOf(page,WID)).pills,[{name:'@Mira',note:'끊김',broken:true}]);}
+  // --- names are text, never markup
+  {await page.evaluate(()=>{mock.extensionSettings.naice_shot.profiles.push({id:'odd',name:'<img src=x onerror="window.__pwned=1">',aliases:[],subject:'girl',appearance:'',defaultOutfit:'',positive:'',negative:'',cardKey:''});});
+   await set(W,tok('<img src=x onerror="window.__pwned=1">','odd'));await page.waitForTimeout(100);
+   assert.equal(await page.locator(`[data-pills-for="${WID}"] img`).count(),0);assert.equal(await page.evaluate(()=>window.__pwned),undefined);
+   assert.match((await pillsOf(page,WID)).pills[0].name,/<img/);}
+  // --- a long name stays inside the panel
+  {await page.evaluate(()=>{mock.extensionSettings.naice_shot.profiles.push({id:'long',name:'Leo '+'Long'.repeat(40),aliases:[],subject:'boy',appearance:'',defaultOutfit:'',positive:'',negative:'',cardKey:''});});
+   await set(W,tok('Leo '+'Long'.repeat(40),'long'));await page.waitForTimeout(50);
+   const fit=await page.evaluate(id=>{const b=document.querySelector(`[data-pills-for="${id}"]`),f=document.getElementById('ncs-moment-wish');return b.scrollWidth<=b.clientWidth+1&&b.getBoundingClientRect().right<=f.getBoundingClientRect().right+1;},WID);
+   assert.equal(fit,true);}
+  // --- 프리샷 상황 has the same row
+  {await set(W,'');await freeOn(page);await set(F,`rain, ${tok('Leo','leo')} holds an umbrella`);await waitPills(page,FID,['@Leo']);
+   assert.equal((await pillsOf(page,FID)).hidden,false);await set(F,'');await page.waitForTimeout(50);assert.equal((await pillsOf(page,FID)).hidden,true);}
+  assert.deepEqual(errors,[]);await page.close();
+ }
+ console.log('PASS: the @ fields show their links as pills under the box — once per profile, broken links dashed "끊김" until picked again, a short look for shared names, following profile removal; names are escaped and long ones stay inside');
+}finally{await browser.close();server.close();}

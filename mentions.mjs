@@ -180,6 +180,22 @@ export function lookSummary(profile){
   const cut=(s,n)=>s.length>n?`${s.slice(0,n-1)}…`:s;
   return [cut(parts.join(', '),44),outfit?cut(outfit,36):''].filter(Boolean).join(' · ');
 }
+// 0.1.153: the row of pills under a reference field — who each "@name" in the box is linked to. Shown only, the text stays
+// the input. refs: the field's links ({start,label,id}). A link with no id or to a profile that is gone is broken ("끊김",
+// picked again before the extraction). The same profile twice shows once. A profile that shares a name or an alias with
+// another one shows its short look too, so two people with the same name can be told apart.
+export function linkedPills(refs,profiles){
+  const out=[],seen=new Set();
+  for(const r of [...refs??[]].sort((a,b)=>a.start-b.start)){
+    const p=r.id?profiles.find(x=>String(x.id)===String(r.id)):null,key=p?`p:${p.id}`:`x:${r.label}`;
+    if(seen.has(key))continue;seen.add(key);
+    if(!p){out.push({label:r.label,broken:true,look:''});continue;}
+    const mine=new Set(labelsOf(p).map(identityKey).filter(Boolean));
+    const twin=profiles.some(o=>o.id!==p.id&&labelsOf(o).some(n=>mine.has(identityKey(n))));
+    out.push({label:p.name||r.label,broken:false,look:twin?lookSummary(p):''});
+  }
+  return out;
+}
 // Profiles for the list: name or an alias contains the query (any case), best first. Each shows its aliases and a short look.
 export function suggestions(profiles,query,limit=8){
   const q=String(query??'').trim().toLowerCase();

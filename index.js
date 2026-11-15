@@ -6,7 +6,7 @@ import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } fr
 import { attachInlineImages, detachInlineImage, detachInlineImages, detachMessageImage, placeMessageImage, orderedInlineImages, placementOf, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, visibleInlineImages, SAVE_NOTES, INLINE_LAYOUTS, INLINE_SIZES } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
 import { freeScenePrompt, freeSceneSchema, parseFreeScene } from './free-scene.mjs';
-import { confirmRefs, refsForExtraction, plainNames, stripRefMarks, suggestions, displayLength, displayText, lengthProblem, LENGTH_LIMITS } from './mentions.mjs';
+import { confirmRefs, refsForExtraction, plainNames, stripRefMarks, suggestions, linkedPills, displayLength, displayText, lengthProblem, LENGTH_LIMITS } from './mentions.mjs';
 import { setupChipField } from './chipfield.mjs';
 import { planFreePeople, confirmText, applyFreePeople, migratePins } from './free-people.mjs';
 import { momentExtractionPrompt, momentExtractionSchema, parseMoments, looksCut, foreignFields, dropLookWords } from './scene-extraction.mjs';
@@ -1131,7 +1131,7 @@ function renderProfiles() {
   const selected=$('ncs-profile-id').value;
   $('ncs-profile-list').innerHTML=s.profiles.map(p=>`<button data-profile="${esc(p.id)}" class="ncs-profile-chip ${p.id===selected?'ncs-selected':''}" aria-pressed="${p.id===selected}">${esc(p.name)}</button>`).join('');
   $('ncs-add-profile').innerHTML=s.profiles.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
-  renderMatching();
+  renderMatching();renderAllRefPills(); // 0.1.153: a renamed, added or removed profile changes the pills
 }
 let profileFormSession=0,quickProfileName='';
 // The stored profile as the form was filled, so saving can tell what changed elsewhere meanwhile (UI-057-01).
@@ -1837,12 +1837,24 @@ function pickRef(i){
   // "@클로클로…". Closing the keyboard makes it forget that word; a tap on the box goes on typing. A PC keeps typing.
   if(globalThis.matchMedia?.('(pointer: coarse)')?.matches)field.blur();
 }
+// 0.1.153: a row of pills under each @ field shows who the links are (shown only; the text stays the input). A broken link
+// is a dashed "끊김" pill, so it is seen before the extraction stops on it. Drawn after the edit's own work is done.
+function renderRefPills(field){
+  const box=dialog?.querySelector(`[data-pills-for="${field?.id}"]`);if(!box||typeof field.refs!=='function')return;
+  const pills=linkedPills(field.refs(),settings().profiles);
+  box.hidden=!pills.length;
+  box.innerHTML=pills.length?`<span class="ncs-ref-pills-cap">연결됨</span>${pills.map(p=>p.broken
+    ?`<span class="ncs-ref-pill ncs-ref-pill-broken" title="어느 프로필인지 알 수 없어요. 칸 안의 @이름을 눌러 다시 골라 주세요."><b>@${esc(p.label)}</b><small>끊김</small></span>`
+    :`<span class="ncs-ref-pill"><b>@${esc(p.label)}</b>${p.look?`<small>${esc(p.look)}</small>`:''}</span>`).join('')}`:'';
+}
+function renderAllRefPills(){for(const id of ['ncs-free-text','ncs-moment-wish']){const f=$(id);if(f)renderRefPills(f);}}
 function bindRefFields(){
   const lengths={'ncs-free-text':{limit:LENGTH_LIMITS.free.visible,measure:displayLength},'ncs-moment-wish':{limit:LENGTH_LIMITS.wish.visible,measure:displayLength,singleLine:true}};
   for(const id of ['ncs-free-text','ncs-moment-wish']){
     const field=$(id);if(!field)continue;
     setupChipField(field,{getProfiles:()=>settings().profiles,...lengths[id]});
-    const refresh=()=>updateRefList(field);
+    const refresh=()=>updateRefList(field),pills=()=>queueMicrotask(()=>renderRefPills(field));
+    field.addEventListener('input',pills);field.addEventListener('ncs-field-set',pills);
     field.addEventListener('input',refresh);field.addEventListener('compositionend',refresh);field.addEventListener('click',refresh);
     field.addEventListener('keyup',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key))refresh();});
     field.addEventListener('ncs-field-set',()=>{if(refList?.field===field)closeRefList();});

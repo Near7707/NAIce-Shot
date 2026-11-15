@@ -868,6 +868,15 @@
 #naice-shot-dialog .ncs-chipfield::placeholder {color:var(--ncs-muted);opacity:1;}
 #naice-shot-dialog fieldset:disabled .ncs-chipfield {opacity:.6;}
 /* 0.1.75: @프로필 참조 — the list under the field while typing "@…". */
+/* 0.1.153: who the @ links in a field are — pills under the field, shown only. A broken link is a dashed "끊김" pill. */
+#naice-shot-dialog .ncs-ref-pills {display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0;font-size:.85em;min-width:0;}
+#naice-shot-dialog .ncs-ref-pills[hidden] {display:none;}
+#naice-shot-dialog .ncs-ref-pills-cap {color:var(--ncs-muted);}
+#naice-shot-dialog .ncs-ref-pill {display:inline-flex;align-items:baseline;gap:5px;max-width:100%;min-width:0;padding:2px 10px;border:var(--ncs-border-width) solid var(--ncs-edge);border-radius:var(--ncs-radius-pill);background:var(--ncs-hover);color:var(--ncs-fg);line-height:1.6;box-sizing:border-box;}
+#naice-shot-dialog .ncs-ref-pill b {font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+#naice-shot-dialog .ncs-ref-pill small {color:var(--ncs-muted);font-size:.92em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+#naice-shot-dialog .ncs-ref-pill-broken {border-style:dashed;border-color:var(--ncs-warning);background:transparent;color:var(--ncs-warning);}
+#naice-shot-dialog .ncs-ref-pill-broken small {color:inherit;}
 #naice-shot-dialog .ncs-ref-list {position:fixed;z-index:30;display:grid;gap:2px;max-height:min(280px,50dvh);overflow:auto;padding:4px;border:var(--ncs-border-width) solid var(--ncs-edge);border-radius:var(--ncs-radius-control);background:var(--ncs-bg);box-shadow:0 8px 28px #0006;}
 #naice-shot-dialog .ncs-ref-item {display:flex;align-items:baseline;gap:8px;width:100%;padding:8px 10px;border:0;border-radius:6px;background:transparent;text-align:left;min-height:40px;}
 #naice-shot-dialog .ncs-ref-item[aria-selected="true"] {background:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);}

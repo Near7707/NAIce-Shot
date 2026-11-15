@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readRefs,confirmRefs,refsForExtraction,chipToken,tokenize,displayLength,displayText,queryAt,suggestions,lookSummary,stripRefMarks,plainNames,boundaryAfter} from '../mentions.mjs';
+import {readRefs,confirmRefs,refsForExtraction,chipToken,tokenize,displayLength,displayText,queryAt,suggestions,lookSummary,stripRefMarks,plainNames,boundaryAfter,linkedPills} from '../mentions.mjs';
 const P=[{id:'a3f2c1d0-1111-4111-8111-111111111111',name:'Leo',aliases:['레오'],appearance:'short brown hair, green eyes, tall',defaultOutfit:'white shirt, black jeans, sneakers'},
  {id:'b7e90000-2222-4222-8222-222222222222',name:'미라',aliases:['Mira'],appearance:'long black hair',defaultOutfit:''},
  {id:'c0de0000-3333-4333-8333-333333333333',name:'Kai Lee',aliases:[],appearance:'',defaultOutfit:''}];
@@ -84,4 +84,17 @@ test('0.1.81 (UI-076-02): a name with brackets or double spaces keeps its length
  assert.equal(displayLength(text),168+3*11);assert.match(lengthProblem(text,'wish'),/200자/);
  for(const name of ['Leo (Main)','[Q] (z)','a  b','a]b']){const t=chipToken(name,p.id);assert.equal(displayLength(t),name.length+1,name);assert.deepEqual(readRefs(t,[{...p,name}]).refs.map(r=>r.id),[p.id],name);}
  assert.equal(tokenize(chipToken('a]b',p.id))[0].name,'a］b','] is swapped one for one, so the chip text stays whole');
+});
+test('0.1.153: the pills under a field show each linked profile once, broken links, and a look only for shared names',()=>{
+ const [leo,mira,kai]=P,twin={id:'d1',name:'Leo',aliases:[],appearance:'curly red hair, blue eyes',defaultOutfit:'grey coat'};
+ const r=(start,label,id)=>({start,label,id});
+ assert.deepEqual(linkedPills([],P),[]);
+ assert.deepEqual(linkedPills([r(10,'Kai Lee',kai.id),r(0,'Leo',leo.id),r(20,'Leo',leo.id)],P),
+  [{label:'Leo',broken:false,look:''},{label:'Kai Lee',broken:false,look:''}],'in text order, the same profile once');
+ assert.deepEqual(linkedPills([r(0,'Mira',''),r(8,'Mira',''),r(16,'Ghost','gone-id')],P),
+  [{label:'Mira',broken:true,look:''},{label:'Ghost',broken:true,look:''}],'no id or a removed profile is broken (once per name)');
+ assert.deepEqual(linkedPills([r(0,'Mira',mira.id)],P),[{label:'미라',broken:false,look:''}],'the profile name now, not the text in the box');
+ const both=linkedPills([r(0,'Leo',leo.id),r(6,'Leo',twin.id)],[...P,twin]);
+ assert.deepEqual(both.map(p=>p.look),[lookSummary(leo),lookSummary(twin)]);assert.ok(both.every(p=>p.look));
+ assert.equal(linkedPills([r(0,'레오',leo.id)],[...P,{id:'e1',name:'레 오',aliases:[]}])[0].look,lookSummary(leo),'an alias shared with another name counts (Hangul spaces ignored)');
 });

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.153 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+- New: under the 추가 요청 and 프리샷 상황 fields, a **연결됨** row of pills shows who each `@name` in the box is linked to (shown only; typing, undo and paste work as before). Each profile shows once, by its current name.
+- A broken link (a removed profile, or a place undo left unsure) is a dashed orange `@name 끊김` pill, so it is seen before [장면 추출] stops on it. Pick it again in the box as before.
+- When two profiles share a name or an alias, their pills add the same short look the @ list shows.
+- Known limit (GPT review of 0.1.152, P3, kept): an earlier [본문에 넣기] from the enlarged view whose record lookup fails after a later one opened its picker still shows its error; the later picture stays.
+
 ## 0.1.152 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.151 (one P2):

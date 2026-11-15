@@ -1,3 +1,14 @@
+# v0.1.153 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **198 passed, 0 failed** (new: `linkedPills` — text order, one pill per profile, broken links, current name, a look only for shared names or aliases).
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **136 of 136 Chromium browser scripts passed** (run 4 at a time; `v0151` and `v0187` were slow in parallel and passed when run alone).
+- New `tests/browser-v01153.mjs` (375px, 1100px): no row without links (a typed `@Leo` is not one), a pick from the @ list shows its pill, the same profile twice shows once, editing inside `@Leo` drops only that pill, a broken link is a dashed `끊김` pill that turns whole after picking again in the box, two profiles named Leo show their looks, deleting a profile on the profile tab turns its pill broken without touching the box, a name with markup is shown as text, a very long name stays inside the field's width, and 프리샷 상황 has the same row.
+- Revert checks: without the redraw in `renderProfiles` the profile-delete step fails; without the `ncs-field-set` redraw the value step fails; without `esc()` the markup step fails.
+- Not checked: a real SillyTavern, a real iPhone inside SillyTavern (phone keyboard typing with the row below), a real NovelAI account.
+
+---
+
 # v0.1.152 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.
