@@ -1943,6 +1943,7 @@ async function extract() {
   const selection=chooseSceneMessages(ctx().chat,{target:$('ncs-target').value===''?null:Number($('ncs-target').value),recent:Number($('ncs-recent').value),includeUser:$('ncs-include-user').checked});
   stampSource(selection.source,ctx().chat);
   const startKey=keyOf(),rev=revision,ticket=++task,profiles=clone(s.profiles),outfits=clone(outfitState());
+  const startTarget=$('ncs-target').value; // 0.1.143 (GPT 0.1.142 P2-3): choosing a target does not change revision
   const matching=matchChatProfiles(ctx(),profiles,selection.messages,chatBindings(),[...scene.characters.filter(c=>c.included!==false).map(c=>c.id),...requiredIds]);
   matching.required=new Set(requiredIds); // 0.1.75: people picked with @ (may not be in the message)
   const wish=$('ncs-moment-wish').value.trim();
@@ -1972,6 +1973,7 @@ async function extract() {
         if(foreign.length)parsed.warnings.push(`영어로 바뀌지 않은 칸이 있어요(${foreign.join(', ')}). 직접 고치거나 다시 추출해 주세요.`);
         if(ticket!==task||keyOf()!==startKey||revision!==rev||!sourceValid(selection.source,ctx().chat)){report('채팅·장면 또는 원문이 바뀌어서 추출 결과를 적용하지 않았어요.');return;}
         if($('ncs-moment-wish').value.trim()!==wish){report('추출하는 동안 추가 요청이 바뀌어서 결과를 적용하지 않았어요. 바꾼 요청으로 다시 눌러 주세요.');return;} // UI-055-04
+        if($('ncs-target').value!==startTarget){report('추출하는 동안 대상 메시지가 바뀌어서 결과를 적용하지 않았어요. 고른 대상으로 다시 눌러 주세요.');return;}
         // Each candidate is reconciled and cleaned on its own, so one moment's people and poses never leak into another.
         const c=ctx(),baseNames=[...s.profiles.flatMap(p=>[p.name,...p.aliases]),...matching.profiles.flatMap(p=>[p.name,...p.aliases]),...matching.mappings.map(m=>m.name),
           matching.userName,matching.characterName,c.name1,c.name2];
@@ -3149,7 +3151,16 @@ async function importHistory(id,nextMode,record=null){
   if(!sameChat){scene.moments=[];scene.momentIndex=0;scene.momentWish='';$('ncs-target').value='';draftSource=null;targetShown=TARGET_STEP;targetScroll=0;$('ncs-target-picker').open=false;}
   else if(!Array.isArray(scene.moments)||scene.moments.length<2){scene.moments=[];scene.momentIndex=0;}
   else scene.momentIndex=Math.min(Math.max(0,Number(scene.momentIndex)||0),scene.moments.length-1);
-  $('ncs-moment-wish').value=sameChat&&typeof scene.momentWish==='string'?scene.momentWish:'';
+  let wish=sameChat&&typeof scene.momentWish==='string'?scene.momentWish:'';
+  // 0.1.143 (GPT 0.1.142 P2-1): 추가 요청 belongs to the message the picture was drawn from. It comes back only with that
+  // target and its fingerprint (a changed message then stops at TARGET_CHANGED); when the picture's target is unknown or
+  // gone from this chat, the request is left out instead of being put under another message.
+  if(wish){
+    const src=item.snapshot?.scene?.source,t=src?.target,f=Number.isInteger(t)?src.fingerprints?.find(x=>x.index===t):null;
+    if(f&&isSceneMessage(ctx().chat?.[t])){$('ncs-target').value=String(t);draftSource={fingerprints:[{index:t,swipeId:f.swipeId??0,signature:f.signature??textSignature(f.text??'')}]};$('ncs-target-picker').open=false;}
+    else wish='';
+  }
+  if(sameChat)scene.momentWish=wish;$('ncs-moment-wish').value=wish;
   $('ncs-free-text').value=nextMode==='free'&&typeof item.snapshot?.freeText==='string'?item.snapshot.freeText:'';
   raw=item.snapshot?.rawExtraction??'';finalOverride=restoredFinal=clone(item.assembled??null);optionsOverride=item.options?freeOptions({...DEFAULTS.options,...clone(item.options)}):null;result=item;
   undoChatOutfit=null;undoClear=before;revision++;renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();showTab('scene');rememberDraft();
@@ -3675,7 +3686,8 @@ async function zoomTagPopup(){
 }
 function chatChanged() {
   closeImageMenu();closeAttachPicker();closeTagPopup();renderTagPopupSetting();
-  const key=keyOf();if(key===chatKey)return;undoChatOutfit=null;historyImportToken++;
+  // 0.1.143 (GPT 0.1.142 P3): the same chat loaded again — its messages are back, so the target list is drawn again.
+  const key=keyOf();if(key===chatKey){if(dialog)renderTargets();return;}undoChatOutfit=null;historyImportToken++;
   // 0.1.97 (GPT P2-1): only the work on screen is saved here. 챗샷 work waiting off screen was saved when it left the
   // screen if it could be; saving it now could write work never compared with the server's copy.
   // 0.1.141 (GPT 0.1.140 P2-1): like leaving the page, only an edit waiting to be saved — a changed message empties

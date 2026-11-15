@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.143 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.142 (three P2, one P3; one P2 kept as a known limit):
+- Fix: a picture brought back to 챗샷 from the same chat's history restores its 추가 요청 together with the message it was drawn from (a changed message then stops [장면 추출]); an older picture without that message comes back without 추가 요청, so it never lands under another message.
+- Fix: choosing another 대상 메시지 while an extraction runs no longer puts the old message's scene under the new target.
+- Fix: the open target list shows the messages again after SillyTavern reloads the same chat.
+- Known limit: when the chosen message is deleted and a message with exactly the same text and swipe moves into its number, it is taken as the same message.
+
 ## 0.1.142 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.141 (three P2, two P3), with a changed rule:

@@ -1,3 +1,14 @@
+# v0.1.143 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **126 of 126 Chromium browser scripts passed**, including the new `tests/browser-v01143.mjs` (375px, 1100px). Run 4 at a time, `browser-v031` failed once (timing) and passed on its own. New script: a picture drawn from #0 with 추가 요청, brought back to 챗샷 while #1 is chosen, restores target #0 with its 추가 요청 (screen and saved); with #0 edited since, [장면 추출] stops with no AI call; an older picture without its target keeps #1 and comes back without 추가 요청. #1 chosen while the extraction for #0 is held: the answer is not applied, with a note. The target list opened while the same chat is emptied lists the messages again when they are back.
+- Old-code checks: the 0.1.142 code fails each of the five steps on its own.
+- Revert checks: taking out the target restore (steps 1 and 2), the emptying for an unknown target, the extraction target check and the same-chat redraw each make their own step fail.
+- Not checked: SillyTavern's real chat switch and chat reload (imitated), a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.142 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.
