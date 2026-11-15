@@ -1,3 +1,14 @@
+# v0.1.145 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed** (run for 0.1.144, server not changed since).
+- **128 of 128 Chromium browser scripts passed**, including the new `tests/browser-v01145.mjs` (375px, 1100px). Run 4 at a time, `browser-v01100`, `v0123` and `v0151` failed once (timing) and passed on their own. New script: the chat emptied with the target list open, the left #1 row pressed shows a note, and with a different #1 back [장면 추출] stops with no AI call. The chosen message edited while a broken first answer is held: one AI call only. A deleted target with 추가 요청 emptied: [장면 추출] runs on 가장 최근 메시지 and no old fingerprint is saved. A system note in the chosen number shows "찾을 수 없는 메시지".
+- Old-code checks: the 0.1.144 code fails each of the four steps on its own.
+- Revert checks: taking out the row check (judged by the AI call, not the note), the retry check, the start refresh, the fingerprint clearing or the label rule each makes its own step fail.
+- Not checked: SillyTavern's real chat reload (imitated), a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.144 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.

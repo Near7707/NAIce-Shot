@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.145 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.144 (two P2, two P3):
+- Fix: pressing a target row left on screen while SillyTavern reloads the chat no longer drops the chosen message's check, so 추가 요청 cannot go to a different message that comes back under that number; a note asks to open the list again.
+- Fix: no second extraction call with the old text when the chosen message was edited, deleted or rerolled after a broken first answer.
+- Fix: with 추가 요청 emptied, a deleted target becomes 가장 최근 메시지 at [장면 추출] right away, and its old check is not saved.
+- Fix: a system note that takes the chosen number is shown as "찾을 수 없는 메시지", like in the list.
+
 ## 0.1.144 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.143 (two P2, one P3 kept as a known limit):

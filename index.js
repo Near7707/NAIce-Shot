@@ -776,9 +776,9 @@ function renderTargets() {
   // 0.1.142 (GPT 0.1.141 P2-2): SillyTavern empties the chat to reload it (same id); an empty chat drops no chosen target.
   // 0.1.144 (GPT 0.1.143 P2-1): a chosen message that is gone falls back to 가장 최근 메시지 only without 추가 요청;
   // with one, the number stays so [장면 추출] stops at TARGET_CHANGED instead of sending it to another message.
-  if(select.value!==''&&chat.length&&!rows.includes(Number(select.value))&&!$('ncs-moment-wish').value.trim())select.value='';
+  if(select.value!==''&&chat.length&&!rows.includes(Number(select.value))&&!$('ncs-moment-wish').value.trim()){select.value='';draftSource=null;} // 0.1.145 (P3-1): no old fingerprint for 가장 최근 메시지
   const text=i=>chat[i].mes.replace(/\s+/g,' ').trim(),hidden=i=>isHiddenSceneMessage(chat[i])?' · 숨김':'';
-  $('ncs-target-label').textContent=select.value===''?'가장 최근 메시지':!chat[select.value]?`#${select.value}${chat.length?' · 찾을 수 없는 메시지':''}`:`#${select.value} · ${chat[select.value].name??''}${hidden(Number(select.value))} · ${text(Number(select.value)).slice(0,55)}`;
+  $('ncs-target-label').textContent=select.value===''?'가장 최근 메시지':!rows.includes(Number(select.value))?`#${select.value}${chat.length?' · 찾을 수 없는 메시지':''}`:`#${select.value} · ${chat[select.value].name??''}${hidden(Number(select.value))} · ${text(Number(select.value)).slice(0,55)}`;
   // Make sure the chosen message is among the shown rows, so its check mark is visible when the list opens.
   const at=select.value===''?-1:rows.indexOf(Number(select.value));
   targetShown=Math.max(TARGET_STEP,targetShown,at>=0?Math.ceil((at+1)/TARGET_STEP)*TARGET_STEP:0);
@@ -792,6 +792,9 @@ function renderTargets() {
 }
 function chooseTarget(value,{reveal=false}={}) {
   if(chatLoading())throw new Error(CHAT_LOADING); // 0.1.138 (GPT 0.1.137 P2-1): a message of the next chat is not this work's target
+  // 0.1.145 (GPT 0.1.144 P2-1): a row left from before the chat emptied (reload) has no message to fingerprint; the
+  // chosen target and its fingerprint stay as they were.
+  if(value!==''&&!isSceneMessage(ctx().chat?.[Number(value)])){renderTargets();throw new Error(TARGET_MISSING);}
   dropUndo();
   rememberTargetScroll();targetReveal=reveal;if(value==='')targetScroll=0;
   if($('ncs-target').value!==value)$('ncs-moment-wish').value=''; // a wished moment belongs to the message it was written for
@@ -1932,6 +1935,7 @@ function applyFree(parsed,foreign=[],plan=planFreePeople(scene.characters,plainN
     before&&(plan.removed.length||plan.pinnedOut.length||out.refreshed.length)?'잘못됐다면 [↶ 추출 취소]를 눌러 주세요.':''];
   notice(parts.filter(Boolean).join(' '),false,'scene',{keep:!!(plan.removed.length||plan.pinnedOut.length||out.notShown.length||out.refreshed.length||unsure.length||foreign.length||emptyRequired.length||refs.note)});
 }
+const TARGET_MISSING='그 메시지를 지금 찾을 수 없어요. 채팅이 다 열린 뒤 대상 목록을 다시 열어 골라 주세요.';
 const TARGET_CHANGED='고른 대상 메시지가 수정·삭제·리롤됐어요. 추가 요청이 맞는지 확인하고 대상 메시지를 다시 골라 주세요.';
 async function extract() {
   const originTab='scene',report=(message,error=false)=>notice(message,error,originTab);
@@ -1940,6 +1944,7 @@ async function extract() {
   if(ctx().streamingProcessor && !ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 추출해 주세요.');
   // 0.1.142 (user decision A): the chosen message was edited, deleted or rerolled (its fingerprint differs), so 대상·추가 요청
   // may belong to another message now. Nothing is emptied: the person picks the target again (가장 최근 메시지 never stops).
+  if(!$('ncs-moment-wish').value.trim())renderTargets(); // 0.1.145 (GPT 0.1.144 P3-1): a gone target without 추가 요청 becomes 가장 최근 메시지 now
   if($('ncs-target').value!==''&&draftSource&&!sourceValid(draftSource,ctx().chat))throw new Error(TARGET_CHANGED);
   const refs=prepareRefs($('ncs-moment-wish'),'추가 요청'),requiredIds=refs.required.map(p=>p.id);
   const selection=chooseSceneMessages(ctx().chat,{target:$('ncs-target').value===''?null:Number($('ncs-target').value),recent:Number($('ncs-recent').value),includeUser:$('ncs-include-user').checked});
@@ -1963,6 +1968,7 @@ async function extract() {
     for(let attempt=0;attempt<2;attempt++) {
       if(ticket!==task||keyOf()!==startKey||revision!==rev||controller.signal.aborted)return;
       if($('ncs-target').value!==startTarget){report('추출하는 동안 대상 메시지가 바뀌어서 결과를 적용하지 않았어요. 고른 대상으로 다시 눌러 주세요.');return;} // 0.1.144 (GPT 0.1.143 P2-2): no retry for the old target
+      if(attempt&&!sourceValid(selection.source,ctx().chat)){report('채팅·장면 또는 원문이 바뀌어서 추출 결과를 적용하지 않았어요.');return;} // 0.1.145 (GPT 0.1.144 P2-2): nor for a changed message
       if(progress?.owner===ticket){progress.attempt=attempt+1;renderProgress();}
       let received=false;
       try {
