@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.147 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.146 (one P1, one P2, one P3 kept as a known limit):
+- Fix (security): a swipe number taken from an imported chat file is shown as text in the target list and can no longer run as HTML. This came in with 0.1.146.
+- Fix: the draw button beside a message picks nothing when the chat or that message changed between the click and the panel opening; a note asks to press it again, so 추가 요청 cannot go to a different message.
+- Known limit: a message still streaming may ask to be picked again from the list more than once; it settles when the reply ends (extraction waits for it anyway).
+
 ## 0.1.146 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.145 (two P2, one P3 kept as a known limit):

@@ -148,6 +148,8 @@ document.addEventListener('close',event=>{
   requestAnimationFrame(()=>{const a=document.activeElement;if(a?.classList?.contains('ncs-mes-draw')||a?.closest?.('.ncs-inline-images'))a.blur();});
 },true);
 async function drawFromMessage(index){
+  // 0.1.147 (GPT 0.1.146 P2): the chat and the message as clicked; changed while the panel opens, nothing is picked.
+  const key=keyOf(),clicked=ctx().chat?.[index],mark=clicked?rowMark(clicked):undefined;
   await (panelReady??Promise.resolve());
   if(busy||attaching||draftLoading){await open();notice('진행 중인 작업이 끝난 뒤 선택해 주세요.',true);return;}
   await open();
@@ -155,6 +157,7 @@ async function drawFromMessage(index){
   showTab('scene');
   const m=ctx().chat?.[index];
   if(!Number.isInteger(index)||!isSceneMessage(m)){notice('이 메시지는 그림 대상으로 고를 수 없어요.',true);return;}
+  if(keyOf()!==key||rowMark(m)!==mark){notice('버튼을 누른 뒤 그 메시지가 바뀌었어요. 메시지를 확인하고 다시 눌러 주세요.',true);return;}
   chooseTarget(String(index),{reveal:true});
   notice(`#${index} 메시지를 대상으로 골랐어요. "장면 추출"을 눌러 진행해 주세요.`);
 }
@@ -787,7 +790,7 @@ function renderTargets() {
   const more=dialog.querySelector('[data-action="target-more"]');more.hidden=left<=0;more.textContent=`이전 메시지 ${Math.min(TARGET_STEP,left)}개 더 보기`;
   if(!$('ncs-target-picker').open){targetListRendered=false;$('ncs-target-list').innerHTML='';return;}
   const latest=`<button type="button" class="ncs-target-item" data-action="target-latest" aria-pressed="${select.value===''}"><span class="ncs-target-meta">가장 최근 메시지</span><span class="ncs-target-preview">숨기지 않은 최근 메시지를 따라가요</span></button>`;
-  $('ncs-target-list').innerHTML=latest+shown.map(i=>`<button type="button" class="ncs-target-item" data-action="target-message" data-message-index="${i}" data-message-mark="${rowMark(chat[i])}" aria-pressed="${select.value===String(i)}"><span class="ncs-target-meta">#${i} · ${esc(chat[i].name??'')}${hidden(i)}</span><span class="ncs-target-preview">${esc(text(i).slice(0,90))}</span></button>`).join('');
+  $('ncs-target-list').innerHTML=latest+shown.map(i=>`<button type="button" class="ncs-target-item" data-action="target-message" data-message-index="${i}" data-message-mark="${esc(rowMark(chat[i]))}" aria-pressed="${select.value===String(i)}"><span class="ncs-target-meta">#${i} · ${esc(chat[i].name??'')}${hidden(i)}</span><span class="ncs-target-preview">${esc(text(i).slice(0,90))}</span></button>`).join('');
   targetListRendered=true;restoreTargetScroll();
 }
 // 0.1.146 (GPT 0.1.145 P2-1): the text a target row was drawn for. A row drawn for an older text of the same number

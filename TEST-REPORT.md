@@ -1,3 +1,14 @@
+# v0.1.147 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **130 of 130 Chromium browser scripts passed** (run 4 at a time, no reruns), including the new `tests/browser-v01147.mjs` (375px, 1100px). New script: message #1 given a swipe number with `"><img onerror>` text: the target list runs nothing, holds no element from it, and #1 is still picked normally. The draw button beside #1 pressed with 추가 요청 filled, #1's text changed as the panel opens: target, 추가 요청 and check stay, a note asks to press again and [장면 추출] makes no AI call; pressed again, #1 is picked with 추가 요청 kept and it extracts.
+- Old-code checks: the 0.1.146 code fails both steps on their own (the injected text ran).
+- Revert checks: taking out `esc()` or the button's check makes its own step fail.
+- Not checked: SillyTavern's real chat import and reload (imitated), the chat key changing while the panel opens, a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.146 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.
