@@ -147,13 +147,17 @@ document.addEventListener('close',event=>{
   if(event.target?.id!=='naice-shot-dialog'&&event.target?.id!=='ncs-viewer')return;
   requestAnimationFrame(()=>{const a=document.activeElement;if(a?.classList?.contains('ncs-mes-draw')||a?.closest?.('.ncs-inline-images'))a.blur();});
 },true);
+// 0.1.148 (GPT 0.1.147 P2): only the latest press picks; an earlier one still waiting (the first server check) stops.
+let drawPress=0;
 async function drawFromMessage(index){
   // 0.1.147 (GPT 0.1.146 P2): the chat and the message as clicked; changed while the panel opens, nothing is picked.
-  const key=keyOf(),clicked=ctx().chat?.[index],mark=clicked?rowMark(clicked):undefined;
+  // 0.1.148 (P3): fingerprinted only when it can be picked (a message with no text gets the usual note).
+  const press=++drawPress,key=keyOf(),clicked=ctx().chat?.[index],mark=isSceneMessage(clicked)?rowMark(clicked):undefined;
   await (panelReady??Promise.resolve());
   if(busy||attaching||draftLoading){await open();notice('진행 중인 작업이 끝난 뒤 선택해 주세요.',true);return;}
   await open();
   if(isFree())await setMode('chat'); // the message button always draws in 챗샷; 프리샷 work waits as it was
+  if(press!==drawPress)return; // a later press took over (its own tab, note and pick)
   showTab('scene');
   const m=ctx().chat?.[index];
   if(!Number.isInteger(index)||!isSceneMessage(m)){notice('이 메시지는 그림 대상으로 고를 수 없어요.',true);return;}

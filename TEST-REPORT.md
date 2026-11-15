@@ -1,3 +1,14 @@
+# v0.1.148 validation — 2026-11-15 (extension only, server v0.1.25)
+
+- Extension Node suite: **197 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **131 of 131 Chromium browser scripts passed** (run 4 at a time, no reruns), including the new `tests/browser-v01148.mjs` (375px, 1100px). New script: the panel first opened by #0's draw button with the server check held, the panel closed and #1's button pressed: #1 is picked, and after the check ends #1 stays the target with its note. A message with no text pressed: the usual note, nothing picked.
+- Old-code checks: the 0.1.147 code fails both steps on their own (the first press replaced #1; a technical error and no panel).
+- Revert checks: taking out the latest-press check or the fingerprint order makes its own step fail. `browser-v01147` still passes.
+- Not checked: SillyTavern with a slow first server check, a real iPhone inside SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.147 validation — 2026-11-15 (extension only, server v0.1.25)
 
 - Extension Node suite: **197 passed, 0 failed**.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.148 — 2026-11-15 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.147 (one P2, one P3):
+- Fix: when the first panel opening waits for the server check, a message's draw button pressed earlier no longer replaces the target picked by a later press.
+- Fix: the draw button of a message with no text shows the usual "이 메시지는 그림 대상으로 고를 수 없어요" note instead of a technical error (came in with 0.1.147).
+
 ## 0.1.147 — 2026-11-15 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.146 (one P1, one P2, one P3 kept as a known limit):
