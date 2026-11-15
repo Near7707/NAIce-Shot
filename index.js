@@ -1818,13 +1818,20 @@ function updateRefList(field){
   box.innerHTML=items.map((it,i)=>`<button type="button" role="option" class="ncs-ref-item" data-ref-pick="${i}" aria-selected="${i===active}"><b>${esc(it.name)}</b>${it.aliases.length?`<span class="ncs-ref-aliases">${esc(it.aliases.join(', '))}</span>`:''}${it.look?`<span class="ncs-ref-look">${esc(it.look)}</span>`:''}</button>`).join('');
   const r=field.getBoundingClientRect(),width=Math.min(Math.max(r.width,220),360);
   box.style.width=`${width}px`;box.style.left=`${Math.max(8,Math.min(r.left,innerWidth-width-8))}px`;
-  box.hidden=false;const h=box.offsetHeight;
   // 0.1.154: room is measured in the part of the screen a phone keyboard leaves (visualViewport, as the tag form does), so
   // a field above the keyboard gets its list just above it. Then the list is measured where it really landed and moved by
   // the difference: on the iPhone a fixed box and the field's rectangle can be counted from different tops while the
   // keyboard is open, and the list went far above the field (or off the screen).
-  const vv=window.visualViewport,top=(vv?.offsetTop??0)+8,bottom=(vv?vv.offsetTop+vv.height:innerHeight)-8;
-  const want=r.bottom+4+h<=bottom?r.bottom+4:Math.max(top,r.top-4-h);
+  const vv=window.visualViewport,seenTop=vv?.offsetTop??0,seenBottom=vv?vv.offsetTop+vv.height:innerHeight,top=seenTop+8,bottom=seenBottom-8;
+  // 0.1.155 (GPT 0.1.154 P3-1): the field scrolled out of what is seen: the list closes (a hidden list could still take Enter).
+  if(r.bottom<=seenTop||r.top>=seenBottom){closeRefList();return;}
+  box.style.maxHeight='';box.hidden=false;let h=box.offsetHeight;
+  // 0.1.155 (GPT 0.1.154 P2): when the whole list fits neither under nor above the field, it goes to the side with more
+  // room and is cut to that room (it scrolls inside), so it never covers the field nor ends behind the keyboard.
+  const below=bottom-(r.bottom+4),above=(r.top-4)-top;
+  const under=h<=below||(h>above&&below>=above);
+  if(h>below&&h>above){h=Math.max(0,Math.floor(under?below:above));box.style.maxHeight=`${h}px`;h=box.offsetHeight;}
+  const want=under?r.bottom+4:r.top-4-h;
   box.style.top=`${want}px`;const off=box.getBoundingClientRect().top-want;if(Math.abs(off)>1)box.style.top=`${want-off}px`;
   // UI-075-06: the chosen item stays inside the list when the arrow keys go past what fits.
   const row=box.querySelector('[aria-selected="true"]');

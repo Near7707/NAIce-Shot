@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.155 — 2026-11-16 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.154 (one P2, two P3):
+- Fix: when the @ list fits neither under nor above its field (a phone keyboard leaving little room), it opens on the side with more room and is cut to that room, scrolling inside. It no longer covers the field, and its last name is no longer behind the keyboard. With room again it grows back.
+- Fix: the @ list closes when its field scrolls out of what is seen (it stayed, partly cut).
+- Known limit: with the phone screen pinch-zoomed, the right side of the @ list can be cut; at the normal zoom it fits.
+
 ## 0.1.154 — 2026-11-16 (extension only — server v0.1.25 unchanged)
 
 - Fix: with a phone keyboard open, the @ list opens just under or just above its field (it went far above the field, sometimes off the screen, most of all for 추가 요청 under several moments). Room is measured in the part of the screen the keyboard leaves, and the list follows the keyboard moving.

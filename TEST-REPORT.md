@@ -1,3 +1,15 @@
+# v0.1.155 validation — 2026-11-16 (extension only, server v0.1.25)
+
+- Extension Node suite: **198 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **138 of 138 Chromium browser scripts passed** (run 4 at a time, none re-run).
+- New `tests/browser-v01155.mjs` (320px, 375px, 1100px), ten profiles (eight suggestions) and the stand-in `visualViewport` of v01154 with a settable top and height: with plenty of room the whole list opens under the field with no cut; with little room on both sides and more above, the list sits just above the field, cut, never over the field, and its last item (scrolled to) stays above the field; with more room under, the list sits just under the field, cut to what is above the keyboard, its last item is not behind the keyboard, and picking from the cut list links; the keyboard going away (a resize) brings the list back under the field at full height; the field scrolled above what is seen closes the list, and it opens as before once the field is seen.
+- Old-code checks: the 0.1.154 code fails the first cut step (280px of 280px).
+- Revert checks: without cutting the height, without picking the larger side, without undoing the cut before measuring, and without closing for a field out of view, the new script fails each time.
+- Not checked: a real iPhone keyboard with many names (the user confirmed on an iPhone that 0.1.154 places the list right), a real SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.154 validation — 2026-11-16 (extension only, server v0.1.25)
 
 - Extension Node suite: **198 passed, 0 failed**.
