@@ -129,7 +129,7 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
     return {node:el,start:q.start,end:at,query:q.query};
   };
   // Puts "@name" of a profile where the "@query" is and remembers which profile it is.
-  el.insertChip=(q,profile)=>{
+  el.insertChip=(q,profile,{asIs=false}={})=>{
     const data=shown(),typed=data.slice(q.start+1,q.end).toLowerCase();let end=q.end,best=0;
     // "@Le|o": the rest of the name after the caret is part of what was typed, so it goes too (0.1.77, UI-075-07).
     for(const l0 of [profile.name,...(profile.aliases??[])].filter(Boolean)){
@@ -141,11 +141,26 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
     // 0.1.125 (GPT 0.1.124 P3): picked again at a broken link: its whole "@name" goes, wherever the caret is in it.
     // 0.1.126 (GPT 0.1.125 P3): and no more than that. A longer alias ("Leo walks") must not take the words after it.
     const broken=refs.find(r=>r.start===q.start&&r.id==='');if(broken)end=Math.max(q.end,broken.start+1+broken.label.length);
-    const name=label(profile.name),space=/\s/.test(data[end]??'')?'':' ',text=`@${name}${space}`;
+    const name=label(profile.name),space=asIs||/\s/.test(data[end]??'')?'':' ',text=`@${name}${space}`; // 0.1.158: a pill's re-pick keeps the spacing around the name
     // 0.1.79 (UI-076-02): the reference must fit. Measured as seen: the typed "@que" goes, "@name" (and a space) comes.
     if(limit-(data.length-(end-q.start))-text.length<0){el.dispatchEvent(new CustomEvent('ncs-field-full',{bubbles:true,detail:{chip:true}}));return false;}
     el.focus();el.setSelectionRange(q.start,end);clear(q.start,end);putWith(q.start,text,[{start:0,label:name,id:String(profile.id)}]);grow();
     return true;
+  };
+  // 0.1.158: a pill's [칸에서 지우기] takes one linked "@name" out, with one space next to it (after it, or before it at
+  // the end), as one edit the browser can undo. Only when that link is still where it was.
+  el.dropRef=r=>{
+    sync();const now=refs.find(o=>o.start===r.start&&o.label===r.label&&o.id===r.id);if(!now)return false;
+    const data=shown();let a=now.start,b=now.start+1+now.label.length;
+    if(/[ \t]/.test(data[b]??''))b++;else if(a>0&&/[ \t]/.test(data[a-1]))a--;
+    pending=null;el.focus();el.setSelectionRange(a,b);clear(a,b);quiet=true;
+    try{if(!document.execCommand?.('delete')){el.setRangeText('',a,b,'end');el.dispatchEvent(new Event('input',{bubbles:true}));}}finally{quiet=false;}
+    add(a,[]);grow();return true;
+  };
+  // 0.1.158: a pill's [다시 고르기] puts another profile at one linked (or broken) "@name", the way a pick from the list does.
+  el.repickRef=(r,profile)=>{
+    sync();const now=refs.find(o=>o.start===r.start&&o.label===r.label&&o.id===r.id);if(!now)return false;
+    const end=now.start+1+now.label.length;return el.insertChip({node:el,start:now.start,end,query:now.label},profile,{asIs:true});
   };
   el.addEventListener('beforeinput',event=>{
     if(singleLine&&(event.inputType==='insertParagraph'||event.inputType==='insertLineBreak'))event.preventDefault();

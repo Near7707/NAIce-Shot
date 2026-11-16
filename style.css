@@ -877,6 +877,16 @@
 #naice-shot-dialog .ncs-ref-pill small {color:var(--ncs-muted);font-size:.92em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
 #naice-shot-dialog .ncs-ref-pill-broken {border-style:dashed;border-color:var(--ncs-warning);background:transparent;color:var(--ncs-warning);}
 #naice-shot-dialog .ncs-ref-pill-broken small {color:inherit;flex:none;} /* 0.1.154: "끊김" keeps its width, only the name is cut */
+/* 0.1.158: a pill is a button that opens a small menu under the row. */
+#naice-shot-dialog .ncs-ref-pills {position:relative;}
+#naice-shot-dialog button.ncs-ref-pill {min-height:0;margin:0;font:inherit;cursor:pointer;text-align:left;}
+#naice-shot-dialog button.ncs-ref-pill[aria-expanded="true"] {border-color:var(--ncs-accent-text);box-shadow:0 0 0 1px var(--ncs-accent-text);}
+#naice-shot-dialog .ncs-pill-menu {flex:1 0 100%;display:grid;gap:2px;max-width:320px;padding:4px;border:var(--ncs-border-width) solid var(--ncs-edge);border-radius:var(--ncs-radius-control);background:var(--ncs-bg);box-shadow:0 8px 28px #0006;font-size:14px;}
+#naice-shot-dialog .ncs-pill-menu-head {padding:4px 10px 2px;color:var(--ncs-muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#naice-shot-dialog .ncs-pill-menu > button:not(.ncs-ref-item) {width:100%;margin:0;padding:8px 10px;min-height:40px;border:0;border-radius:6px;background:transparent;text-align:left;}
+@media (hover:hover){#naice-shot-dialog .ncs-pill-menu > button:not(.ncs-ref-item):hover {background:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);}}
+#naice-shot-dialog .ncs-pill-menu .ncs-pill-menu-drop {color:var(--ncs-warning);border-top:1px solid var(--ncs-rule);border-radius:0 0 6px 6px;}
+#naice-shot-dialog .ncs-pill-menu-empty {padding:6px 10px;color:var(--ncs-muted);}
 #naice-shot-dialog .ncs-ref-list {position:fixed;z-index:30;display:grid;gap:2px;max-height:min(280px,50dvh);overflow:auto;padding:4px;border:var(--ncs-border-width) solid var(--ncs-edge);border-radius:var(--ncs-radius-control);background:var(--ncs-bg);box-shadow:0 8px 28px #0006;}
 #naice-shot-dialog .ncs-ref-item {display:flex;align-items:baseline;gap:8px;width:100%;padding:8px 10px;border:0;border-radius:6px;background:transparent;text-align:left;min-height:40px;}
 #naice-shot-dialog .ncs-ref-item[aria-selected="true"] {background:var(--ncs-tab-active-bg);color:var(--ncs-tab-active-fg);}

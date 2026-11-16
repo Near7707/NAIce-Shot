@@ -95,7 +95,7 @@ try{
    const m=await page.evaluate(id=>{const p=document.querySelector(`[data-pills-for="${id}"] .ncs-ref-pill-broken`),s=p.querySelector('small'),b=p.querySelector('b'),f=document.getElementById('ncs-moment-wish');
     return {small:s.getBoundingClientRect().width,need:s.scrollWidth,cut:b.scrollWidth>b.clientWidth,inside:p.getBoundingClientRect().right<=f.getBoundingClientRect().right+1,title:p.title};},WID);
    assert.ok(m.small>=m.need&&m.small>=12,`끊김 ${m.small}px of ${m.need}px`);assert.equal(m.cut,true);assert.equal(m.inside,true);
-   assert.match(m.title,/지우고 @를 쳐서/);}
+   assert.match(m.title,/눌러서 다시 골라/);} // 0.1.158: the pill itself picks again
   // --- no keyboard: the list opens just under the field (as before)
   {await openList();const r=await rects(page);near(r.lTop,r.fBottom+4,'under the field');await page.keyboard.press('Escape');}
   // --- a keyboard leaves room only down to just under the field: the list opens just above the field, inside what is seen

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readRefs,confirmRefs,refsForExtraction,chipToken,tokenize,displayLength,displayText,queryAt,suggestions,lookSummary,stripRefMarks,plainNames,boundaryAfter,linkedPills} from '../mentions.mjs';
+import {readRefs,confirmRefs,refsForExtraction,chipToken,tokenize,displayLength,displayText,queryAt,suggestions,lookSummary,stripRefMarks,plainNames,boundaryAfter,linkedPills,pillRefs} from '../mentions.mjs';
 const P=[{id:'a3f2c1d0-1111-4111-8111-111111111111',name:'Leo',aliases:['레오'],appearance:'short brown hair, green eyes, tall',defaultOutfit:'white shirt, black jeans, sneakers'},
  {id:'b7e90000-2222-4222-8222-222222222222',name:'미라',aliases:['Mira'],appearance:'long black hair',defaultOutfit:''},
  {id:'c0de0000-3333-4333-8333-333333333333',name:'Kai Lee',aliases:[],appearance:'',defaultOutfit:''}];
@@ -90,11 +90,21 @@ test('0.1.153: the pills under a field show each linked profile once, broken lin
  const r=(start,label,id)=>({start,label,id});
  assert.deepEqual(linkedPills([],P),[]);
  assert.deepEqual(linkedPills([r(10,'Kai Lee',kai.id),r(0,'Leo',leo.id),r(20,'Leo',leo.id)],P),
-  [{label:'Leo',broken:false,look:''},{label:'Kai Lee',broken:false,look:''}],'in text order, the same profile once');
+  [{key:`p:${leo.id}`,id:String(leo.id),label:'Leo',broken:false,look:''},{key:`p:${kai.id}`,id:String(kai.id),label:'Kai Lee',broken:false,look:''}],'in text order, the same profile once');
  assert.deepEqual(linkedPills([r(0,'Mira',''),r(8,'Mira',''),r(16,'Ghost','gone-id')],P),
-  [{label:'Mira',broken:true,look:''},{label:'Ghost',broken:true,look:''}],'no id or a removed profile is broken (once per name)');
- assert.deepEqual(linkedPills([r(0,'Mira',mira.id)],P),[{label:'미라',broken:false,look:''}],'the profile name now, not the text in the box');
+  [{key:'x:Mira',label:'Mira',broken:true,look:''},{key:'x:Ghost',label:'Ghost',broken:true,look:''}],'no id or a removed profile is broken (once per name)');
+ assert.deepEqual(linkedPills([r(0,'Mira',mira.id)],P),[{key:`p:${mira.id}`,id:String(mira.id),label:'미라',broken:false,look:''}],'the profile name now, not the text in the box');
  const both=linkedPills([r(0,'Leo',leo.id),r(6,'Leo',twin.id)],[...P,twin]);
  assert.deepEqual(both.map(p=>p.look),[lookSummary(leo),lookSummary(twin)]);assert.ok(both.every(p=>p.look));
  assert.equal(linkedPills([r(0,'레오',leo.id)],[...P,{id:'e1',name:'레 오',aliases:[]}])[0].look,lookSummary(leo),'an alias shared with another name counts (Hangul spaces ignored)');
+});
+
+test('0.1.158: a pill stands for its profile\'s links (or one broken name), last first',()=>{
+ const [leo,mira]=P,r=(start,label,id)=>({start,label,id});
+ const refs=[r(0,'Leo',leo.id),r(8,'Mira',''),r(16,'Leo',leo.id),r(24,'Ghost','gone-id'),r(32,'Mira',mira.id)];
+ assert.deepEqual(pillRefs(refs,P,`p:${leo.id}`).map(x=>x.start),[16,0]);
+ assert.deepEqual(pillRefs(refs,P,'x:Mira').map(x=>x.start),[8],'a broken Mira is not the linked Mira');
+ assert.deepEqual(pillRefs(refs,P,'x:Ghost').map(x=>x.start),[24],'a removed profile is broken by its name');
+ assert.deepEqual(pillRefs(refs,P,'p:none'),[]);
+ const keys=linkedPills(refs,P).map(p=>p.key);assert.ok(keys.every(k=>pillRefs(refs,P,k).length),'every pill has its links');
 });

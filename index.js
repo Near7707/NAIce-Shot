@@ -6,7 +6,7 @@ import { SKINS, DEFAULT_SKIN, detectSkins, applySkin, skinById, currentSkin } fr
 import { attachInlineImages, detachInlineImage, detachInlineImages, detachMessageImage, placeMessageImage, orderedInlineImages, placementOf, countInlineImages, hasInlineImage, imageDownload, renderInlineImages, visibleInlineImages, SAVE_NOTES, INLINE_LAYOUTS, INLINE_SIZES } from './inline-images.mjs';
 import { matchChatProfiles, reconcileCharacters, attachSceneProfile, identityKey } from './matching.mjs';
 import { freeScenePrompt, freeSceneSchema, parseFreeScene } from './free-scene.mjs';
-import { confirmRefs, refsForExtraction, plainNames, stripRefMarks, suggestions, linkedPills, displayLength, displayText, lengthProblem, LENGTH_LIMITS } from './mentions.mjs';
+import { confirmRefs, refsForExtraction, plainNames, stripRefMarks, suggestions, linkedPills, pillRefs, displayLength, displayText, lengthProblem, LENGTH_LIMITS } from './mentions.mjs';
 import { setupChipField } from './chipfield.mjs';
 import { planFreePeople, confirmText, applyFreePeople, migratePins } from './free-people.mjs';
 import { momentExtractionPrompt, momentExtractionSchema, parseMoments, looksCut, foreignFields, dropLookWords } from './scene-extraction.mjs';
@@ -1855,15 +1855,66 @@ function pickRef(i){
   // "@클로클로…". Closing the keyboard makes it forget that word; a tap on the box goes on typing. A PC keeps typing.
   if(globalThis.matchMedia?.('(pointer: coarse)')?.matches)field.blur();
 }
-// 0.1.153: a row of pills under each @ field shows who the links are (shown only; the text stays the input). A broken link
-// is a dashed "끊김" pill, so it is seen before the extraction stops on it. Drawn after the edit's own work is done.
+// 0.1.153: a row of pills under each @ field shows who the links are (the text stays the input). A broken link is a
+// dashed "끊김" pill, so it is seen before the extraction stops on it. Drawn after the edit's own work is done.
+// 0.1.158: a pill is a button. Tapped, a small menu opens under the row: 프로필 보기 / 다시 고르기 / 칸에서 지우기, and
+// a broken pill shows the profiles to pick at once. The menu acts on the field's links as they are then; any new drawing
+// of the row (typing, a value set, a profile change) closes it.
+let pillMenu=null; // {field,key,pick}
 function renderRefPills(field){
   const box=dialog?.querySelector(`[data-pills-for="${field?.id}"]`);if(!box||typeof field.refs!=='function')return;
+  if(pillMenu?.field===field)pillMenu=null;
   const pills=linkedPills(field.refs(),settings().profiles);
   box.hidden=!pills.length;
+  const attrs=p=>`type="button" data-pill-key="${esc(p.key)}" aria-haspopup="menu" aria-expanded="false"`;
   box.innerHTML=pills.length?`<span class="ncs-ref-pills-cap">연결됨</span>${pills.map(p=>p.broken
-    ?`<span class="ncs-ref-pill ncs-ref-pill-broken" title="어느 프로필인지 알 수 없어요. 칸 안의 이 @이름을 지우고 @를 쳐서 다시 골라 주세요."><b>@${esc(p.label)}</b><small>끊김</small></span>`
-    :`<span class="ncs-ref-pill"><b>@${esc(p.label)}</b>${p.look?`<small>${esc(p.look)}</small>`:''}</span>`).join('')}`:'';
+    ?`<button ${attrs(p)} class="ncs-ref-pill ncs-ref-pill-broken" title="어느 프로필인지 알 수 없어요. 눌러서 다시 골라 주세요."><b>@${esc(p.label)}</b><small>끊김</small></button>`
+    :`<button ${attrs(p)} class="ncs-ref-pill" title="눌러서 프로필 보기·다시 고르기·지우기"><b>@${esc(p.label)}</b>${p.look?`<small>${esc(p.look)}</small>`:''}</button>`).join('')}`:'';
+}
+function closePillMenu(){
+  pillMenu=null;
+  for(const m of dialog?.querySelectorAll('.ncs-pill-menu')??[])m.remove();
+  for(const b of dialog?.querySelectorAll('.ncs-ref-pill[aria-expanded="true"]')??[])b.setAttribute('aria-expanded','false');
+}
+function pillOf(field,key){return linkedPills(field.refs(),settings().profiles).find(p=>p.key===key)??null;}
+function renderPillMenu(){
+  const menu=pillMenu;closePillMenu();if(!menu)return;
+  const {field,key}=menu,box=dialog.querySelector(`[data-pills-for="${field.id}"]`),pill=pillOf(field,key);
+  const btn=[...box?.querySelectorAll('[data-pill-key]')??[]].find(b=>b.dataset.pillKey===key);
+  if(!box||!pill||!btn)return;
+  pillMenu=menu;btn.setAttribute('aria-expanded','true');
+  const pick=pill.broken||menu.pick,profiles=settings().profiles;
+  let rows='';
+  if(pick){
+    let list=suggestions(profiles.filter(p=>String(p.id)!==pill.id),pill.label);
+    if(!list.length)list=suggestions(profiles.filter(p=>String(p.id)!==pill.id),'');
+    rows=list.length?list.map(it=>`<button type="button" class="ncs-ref-item" data-pill-pick="${esc(it.id)}"><b>${esc(it.name)}</b>${it.aliases.length?`<span class="ncs-ref-aliases">${esc(it.aliases.join(', '))}</span>`:''}${it.look?`<span class="ncs-ref-look">${esc(it.look)}</span>`:''}</button>`).join('')
+      :'<small class="ncs-pill-menu-empty">고를 수 있는 프로필이 없어요.</small>';
+  }else rows='<button type="button" data-pill-do="profile">프로필 보기</button><button type="button" data-pill-do="pick">다시 고르기</button>';
+  const head=pill.broken?`@${esc(pill.label)} · 끊긴 연결`:pick?`@${esc(pill.label)} 대신 고르기`:`@${esc(pill.label)}`;
+  const el=document.createElement('div');el.className='ncs-pill-menu';el.setAttribute('role','menu');
+  el.innerHTML=`<div class="ncs-pill-menu-head">${head}</div>${rows}<button type="button" class="ncs-pill-menu-drop" data-pill-do="drop">칸에서 지우기</button>`;
+  box.append(el);
+}
+// One pill's action on the field. Last link first, so the places before it stay where they are.
+function pillAction(what,id){
+  const menu=pillMenu;if(!menu)return;const {field,key}=menu;
+  if(field.disabled||field.closest('fieldset:disabled')){closePillMenu();return;}
+  const pill=pillOf(field,key);if(!pill){closePillMenu();renderRefPills(field);return;}
+  if(what==='pick'){pillMenu={...menu,pick:true};renderPillMenu();dialog.querySelector('.ncs-pill-menu button')?.focus();return;}
+  if(what==='profile'){closePillMenu();if(!pill.broken){showTab('profiles');openProfileEditor(pill.id,'profiles');}return;}
+  const profile=what==='repick'?settings().profiles.find(p=>String(p.id)===String(id)):null;
+  if(what==='repick'&&!profile){renderPillMenu();return;}
+  closePillMenu();
+  let done=false;
+  for(const r of pillRefs(field.refs(),settings().profiles,key)){
+    const ok=profile?field.repickRef(r,profile):field.dropRef(r);
+    if(ok===false&&profile)break; // too long for the field: said so by ncs-field-full
+    done||=ok;
+  }
+  if(done)field.dispatchEvent(new Event('input',{bubbles:true}));
+  // 0.1.118: on a touch screen the keyboard is closed after an edit made for the user (see pickRef).
+  if(globalThis.matchMedia?.('(pointer: coarse)')?.matches)field.blur();
 }
 function renderAllRefPills(){for(const id of ['ncs-free-text','ncs-moment-wish']){const f=$(id);if(f)renderRefPills(f);}}
 function bindRefFields(){
@@ -1894,6 +1945,22 @@ function bindRefFields(){
   const follow=()=>{if(refList)updateRefList(refList.field);};
   dialog.querySelector('.ncs-content')?.addEventListener('scroll',follow,{passive:true});addEventListener('resize',follow);
   window.visualViewport?.addEventListener?.('resize',follow);window.visualViewport?.addEventListener?.('scroll',follow); // 0.1.154: the keyboard opening or moving
+  // 0.1.158: the pill menu. A tap on a pill opens (or closes) it; a tap anywhere else closes it; Esc closes only it.
+  dialog.addEventListener('click',event=>{
+    const t=event.target instanceof Element?event.target:null;
+    const pill=t?.closest('[data-pill-key]'),act=t?.closest('[data-pill-do],[data-pill-pick]');
+    if(pill){const field=$(pill.closest('[data-pills-for]')?.dataset.pillsFor);if(!field)return;
+      const open=pillMenu?.field===field&&pillMenu.key===pill.dataset.pillKey;closeRefList();
+      if(open)closePillMenu();else{pillMenu={field,key:pill.dataset.pillKey,pick:false};renderPillMenu();}return;}
+    if(act){if(act.dataset.pillPick!==undefined)pillAction('repick',act.dataset.pillPick);else pillAction(act.dataset.pillDo);return;}
+    if(pillMenu&&!t?.closest('.ncs-pill-menu'))closePillMenu();
+  });
+  // On the document: after 다시 고르기 the button that had the focus is gone, and Esc then must not close the panel.
+  document.addEventListener('keydown',event=>{
+    if(event.key!=='Escape'||!pillMenu||refList||!dialog.open)return;
+    const {field,key}=pillMenu;event.preventDefault();event.stopPropagation();closePillMenu();
+    [...dialog.querySelectorAll(`[data-pills-for="${field.id}"] [data-pill-key]`)].find(b=>b.dataset.pillKey===key)?.focus();
+  },true);
 }
 // --- 프리샷: 적은 상황으로 장면 추출 -------------------------------------------------------------------------------
 const FOREIGN_TEXT=/[\u1100-\u11FF\u3040-\u30FF\u3130-\u318F\u3400-\u9FFF\uAC00-\uD7A3]/;

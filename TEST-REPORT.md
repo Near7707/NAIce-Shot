@@ -1,3 +1,14 @@
+# v0.1.158 validation — 2026-11-16 (extension only, server v0.1.25)
+
+- Extension Node suite: **199 passed, 0 failed** (new: `pillRefs` and the pill keys in `tests/mentions.test.mjs`).
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **139 of 139 Chromium browser scripts passed**: 137 run 4 at a time; `browser-v01154` after its broken-pill tooltip check was updated to the new text (intended change); `browser-v0151` was slow in parallel and passed alone.
+- New `tests/browser-v01158.mjs` (320px, 375px, 1100px): a linked pill opens its menu (프로필 보기 / 다시 고르기 / 칸에서 지우기); 지우기 takes both `@Leo` links out with one space each and Ctrl+Z twice brings the text and links back; 다시 고르기 lists the other profiles with their look and puts Ada at both links, no extra space at the end; a broken pill (no id, removed profile) lists profiles at once, a name match first; 프로필 보기 opens that profile in 프로필; Esc (also with the focus outside the menu after 다시 고르기), the pill again, a tap elsewhere, typing and a new value close it and the panel stays open; text changed under an open menu without an event: only what is still linked is touched; the 프리샷 상황 field works the same; a profile name with HTML is escaped; the menu stays inside the panel.
+- Old-code check: the 0.1.157 code fails the new script (no menu). Reverting the Esc fix (listener on the panel only) fails it too (the panel closed).
+- Not checked: a real iPhone (tapping pills, keyboard closing after an edit), a real SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.157 validation — 2026-11-16 (extension only, server v0.1.25)
 
 - Extension Node suite: **198 passed, 0 failed**.

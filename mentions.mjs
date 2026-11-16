@@ -189,12 +189,17 @@ export function linkedPills(refs,profiles){
   for(const r of [...refs??[]].sort((a,b)=>a.start-b.start)){
     const p=r.id?profiles.find(x=>String(x.id)===String(r.id)):null,key=p?`p:${p.id}`:`x:${r.label}`;
     if(seen.has(key))continue;seen.add(key);
-    if(!p){out.push({label:r.label,broken:true,look:''});continue;}
+    if(!p){out.push({key,label:r.label,broken:true,look:''});continue;}
     const mine=new Set(labelsOf(p).map(identityKey).filter(Boolean));
     const twin=profiles.some(o=>o.id!==p.id&&labelsOf(o).some(n=>mine.has(identityKey(n))));
-    out.push({label:p.name||r.label,broken:false,look:twin?lookSummary(p):''});
+    out.push({key,id:String(p.id),label:p.name||r.label,broken:false,look:twin?lookSummary(p):''});
   }
   return out;
+}
+// 0.1.158: the links one pill stands for (its key from linkedPills), last first, so editing one keeps the places before it.
+export function pillRefs(refs,profiles,key){
+  return [...refs??[]].filter(r=>{const p=r.id?profiles.find(x=>String(x.id)===String(r.id)):null;return (p?`p:${p.id}`:`x:${r.label}`)===key;})
+    .sort((a,b)=>b.start-a.start);
 }
 // Profiles for the list: name or an alias contains the query (any case), best first. Each shows its aliases and a short look.
 export function suggestions(profiles,query,limit=8){

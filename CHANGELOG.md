@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.158 — 2026-11-16 (extension only — server v0.1.25 unchanged)
+
+- New: the pills under an @ field are buttons. Tapping one opens a small menu: show that profile, pick another profile for it, or take it out of the field (every place it is linked; undo brings it back). A dashed "broken" pill lists the profiles at once, so it can be fixed with two taps instead of editing inside the field.
+
 ## 0.1.157 — 2026-11-16 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.156 (one P2, one P3):
