@@ -12,7 +12,7 @@
 
 | ID | 발견·재현 | 해결 방법·검증 | 상태 |
 | --- | --- | --- | --- |
-| P2 (가려진 연결이 알약 편집에 들어감) · GPT 리뷰: 0.1.161 | ① `@Mira meets @Kai @Mira smiles today`(앞 Mira만 유효, 뒤 Mira는 끊긴 `@Kai @Mira smiles` 안에 가려짐)에서 Mira 알약을 Robin으로 → `@Robin meets @Kai @Mira smiles smiles today`. ② 가려진 Mira 알약을 지우거나 바꾸면 끊긴 연결이 풀려 `@Kai`가 일반 글 → 추출 직전 Kai로 자동 연결. | chipfield.mjs `counted()`(저장 `linkRefs`와 같은 기준: 글 순서, 앞 연결 안에서 시작하면 건너뜀, 글자가 맞을 때만)를 두고 `el.refs()`·`repickAll`·`dropRef`가 이것만 씀. 알약 줄·메뉴·편집 범위가 모두 `refs()`를 거치므로 가려진 연결은 알약도 없고 범위에도 안 들어감. 새 검사 `browser-v01162`(320·375·1100px, 겹침은 값 넣기 두 번 + 입력 + Ctrl+Z로 실제로 만듦): ① Robin으로 바꾸면 `@[Robin](ref:robin) meets @[Kai @Mira smiles](ref:) today`(중복 없음) ② `@Kai @Mira` 겹침에서 알약은 끊긴 것 하나, 지우면 칸이 비고 ID 없음. 옛 코드에서 두 단계 모두 실패. `browser-v01161`은 기대값을 새 기준으로 고침(가려진 알약 없음). | 해결 |
+| P2 (가려진 연결이 알약 편집에 들어감) · GPT 리뷰: 0.1.161 | ① `@Mira meets @Kai @Mira smiles today`(앞 Mira만 유효, 뒤 Mira는 끊긴 `@Kai @Mira smiles` 안에 가려짐)에서 Mira 알약을 Robin으로 → `@Robin meets @Kai @Mira smiles smiles today`. ② 가려진 Mira 알약을 지우거나 바꾸면 끊긴 연결이 풀려 `@Kai`가 일반 글 → 추출 직전 Kai로 자동 연결. | chipfield.mjs `counted()`(저장 `linkRefs`와 같은 기준: 글 순서, 앞 연결 안에서 시작하면 건너뜀, 글자가 맞을 때만)를 두고 `el.refs()`·`repickAll`·`dropRef`가 이것만 씀. 알약 줄·메뉴·편집 범위가 모두 `refs()`를 거치므로 가려진 연결은 알약도 없고 범위에도 안 들어감. 새 검사 `browser-v01162`(320·375·1100px, 겹침은 값 넣기 두 번 + 입력 + Ctrl+Z로 실제로 만듦): ① Robin으로 바꾸면 `@[Robin](ref:robin) meets @[Kai @Mira smiles](ref:) today`(중복 없음) ② `@Kai @Mira` 겹침에서 알약은 끊긴 것 하나, 지우면 칸이 비고 ID 없음. 옛 코드에서 두 단계 모두 실패. `browser-v01161`은 기대값을 새 기준으로 고침(가려진 알약 없음). || 해결 · GPT 리뷰(0.1.162): 해결 확인, 새 지적 없음 |
 
 ⚪ 남는 것(고치지 않음): 가려진 연결은 칸 안 기억에 남음. 바깥 끊긴 연결을 글자를 고쳐 풀면 가려졌던 Mira가 다시 알약으로 보일 수 있음(예전에 직접 연결한 것이고 알약으로 보이므로 몰래 들어가지 않음). 없애려면 실행 취소 복원을 바꿔야 해서 보류.
 
@@ -23,6 +23,7 @@
 | Chromium 브라우저 검사 | 143/143 통과(4개씩 병렬, 다시 돌린 것 없음) | `TEST-REPORT.md` v0.1.162 |
 
 - 확인 못 함: 실제 아이폰, 실제 실리태번, 실제 NovelAI 계정.
+- GPT 리뷰(0.1.162): P1·P2·P3 새 지적 없음. 가려진 연결은 알약·편집 범위에 들어가지 않음(뒷글 중복 없음, 끊긴 `@Kai @Mira` 알약을 지우면 `@Kai`도 안 남음), ⚪ 한계는 문서와 일치. GPT 쪽 Node 199/199·서버 42/42, 챗샷 200자·프리샷 4,000자 경계, 줄바꿈·다른 인물 ID 보존, 일반 `@` 고르기·지우기 확인. 브라우저 검사는 GPT 환경에서 Chromium이 시작되지 않아 다시 돌리지 못함.
 
 ## UI v0.1.161 (서버 v0.1.25 그대로) — 2026-11-16
 
