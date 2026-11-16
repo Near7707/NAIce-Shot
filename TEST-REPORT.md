@@ -1,3 +1,15 @@
+# v0.1.162 validation — 2026-11-16 (extension only, server v0.1.25)
+
+- Extension Node suite: **199 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **143 of 143 Chromium browser scripts passed** (run 4 at a time, none re-run).
+- New `tests/browser-v01162.mjs` (320px, 375px, 1100px), overlaps made the real way (one text set twice with other links, a word typed, Ctrl+Z): in `@Mira meets @Kai @Mira smiles today` the Mira pill re-picked to Robin gives `@Robin meets @Kai @Mira smiles today` with the broken link kept and no words written twice; in `@Kai @Mira` only the broken pill shows (no pill for the hidden Mira), and removing it empties the field with no link left.
+- `tests/browser-v01161.mjs` now expects only the counted link from `refs()` and only the broken pill.
+- Old-code check: the 0.1.161 code fails both steps ("smiles" twice; a second pill for the hidden Mira).
+- Not checked: a real iPhone, a real SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.161 validation — 2026-11-16 (extension only, server v0.1.25)
 
 - Extension Node suite: **199 passed, 0 failed**.

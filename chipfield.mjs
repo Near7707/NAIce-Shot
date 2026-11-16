@@ -114,7 +114,13 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
       // 0.1.119 (GPT 0.1.117 P2-2): an "@…" list opened for the old text must not put a name into the new one.
       if(typeof CustomEvent==='function')el.dispatchEvent?.(new CustomEvent('ncs-field-set',{bubbles:true}));
     }});
-  el.refs=()=>{sync();return refs.map(r=>({...r}));};
+  // 0.1.162 (GPT 0.1.161 P2): an undo can leave two links overlapping (a broken "@Kai @Mira" over a Mira linked on her
+  // own). Only the links that count when saved (linkRefs: in order, one that starts inside the one before it is hidden)
+  // are handed out: the pills and their edits never see a hidden one, so it can neither be edited nor widen an edit.
+  const counted=()=>{const s=shown(),out=[];let at=0;
+    for(const r of [...refs].sort((a,b)=>a.start-b.start)){if(r.start<at||s.slice(r.start,r.start+1+r.label.length)!==`@${r.label}`)continue;out.push(r);at=r.start+1+r.label.length;}
+    return out;};
+  el.refs=()=>{sync();return counted().map(r=>({...r}));};
   const room=(extra='')=>limit-(shown().length-(el.selectionEnd-el.selectionStart))-extra.length;
   // Puts text where the selection is. execCommand keeps the browser's own undo; setRangeText is the fallback.
   const put=text=>{
@@ -152,7 +158,7 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   // 0.1.158: a pill's [칸에서 지우기] takes one linked "@name" out, with one space next to it (after it, or before it at
   // the end), as one edit the browser can undo. Only when that link is still where it was.
   el.dropRef=r=>{
-    sync();const now=refs.find(o=>o.start===r.start&&o.label===r.label&&o.id===r.id);if(!now)return false;
+    sync();const now=counted().find(o=>o.start===r.start&&o.label===r.label&&o.id===r.id);if(!now)return false;
     const data=shown();let a=now.start,b=now.start+1+now.label.length;
     if(/[ \t]/.test(data[b]??''))b++;else if(a>0&&/[ \t]/.test(data[a-1]))a--;
     pending=null;el.focus();el.setSelectionRange(a,b);clear(a,b);quiet=true;
@@ -167,13 +173,13 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   // One edit is also one undo. Returns false when none of them is still there or it does not fit (ncs-field-full).
   el.repickAll=(list,profile)=>{
     sync();const data=shown(),name=label(profile.name),id=String(profile.id);
-    const mine=refs.filter(o=>list.some(r=>o.start===r.start&&o.label===r.label&&o.id===r.id));if(!mine.length)return false;
+    const seen=counted(),mine=seen.filter(o=>list.some(r=>o.start===r.start&&o.label===r.label&&o.id===r.id));if(!mine.length)return false;
     const a=mine[0].start,last=mine[mine.length-1],b=last.start+1+last.label.length;
     let text='',at=a;const links=[];
-    for(const r of refs){
-      // 0.1.161 (GPT 0.1.160 P2): an undo can leave two links overlapping; like linkRefs (what is saved), one that starts
-      // inside the one before it is hidden and skipped, not brought back after it ("@Robin@Mira").
-      if(r.start<a||r.start>=b||r.start<at)continue;
+    for(const r of seen){
+      // 0.1.161 (GPT 0.1.160 P2): a link hidden inside another is not brought back after it ("@Robin@Mira").
+      // 0.1.162: only counted links (above) are walked, so a hidden one neither comes back nor sets where the edit ends.
+      if(r.start<a||r.start>=b)continue;
       text+=data.slice(at,r.start);const own=mine.includes(r);
       links.push({start:text.length,label:own?name:r.label,id:own?id:r.id});
       text+=`@${own?name:r.label}`;at=r.start+1+r.label.length;

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.162 — 2026-11-16 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.161 (one P2):
+- Fix: a person hidden inside a broken link (left by some undos) no longer shows as a pill and no longer takes part in pill edits. Re-picking the visible pill of that person could write the words after it twice, and removing or re-picking the hidden pill ended the broken link and left a plain "@name" that the extraction could then link on its own. The pills now see only the links that count when saved.
+- Known limit: the hidden link is still remembered by the field; if the broken link around it is edited away by typing, that person can show up again as a pill (it was linked by hand before).
+
 ## 0.1.161 — 2026-11-16 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.160 (one P2):

@@ -96,9 +96,10 @@ try{
    await page.locator(W).focus();await page.keyboard.press('Control+z');
    await page.waitForFunction(s=>HTMLTextAreaElement.prototype.__lookupGetter__('value').call(document.querySelector(s))==='@Kai @Mira',W);
    const refs=await page.locator(W).evaluate(f=>f.refs());
-   assert.deepEqual(refs.map(r=>[r.start,r.label,r.id]),[[0,'Kai @Mira',''],[5,'Mira','mira']],'the undo left the two overlapping');
+   // 0.1.162: the hidden Mira (inside the broken link) is no longer handed out
+   assert.deepEqual(refs.map(r=>[r.start,r.label,r.id]),[[0,'Kai @Mira','']],'only the link that counts');
    assert.equal(await val(page,W),'@[Kai @Mira](ref:)','saved: only the first counts');
-   await waitPills(page,WID,['@Kai @Mira','@Mira']);
+   await waitPills(page,WID,['@Kai @Mira']);
    await pillBtn(page,WID,'@Kai @Mira').click();await page.locator('.ncs-pill-menu [data-pill-pick="robin"]').click();
    await waitPills(page,WID,['@Robin']);
    assert.equal(await val(page,W),tok('Robin','robin'),'only Robin, no hidden Mira brought back');
