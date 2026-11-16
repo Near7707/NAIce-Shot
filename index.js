@@ -1886,9 +1886,11 @@ function renderPillMenu(){
   const pick=pill.broken||menu.pick,profiles=settings().profiles;
   let rows='';
   if(pick){
-    let list=suggestions(profiles.filter(p=>String(p.id)!==pill.id),pill.label);
-    if(!list.length)list=suggestions(profiles.filter(p=>String(p.id)!==pill.id),'');
-    rows=list.length?list.map(it=>`<button type="button" class="ncs-ref-item" data-pill-pick="${esc(it.id)}"><b>${esc(it.name)}</b>${it.aliases.length?`<span class="ncs-ref-aliases">${esc(it.aliases.join(', '))}</span>`:''}${it.look?`<span class="ncs-ref-look">${esc(it.look)}</span>`:''}</button>`).join('')
+    // 0.1.159 (GPT 0.1.158 P3-1): names like this one first, then every other profile, so none is out of reach.
+    const others=profiles.filter(p=>String(p.id)!==pill.id),near=suggestions(others,pill.label,Infinity);
+    const rest=suggestions(others,'',Infinity).filter(it=>!near.some(n=>n.id===it.id));
+    const row=it=>`<button type="button" class="ncs-ref-item" data-pill-pick="${esc(it.id)}"><b>${esc(it.name)}</b>${it.aliases.length?`<span class="ncs-ref-aliases">${esc(it.aliases.join(', '))}</span>`:''}${it.look?`<span class="ncs-ref-look">${esc(it.look)}</span>`:''}</button>`;
+    rows=near.length||rest.length?`<div class="ncs-pill-menu-list">${near.map(row).join('')}${near.length&&rest.length?'<small class="ncs-pill-menu-sub">다른 프로필</small>':''}${rest.map(row).join('')}</div>`
       :'<small class="ncs-pill-menu-empty">고를 수 있는 프로필이 없어요.</small>';
   }else rows='<button type="button" data-pill-do="profile">프로필 보기</button><button type="button" data-pill-do="pick">다시 고르기</button>';
   const head=pill.broken?`@${esc(pill.label)} · 끊긴 연결`:pick?`@${esc(pill.label)} 대신 고르기`:`@${esc(pill.label)}`;
@@ -1906,8 +1908,11 @@ function pillAction(what,id){
   const profile=what==='repick'?settings().profiles.find(p=>String(p.id)===String(id)):null;
   if(what==='repick'&&!profile){renderPillMenu();return;}
   closePillMenu();
+  const list=pillRefs(field.refs(),settings().profiles,key);
+  // 0.1.159 (GPT 0.1.158 P2-2): too long once every place is changed: nothing changes (no half of the places left as before).
+  if(profile&&!field.repickFits(list,profile)){field.dispatchEvent(new CustomEvent('ncs-field-full',{bubbles:true,detail:{chip:true,repick:true}}));return;}
   let done=false;
-  for(const r of pillRefs(field.refs(),settings().profiles,key)){
+  for(const r of list){
     const ok=profile?field.repickRef(r,profile):field.dropRef(r);
     if(ok===false&&profile)break; // too long for the field: said so by ncs-field-full
     done||=ok;
@@ -1928,7 +1933,7 @@ function bindRefFields(){
     field.addEventListener('keyup',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key))refresh();});
     field.addEventListener('ncs-field-set',()=>{if(refList?.field===field)closeRefList();});
     field.addEventListener('blur',()=>setTimeout(()=>{if(refList?.field===field&&document.activeElement!==field)closeRefList();},150));
-    field.addEventListener('ncs-field-full',event=>notice(`${id==='ncs-free-text'?'상황 글':'추가 요청'}이 너무 길어서 ${event.detail?.chip?'@이름을 넣지':'붙여 넣지'} 못했어요.`,true,'scene'));
+    field.addEventListener('ncs-field-full',event=>notice(`${id==='ncs-free-text'?'상황 글':'추가 요청'}이 너무 길어서 ${event.detail?.repick?'다른 프로필로 바꾸지':event.detail?.chip?'@이름을 넣지':'붙여 넣지'} 못했어요.`,true,'scene'));
     field.addEventListener('ncs-field-over',()=>notice(`${id==='ncs-free-text'?'상황 글':'추가 요청'}이 글자 수 한도를 넘었어요. 줄이기 전에는 추출하거나 생성할 수 없어요.`,true,'scene'));
     field.addEventListener('keydown',event=>{
       if(!refList||refList.field!==field||event.isComposing||event.keyCode===229)return;

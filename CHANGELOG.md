@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.159 — 2026-11-16 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.158 (two P2, two P3):
+- Fix: picking another profile from a pill changes only that `@name`. It no longer takes the words after it (or another linked `@name`) when the new profile has a longer alias starting with the old name.
+- Fix: if the new name would make the field too long at any of its places, nothing changes and a notice says so (before, only the later places changed and the earlier ones kept the old person).
+- Fix: the pill's pick list shows names like the old one first, then every other profile, so any profile can be chosen.
+- Known limit: after swapping two profiles with the same name, undo can leave a broken link to pick again instead of the first one.
+
 ## 0.1.158 — 2026-11-16 (extension only — server v0.1.25 unchanged)
 
 - New: the pills under an @ field are buttons. Tapping one opens a small menu: show that profile, pick another profile for it, or take it out of the field (every place it is linked; undo brings it back). A dashed "broken" pill lists the profiles at once, so it can be fixed with two taps instead of editing inside the field.

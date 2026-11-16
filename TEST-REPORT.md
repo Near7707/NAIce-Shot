@@ -1,3 +1,14 @@
+# v0.1.159 validation — 2026-11-16 (extension only, server v0.1.25)
+
+- Extension Node suite: **199 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **140 of 140 Chromium browser scripts passed** (run 4 at a time, none re-run).
+- New `tests/browser-v01159.mjs` (320px, 375px, 1100px): re-picking `@Leo` lists Robin (alias "Leo walks") first, then a "다른 프로필" line with Mira, Ada and Rowena; picking Robin for `@Leo walks home` gives `@Robin walks home`, and for `@Leo and @Mira wave` keeps the Mira link; with 197 letters and two `@Leo`, picking Rowena changes neither place and shows "다른 프로필로 바꾸지 못했어요"; with 194 letters both places change (200 letters).
+- Old-code check: the 0.1.158 code fails the list step (Mira not offered); with the alias fix reverted the second step fails (the words after the name go); with the length check reverted the third step fails (the first place stays Leo).
+- Not checked: a real iPhone (scrolling a long pick list), a real SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.158 validation — 2026-11-16 (extension only, server v0.1.25)
 
 - Extension Node suite: **199 passed, 0 failed** (new: `pillRefs` and the pill keys in `tests/mentions.test.mjs`).

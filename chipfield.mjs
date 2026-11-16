@@ -132,7 +132,9 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
   el.insertChip=(q,profile,{asIs=false}={})=>{
     const data=shown(),typed=data.slice(q.start+1,q.end).toLowerCase();let end=q.end,best=0;
     // "@Le|o": the rest of the name after the caret is part of what was typed, so it goes too (0.1.77, UI-075-07).
-    for(const l0 of [profile.name,...(profile.aliases??[])].filter(Boolean)){
+    // 0.1.159 (GPT 0.1.158 P2-1): not for a pill's re-pick (asIs): that "@name" is already whole, and the words after it
+    // ("@Leo walks home" with an alias "Leo walks", or another linked "@Mira") are not part of it.
+    if(!asIs)for(const l0 of [profile.name,...(profile.aliases??[])].filter(Boolean)){
       const l=String(l0).toLowerCase();if(!l.startsWith(typed)||l.length===typed.length)continue;
       const rest=l.slice(typed.length);
       if(data.slice(q.end,q.end+rest.length).toLowerCase()===rest&&boundaryAfter(data,q.end+rest.length)>=0)best=Math.max(best,rest.length);
@@ -158,6 +160,13 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
     add(a,[]);grow();return true;
   };
   // 0.1.158: a pill's [다시 고르기] puts another profile at one linked (or broken) "@name", the way a pick from the list does.
+  // 0.1.159 (GPT 0.1.158 P2-2): whether putting this profile at all these links fits the field, counted before any of
+  // them changes (the same count insertChip makes for one), so a pill's re-pick is all or nothing.
+  el.repickFits=(list,profile)=>{
+    sync();const name=label(profile.name);let size=shown().length;
+    for(const r of list){const now=refs.find(o=>o.start===r.start&&o.label===r.label&&o.id===r.id);if(now)size+=name.length-now.label.length;}
+    return size<=limit;
+  };
   el.repickRef=(r,profile)=>{
     sync();const now=refs.find(o=>o.start===r.start&&o.label===r.label&&o.id===r.id);if(!now)return false;
     const end=now.start+1+now.label.length;return el.insertChip({node:el,start:now.start,end,query:now.label},profile,{asIs:true});
