@@ -1,3 +1,14 @@
+# v0.1.161 validation — 2026-11-16 (extension only, server v0.1.25)
+
+- Extension Node suite: **199 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **142 of 142 Chromium browser scripts passed**: 140 run 4 at a time; `browser-v0138` (a timeout) and `browser-v01154` (a list position measured while the panel was still moving) failed in parallel and passed alone; this change does not touch either.
+- New `tests/browser-v01161.mjs` (320px, 375px, 1100px) makes the overlap the real way: the field set to `@Kai @Mira` linked to one profile named "Kai @Mira", then set to the same text with Kai and Mira linked on their own, " x" typed and undone with Ctrl+Z. The field then holds a broken "Kai @Mira" link over the whole text and a Mira link inside it; the saved value counts only the first. Picking Robin for the broken pill gives `@[Robin](ref:robin)` only, the pill row shows only Robin, and Mira is not a required character.
+- Old-code check: the 0.1.160 code fails (Mira comes back after Robin: `@Robin@Mira`).
+- Not checked: a real iPhone, a real SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.160 validation — 2026-11-16 (extension only, server v0.1.25)
 
 - Extension Node suite: **199 passed, 0 failed**.

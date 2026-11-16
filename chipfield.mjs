@@ -171,7 +171,9 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
     const a=mine[0].start,last=mine[mine.length-1],b=last.start+1+last.label.length;
     let text='',at=a;const links=[];
     for(const r of refs){
-      if(r.start<a||r.start>=b)continue; // refs never overlap: those in [a,b) are wholly inside it
+      // 0.1.161 (GPT 0.1.160 P2): an undo can leave two links overlapping; like linkRefs (what is saved), one that starts
+      // inside the one before it is hidden and skipped, not brought back after it ("@Robin@Mira").
+      if(r.start<a||r.start>=b||r.start<at)continue;
       text+=data.slice(at,r.start);const own=mine.includes(r);
       links.push({start:text.length,label:own?name:r.label,id:own?id:r.id});
       text+=`@${own?name:r.label}`;at=r.start+1+r.label.length;

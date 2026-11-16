@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.161 — 2026-11-16 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.160 (one P2):
+- Fix: picking another profile for a broken pill no longer brings back a person hidden inside it. After some undos two links can overlap (a profile once named with an "@" over the whole text, and another person linked on their own inside it); only the first counts when saved, and now picking again skips the hidden one too, instead of adding it after the new name as a required character.
+- Known limit: in that overlapping case the pill row also shows the hidden person's pill; removing or re-picking that pill also ends the broken link around it, which then stays as plain text.
+
 ## 0.1.160 — 2026-11-16 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.159 (one P2):
