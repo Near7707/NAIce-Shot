@@ -159,17 +159,27 @@ export function setupChipField(el,{getProfiles,limit=Infinity,singleLine=false}=
     try{if(!document.execCommand?.('delete')){el.setRangeText('',a,b,'end');el.dispatchEvent(new Event('input',{bubbles:true}));}}finally{quiet=false;}
     add(a,[]);grow();return true;
   };
-  // 0.1.158: a pill's [다시 고르기] puts another profile at one linked (or broken) "@name", the way a pick from the list does.
-  // 0.1.159 (GPT 0.1.158 P2-2): whether putting this profile at all these links fits the field, counted before any of
-  // them changes (the same count insertChip makes for one), so a pill's re-pick is all or nothing.
-  el.repickFits=(list,profile)=>{
-    sync();const name=label(profile.name);let size=shown().length;
-    for(const r of list){const now=refs.find(o=>o.start===r.start&&o.label===r.label&&o.id===r.id);if(now)size+=name.length-now.label.length;}
-    return size<=limit;
-  };
-  el.repickRef=(r,profile)=>{
-    sync();const now=refs.find(o=>o.start===r.start&&o.label===r.label&&o.id===r.id);if(!now)return false;
-    const end=now.start+1+now.label.length;return el.insertChip({node:el,start:now.start,end,query:now.label},profile,{asIs:true});
+  // 0.1.158: a pill's [다시 고르기] puts another profile at its linked (or broken) "@name"s, each only that "@name"
+  // (0.1.159: no alias widening, nothing after it), the spacing around it kept.
+  // 0.1.160 (GPT 0.1.159 P2): all of them in one edit. The new text from the first to the last of them is made first
+  // (the links between them move with it), measured once and put in once, so the field is never half changed: one
+  // place at a time could go over the limit in the middle ("@Leopold … @Li … @Leopold" → Robin) and stop there.
+  // One edit is also one undo. Returns false when none of them is still there or it does not fit (ncs-field-full).
+  el.repickAll=(list,profile)=>{
+    sync();const data=shown(),name=label(profile.name),id=String(profile.id);
+    const mine=refs.filter(o=>list.some(r=>o.start===r.start&&o.label===r.label&&o.id===r.id));if(!mine.length)return false;
+    const a=mine[0].start,last=mine[mine.length-1],b=last.start+1+last.label.length;
+    let text='',at=a;const links=[];
+    for(const r of refs){
+      if(r.start<a||r.start>=b)continue; // refs never overlap: those in [a,b) are wholly inside it
+      text+=data.slice(at,r.start);const own=mine.includes(r);
+      links.push({start:text.length,label:own?name:r.label,id:own?id:r.id});
+      text+=`@${own?name:r.label}`;at=r.start+1+r.label.length;
+    }
+    text+=data.slice(at,b);
+    if(data.length-(b-a)+text.length>limit){el.dispatchEvent(new CustomEvent('ncs-field-full',{bubbles:true,detail:{chip:true,repick:true}}));return false;}
+    el.focus();el.setSelectionRange(a,b);clear(a,b);putWith(a,text,links);grow();
+    return true;
   };
   el.addEventListener('beforeinput',event=>{
     if(singleLine&&(event.inputType==='insertParagraph'||event.inputType==='insertLineBreak'))event.preventDefault();

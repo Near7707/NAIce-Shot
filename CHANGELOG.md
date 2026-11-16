@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.160 — 2026-11-16 (extension only — server v0.1.25 unchanged)
+
+From the GPT review of 0.1.159 (one P2):
+- Fix: picking another profile from a pill now changes all of its places in one edit. When one profile was linked under its old and its new name (renamed, then linked again), changing one place at a time could go over the field's length in the middle and leave only the last place changed, though the end result fitted. Now every place changes (other links in between stay), or nothing changes with a notice. One undo brings the whole change back.
+
 ## 0.1.159 — 2026-11-16 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.158 (two P2, two P3):

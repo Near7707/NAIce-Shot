@@ -1,3 +1,14 @@
+# v0.1.160 validation — 2026-11-16 (extension only, server v0.1.25)
+
+- Extension Node suite: **199 passed, 0 failed**.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **141 of 141 Chromium browser scripts passed**: 139 run 4 at a time; `browser-v01140` and `browser-v0151` were slow in parallel and passed alone.
+- New `tests/browser-v01160.mjs` (320px, 375px, 1100px), built the way it happens: `@Leopold` linked twice, the profile renamed to Lu, `@Lu` picked from the list in between (one pill for all three, Mira linked between them). At 200 letters, picking Robin (one place at a time 198 → 201, 199 at the end) changes all three places, keeps the Mira link and shows no notice; one Ctrl+Z gives back the old text with no Robin left. Picking Rowena (202 at the end) changes nothing and shows "다른 프로필로 바꾸지 못했어요". In the 프리샷 상황 field (4,000 letters, a line break before the last place) Robin changes all three places (3,999 letters).
+- Old-code check: the 0.1.159 code fails the first and third steps (only the last place became Robin); the second step passes on both (all-or-nothing kept).
+- Not checked: a real iPhone (shake to undo), a real SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.159 validation — 2026-11-16 (extension only, server v0.1.25)
 
 - Extension Node suite: **199 passed, 0 failed**.

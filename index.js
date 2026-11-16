@@ -1909,14 +1909,10 @@ function pillAction(what,id){
   if(what==='repick'&&!profile){renderPillMenu();return;}
   closePillMenu();
   const list=pillRefs(field.refs(),settings().profiles,key);
-  // 0.1.159 (GPT 0.1.158 P2-2): too long once every place is changed: nothing changes (no half of the places left as before).
-  if(profile&&!field.repickFits(list,profile)){field.dispatchEvent(new CustomEvent('ncs-field-full',{bubbles:true,detail:{chip:true,repick:true}}));return;}
+  // 0.1.160 (GPT 0.1.159 P2): a re-pick is one edit, all of its places or none (too long: ncs-field-full says so).
   let done=false;
-  for(const r of list){
-    const ok=profile?field.repickRef(r,profile):field.dropRef(r);
-    if(ok===false&&profile)break; // too long for the field: said so by ncs-field-full
-    done||=ok;
-  }
+  if(profile)done=field.repickAll(list,profile);
+  else for(const r of list)done=field.dropRef(r)||done;
   if(done)field.dispatchEvent(new Event('input',{bubbles:true}));
   // 0.1.118: on a touch screen the keyboard is closed after an edit made for the user (see pickRef).
   if(globalThis.matchMedia?.('(pointer: coarse)')?.matches)field.blur();
