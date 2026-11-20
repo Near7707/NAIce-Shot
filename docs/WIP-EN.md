@@ -223,6 +223,14 @@ not know, texts the AI writes (candidate titles, request words), and the @ check
 index.js to look each problem up apart (a code change, left for later). The same for "{0} 복장 · 장면에서 찾지 못함" inside "반영하지 않음: …"
 (the AI-request note): a piece that needs index.js to translate it where it is put in.
 
+After the user's iPhone try (no review): in the enlarged view, row 1 "⋯ | ‹ 3 / 1630 › | Save ▾ · Delete" ran › under the
+red Save — the English Save ▾ · Delete are wider than 저장 ▾ · 삭제, and ‹ n/m › is pinned to the exact centre. Measured
+before the fix: English overlapped at 320/375px even with "18 / 21" and at 393px from 4 digits; Korean fits at 360px and
+up (at 320px Korean overlaps too from 4 digits — main's CSS, left for main). Fix: the viewer gets `ncs-lang-en` too
+(viewer.mjs, one line), and only on the English screen row 1's side columns are `minmax(max-content,1fr)`: ‹ n/m › stays
+exactly centred while it fits and slides left only as far as Save ▾ · Delete need (at 393px with 1630: 8.5px; at 320px
+with 12345: 26px). Shrinking the button padding alone saves about 16–20px, not enough at 320/375px. Korean is unchanged.
+
 ## Checks
 
 - `node tests/i18n-compare.mjs <main index.js> index.js` — takes `tr`/`trMsg`/`doneText`/`localize` out and compares with main
@@ -264,6 +272,9 @@ index.js to look each problem up apart (a code change, left for later). The same
   since the twelfth review also a reply without `lighting` (the whole reply, and one candidate beside a good one); since the
   thirteenth an unknown ID without a name and lighting still in Korean after the second ask (both warnings in English);
   since the fourteenth a known ID without its name (the extraction stops) and a name taken out of the location (the note).
+  Step 15 (run at 375 only, for 320, 375 and 393px; 21 pictures with the total set to 1630 and 12345): nothing on the
+  English viewer's row 1 overlaps (⋯, ‹, the count, ›, Save ▾, Delete) and the row stays on screen; in Korean ‹ n/m › is
+  still exactly centred. Without the CSS line it fails at 320px ("› × Save").
 - `tests/i18n-sweep.test.mjs` since the fifteenth review (the code and test names call it the fourteenth): every whole sentence of the app's own files (not the server's)
   is English after `stepsWord`, the V5 questions built with "이번 생성에서 Anlas가 차감될 수 있어요." too; Free Shot's card
   question keeps names that read like app sentences; the waiting notices and the pieced length notices are English.

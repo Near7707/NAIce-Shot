@@ -21,6 +21,8 @@
 //     at 320 and 375px no English button's words run outside its box on any tab, while saving or in the viewer either.
 // 14. The confirms that can drop edits (another candidate over a hand-edited prompt, reloading after a save conflict) and
 //     the work memory's status line after the work came back are English.
+// 15. The viewer's row 1 with a 4- and 5-digit count (3 / 1630, user's iPhone): in English › never runs under Save ▾ and
+//     nothing on the row overlaps at 320, 375 and 393px; in Korean ‹ n/m › stays exactly centred as before.
 // Header copied from browser-v01101 (lines 1–91) with a `lang` option; helpers from the same file.
 import zlib from 'node:zlib';
 import http from 'node:http';
@@ -732,6 +734,27 @@ try{
      }
      assert.deepEqual(b.errors,[]);await p.close();
     }
+   }
+  }
+  // --- 15. the viewer's row 1 with a big count (user's iPhone: "3 / 1630" put › under the red Save). English Save ▾ ·
+  //     Delete are wider than 저장 ▾ · 삭제; ‹ n/m › now slides left only when they need the room (English CSS only).
+  for(const w of width===375?[320,375,393]:[]){
+   const idOf=n=>`${String(n).padStart(8,'0')}-aaaa-4bbb-8ccc-${String(n).padStart(12,'0')}`;
+   for(const lang of ['ko','en'])for(const total of [1630,12345]){
+    const en=lang==='en',t=await open(w,{lang,seed:Array.from({length:21},(x,i)=>({...pic(i+1),id:idOf(i+1),image:`/user/images/naice-shot/${idOf(i+1)}.png`}))});const {page}=t;
+    page.historyOverride={total,hasMore:true};
+    await closeCompat(page);await page.locator('[data-tab="history"]').click();await page.waitForFunction(()=>document.querySelectorAll('.ncs-history-card').length===20);
+    await page.evaluate(()=>document.querySelectorAll('[data-view-history]')[17].click());
+    await page.waitForFunction(want=>document.querySelector('#ncs-viewer[open] .ncsv-position')?.textContent===want,`18 / ${total}`);
+    const row=await page.evaluate(()=>{const box=s=>document.querySelector('#ncs-viewer '+s).getBoundingClientRect();
+     const parts=['.ncsv-more','[data-v=previous]','.ncsv-position','[data-v=next]','.ncs-save-toggle','.ncsv-delete'].map(s=>[s,box(s)]),hits=[];
+     for(let i=0;i<parts.length;i++)for(let j=i+1;j<parts.length;j++){const [a,p]=parts[i],[b,q]=parts[j];if(p.left<q.right-0.5&&q.left<p.right-0.5)hits.push(`${a} × ${b}`);}
+     const nav=box('.ncsv-navigation'),bar=box('.ncsv-tools');
+     return {hits,offCentre:Math.abs((nav.left+nav.right)/2-(bar.left+bar.right)/2),inside:parts.every(([,r])=>r.left>=bar.left&&r.right<=bar.right)};});
+    assert.ok(row.inside,`${w}px ${lang} ${total}: row 1 stays on the screen`);
+    if(en)assert.deepEqual(row.hits,[],`${w}px ${total}: nothing on the English row 1 overlaps`);
+    else assert.ok(row.offCentre<0.5,`${w}px ${total}: Korean ‹ n/m › stays exactly centred (${row.offCentre})`);
+    assert.deepEqual(t.errors,[]);await page.close();
    }
   }
  }

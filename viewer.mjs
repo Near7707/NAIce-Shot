@@ -5,7 +5,7 @@ import { saveCleanImage } from './downloads.mjs';
 import { currentSkin } from './skins.mjs';
 import { copyText } from './clipboard.mjs';
 import { BRAND_ICON } from './icons.mjs';
-import { tr, trMsg, localize } from './i18n.mjs'; // wip-en: Korean shows every text as written
+import { tr, trMsg, localize, currentLang } from './i18n.mjs'; // wip-en: Korean shows every text as written
 
 export const ZOOM_MIN = 0.05, ZOOM_MAX = 8, ZOOM_STEP = 1.25;
 
@@ -40,6 +40,7 @@ let viewer = null;
 function build() {
   const dialog = document.createElement('dialog');
   dialog.id = 'ncs-viewer';
+  if(currentLang()==='en')dialog.classList.add('ncs-lang-en'); // wip-en: English-only CSS (row 1 below)
   dialog.setAttribute('aria-label', '이미지 크게 보기');
   // 0.1.70 layout (user's design): top = 맞춤·원본 | − % + | panel · ✕; row 1 = ⋯ | ‹ n/m › (centred) | 저장 ▾ · 삭제;
   // row 2 (thin) = ⓘ 프롬프트 보기 | [이 메시지에서 빼기] for a picture opened from its message. ⋯ matches the history
