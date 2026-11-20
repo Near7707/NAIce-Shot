@@ -63,6 +63,9 @@ the server-version line and the update warning box (compat.mjs messages) are sho
 compares the Korean message). `tr` itself now marks a text it fills with values as finished (`doneText`), so `notice`
 never splits a name at " / " and looks a part up again ("밤 / 보통 / 옷" showed as "밤 / Medium / 옷", GPT wip-en P3,
 fourth review). Error messages put into such texts go through `trMsg` where they are put in.
+After the fifth review: the chat default outfit notice (옷장 → 채팅 기본 복장) goes through `tr` too, Free Shot's
+"장면 추출 실패" notice is translated like Chat Shot's, and "JSON을 읽지 못했어요: 빈 응답" (an empty `{}` reply) is a
+whole dictionary text, since a value inside a pattern is looked up again only when it is a sentence.
 
 Known limits, left as they are (GPT wip-en P3, second review): a name that is word for word a whole dictionary sentence
 (ends with ".") is shown translated inside "＋ {0} 프로필 만들기"; an outfit that itself ends with " · 잠금" is shown as
@@ -92,7 +95,8 @@ AI writes (candidate titles, request words).
   words (옷장, 제거) stay as written, and the same edits save the same profiles in both languages; the switch writes only `uiLanguage`;
   the Settings tab is English while a preset named 보통 (= Medium) stays as written and saves the same in both languages,
   the header switch reads Chat / Free and fits, and the chat-changed notice is English; a preset and an outfit named
-  "밤 / 보통 / 옷" stay whole in their English notices; the language box and the server-version line are English.
+  "밤 / 보통 / 옷" stay whole in their English notices (the chat default outfit too); an empty extraction reply
+  reads in English in both modes; the language box and the server-version line are English.
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

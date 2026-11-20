@@ -821,4 +821,7 @@ export default {
   "English (시험판 · experimental)":"English (experimental)",
   "새로고침한 뒤 바뀌어요. · Applies after reloading.":"Applies after reloading.",
   "base·negative·characters[].name·prompt는 문자열이어야 해요.":"base, negative, characters[].name and prompt must be text.",
+  "{0}의 채팅 기본 복장을 \"{1}\"(으)로 지정했어요. 이번 그림에도 적용했어요.":"Set {0}'s chat default outfit to \"{1}\". Also applied to this picture.",
+  "장면 추출 실패: {0}.{1} 기존 편집 내용은 유지했어요.":"Scene extraction failed: {0}.{1} Your edits were kept.",
+  "JSON을 읽지 못했어요: 빈 응답":"Could not read the JSON: empty response",
 };

@@ -2003,7 +2003,7 @@ async function freeFill() {
         raw=response;applyFree(parsed,foreign,plan,before,refs);return;
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}
     }
-    if(ticket===task&&isFree()){raw=response;renderScene();report(`장면 추출 실패: ${failure?.message}.${looksCut(response)?` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
+    if(ticket===task&&isFree()){raw=response;renderScene();report(tr`장면 추출 실패: ${trMsg(failure?.message)}.${looksCut(response)?tr` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
   }finally{
     if(extraction?.ticket===ticket)extraction=null;
     stopProgress(ticket);if(busyOwner===ticket)setBusy(false);
@@ -3662,7 +3662,7 @@ function bindEvents() {
         const id=el.closest('[data-character]').dataset.character,p=settings().profiles.find(p=>p.id===id);if(!p||el.value==='custom')return;
         if(el.value==='default'){clearChatOutfit(id).catch(e=>notice(e.message,true));return;}
         const w=(p.wardrobe??[]).find(w=>`w:${w.id}`===el.value);if(!w)return;const value=w.outfit;
-        setChatOutfit(id,value,{note:`${p.name}의 채팅 기본 복장을 "${w.name}"(으)로 지정했어요. 이번 그림에도 적용했어요.`}).catch(e=>notice(e.message,true));return;
+        setChatOutfit(id,value,{note:tr`${p.name}의 채팅 기본 복장을 "${w.name}"(으)로 지정했어요. 이번 그림에도 적용했어요.`}).catch(e=>notice(e.message,true));return;
       }
       if(el.dataset.temp){const t=scene.characters.find(c=>c.id===el.closest('[data-character]').dataset.character&&c.temp);if(!t)return;t[el.dataset.temp]=el.value;if(el.dataset.temp==='outfit')t.outfitManual=true;if(el.dataset.temp==='name'){t.entityName=el.value;el.closest('[data-character]').querySelector('strong').textContent=el.value||tr`이름 없는 인물`;}changed();return;}
       if(el.hasAttribute('data-wear-once')){if(el.value)wearOnce(el.closest('[data-character]').dataset.character,el.value);return;}

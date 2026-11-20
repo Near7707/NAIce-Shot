@@ -339,6 +339,20 @@ try{
     await page.locator('[data-action="extract"]').click();await idle(page);await clearNotice(page);
     await page.locator('[data-character="leo"] select[data-wear-once]').selectOption('w9');
     assert.equal(await notice(page),en?`Wearing "${NAME}" in this picture only. The clothes saved in the chat are unchanged.`:`이번 그림에만 "${NAME}"을(를) 입혀요. 채팅에 저장된 옷은 그대로예요.`);
+    // the same outfit as this chat's default outfit: the name stays whole too (GPT wip-en P3, fifth review)
+    await clearNotice(page);await page.locator('[data-character="leo"] select[data-chat-outfit]').selectOption('w:w9');
+    await page.waitForFunction(()=>document.querySelector('#ncs-notice').textContent);
+    assert.equal(await notice(page),en?`Set Leo's chat default outfit to "${NAME}". Also applied to this picture.`:`Leo의 채팅 기본 복장을 "${NAME}"(으)로 지정했어요. 이번 그림에도 적용했어요.`);
+    // an empty extraction reply in Chat Shot and in Free Shot: the whole notice reads in English (GPT wip-en P3, fifth review)
+    await page.evaluate(()=>{mock.extractionDeferred=Promise.resolve('{}');});
+    await clearNotice(page);await page.locator('[data-action="extract"]').click();await idle(page);
+    const chatFail=await notice(page);
+    await page.locator('[data-mode="free"]').click();await page.locator('#ncs-free-text').fill('Leo waves.');
+    await clearNotice(page);await page.locator('[data-action="extract"]').click();await idle(page);
+    const freeFail=await notice(page);
+    await page.evaluate(()=>{mock.extractionDeferred=null;});await page.locator('[data-mode="chat"]').click();
+    for(const said of [chatFail,freeFail]){assert.match(said,en?/empty response/:/빈 응답/,said);if(en)assert.ok(!HANGUL.test(said),said);}
+    assert.match(freeFail,en?/^Scene extraction failed/:/^장면 추출 실패/);
     await page.locator('[data-tab="settings"]').click();
     await page.locator('#ncs-common-preset-name').fill(NAME);await clearNotice(page);await page.locator('[data-action="save-preset-as"]').click();
     assert.equal(await notice(page),en?`Saved the current values as the new preset "${NAME}".`:`지금 값을 새 프리셋 "${NAME}"(으)로 저장했어요.`);
