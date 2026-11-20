@@ -38,6 +38,9 @@ export function tr(strings,...values){
 // Both are made by `tr` where they are shown (the attach notices); the rest of the open keys are a known limit (docs/WIP-EN.md).
 // tests/i18n-sweep.test.mjs looks every fixed Korean text of the app and the server up and fails on a half translation.
 const TR_ONLY=new Set(['{0} {1}장{2}','#{0} 메시지{1}','{0} 본문은 그대로예요.']),SHORT=4;
+// Keys whose value is an ID the AI sent: shown exactly as written, never looked up again even when it ends like an app
+// sentence ("미등록 ID 제외: x / 위치 값이 잘못됐어요." kept its end in Korean, GPT wip-en P3, twelfth review).
+const AS_IS=new Set(['미등록 ID 제외: {0}']);
 const trOnly=k=>TR_ONLY.has(k)||k.replace(/\{\d+\}|\s/g,'').length<SHORT;
 let patterns=null;
 const escapeRe=s=>s.replace(/[.*+?^$()|[\]\\]/g,'\\$&').replace(/[{}]/g,c=>'\\'+c);
@@ -45,14 +48,14 @@ function patternList(){
   if(patterns)return patterns;
   patterns=Object.keys(EN).filter(k=>/\{\d+\}/.test(k)&&!trOnly(k)).sort((a,b)=>b.length-a.length).map(k=>{
     const order=[];const source=escapeRe(k).replace(/\\\{(\d+)\\\}/g,(all,n)=>{order.push(Number(n));return '([\\s\\S]*?)';});
-    return {re:new RegExp(`^${source}$`),order,en:EN[k]};});
+    return {re:new RegExp(`^${source}$`),order,en:EN[k],asIs:AS_IS.has(k)};});
   return patterns;
 }
 function one(text){
   const exact=EN[text];if(exact!==undefined&&!/\{\d+\}/.test(text))return exact;
   // A captured value may be a finished text itself ("{0} Anlas 사용 허용이 꺼져 있어서…"): one level is looked up too,
   // but only a whole sentence (ends with "."). A name or the AI's words ("세로", "정사각형") stay as they are (GPT wip-en P3).
-  for(const p of patternList()){const m=p.re.exec(text);if(!m)continue;const values=[];p.order.forEach((n,i)=>{const v=m[i+1];values[n]=v&&/[가-힣]/.test(v)&&/\.\s*$/.test(v)?(EN[v]!==undefined&&!/\{\d+\}/.test(v)?EN[v]:v):v;});return fill(p.en,values);}
+  for(const p of patternList()){const m=p.re.exec(text);if(!m)continue;const values=[];p.order.forEach((n,i)=>{const v=m[i+1];values[n]=p.asIs?v:v&&/[가-힣]/.test(v)&&/\.\s*$/.test(v)?(EN[v]!==undefined&&!/\{\d+\}/.test(v)?EN[v]:v):v;});return fill(p.en,values);}
   return null;
 }
 // doneText(text): a notice already put together in English (tr parts + the AI's or a person's own words). trMsg leaves it

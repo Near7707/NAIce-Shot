@@ -172,6 +172,15 @@ after an error that already ends with one ("…format.. Your edits were kept.").
 notice that the deletion was not verified (the fields lock already while the request is out, so waiting for the lock let
 the flags clear before the reply was lost).
 
+After the thirteenth review (GPT wip-en P3 ×2): the warnings about the AI's reply that were still Korean are in the
+dictionary — "미등록 ID 제외: {0}" (an unknown ID without a name), "영어로 바뀌지 않은 칸이 있어요(…)" after the second ask, Free
+Shot's "결과가 영어가 아니어서 영어로 다시 요청하고 있어요.", and the rest found by going through every warning the shared code
+makes (core: positions only for some, unregistered people; matching.mjs: deleted chat profile, @ twins, same person once,
+link corrected to the profile of the name). The unknown-ID key is in `AS_IS` (i18n.mjs): its value is shown exactly as the
+AI sent it and never looked up again, even when the ID is word for word an app sentence. Step 14 now waits for each text it
+reads (the notice, the status line, the confirm) instead of a fixed time; with the status reply held 1.1s the earlier
+version failed and this one passes.
+
 Still Korean: the guide, the console-only error "NAIce Shot 패널 파일을 읽지 못했어요.", server texts the dictionary does
 not know, and texts the AI writes (candidate titles, request words).
 
@@ -213,7 +222,8 @@ not know, and texts the AI writes (candidate titles, request words).
   connecting and the status line when the edits on screen are too long to compare (both keep the edits); since the eleventh
   review also the notice after another candidate (the AI's title "밤 / 닫기 / 정사각형" as written, with and without the note on a
   required person) and the status line when the work changed elsewhere while a lost deletion was checked (the edit stays);
-  since the twelfth review also a reply without `lighting` (the whole reply, and one candidate beside a good one).
+  since the twelfth review also a reply without `lighting` (the whole reply, and one candidate beside a good one); since the
+  thirteenth an unknown ID without a name and lighting still in Korean after the second ask (both warnings in English).
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

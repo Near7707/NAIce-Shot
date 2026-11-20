@@ -98,5 +98,13 @@ test('the AI reply read errors are English, also inside "JSON을 읽지 못했�
     // the field name is never looked up, and a wrapped text the dictionary does not know stays whole
     assert.equal(trMsg('JSON을 읽지 못했어요: 닫기 필드 형식이 잘못됐어요.'),'Could not read the JSON: the 닫기 field has the wrong format.');
     assert.equal(trMsg('장면 추출 실패: x 필드 형식이 잘못됐어요.'),'장면 추출 실패: x 필드 형식이 잘못됐어요.');
+    // twelfth review: the ID the AI sent stays as written, even when it ends like an app sentence
+    assert.equal(trMsg('미등록 ID 제외: unlisted123'),'Left out an unknown ID: unlisted123');
+    assert.equal(trMsg('미등록 ID 제외: x / 위치 값이 잘못됐어요.'),'Left out an unknown ID: x / 위치 값이 잘못됐어요.');
+    assert.equal(trMsg('미등록 ID 제외: 위치 값이 잘못됐어요.'),'Left out an unknown ID: 위치 값이 잘못됐어요.','an ID word for word an app sentence');
+    assert.equal(trMsg('결과가 영어가 아니어서 영어로 다시 요청하고 있어요.'),'The result is not in English, so asking again for English.');
+    assert.equal(trMsg('영어로 바뀌지 않은 칸이 있어요(lighting, action). 직접 고치거나 다시 추출해 주세요.'),'Some fields are not in English (lighting, action). Fix them yourself or extract again.');
+    // a name the AI sent before ":" still matches the dictionary only as a whole name (no re-lookup of a non-sentence)
+    assert.equal(trMsg('세로: 이름에 맞춰 Kai 프로필로 연결을 바로잡았어요.'),'세로: the link was corrected to the Kai profile to match the name.');
   }finally{setLang('ko');}
 });

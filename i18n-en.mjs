@@ -1199,4 +1199,13 @@ export default {
   "프로필 JSON이 아니에요.": "Not a profile JSON.",
   "JSON을 읽지 못했어요: {0} 값이 문자열이 아니에요.": "Could not read the JSON: the {0} value is not text.",
   "외형이나 복장이 비어 있어요.": "Appearance and outfit are both empty.",
+  "미등록 ID 제외: {0}": "Left out an unknown ID: {0}",
+  "영어로 바뀌지 않은 칸이 있어요({0}). 직접 고치거나 다시 추출해 주세요.": "Some fields are not in English ({0}). Fix them yourself or extract again.",
+  "결과가 영어가 아니어서 영어로 다시 요청하고 있어요.": "The result is not in English, so asking again for English.",
+  "일부 인물만 위치가 지정돼서 좌표는 자동으로 보내요. 지정한 위치는 프롬프트 문구로 남아요.": "Only some people have a position, so the coordinates are sent as auto. The chosen positions stay as prompt words.",
+  "미등록 인물은 자동 생성하지 않아요: {0}": "Unregistered people are not created automatically: {0}",
+  "저장된 채팅 연결 프로필이 삭제됐어요. 자동으로 다른 프로필을 선택하지 않아요.": "The chat's linked profile was deleted. Another profile is not picked automatically.",
+  "{0}: @로 고른 같은 이름의 인물이 여러 명이라 누구인지 알 수 없어 비워 뒀어요.": "{0}: several people picked with @ share this name, so it is unclear who; left empty.",
+  "{0}: {1}와 같은 인물로 보여 한 번만 넣었어요.": "{0}: looks like the same person as {1}, so added once.",
+  "{0}: 이름에 맞춰 {1} 프로필로 연결을 바로잡았어요.": "{0}: the link was corrected to the {1} profile to match the name.",
 };

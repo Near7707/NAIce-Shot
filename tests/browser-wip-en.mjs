@@ -618,21 +618,25 @@ try{
   //     nothing changes), and the line after Chat Shot work came back from the server. Free Shot's card question is checked
   //     line by line in tests/i18n-sweep.test.mjs.
   {
+   // Every read waits for its own text (GPT wip-en P3, twelfth review: a slow reply left the notice empty after a fixed wait).
+   const shows=(p,sel,want)=>p.waitForFunction(([s,w])=>{const t=document.querySelector(s)?.innerText??'';return w.re?new RegExp(w.re).test(t):t.includes(w);},[sel,want]).catch(()=>{});
+   const asked=async(t,n)=>{for(let i=0;i<100&&t.asked.length===n;i++)await t.page.waitForTimeout(30);};
    for(const lang of ['ko','en']){
     const en=lang==='en',t=await open(width,{lang});const {page}=t;await closeCompat(page);
     await extractWith(page,TWO,'smiling');
     await page.locator('#ncs-final-box > summary').click();
     await page.locator('#ncs-final-form [data-final="prompt"][data-slot="0"]').fill('1boy, edited by hand');await page.locator('#ncs-final-badge').waitFor();
-    page.refuse=true;let n=t.asked.length;await page.locator('[data-moment="0"]').click();await page.waitForTimeout(150);page.refuse=false;
+    page.refuse=true;let n=t.asked.length;await page.locator('[data-moment="0"]').click();await asked(t,n);page.refuse=false;
     assert.equal(await page.locator('[data-moment="1"]').getAttribute('aria-pressed'),'true','cancelled: the moment stays');
     assert.deepEqual(t.asked.slice(n),[en?"You edited the final prompt by hand. Switching to another moment puts back that moment's assembled prompt. Switch?":'직접 고친 최종 프롬프트가 있어요. 다른 순간으로 바꾸면 고른 순간의 조립 결과로 돌아가요. 바꿀까요?']);
     const saved=await settledWork(page);
     page.draftConflict=true;await page.locator('#ncs-location').fill('local place');await page.waitForFunction(()=>!document.querySelector('#ncs-draft-retry').hidden);
-    page.refuse=true;n=t.asked.length;await page.locator('#ncs-draft-retry').evaluate(b=>b.click());await page.waitForTimeout(150);page.refuse=false;page.draftConflict=false;
+    page.refuse=true;n=t.asked.length;await page.locator('#ncs-draft-retry').evaluate(b=>b.click());await asked(t,n);page.refuse=false;page.draftConflict=false;
     assert.equal(await page.locator('#ncs-location').inputValue(),'local place','cancelled: the edit stays');
     assert.deepEqual(t.asked.slice(n),[en?'Load the work saved on the server again? Unsaved edits on screen will be replaced.':'서버에 저장된 작업을 다시 불러올까요? 현재 화면의 저장되지 않은 편집은 바뀌어요.']);
     page.draftByKey={[KEY]:saved};await reopen(page);
     await page.waitForFunction(()=>document.querySelector('#ncs-location').value==='cafe');
+    await shows(page,'#ncs-draft-status',{re:en?'^Loaded the scene':'^이 채팅에서 작업하던 장면을 불러왔어요'});
     assert.match(await page.locator('#ncs-draft-status').innerText(),en?/^Loaded the scene you were working on in this chat · Target message(: latest| #\d+)$/:/^이 채팅에서 작업하던 장면을 불러왔어요 · 대상 메시지(: 최신| #\d+)$/);
     assert.deepEqual(t.errors,[]);await page.close();
     // The notice after another candidate is English and the AI's title stays as written ("닫기" is a dictionary word),
@@ -642,11 +646,11 @@ try{
      const NIGHT={...TWO,moments:[{...TWO.moments[0],title:'밤 / 닫기 / 정사각형',characters:[]},TWO.moments[1]]};
      await p.locator('#ncs-moment-wish').evaluate(f=>{f.value='@[Leo](ref:leo) 미소';});
      await extractWith(p,NIGHT);
-     await clearNotice(p);await p.locator('[data-moment="0"]').click();
+     await clearNotice(p);await p.locator('[data-moment="0"]').click();await shows(p,'#ncs-notice',en?'Switched':'순간으로 바꿨어요');
      assert.equal(await notice(p),en?'Switched to the "밤 / 닫기 / 정사각형" moment. Each candidate keeps its own edits. Added required people missing from the result: Leo. Their expression and action are empty; fill them in or extract again.':
       '"밤 / 닫기 / 정사각형" 순간으로 바꿨어요. 후보마다 고친 내용은 따로 남아 있어요. 결과에 없던 필수 인물을 넣었어요: Leo. 표정·행동이 비어 있어요. 직접 채우거나 다시 추출해 주세요.');
      assert.equal(await p.locator('[data-moment="0"] .ncs-moment-name').innerText(),'밤 / 닫기 / 정사각형','the button keeps the title');
-     await clearNotice(p);await p.locator('[data-moment="1"]').click();
+     await clearNotice(p);await p.locator('[data-moment="1"]').click();await shows(p,'#ncs-notice',en?'Switched':'순간으로 바꿨어요');
      assert.equal(await notice(p),en?'Switched to the "일어나는 순간" moment. Each candidate keeps its own edits.':'"일어나는 순간" 순간으로 바꿨어요. 후보마다 고친 내용은 따로 남아 있어요.');
      assert.ok(JSON.stringify(await settledWork(p)).includes('"밤 / 닫기 / 정사각형"'),'saved as written');
      assert.deepEqual(c.errors,[]);await p.close();
@@ -657,12 +661,20 @@ try{
      const c=await open(width,{lang}),p=c.page;await closeCompat(p);
      const {lighting,...noLight}=TWO.moments[0];
      await extractWith(p,{characters:noLight.characters,unregistered:[],location:'cafe',camera:'medium shot',interaction:''});
-     const whole=await notice(p);
+     await shows(p,'#ncs-notice','lighting');const whole=await notice(p);
      assert.ok(whole.includes(en?'Could not read the JSON: the lighting field has the wrong format.':'JSON을 읽지 못했어요: lighting 필드 형식이 잘못됐어요.'),whole);
      if(en)assert.ok(!HANGUL.test(whole),whole);
      await extractWith(p,{...TWO,moments:[noLight,TWO.moments[1]],defaultIndex:0});
-     const one=await notice(p);
+     await shows(p,'#ncs-notice','lighting');const one=await notice(p);
      assert.ok(one.includes(en?'Left out a candidate that could not be read: the lighting field has the wrong format.':'읽지 못한 후보를 뺐어요: lighting 필드 형식이 잘못됐어요.'),one);
+     // An unknown ID without a name is left out, and lighting stays Korean after the second ask (GPT wip-en P3, twelfth review):
+     // both warnings are English, the ID as written.
+     const {title,...untitled}=TWO.moments[1],odd={...untitled,characters:[...untitled.characters,{id:'unlisted123',expression:'calm',action:'standing',position:'auto',outfitMode:'unchanged',outfit:''}],lighting:'달빛'};
+     await extractWith(p,odd);await shows(p,'#ncs-notice',en?'Left out an unknown ID':'미등록 ID 제외');
+     const odds=await notice(p);
+     assert.ok(odds.includes(en?'Left out an unknown ID: unlisted123':'미등록 ID 제외: unlisted123'),odds);
+     assert.ok(odds.includes(en?'Some fields are not in English (lighting). Fix them yourself or extract again.':'영어로 바뀌지 않은 칸이 있어요(lighting). 직접 고치거나 다시 추출해 주세요.'),odds);
+     if(en)assert.ok(!HANGUL.test(odds.replace(/달빛/g,'')),odds);
      assert.deepEqual(c.errors,[]);await p.close();
     }
     // The status line when the work changed elsewhere while a deletion was being checked (GPT wip-en P3, eleventh review):
@@ -678,6 +690,7 @@ try{
      p.loseDraftDelete=false;p.draftReadFails=false;p.draftReply={revision:'elsewhere',work:null};
      await p.locator('[data-tab="scene"]').click();await p.locator('#ncs-draft-retry').click();
      await p.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
+     await shows(p,'#ncs-draft-status',en?'Check work saving':'작업 저장을 확인해 주세요');
      assert.equal(await p.locator('#ncs-draft-status').innerText(),en?'Check work saving: The work was changed elsewhere.':'작업 저장을 확인해 주세요: 다른 곳에서 작업이 바뀌었어요.');
      assert.equal(await p.locator('#ncs-location').inputValue(),'cafe at night','the edit stays');
      assert.deepEqual(c.errors,[]);await p.close();
@@ -693,7 +706,10 @@ try{
      else{await p.locator('#ncs-location').fill('local place');p.draftReadFails=true;}
      p.quickFail=false;const q=p.quickCalls??0;await p.locator('#ncs-draft-retry').evaluate(x=>x.click());
      for(let i=0;i<80&&(p.quickCalls??0)===q;i++)await p.waitForTimeout(50);
-     await p.waitForFunction(()=>!document.getElementById('ncs-work-fields').disabled);await p.waitForTimeout(300);
+     await p.waitForFunction(()=>!document.getElementById('ncs-work-fields').disabled);
+     // wait for the result itself: the notice (unread) or the status line and the notice (long)
+     if(why==='unread')await shows(p,'#ncs-notice',en?"Couldn't check the server's work":'서버 작업을 확인하지 못해서');
+     else{await shows(p,'#ncs-draft-status',en?"Couldn't check the current work":'지금 작업을 확인하지 못해서');await shows(p,'#ncs-notice',en?"Couldn't check the current work":'지금 작업을 확인하지 못해서');}
      if(why==='unread'){
       assert.equal(await notice(p),en?"Couldn't check the server's work, so work memory is not connected. Please press again.":'서버 작업을 확인하지 못해서 작업 기억을 연결하지 않았어요. 다시 눌러 주세요.');
       assert.equal(await p.locator('#ncs-location').inputValue(),'local place','the edit stays');
