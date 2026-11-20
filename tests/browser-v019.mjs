@@ -28,9 +28,9 @@ try{
  let page=await browser.newPage({viewport:{width:1280,height:900}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/api/plugins/naice-shot/**',r=>r.fulfill({json:{items:[],total:0,hasMore:false}}));
  await page.goto(`http://127.0.0.1:${server.address().port}/`);
- await page.evaluate(()=>{const other=document.createElement('div');other.id='later-extension';document.getElementById('extensions_settings2').append(other);});
+ await page.evaluate(()=>{const other=document.createElement('div');other.id='later-extension';document.getElementById('extensions_settings').append(other);});
  assert.equal(await page.locator('#naice-shot-dialog').count(),0,'panel file still loading');
- assert.deepEqual(await page.locator('#extensions_settings2 > *').evaluateAll(els=>els.map(e=>e.id)),['ncs-extension-settings','later-extension']);
+ assert.deepEqual(await page.locator('#extensions_settings > *').evaluateAll(els=>els.map(e=>e.id)),['ncs-extension-settings','later-extension']);
  assert.equal(await page.locator('#ncs-extension-settings .inline-drawer > .inline-drawer-toggle.inline-drawer-header').count(),1);
  assert.equal(await page.locator('#ncs-extension-settings .inline-drawer-icon.fa-circle-chevron-down').count(),1);
  // Clicking 열기 while the panel is still loading opens it once ready.
