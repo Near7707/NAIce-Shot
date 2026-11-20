@@ -1,6 +1,7 @@
 // wip-en (screen language experiment): an English-screen Chat Shot can pick a target, extract, read the cost and
 // generate one picture, and the language changes nothing but words on screen.
-// 1. The same AI reply in Korean and in English saves the same work and sends the same extraction prompt.
+// 1. The same AI reply in Korean and in English saves the same work. The extraction prompt differs only in the lines
+//    asking for the words shown to the person (a candidate's title, the 추가 요청 result words): Korean asks for Korean, English for English.
 // 2. The extract/generate buttons and the progress box stay English while they are redrawn (Korean stays Korean).
 // 3. Cost: the Opus V5 usage question is English; cancelling it sends no generation (Korean: the same requests).
 // 4. Work saved from the Korean screen (its undo label is Korean) loads on the English screen and its undo still works.
@@ -128,7 +129,7 @@ const notice=page=>page.locator('#ncs-notice').innerText();
 const text=(page,sel)=>page.locator(sel).first().innerText();
 const HANGUL=/[가-힣]/;
 const noKorean=async(page,sels)=>{for(const sel of sels){const t=await text(page,sel);assert.ok(!HANGUL.test(t),`${sel} is English: ${t}`);}};
-// Two moments, with request words the AI writes in Korean (the AI output language is a later step).
+// Two moments, with Korean titles and request words (as the Korean screen asks): whatever the AI writes is shown as written.
 const TWO={moments:[{title:'앉는 순간',characters:[{id:'leo',name:'Leo',expression:'calm',action:'sitting',position:'auto',outfitMode:'unchanged',outfit:''}],unregistered:[],location:'cafe',lighting:'moonlight',camera:'medium shot',interaction:''},
  {title:'일어나는 순간',characters:[{id:'leo',name:'Leo',expression:'smile',action:'standing up',position:'auto',outfitMode:'unchanged',outfit:''}],unregistered:[],location:'cafe',lighting:'moonlight',camera:'medium shot',interaction:''}],
  defaultIndex:1,requestMatched:true,requestApplied:['미소'],requestIgnored:['머리색 · 프로필 고정 외형'],requestOutfits:[],requestVisibleOnly:false};
@@ -156,13 +157,16 @@ try{
     runs[lang]={work:await settledWork(page),prompt:await page.evaluate(()=>mock.lastExtract.prompt),note:await notice(page),page,t};
    }
    assert.deepEqual(runs.en.work,runs.ko.work,'the same AI reply saves the same work in both languages');
-   assert.equal(runs.en.prompt,runs.ko.prompt,'the extraction prompt does not depend on the screen language');
+   {const ko=runs.ko.prompt.split('\n'),en=runs.en.prompt.split('\n');assert.equal(en.length,ko.length);
+    const changed=ko.map((l,i)=>l===en[i]?null:[l,en[i]]).filter(Boolean);
+    assert.deepEqual(changed.map(([k])=>k.split(':')[0]),['title','requestApplied','requestIgnored'],'only the words shown to the person follow the language');
+    for(const [k,e] of changed){assert.match(k,/short Korean/);assert.match(e,/short English/);assert.ok(!HANGUL.test(e),e);}}
    const en=runs.en.page,ko=runs.ko.page;
    assert.match(runs.en.note,/^Found 2 scene candidates\. .*Request applied: 미소\. Not applied: 머리색 · 프로필 고정 외형\./,'English frame, the AI words as given');
    assert.match(runs.ko.note,/^장면 후보 2개를 찾았어요\./,'Korean as before');
    await noKorean(en,['.ncs-tabs','#ncs-source-title','[data-action="extract"]','[data-action="generate"]','#ncs-target-label','.ncs-moments-title','.ncs-clear-slot .ncs-action-slot']);
    assert.equal((await text(en,'#ncs-request-applied')).startsWith('Request applied: 미소 / Not applied:'),true);
-   assert.deepEqual(await en.locator('.ncs-moment-name').allInnerTexts(),['앉는 순간','일어나는 순간'],'candidate titles are the AI words (Korean is fine for now)');
+   assert.deepEqual(await en.locator('.ncs-moment-name').allInnerTexts(),['앉는 순간','일어나는 순간'],'candidate titles are the AI words, as written');
    assert.equal(await text(ko,'[data-action="extract"]'),'장면 추출');
    for(const r of Object.values(runs)){assert.deepEqual(r.t.errors,[]);await r.page.close();}
   }

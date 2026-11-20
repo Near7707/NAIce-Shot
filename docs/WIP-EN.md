@@ -26,8 +26,10 @@ understand the cost, and generate one picture? It is not merged into main. main 
   apart from Steps; `localize` puts the English text in as written, so "$$" in a name stays "$$" (GPT wip-en P3, second review).
   The undo label, outfit origins, warnings that are filtered by their words, and the `스텝 → Steps` wording stay Korean
   inside; they are translated after the code has read them.
-- **AI prompts are unchanged.** Scene titles and the 추가 요청 words still come back in Korean. Changing the AI output
-  language is the next decision, not this one.
+- **AI prompts: Korean is unchanged; English asks for English words for the person.** On the Korean screen every prompt
+  is exactly main's (tests/prompt-snapshot). On the English screen only the lines that ask for words shown to the
+  person change: a candidate's title and the 추가 요청 result words (requestApplied / requestIgnored), and the one
+  language retry line ("keep title in English"). What the AI writes is still shown and saved as written.
 - **No server change.** Server texts are translated in the panel when they are known.
 - Version numbers, CHANGELOG, REVIEW and ROADMAP are not touched here (they change on main every version).
 
@@ -244,13 +246,28 @@ reached; i18n-sweep only reads quoted strings, not those inside a template's HTM
 **From now on: whenever guide.md changes (on main), guide-en.md must change the same way** (tests/guide-en.test.mjs fails
 when the groups or topic counts differ or a [button] is not on the English screen, but it cannot see a changed sentence).
 
+AI output language step (the user chose "English screen → English words"): `momentExtractionPrompt(…, lang)` and
+`languageRetry(lang)` (scene-extraction.mjs) take the screen language; 'ko', the default, gives main's prompt to the
+character. index.js passes `currentLang()` in two places (the extraction prompt and the retry line). Only Chat Shot's
+moment prompt asks the AI for words in a human language for the person; Free Shot's and the profile prompts ask only for
+English tags and names as written, so they are unchanged. Not changed: saved work from either language is read as it
+is, so an old Korean title stays Korean on the English screen (and the other way round). The app's own pieces in
+"Not applied: …" ("{0} 복장 · 장면에서 찾지 못함", "복장 속 머리·눈 등 · 프로필 고정 외형") are still Korean, so that
+line can mix English AI words with them (left for main, like before). `i18n-compare` reads a trailing `currentLang()`
+of `momentExtractionPrompt` as the default and `languageRetry(…)` as main's Korean text, so it still shows 9 statements.
+
 ## Checks
 
 - `node tests/i18n-compare.mjs <main index.js> index.js` — takes `tr`/`trMsg`/`doneText`/`localize` out and compares with main
-  statement by statement (`dateLocale()` counts as 'ko-KR', `dateForm(x)` as x). Expected differences: the import, `renderSettings`, `importSettings`, `bindEvents`,
+  statement by statement (`dateLocale()` counts as 'ko-KR', `dateForm(x)` as x, `momentExtractionPrompt(…, currentLang())`
+  as without it, `languageRetry(…)` as main's Korean line). Expected differences: the import, `renderSettings`, `importSettings`, `bindEvents`,
   `initialize` (the language switch). Anything else means Korean behaviour may have changed.
-- `tests/prompt-snapshot.test.mjs` — the AI prompts must equal `prompt-snapshot.json` (written from main 47f690d).
-- `tests/browser-wip-en.mjs` — same AI reply in Korean and English saves the same work and sends the same prompt;
+- `tests/prompt-snapshot.test.mjs` — the AI prompts must equal `prompt-snapshot.json` (written from main 47f690d; the
+  Korean entries are unchanged, `momentsEn`, `momentsWishEn`, `retry`, `retryEn` were added in the AI output language
+  step). A second test: on the English screen only the title, requestApplied and requestIgnored lines differ from the
+  Korean prompt, they ask for English and hold no Korean; an unknown language is Korean.
+- `tests/browser-wip-en.mjs` — same AI reply in Korean and English saves the same work, and the prompts differ only in
+  the title / requestApplied / requestIgnored lines (Korean asks for Korean, English for English);
   buttons and progress stay English while redrawn; the V5 usage question is English and cancelling it sends nothing;
   Free Shot work saved on one language and loaded on the other still undoes as an extraction (both ways); every
   answer of [같은 요청으로 다시 확인] is English and says to check on NovelAI (GPT P2); a user named "세로" and the AI's
@@ -301,7 +318,9 @@ when the groups or topic counts differ or a [button] is not on the English scree
   guide.md on the Korean one; contents, icons (the same in both), the bar and a group's text have no Korean; the @ pill row
   ("Linked", "broken") and both menus are English (profile names and aliases in the pick list stay as written). Each fix
   undone alone makes it fail. At 320px nothing in the guide or the pill menu runs outside its box (checked once by hand).
-- All earlier checks run unchanged (none of their expectations were edited).
+- All earlier checks run unchanged (none of their expectations were edited). The AI output language step changed two
+  wip-en-only expectations on purpose: step 1's "same prompt" (now "only these three lines differ") and the snapshot file
+  (English entries added; the Korean ones are byte for byte the same).
 
 ## Stop rules
 

@@ -9,7 +9,7 @@ import { freeScenePrompt, freeSceneSchema, parseFreeScene } from './free-scene.m
 import { confirmRefs, refsForExtraction, plainNames, stripRefMarks, suggestions, linkedPills, pillRefs, displayLength, displayText, lengthProblem, LENGTH_LIMITS } from './mentions.mjs';
 import { setupChipField } from './chipfield.mjs';
 import { planFreePeople, confirmText, applyFreePeople, migratePins } from './free-people.mjs';
-import { momentExtractionPrompt, momentExtractionSchema, parseMoments, looksCut, foreignFields, dropLookWords } from './scene-extraction.mjs';
+import { momentExtractionPrompt, momentExtractionSchema, parseMoments, looksCut, foreignFields, dropLookWords, languageRetry } from './scene-extraction.mjs';
 import { isSceneMessage, isHiddenSceneMessage, chooseSceneMessages } from './scene-messages.mjs';
 import { captureImagePreset, applyImagePreset, imagePresetModified, validateImagePresets } from './presets.mjs';
 import { listExtractionProfiles, requestExtraction } from './extractor.mjs';
@@ -2091,7 +2091,7 @@ async function extract() {
   const keptTemps=[...new Map([scene,...(scene.moments??[]).map(m=>m.scene)].flatMap(part=>(part.characters??[]).filter(c=>c.temp)).map(t=>[t.id,t])).values()];
   const manualPositions=new Map();
   if(scene.source?.target===selection.source.target)for(const part of [scene,...(scene.moments??[]).map(m=>m.scene)])for(const c of part.characters??[])if(c.positionManual&&c.id)manualPositions.set(c.id,c.position);
-  const prompt=momentExtractionPrompt(selection.messages,matching.profiles,outfits,s.format,matching.mappings,refs.text.trim(),refs.required);
+  const prompt=momentExtractionPrompt(selection.messages,matching.profiles,outfits,s.format,matching.mappings,refs.text.trim(),refs.required,currentLang());
   const controller=new AbortController();extraction={ticket,controller};
   dropUndo();setBusy(true,ticket);startProgress('extract',ticket);report(tr`장면 추출을 시작했어요.`);
   let response='',failure;
@@ -2105,7 +2105,7 @@ async function extract() {
       if(progress?.owner===ticket){progress.attempt=attempt+1;renderProgress();}
       let received=false;
       try {
-        response=await requestExtraction(ctx(),prompt+(attempt?(retryForLanguage?'\nYour previous reply wrote descriptive fields in a language other than English. Return the complete JSON again with every descriptive field in English; keep title in Korean.':'\nThe previous response could not be parsed. Return ONLY the complete JSON object.'):''),
+        response=await requestExtraction(ctx(),prompt+(attempt?(retryForLanguage?languageRetry(currentLang()):'\nThe previous response could not be parsed. Return ONLY the complete JSON object.'):''),
           {profileId:s.extractionProfileId,structured:(attempt===0||retryForLanguage)&&s.structuredOutput,maxTokens:s.extractionMaxTokens,temperature:extractionTemperature(),schemaValue:momentExtractionSchema(matching.profiles),signal:controller.signal});
         received=true;
         const parsed=unmark(parseMoments(response,profiles));
