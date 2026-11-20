@@ -1277,4 +1277,8 @@ export default {
   "추가 요청에 @프로필 연결이 너무 많아요. 줄여 주세요.": "The extra request has too many @profile links. Please cut some.",
   "@이름을 프로필에 연결하면 추가 요청이 너무 길어요. 화면에 보이는 글자 기준 {0}자까지예요. (지금 {1}자)": "Linking the @names to profiles makes the extra request too long. Up to {0} characters as shown on screen. (now {1})",
   "@이름을 프로필에 연결하면 추가 요청에 @프로필 연결이 너무 많아요. 줄여 주세요.": "Linking the @names to profiles gives the extra request too many @profile links. Please cut some.",
+  "@로 지정한 필수 인물이 {0}명이라 지금 모델의 한도({1}명)를 넘어요. 일부의 @를 지워 주세요.": "{0} required people are set with @, over the current model's limit ({1}). Remove the @ from some of them.",
+  "\"{0}\"은(는) 이미 {1}의 옷장에 있어요. 다른 이름을 붙여 주세요.": "\"{0}\" is already in {1}'s wardrobe. Please give it another name.",
+  "\"{0}\"은(는) 이미 {1} 프로필의 이름·별칭이에요. 같은 이름이 두 프로필에 있으면 자동 연결이 안 돼요. 그 프로필을 고르거나, 그쪽 별칭을 먼저 정리해 주세요.": "\"{0}\" is already a name or alias of the {1} profile. With the same name on two profiles, automatic linking does not work. Pick that profile, or tidy its aliases first.",
+  "상황은 {0}자까지 적을 수 있어요.": "The situation can be up to {0} characters.",
 };

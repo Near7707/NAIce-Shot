@@ -183,3 +183,41 @@ test('프리샷 notices while waiting and the notices put together from pieces a
       assert.doesNotMatch(trMsg(`@이름을 프로필에 연결하면 ${label}에 @프로필 연결이 너무 많아요. 줄여 주세요.`),/[가-힣]/);}
   }finally{setLang('ko');}
 });
+
+test('names and tags in errors stay as written; the @ people limit is English (GPT wip-en P3, fifteenth review)',()=>{
+  setLang('en');
+  try{
+    const S='그릴 상황을 적어 주세요.'; // a name or tag word for word an app sentence (in the dictionary since the fourteenth review)
+    const cases={
+      [`"${S}" 옷의 태그가 비어 있거나 너무 길어요.`]:`The tags of the "${S}" outfit are empty or too long.`,
+      [`"${S}"은(는) 이미 Mira의 옷장에 있어요. 다른 이름을 붙여 주세요.`]:`"${S}" is already in Mira's wardrobe. Please give it another name.`,
+      [`"Leo"은(는) 이미 ${S} 프로필의 이름·별칭이에요. 같은 이름이 두 프로필에 있으면 자동 연결이 안 돼요. 그 프로필을 고르거나, 그쪽 별칭을 먼저 정리해 주세요.`]:
+        `"Leo" is already a name or alias of the ${S} profile. With the same name on two profiles, automatic linking does not work. Pick that profile, or tidy its aliases first.`,
+      [`태그는 30자까지예요: "${S}…"`]:`A tag can be up to 30 characters: "${S}…"`,
+      '@로 지정한 필수 인물이 23명이라 지금 모델의 한도(22명)를 넘어요. 일부의 @를 지워 주세요.':"23 required people are set with @, over the current model's limit (22). Remove the @ from some of them.",
+      '상황은 180,000자까지 적을 수 있어요.':'The situation can be up to 180,000 characters.'};
+    for(const [ko,en] of Object.entries(cases))assert.equal(trMsg(ko),en,ko);
+  }finally{setLang('ko');}
+});
+
+// Sentences with values put in (a template thrown, noticed, pushed as a warning or returned as a message): every one is
+// English with its values filled in, except these, kept out on purpose:
+const PIECED=[
+  /^X의 @참조를 확인해 주세요/,  // joins the user's @names and several problems into one line: needs a code change (known limit)
+  /^@X: |^X: 같은 이름·별칭의 프로필이 여러 개예요/, // the @ problems above, never shown alone
+  /^@이름을 프로필에 연결하면 X$/,/^X이 너무 길어서 X 못했어요/,/^X이 글자 수 한도를 넘었어요/, // pieces, checked whole above
+  /^X 복장 · 장면에서 찾지 못함$/, // a piece of "반영하지 않음: …" (known limit)
+  /^X 필드 형식이 잘못됐어요|^캐릭터가 중복됐어요: X|^X 값이 문자열이 아니에요/]; // only shown inside "JSON을 읽지 못했어요: …"
+test('every sentence with values in it is English on the English screen (GPT wip-en P3, fifteenth review)',()=>{
+  const own=files.filter(f=>path.dirname(f)===root);const found=new Set();
+  for(const f of own)for(const line of fs.readFileSync(f,'utf8').split('\n')){
+    if(/^\s*\/\//.test(line))continue;
+    for(const m of line.matchAll(/(?:new Error\(|notice\(|report\(|\.push\(|message:|say\(|toast\()\s*`((?:[^`\\]|\\.)*[가-힣](?:[^`\\]|\\.)*)`/g)){
+      if(/</.test(m[1]))continue;found.add(m[1].replace(/\$\{(?:[^{}]|\{[^{}]*\})*\}/g,'X'));}}
+  assert.ok(found.size>15,`found the app's sentences with values (${found.size})`);
+  setLang('en');
+  try{
+    const korean=[...found].filter(t=>!PIECED.some(re=>re.test(t))&&/[가-힣]/.test(trMsg(t)));
+    assert.deepEqual(korean,[]);
+  }finally{setLang('ko');}
+});

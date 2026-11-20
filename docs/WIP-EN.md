@@ -208,10 +208,20 @@ sentence is added without English (four pieces are kept out on purpose and liste
 working-code change: an error thrown while the final prompt is put together is shown with `trMsg` in the warnings box (it
 was shown as raw text).
 
+After the sixteenth review (GPT wip-en P3 ×2): the bigger dictionary made one name come out translated — a wardrobe item
+named "그릴 상황을 적어 주세요." in a backup with empty tags showed "Please write the situation to draw." in the error. The
+errors that carry a wardrobe item's name, a profile name or a picture tag are in `AS_IS` now (20 keys): the empty-tags
+error, "is already in {1}'s wardrobe", "is already a name or alias of the {1} profile" and the tag-length error. The notice
+when the people set with @ are more than the model allows was not in the dictionary (a sentence with numbers in it, which
+the whole-sentence check did not look at); it is, with the two wardrobe and profile name errors and Free Shot's
+"상황은 {0}자까지 적을 수 있어요.". A new sweep check fills the values of every sentence the app throws, notices or pushes as a
+warning and fails when one stays Korean; the pieces kept out are listed with the reason in the check.
+
 Still Korean: the guide, the console-only error "NAIce Shot 패널 파일을 읽지 못했어요.", server texts the dictionary does
 not know, texts the AI writes (candidate titles, request words), and the @ check's problem list ("{0}의 @참조를 확인해
 주세요. @Mira: …"): it joins several sentences with the names typed by the user into one line, so translating it needs
-index.js to look each problem up apart (a code change, left for later).
+index.js to look each problem up apart (a code change, left for later). The same for "{0} 복장 · 장면에서 찾지 못함" inside "반영하지 않음: …"
+(the AI-request note): a piece that needs index.js to translate it where it is put in.
 
 ## Checks
 
@@ -257,6 +267,8 @@ index.js to look each problem up apart (a code change, left for later).
 - `tests/i18n-sweep.test.mjs` since the fifteenth review (the code and test names call it the fourteenth): every whole sentence of the app's own files (not the server's)
   is English after `stepsWord`, the V5 questions built with "이번 생성에서 Anlas가 차감될 수 있어요." too; Free Shot's card
   question keeps names that read like app sentences; the waiting notices and the pieced length notices are English.
+  Since the sixteenth: every sentence with values (filled in) is English, and names and tags in the wardrobe, profile-name and
+  tag errors stay as written.
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules
