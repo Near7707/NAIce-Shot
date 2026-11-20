@@ -1144,14 +1144,14 @@ function editProfile(id='') {
   profileFormBase=p.id?clone(p):null;
   if(dialog)setProfileMode('direct'); // every profile form opens on 직접 입력 (new or existing); 설명으로 만들기 is one tap away
   for(const [key,field] of [['id','id'],['name','name'],['subject','subject'],['appearance','appearance'],['outfit','defaultOutfit'],['positive','positive'],['negative','negative']])$(`ncs-profile-${key}`).value=p[field];
-  $('ncs-profile-aliases').value=p.aliases.join(', ');$('ncs-binding').textContent=p.cardKey?`연결된 카드: ${p.cardKey}`:'연결된 카드 없음';$('ncs-binding').dataset.cardKey=p.cardKey;
-  $('ncs-profile-editing').textContent=p.id?`${p.name} 프로필 편집 중`:'새 프로필 작성 중';$('ncs-profile-describe').value='';
+  $('ncs-profile-aliases').value=p.aliases.join(', ');$('ncs-binding').textContent=p.cardKey?tr`연결된 카드: ${p.cardKey}`:tr`연결된 카드 없음`;$('ncs-binding').dataset.cardKey=p.cardKey;
+  $('ncs-profile-editing').textContent=p.id?tr`${p.name} 프로필 편집 중`:tr`새 프로필 작성 중`;$('ncs-profile-describe').value='';
   renderWardrobeForm(p.wardrobe??[]);
   for(const el of dialog.querySelectorAll('[data-profile]')){const active=el.dataset.profile===p.id;el.classList.toggle('ncs-selected',active);el.setAttribute('aria-pressed',String(active));}
 }
 // --- Wardrobe (옷장) in the profile form ------------------------------------------------------------
-function wardrobeRow(w){return `<details class="ncs-wardrobe-item" data-wardrobe-id="${esc(w.id)}"><summary>${esc(w.name||'새 옷')}</summary><div class="ncs-wardrobe-editor"><label>옷 이름<input data-w="name" maxlength="80" placeholder="예: 잠옷" value="${esc(w.name)}"></label><label>옷 태그<textarea data-w="outfit" rows="2" placeholder="예: pajamas, slippers">${esc(w.outfit)}</textarea></label><button type="button" data-action="wardrobe-remove" class="ncs-danger-outline">제거</button></div></details>`;}
-function renderWardrobeForm(list){$('ncs-wardrobe-list').innerHTML=list.length?list.map(wardrobeRow).join(''):'<small class="ncs-wardrobe-empty">아직 옷장이 비어 있어요.</small>';}
+function wardrobeRow(w){return `<details class="ncs-wardrobe-item" data-wardrobe-id="${esc(w.id)}"><summary>${esc(w.name||tr`새 옷`)}</summary><div class="ncs-wardrobe-editor"><label>${tr`옷 이름`}<input data-w="name" maxlength="80" placeholder="${tr`예: 잠옷`}" value="${esc(w.name)}"></label><label>${tr`옷 태그`}<textarea data-w="outfit" rows="2" placeholder="${tr`예: pajamas, slippers`}">${esc(w.outfit)}</textarea></label><button type="button" data-action="wardrobe-remove" class="ncs-danger-outline">${tr`제거`}</button></div></details>`;}
+function renderWardrobeForm(list){$('ncs-wardrobe-list').innerHTML=list.length?list.map(wardrobeRow).join(''):`<small class="ncs-wardrobe-empty">${tr`아직 옷장이 비어 있어요.`}</small>`;}
 function addWardrobeRow(w={id:uuid(),name:'',outfit:''}){
   const box=$('ncs-wardrobe-list');box.querySelector('.ncs-wardrobe-empty')?.remove();box.insertAdjacentHTML('beforeend',wardrobeRow(w));return box.lastElementChild;
 }
@@ -1183,7 +1183,7 @@ function showCard(id){
     el.scrollIntoView({block:'center',behavior:'smooth'});el.classList.remove('ncs-card-flash');void el.offsetWidth;el.classList.add('ncs-card-flash');});
 }
 async function saveProfile() {
-  if(profileContext==='scene-edit'&&!confirm(`"${$('ncs-profile-name').value}" 프로필을 지금 내용으로 바꿔요.\n이 프로필은 모든 채팅에서 함께 쓰여서, 다른 채팅에서 만드는 그림에도 바뀐 외형이 적용돼요.\n\n계속할까요?`))return;
+  if(profileContext==='scene-edit'&&!confirm(tr`"${$('ncs-profile-name').value}" 프로필을 지금 내용으로 바꿔요.\n이 프로필은 모든 채팅에서 함께 쓰여서, 다른 채팅에서 만드는 그림에도 바뀐 외형이 적용돼요.\n\n계속할까요?`))return;
   const s=settings(),id=$('ncs-profile-id').value||uuid(),draftName=quickProfileName;
   const p={id,name:$('ncs-profile-name').value,aliases:$('ncs-profile-aliases').value.split(',').map(x=>x.trim()).filter(Boolean),
     subject:$('ncs-profile-subject').value,appearance:$('ncs-profile-appearance').value,defaultOutfit:$('ncs-profile-outfit').value,
@@ -1207,10 +1207,10 @@ async function saveProfile() {
     if(fromTemp)convertTemp(s.profiles.find(x=>x.id===id));
     const saved=s.profiles.find(x=>x.id===id),{restored}=attachSceneProfile(scene,saved,[draftName,...profileSceneNames(saved)]);
     attachToOtherMoments(saved,[draftName,...profileSceneNames(saved)]);
-    placeProfileForm('profiles');changed();renderScene();showCard(saved.id);notice(`${saved.name} 프로필을 저장하고 장면에 넣었어요.${restored?' 추출해 둔 표정·행동·복장도 채웠어요.':' 장면 정보가 비어 있으면 장면 추출을 다시 눌러 확인할 수 있어요.'}`);
-  }else if(profileContext==='scene-edit'){placeProfileForm('profiles');renderScene();notice(`"${p.name}" 프로필을 저장했어요. 모든 채팅의 그림에 함께 적용돼요.`);}
-  else notice('프로필을 저장했어요.');
-  if(linkError)notice(`프로필은 저장했지만 현재 채팅에 연결하지 못했어요. ${linkError}`,true);
+    placeProfileForm('profiles');changed();renderScene();showCard(saved.id);notice(doneText(tr`${saved.name} 프로필을 저장하고 장면에 넣었어요.${restored?tr` 추출해 둔 표정·행동·복장도 채웠어요.`:tr` 장면 정보가 비어 있으면 장면 추출을 다시 눌러 확인할 수 있어요.`}`));
+  }else if(profileContext==='scene-edit'){placeProfileForm('profiles');renderScene();notice(doneText(tr`"${p.name}" 프로필을 저장했어요. 모든 채팅의 그림에 함께 적용돼요.`));}
+  else notice(tr`프로필을 저장했어요.`);
+  if(linkError)notice(doneText(tr`프로필은 저장했지만 현재 채팅에 연결하지 못했어요. ${trMsg(linkError)}`),true);
 }
 // 0.1.70: a new profile always starts on 직접 입력 (user's choice); 설명으로 만들기 is one tap away and is not remembered.
 function setProfileMode(mode) {
@@ -1224,8 +1224,8 @@ function placeProfileForm(where) {
   if(form.parentElement!==slot)slot.append(form);
   const inScene=where==='scene'||where==='scene-edit';
   profileContext=where;$('ncs-scene-profile-slot').hidden=!inScene;
-  $('ncs-profile-submit').textContent=where==='scene'?'저장하고 장면에 추가':'프로필 저장';
-  const head=$('ncs-scene-profile-slot').querySelector('.ncs-quick-head strong');if(head)head.textContent=where==='scene-edit'?'프로필 편집':'새 프로필';
+  $('ncs-profile-submit').textContent=where==='scene'?tr`저장하고 장면에 추가`:tr`프로필 저장`;
+  const head=$('ncs-scene-profile-slot').querySelector('.ncs-quick-head strong');if(head)head.textContent=where==='scene-edit'?tr`프로필 편집`:tr`새 프로필`;
   form.querySelector('[data-action="delete-profile"]').hidden=inScene;
   renderSceneExtras();
 }
@@ -1242,18 +1242,18 @@ function profileFormDirty(){
 }
 // Opening another profile never silently drops what is being typed; the same profile keeps its typing.
 function leaveProfileForm(nextName){
-  return !profileFormDirty()||confirm(`작성 중인 프로필 내용이 아직 저장되지 않았어요.\n저장하지 않고 ${nextName}(으)로 바꿀까요?`);
+  return !profileFormDirty()||confirm(tr`작성 중인 프로필 내용이 아직 저장되지 않았어요.\n저장하지 않고 ${nextName}(으)로 바꿀까요?`);
 }
 function openProfileEditor(id,where){
   const p=settings().profiles.find(p=>p.id===id);if(!p)return;
   const same=$('ncs-profile-id').value===id;
-  if(!same&&!leaveProfileForm(`"${p.name}" 편집`))return;
+  if(!same&&!leaveProfileForm(tr`"${p.name}" 편집`))return;
   if(!same||!profileFormDirty())editProfile(id);
   if(where==='scene'){placeProfileForm('scene-edit');$('ncs-scene-profile-slot').scrollIntoView?.({block:'start',behavior:'smooth'});}
   else if(profileContext!=='profiles')placeProfileForm('profiles');
 }
 function openQuickProfile(name='') {
-  if(!leaveProfileForm('새 프로필 만들기'))return false; // the caller stops too (UI-059-01)
+  if(!leaveProfileForm(tr`새 프로필 만들기`))return false; // the caller stops too (UI-059-01)
   editProfile();quickProfileName=name;if(name)$('ncs-profile-name').value=name;
   placeProfileForm('scene');if(dialog.querySelector('[data-tab="scene"]').getAttribute('aria-selected')!=='true')showTab('scene');
   requestAnimationFrame(()=>$('ncs-scene-profile-slot').scrollIntoView({block:'start',behavior:'smooth'})); // the form sits below the cards: bring it into view
@@ -1390,7 +1390,7 @@ async function missingAction(kind,name){
   const {text,truncated}=descriptionFor(ctx(),person);
   if(!text){setProfileMode('direct');notice(tr`${trMsg(sourceLabel(person.role))} 설명이 비어 있어요. 직접 입력해 주세요.`,true);return;}
   setProfileMode('describe');$('ncs-profile-describe').value=text;
-  await convertProfile({source:sourceLabel(person.role),truncated});
+  await convertProfile({source:trMsg(sourceLabel(person.role)),truncated});
 }
 // A real nested modal: Tab stays inside, Escape closes only this box. It belongs to the chat and
 // scene it was opened for; switching chats or closing the panel closes it without generating.
@@ -1428,7 +1428,7 @@ async function convertProfile({source='',truncated=false}={}) {
   if(busy)return;
   const s=settings(),prompt=profileDraftPrompt($('ncs-profile-describe').value.trim(),{name:$('ncs-profile-name').value.trim(),format:s.format});
   const editing=$('ncs-profile-id').value,session=profileFormSession,ticket=++task,controller=new AbortController();extraction={ticket,controller,kind:'profile'};
-  setBusy(true,ticket);startProgress('profile',ticket);report('설명을 이미지용 태그로 바꾸고 있어요.');
+  setBusy(true,ticket);startProgress('profile',ticket);report(tr`설명을 이미지용 태그로 바꾸고 있어요.`);
   try {
     let draft=null,failure;
     for(let attempt=0;attempt<2&&!draft;attempt++) {
@@ -1443,16 +1443,16 @@ async function convertProfile({source='',truncated=false}={}) {
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}
     }
     if(ticket!==task)return;
-    if(!draft)throw new Error(`태그 변환 실패: ${failure?.message}. 입력한 내용은 그대로예요.`);
-    if($('ncs-profile-id').value!==editing||session!==profileFormSession){report('프로필 칸이 바뀌어서 변환 결과를 적용하지 않았어요.');return;}
+    if(!draft)throw new Error(tr`태그 변환 실패: ${trMsg(failure?.message)}. 입력한 내용은 그대로예요.`);
+    if($('ncs-profile-id').value!==editing||session!==profileFormSession){report(tr`프로필 칸이 바뀌어서 변환 결과를 적용하지 않았어요.`);return;}
     const filled=['appearance','outfit','positive','negative'].some(k=>$(`ncs-profile-${k}`).value.trim());
-    if(filled&&!confirm('지금 입력된 외형·기본 복장·Positive·Negative를 변환 결과로 바꿀까요?')){report('변환 결과를 적용하지 않았어요. 입력한 내용은 그대로예요.');return;}
+    if(filled&&!confirm(tr`지금 입력된 외형·기본 복장·Positive·Negative를 변환 결과로 바꿀까요?`)){report(tr`변환 결과를 적용하지 않았어요. 입력한 내용은 그대로예요.`);return;}
     if(!$('ncs-profile-name').value.trim()&&draft.name)$('ncs-profile-name').value=draft.name;
     if(!$('ncs-profile-aliases').value.trim()&&draft.aliases.length)$('ncs-profile-aliases').value=draft.aliases.join(', ');
     $('ncs-profile-subject').value=draft.subject;
     for(const [id,key] of [['appearance','appearance'],['outfit','defaultOutfit'],['positive','positive'],['negative','negative']])$(`ncs-profile-${id}`).value=draft[key];
-    if(source&&!draft.appearance.trim())report(`${source}에서 외형을 찾지 못했어요. 외형 칸을 직접 입력해 주세요.`,true);
-    else report(source?`${source}에서 외형·복장을 가져왔어요.${truncated?' 설명이 길어서 앞 4,000자만 보냈어요.':''} 확인하고 고친 뒤 저장해 주세요.`:'태그로 바꿨어요. 인원 태그·외형·복장을 확인하고 고친 뒤 저장해 주세요.');
+    if(source&&!draft.appearance.trim())report(tr`${source}에서 외형을 찾지 못했어요. 외형 칸을 직접 입력해 주세요.`,true);
+    else report(source?tr`${source}에서 외형·복장을 가져왔어요.${truncated?tr` 설명이 길어서 앞 4,000자만 보냈어요.`:''} 확인하고 고친 뒤 저장해 주세요.`:tr`태그로 바꿨어요. 인원 태그·외형·복장을 확인하고 고친 뒤 저장해 주세요.`);
   }finally{
     if(extraction?.ticket===ticket)extraction=null;
     stopProgress(ticket);if(busyOwner===ticket)setBusy(false);
@@ -3431,20 +3431,20 @@ async function onAction(action,el) {
       if(extraction?.kind==='profile')cancelExtraction(''); // a late conversion result must not fill the emptied form
       const wasEditing=$('ncs-profile-id').value;editProfile();
 
-      notice(wasEditing?'모든 칸을 비우고 새 프로필 작성으로 바꿨어요. 저장해 둔 프로필은 그대로예요.':'모든 칸을 비웠어요. 새 프로필을 작성해 주세요.');break;
+      notice(wasEditing?tr`모든 칸을 비우고 새 프로필 작성으로 바꿨어요. 저장해 둔 프로필은 그대로예요.`:tr`모든 칸을 비웠어요. 새 프로필을 작성해 주세요.`);break;
     }
     case 'quick-profile':openQuickProfile();break;
-    case 'close-quick-profile':if(profileContext==='scene-edit'){const kept=profileFormDirty();placeProfileForm('profiles');notice(kept?'프로필 편집을 닫았어요. 저장하지 않은 내용은 프로필 탭에 남아 있어요.':'프로필 편집을 닫았어요.');break;}placeProfileForm('profiles');editProfile();notice('새 프로필 만들기를 닫았어요.');break;
+    case 'close-quick-profile':if(profileContext==='scene-edit'){const kept=profileFormDirty();placeProfileForm('profiles');notice(kept?tr`프로필 편집을 닫았어요. 저장하지 않은 내용은 프로필 탭에 남아 있어요.`:tr`프로필 편집을 닫았어요.`);break;}placeProfileForm('profiles');editProfile();notice(tr`새 프로필 만들기를 닫았어요.`);break;
     case 'convert-profile':await convertProfile();break;
     case 'delete-profile':{
       const id=$('ncs-profile-id').value;if(!id)return;
-      if(!confirm('이 프로필과 옷장을 삭제할까요? 되돌릴 수 없어요. 생성 이력은 유지돼요.'))return;
+      if(!confirm(tr`이 프로필과 옷장을 삭제할까요? 되돌릴 수 없어요. 생성 이력은 유지돼요.`))return;
       settings().profiles=settings().profiles.filter(p=>p.id!==id);scene.characters=scene.characters.filter(c=>c.id!==id);ctx().saveSettingsDebounced();changed();renderProfiles();editProfile();renderScene();break;
     }
     case 'bind-card':{
       if(chatLoading())throw new Error(CHAT_LOADING); // 0.1.138 (GPT 0.1.137 P2-3): the card of the chat on screen only
-      const card=ctx().characters?.[ctx().characterId];if(!card?.avatar)throw new Error('개별 캐릭터 채팅에서 카드를 연결해 주세요.');
-      $('ncs-binding').dataset.cardKey=card.avatar;$('ncs-binding').textContent=`연결할 카드: ${card.avatar} · 프로필 저장을 눌러 주세요.`;break;
+      const card=ctx().characters?.[ctx().characterId];if(!card?.avatar)throw new Error(tr`개별 캐릭터 채팅에서 카드를 연결해 주세요.`);
+      $('ncs-binding').dataset.cardKey=card.avatar;$('ncs-binding').textContent=tr`연결할 카드: ${card.avatar} · 프로필 저장을 눌러 주세요.`;break;
     }
     case 'reset-final':changed();break;
     case 'status':await refreshStatus();break;
@@ -3474,8 +3474,8 @@ async function onAction(action,el) {
     case 'gen-preset-new':genNaming=true;renderGenBox();break;
     case 'gen-preset-new-cancel':genNaming=false;renderGenBox();break;
     case 'gen-preset-new-confirm':saveImagePreset(false,$('ncs-gen-preset-name').value);genNaming=false;$('ncs-gen-preset-name').value='';renderGenBox();break;
-    case 'wardrobe-add':addWardrobeRow();notice('새 옷 버튼을 추가했어요. 눌러서 이름과 태그를 입력한 뒤 프로필을 저장해 주세요.');break;
-    case 'wardrobe-remove':{if(!confirm('이 옷을 옷장에서 제거할까요? 프로필 저장을 눌러야 반영돼요.'))break;el.closest('.ncs-wardrobe-item')?.remove();if(!$('ncs-wardrobe-list').children.length)renderWardrobeForm([]);notice('옷을 제거했어요. 프로필 저장을 눌러야 반영돼요.');break;}
+    case 'wardrobe-add':addWardrobeRow();notice(tr`새 옷 버튼을 추가했어요. 눌러서 이름과 태그를 입력한 뒤 프로필을 저장해 주세요.`);break;
+    case 'wardrobe-remove':{if(!confirm(tr`이 옷을 옷장에서 제거할까요? 프로필 저장을 눌러야 반영돼요.`))break;el.closest('.ncs-wardrobe-item')?.remove();if(!$('ncs-wardrobe-list').children.length)renderWardrobeForm([]);notice(tr`옷을 제거했어요. 프로필 저장을 눌러야 반영돼요.`);break;}
     case 'extraction-recommended':settings().extractionMaxTokens=RECOMMENDED_MAX_TOKENS;$('ncs-extraction-max-tokens').value=RECOMMENDED_MAX_TOKENS;renderExtractionSummary();revision++;ctx().saveSettingsDebounced();notice(`독립 추출 응답 한도를 권장값 ${RECOMMENDED_MAX_TOKENS}로 바꿨어요. 실제로 쓰는 양은 응답 길이만큼이에요.`);break;
     case 'copy-raw':await copyRaw();break;
     case 'draft-retry':await retryDraft();break;

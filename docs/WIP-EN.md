@@ -42,12 +42,18 @@ Step 2 (after the first iPhone try): the rest of the drawing tab — person card
 wardrobe, fixed look, pin), the "no profile" box with its link picker and the before-generating dialog, the
 left-out line, the chat's profile-link options, the final prompt form and counts, Free Shot's own texts and notices.
 
+Step 3: the Profiles tab — the list heading and help, the profile form (also when it opens on the drawing tab as
+"새 프로필" / "프로필 편집"), describe mode and tag conversion, wardrobe rows, card link line, save / clear / delete
+notices and confirms, and the shared core's profile and wardrobe errors (through `notice`'s `trMsg`). Profile names
+(chips) and wardrobe names are drawn after `localize(dialog)` runs, from templates where only the fixed words are `tr`,
+so they stay as written. "직접 입력" is "Manual" (the temporary-person badge and the profile form's mode button share it).
+
 Known limits, left as they are (GPT wip-en P3, second review): a name that is word for word a whole dictionary sentence
 (ends with ".") is shown translated inside "＋ {0} 프로필 만들기"; an outfit that itself ends with " · 잠금" is shown as
 "· locked" in the card's saved-outfit line even when unlocked (Korean shows the same ambiguous line; the lock checkbox
 next to it shows the real state). Both need the person to type an app sentence by hand.
 
-Still Korean: the Profiles / Settings / History tabs, the guide, the viewer, the server-version line, and texts the
+Still Korean: the Settings / History tabs, the guide, the viewer, the server-version line, and texts the
 AI writes (candidate titles, request words).
 
 ## Checks
@@ -61,7 +67,8 @@ AI writes (candidate titles, request words).
   Free Shot work saved on one language and loaded on the other still undoes as an extraction (both ways); every
   answer of [같은 요청으로 다시 확인] is English and says to check on NovelAI (GPT P2); a user named "세로" and the AI's
   words "밤 / 정사각형 / 혼자" and "스텝 / 정사각형 / 밤" stay as written in English notices, 스텝 aside (GPT P3); a name "A $$ B"
-  keeps "$$" in its English button; the switch writes only `uiLanguage`.
+  keeps "$$" in its English button; the Profiles tab is English while profile and wardrobe names that are dictionary
+  words (옷장, 제거) stay as written, and the same edits save the same profiles in both languages; the switch writes only `uiLanguage`.
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

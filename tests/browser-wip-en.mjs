@@ -282,6 +282,39 @@ try{
    await page.locator('#ncs-ui-language').selectOption('ko');assert.equal(await page.evaluate(()=>mock.extensionSettings.naice_shot.uiLanguage),'ko');
    assert.deepEqual(t.errors,[]);await page.close();
   }
+  // --- 9. the Profiles tab reads in English; profile and wardrobe names stay as written even when they are dictionary
+  // words (옷장, 제거), and the same edits save the same profiles in both languages.
+  {
+   const saved={};
+   for(const lang of ['ko','en']){
+    const t=await open(width,{lang});const {page}=t;
+    await page.evaluate(()=>{mock.extensionSettings.naice_shot.profiles[0].wardrobe=[{id:'w1',name:'제거',outfit:'pajamas'}];});
+    await page.locator('[data-tab="profiles"]').click();const P2=page.locator('#ncs-profile-list [data-profile]',{hasText:'옷장'});
+    await page.locator('#ncs-profile-name').fill('옷장');await page.locator('#ncs-profile-appearance').fill('red hair');await page.locator('#ncs-profile-submit').click();
+    await P2.waitFor();await page.locator('[data-profile="leo"]').click();
+    await page.locator('[data-profile-mode="describe"]').click();await page.locator('.ncs-wardrobe-item').first().evaluate(d=>d.open=true);
+    assert.equal(await P2.innerText(),'옷장','a profile name stays');
+    assert.equal(await text(page,'.ncs-wardrobe-item summary'),'제거','a wardrobe name stays');
+    if(lang==='en'){
+     const left=await page.evaluate(()=>{const H=/[가-힣]/,out=[],root=document.querySelector('section[data-page="profiles"]'),own='#ncs-profile-list,.ncs-wardrobe-item summary';
+      const w=document.createTreeWalker(root,4);for(let n=w.nextNode();n;n=w.nextNode()){const v=n.nodeValue.trim();if(v&&H.test(v)&&!n.parentElement.closest(own))out.push(v);}
+      for(const el of root.querySelectorAll('*'))for(const a of ['aria-label','title','placeholder','data-short'])if(H.test(el.getAttribute(a)??''))out.push(`@${a} ${el.getAttribute(a)}`);return out;});
+     assert.deepEqual(left,[],'the Profiles tab is English');
+     assert.equal(await text(page,'#ncs-profile-editing'),'Editing the Leo profile');
+    }
+    await page.locator('#ncs-profile-aliases').fill('Lee');
+    await page.locator('[data-action="wardrobe-add"]').click();await page.locator('.ncs-wardrobe-item').last().evaluate(d=>d.open=true);
+    await page.locator('.ncs-wardrobe-item').last().locator('[data-w="name"]').fill('robe');await page.locator('.ncs-wardrobe-item').last().locator('[data-w="outfit"]').fill('bathrobe');
+    await clearNotice(page);await page.locator('#ncs-profile-submit').click();
+    assert.equal(await notice(page),lang==='en'?'Profile saved.':'프로필을 저장했어요.');
+    await P2.click();await page.locator('[data-action="delete-profile"]').click();await P2.waitFor({state:'detached'});
+    assert.equal(t.asked.at(-1),lang==='en'?'Delete this profile and its wardrobe? This cannot be undone. Generation history is kept.':'이 프로필과 옷장을 삭제할까요? 되돌릴 수 없어요. 생성 이력은 유지돼요.');
+    saved[lang]=await page.evaluate(()=>structuredClone(mock.extensionSettings.naice_shot.profiles).map(p=>({...p,wardrobe:p.wardrobe.map(({id,...w})=>w)})));
+    assert.deepEqual(t.errors,[]);await page.close();
+   }
+   assert.deepEqual(saved.en,saved.ko,'the same profiles are saved in both languages');
+   assert.deepEqual(saved.en[0].wardrobe.map(w=>w.name),['제거','robe']);
+  }
  }
  console.log('PASS browser-wip-en');
 }finally{await browser.close();server.close();}
