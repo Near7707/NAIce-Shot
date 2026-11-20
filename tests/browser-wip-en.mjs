@@ -13,6 +13,8 @@
 // 10. The Settings tab is English (language box and server-version line too); a preset or outfit named "밤 / 보통 / 옷"
 //     stays whole in its notices; the header switch reads Chat / Free and fits; the chat-changed notice is English;
 //     the same preset save keeps the same settings.
+// 11. The History tab is English; a chat name and a tag that are dictionary words stay as written; putting a picture in
+//     a message, deleting and [챗샷으로 보내기] do the same in both languages (the undo label stays Korean).
 // Header copied from browser-v01101 (lines 1–91) with a `lang` option; helpers from the same file.
 import zlib from 'node:zlib';
 import http from 'node:http';
@@ -382,6 +384,60 @@ try{
    }
    assert.deepEqual(saved.en,saved.ko,'the same preset is saved in both languages');
    assert.equal(saved.en[0].name,NAME);
+  }
+  // --- 11. the History tab reads in English (cards, ⋯ menu with its message lines, count line, chat filter, the attach
+  //     picker); a chat named "선택" and a tag "1에 넣기" (dictionary words) stay as written; putting a picture in a message,
+  //     deleting one and [챗샷으로 보내기] send and save the same in both languages, and the import's undo label stays Korean.
+  {
+   const seen={},CHAT=JSON.stringify({group:null,card:'Leo.png',chat:'선택'});
+   const left=(page,sel)=>page.evaluate(sel=>{const H=/[가-힣]/,out=[],own='.ncs-history-date,.ncs-history-tags,.ncs-chat-name,#ncs-history-filter';
+    for(const root of document.querySelectorAll(sel)){const w=document.createTreeWalker(root,4);for(let x=w.nextNode();x;x=w.nextNode()){const v=x.nodeValue.trim();if(v&&H.test(v)&&!x.parentElement.closest(own))out.push(v);}
+     for(const el of [root,...root.querySelectorAll('*')])for(const a of ['aria-label','title','placeholder','data-short','alt'])if(H.test(el.getAttribute(a)??''))out.push(`@${a} ${el.getAttribute(a)}`);}return out;},sel);
+   for(const lang of ['ko','en']){
+    const t=await open(width,{lang,seed:[pic(1),pic(2),pic(3,CHAT)],marks:{[uid(1)]:{star:true,tags:['1에 넣기'],chatKey:KEY}}});const {page}=t;const en=lang==='en';
+    await closeCompat(page);await page.locator('[data-tab="history"]').click();await page.waitForSelector('.ncs-history-card');
+    await page.evaluate(()=>document.querySelectorAll('section[data-page="history"] details').forEach(d=>{d.open=true;}));
+    await page.locator('[data-history-pick]').first().check();
+    await page.waitForFunction(()=>document.querySelector('#ncs-history-count').textContent.includes('·'));
+    assert.equal(await text(page,'#ncs-history-count'),en?'Total 2 · 1 picked':'총 2장 · 1장 고름');
+    assert.equal(await text(page,'.ncs-history-tags'),'#1에 넣기','a tag stays as written (it reads like "#{0}에 넣기")');
+    await page.locator('[data-image-more^="ncs-history-menu"]').first().click();
+    const menu=await page.locator('.ncs-history-card [id^="ncs-history-menu"]').first().textContent();
+    assert.match(menu,en?/Send to Chat Shot.*Go to message/s:/챗샷으로 보내기.*메시지로 가기/s);
+    if(en)assert.deepEqual(await left(page,'section[data-page="history"]'),[],'the History tab is English');
+    await page.keyboard.press('Escape');
+    // every chat: the chat named "선택" stays as written on its card and in the chat filter
+    await page.selectOption('#ncs-history-scope','chats');await page.waitForFunction(()=>document.querySelectorAll('.ncs-chat-name').length===3);
+    assert.equal(await page.locator('.ncs-history-card .ncs-chat-name').first().innerText(),'선택');
+    const filter=await page.locator('#ncs-history-filter option').allTextContents();
+    assert.ok(filter.includes(en?'선택 · 1':'선택 · 1장'),filter.join(' | '));assert.equal(filter[0],en?'All chats · 3':'모든 채팅 · 3장');
+    if(en)assert.deepEqual(await left(page,'section[data-page="history"]'),[],'the every-chat view is English');
+    await page.selectOption('#ncs-history-scope','chat');await page.waitForFunction(()=>document.querySelectorAll('.ncs-history-card').length===2);
+    // [본문에 넣기] → the picker → #1
+    await page.evaluate(id=>document.querySelector(`[data-history-attach="${id}"]`).click(),uid(1));await page.waitForSelector('#ncs-attach-dialog[open]');
+    await page.locator('[data-attach-target="1"]').click();
+    if(en)assert.deepEqual(await left(page,'#ncs-attach-dialog .ncs-attach-card > :not(.ncs-target-list)'),[],'the attach picker is English');
+    assert.equal(await text(page,'[data-action="attach-confirm"]'),en?'Put in #1':'#1에 넣기');
+    await clearNotice(page);await page.locator('[data-action="attach-confirm"]').click();
+    await page.waitForFunction(()=>document.querySelector('#ncs-notice').textContent);
+    assert.equal(await notice(page),en?'Put the picture in message #1. The message text is unchanged.':'#1 메시지에 그림을 넣었어요. 본문은 그대로예요.');
+    const attached=await page.evaluate(()=>mock.chat[1].extra?.naice_shot_images?.map(x=>x.id));
+    // delete the other picture
+    await clearNotice(page);await page.evaluate(id=>document.querySelector(`[data-history-delete="${id}"]`).click(),uid(2));
+    await page.waitForFunction(()=>/삭제했어요|Deleted/.test(document.querySelector('#ncs-notice').textContent));
+    assert.equal(t.asked.at(-1),en?'Delete this picture?\nThe original PNGs and records are removed from the server. This cannot be undone.':'이 그림을 삭제할까요?\n원본 PNG와 생성 기록이 서버에서 지워지며 되돌릴 수 없어요.');
+    assert.equal(await notice(page),en?'Deleted 1 picture(s).':'그림 1장을 삭제했어요.');
+    // [챗샷으로 보내기]: the undo label is saved in Korean on both screens
+    await clearNotice(page);await page.evaluate(id=>document.querySelector(`[data-history-id="${id}"]`).click(),uid(1));
+    await page.waitForFunction(()=>document.querySelector('#ncs-notice').textContent);
+    const said=await notice(page);if(en)assert.ok(!HANGUL.test(said),said);
+    const work=await settledWork(page);
+    assert.equal(work.undoClear.label,'이력에서 가져왔어요. 원래 챗샷 작업은 되돌리기로 돌아와요.');
+    assert.equal(await page.locator('.ncs-import-undo').getAttribute('title'),en?'Brought from the history. The earlier Chat Shot work comes back with undo.':work.undoClear.label);
+    seen[lang]={attached,deletions:page.deletions,scene:work.scene,label:work.undoClear.label};
+    assert.deepEqual(t.errors,[]);await page.close();
+   }
+   assert.deepEqual(seen.en,seen.ko,'the same history actions send and save the same in both languages');
   }
  }
  console.log('PASS browser-wip-en');

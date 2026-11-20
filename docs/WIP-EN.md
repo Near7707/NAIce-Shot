@@ -67,6 +67,18 @@ After the fifth review: the chat default outfit notice (옷장 → 채팅 기본
 "장면 추출 실패" notice is translated like Chat Shot's, and "JSON을 읽지 못했어요: 빈 응답" (an empty `{}` reply) is a
 whole dictionary text, since a value inside a pattern is looked up again only when it is a sentence.
 
+Step 5-1: the History tab — panel.html's history page (scope, help boxes, PNG and storage notes), the count line, the
+selection buttons and save menu, the chat filter, the cards (pick, star, ⋯ menu, its message lines, tag and preset forms),
+pictures waiting to be saved, the attach picker (also opened from the drawing tab), and the notices, confirms and errors
+of putting in, taking out, deleting, saving, tagging, moving to a message and [챗샷으로 보내기] / [프리샷으로 보내기]
+(`tr` in index.js; thrown errors, also those of chat.mjs, inline-images.mjs and image-marks.mjs, through `notice`'s
+`trMsg`). Cards, the waiting list, the ⋯ message lines and the attach picker are drawn first and then `localize`d with skip
+lists: `.ncs-chat-name,.ncs-history-tags,.ncs-history-date` (cards), the first `small` of a waiting row (chat name · date),
+`.ncs-target-meta,.ncs-target-preview` (attach picker). A tag "1에 넣기" shows as "#1에 넣기", which reads like the pattern
+"#{0}에 넣기", so the tag skip matters. `chatLabel`'s own words (프리샷, 알 수 없는 채팅, 그룹 · …) are `tr`, the chat name
+stays as written. The import's undo label (`이력에서 가져왔어요. 원래 … 작업은…`) is still made and saved in Korean; only the
+notice gets `trMsg(name)`.
+
 Known limits, left as they are (GPT wip-en P3, second review): a name that is word for word a whole dictionary sentence
 (ends with ".") is shown translated inside "＋ {0} 프로필 만들기"; an outfit that itself ends with " · 잠금" is shown as
 "· locked" in the card's saved-outfit line even when unlocked (Korean shows the same ambiguous line; the lock checkbox
@@ -76,8 +88,10 @@ with 스텝 shows as Steps in that error in both languages: that is main's `step
 
 Also left (step 4): the account-fields "earlier check" line shows its time in Korean form (`toLocaleTimeString('ko-KR')`,
 a value); the language switch's own notice stays in both languages.
+Also left (step 5-1): history dates keep the Korean form (`shortDate`, `toLocaleString('ko-KR')`, a value); the tag
+pop-up on the chat screen and the viewer (also its ⋯ menu lines, which share `jumpChoices`) are the next step.
 
-Still Korean: the History tab, the guide, the viewer, and texts the
+Still Korean: the viewer (enlarged picture), the tag pop-up, the guide, and texts the
 AI writes (candidate titles, request words).
 
 ## Checks
@@ -96,7 +110,10 @@ AI writes (candidate titles, request words).
   the Settings tab is English while a preset named 보통 (= Medium) stays as written and saves the same in both languages,
   the header switch reads Chat / Free and fits, and the chat-changed notice is English; a preset and an outfit named
   "밤 / 보통 / 옷" stay whole in their English notices (the chat default outfit too); an empty extraction reply
-  reads in English in both modes; the language box and the server-version line are English.
+  reads in English in both modes; the language box and the server-version line are English. Step 11: the History tab is English
+  (count line, ⋯ menu with its message lines, every-chat view, attach picker, delete confirm and notices) while a chat
+  named 선택 and a tag 1에 넣기 stay as written; putting in, deleting and [챗샷으로 보내기] send and save the same in both
+  languages, and the import's undo label is saved in Korean.
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules
