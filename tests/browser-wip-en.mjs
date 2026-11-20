@@ -635,6 +635,37 @@ try{
     await page.waitForFunction(()=>document.querySelector('#ncs-location').value==='cafe');
     assert.match(await page.locator('#ncs-draft-status').innerText(),en?/^Loaded the scene you were working on in this chat · Target message(: latest| #\d+)$/:/^이 채팅에서 작업하던 장면을 불러왔어요 · 대상 메시지(: 최신| #\d+)$/);
     assert.deepEqual(t.errors,[]);await page.close();
+    // The notice after another candidate is English and the AI's title stays as written ("닫기" is a dictionary word),
+    // also with the note on a required person added to that candidate (GPT wip-en P3, eleventh review).
+    {
+     const c=await open(width,{lang}),p=c.page;await closeCompat(p);
+     const NIGHT={...TWO,moments:[{...TWO.moments[0],title:'밤 / 닫기 / 정사각형',characters:[]},TWO.moments[1]]};
+     await p.locator('#ncs-moment-wish').evaluate(f=>{f.value='@[Leo](ref:leo) 미소';});
+     await extractWith(p,NIGHT);
+     await clearNotice(p);await p.locator('[data-moment="0"]').click();
+     assert.equal(await notice(p),en?'Switched to the "밤 / 닫기 / 정사각형" moment. Each candidate keeps its own edits. Added required people missing from the result: Leo. Their expression and action are empty; fill them in or extract again.':
+      '"밤 / 닫기 / 정사각형" 순간으로 바꿨어요. 후보마다 고친 내용은 따로 남아 있어요. 결과에 없던 필수 인물을 넣었어요: Leo. 표정·행동이 비어 있어요. 직접 채우거나 다시 추출해 주세요.');
+     assert.equal(await p.locator('[data-moment="0"] .ncs-moment-name').innerText(),'밤 / 닫기 / 정사각형','the button keeps the title');
+     await clearNotice(p);await p.locator('[data-moment="1"]').click();
+     assert.equal(await notice(p),en?'Switched to the "일어나는 순간" moment. Each candidate keeps its own edits.':'"일어나는 순간" 순간으로 바꿨어요. 후보마다 고친 내용은 따로 남아 있어요.');
+     assert.ok(JSON.stringify(await settledWork(p)).includes('"밤 / 닫기 / 정사각형"'),'saved as written');
+     assert.deepEqual(c.errors,[]);await p.close();
+    }
+    // The status line when the work changed elsewhere while a deletion was being checked (GPT wip-en P3, eleventh review):
+    // the deletion's reply is lost, the check then finds another revision on the server. The edit stays.
+    {
+     const c=await open(width,{lang}),p=c.page;await closeCompat(p);
+     await p.locator('#ncs-location').fill('cafe at night');await settledWork(p);
+     p.loseDraftDelete=true;p.draftReadFails=true;
+     await p.locator('[data-tab="settings"]').click();await p.locator('[data-action="delete-all-work"]').click();
+     await p.waitForFunction(()=>document.querySelector('#ncs-work-fields').disabled);
+     p.loseDraftDelete=false;p.draftReadFails=false;p.draftReply={revision:'elsewhere',work:null};
+     await p.locator('[data-tab="scene"]').click();await p.locator('#ncs-draft-retry').click();
+     await p.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);
+     assert.equal(await p.locator('#ncs-draft-status').innerText(),en?'Check work saving: The work was changed elsewhere.':'작업 저장을 확인해 주세요: 다른 곳에서 작업이 바뀌었어요.');
+     assert.equal(await p.locator('#ncs-location').inputValue(),'cafe at night','the edit stays');
+     assert.deepEqual(c.errors,[]);await p.close();
+    }
     // Work memory that cannot connect says why in each language (GPT wip-en P3, tenth review): the server's work could not
     // be read, or the edits on screen are too long to compare with the saved copy. The edits stay either way.
     for(const why of ['unread','long']){

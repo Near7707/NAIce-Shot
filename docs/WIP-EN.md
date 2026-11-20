@@ -152,6 +152,16 @@ packed (`draftUnreadableNote` is `tr`, its error is looked up with `trMsg` befor
 never saved or compared); draft-work.mjs's five errors are in the dictionary. Left (known): a Free Shot card named word
 for word like a whole app sentence ("복사했어요.") is shown translated in the question about cards not in the text.
 
+After the eleventh review (GPT wip-en P3 ×3): two longer keys open at one end are `tr` only too (`TR_ONLY`): "#{0} 메시지{1}"
+turned a server text "#3 메시지가 변경됐어요." into "message #3가 변경됐어요.", and "{0} 본문은 그대로예요." translated only the end of
+"편집하지 않았어요. 본문은 그대로예요.". Both are made by `tr` in the attach notices. About 100 other keys still start or end with
+`{n}`; they are left as patterns on purpose (known limit): telling which of them the screen needs as patterns would risk
+turning working English back into Korean, and the worst case is a server text not in the dictionary shown half in English.
+If it comes up again, add that key to `TR_ONLY` (check with `tests/i18n-sweep.test.mjs`). The notice after another scene
+candidate is `tr` with the AI's title as a value, so a title like "밤 / 닫기 / 정사각형" stays whole (it showed "밤 / Close /
+정사각형"); the work memory's own "다른 곳에서 작업이 바뀌었어요." (the server's work changed while a deletion was checked) is in the
+dictionary, so the status line reads "Check work saving: The work was changed elsewhere.".
+
 Still Korean: the guide, the console-only error "NAIce Shot 패널 파일을 읽지 못했어요.", server texts the dictionary does
 not know, and texts the AI writes (candidate titles, request words).
 
@@ -190,7 +200,9 @@ not know, and texts the AI writes (candidate titles, request words).
   language (since the ninth review: English only). Step 14: the confirms for another candidate over a hand-edited final
   prompt and for reloading after a save conflict (both cancelled, nothing changes) and the status line after Chat Shot
   work came back from the server read in each language; so do the notice when the server's work cannot be read on
-  connecting and the status line when the edits on screen are too long to compare (both keep the edits).
+  connecting and the status line when the edits on screen are too long to compare (both keep the edits); since the eleventh
+  review also the notice after another candidate (the AI's title "밤 / 닫기 / 정사각형" as written, with and without the note on a
+  required person) and the status line when the work changed elsewhere while a lost deletion was checked (the edit stays).
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

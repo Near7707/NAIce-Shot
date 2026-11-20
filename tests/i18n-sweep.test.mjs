@@ -58,6 +58,19 @@ test('keys with under 4 fixed letters are tr only: texts not in the dictionary s
   }finally{setLang('ko');}
 });
 
+test('the attach notices\' open keys are tr only: server texts not in the dictionary stay whole (GPT wip-en P3, eleventh review)',()=>{
+  setLang('en');
+  try{
+    for(const t of ['#3 메시지가 변경됐어요.','편집하지 않았어요. 본문은 그대로예요.'])assert.equal(trMsg(t),t,t);
+    // the app still makes them in English where it shows them
+    const where=tr`#${3} 메시지${''}`;assert.equal(where,'message #3');
+    assert.equal(tr`${'Moved 1 already there below the text.'} 본문은 그대로예요.`,'Moved 1 already there below the text. The message text is unchanged.');
+    assert.equal(tr`${where}에 이미 넣은 그림이에요.`,'The picture is already in message #3.');
+    // the work memory's own conflict error, shown in the status line
+    assert.equal(trMsg('다른 곳에서 작업이 바뀌었어요.'),'The work was changed elsewhere.');
+  }finally{setLang('ko');}
+});
+
 test('프리샷 question about cards not in the text: every line in English, card names as written (GPT wip-en P3, ninth review)',async()=>{
   const {confirmText}=await import('../free-people.mjs');
   const profiles=[{id:'p1',name:'세로'}]; // a name that is also a dictionary word ("Vertical")

@@ -33,8 +33,11 @@ export function tr(strings,...values){
 // The same held for every key with under 4 fixed letters (spaces aside): "{0}초", "{0} 중…" and "{0} 열기" cut the end
 // off server texts not in the dictionary ("서버 응답 제한 시간: 30초" → "…: 30s", "모델 정보 열기" → "Open 모델 정보",
 // GPT wip-en P3, tenth review). Such keys are all made by `tr` where they are shown, so none of them is a pattern.
+// Two longer keys open at one end are `tr` only too: "#{0} 메시지{1}" made "#3 메시지가 변경됐어요." into "message #3가 변경됐어요."
+// and "{0} 본문은 그대로예요." translated only the end of "편집하지 않았어요. 본문은 그대로예요." (GPT wip-en P3, eleventh review).
+// Both are made by `tr` where they are shown (the attach notices); the rest of the open keys are a known limit (docs/WIP-EN.md).
 // tests/i18n-sweep.test.mjs looks every fixed Korean text of the app and the server up and fails on a half translation.
-const TR_ONLY=new Set(['{0} {1}장{2}']),SHORT=4;
+const TR_ONLY=new Set(['{0} {1}장{2}','#{0} 메시지{1}','{0} 본문은 그대로예요.']),SHORT=4;
 const trOnly=k=>TR_ONLY.has(k)||k.replace(/\{\d+\}|\s/g,'').length<SHORT;
 let patterns=null;
 const escapeRe=s=>s.replace(/[.*+?^$()|[\]\\]/g,'\\$&').replace(/[{}]/g,c=>'\\'+c);

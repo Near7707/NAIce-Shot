@@ -1475,7 +1475,7 @@ function switchMoment(index){
   lastLink=null;linkTarget=null;changed();renderScene({forceFinal:true});
   // UI-075-08: people picked with @ who were only added to this candidate (still without a pose) are named again.
   const bare=(list[index].filled??[]).filter(name=>scene.characters.some(c=>!c.temp&&settings().profiles.find(p=>p.id===c.id)?.name===name&&!c.expression&&!c.action));
-  notice(`"${list[index].title||`후보 ${index+1}`}" 순간으로 바꿨어요. 후보마다 고친 내용은 따로 남아 있어요.${bare.length?` ${emptyNote(bare)}`:''}`,false,'scene',{keep:bare.length>0});
+  notice(tr`"${list[index].title||tr`후보 ${index+1}`}" 순간으로 바꿨어요. 후보마다 고친 내용은 따로 남아 있어요.${bare.length?` ${emptyNote(bare)}`:''}`,false,'scene',{keep:bare.length>0});
 }
 function renderMoments(){
   const list=scene.moments??[],box=$('ncs-moments');box.hidden=list.length<2;placeRequest();if(list.length<2){box.innerHTML='';return;}

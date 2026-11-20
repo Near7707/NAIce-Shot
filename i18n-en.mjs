@@ -1179,4 +1179,6 @@ export default {
   "작업 항목이 너무 많아요.": "The work has too many items.",
   "저장된 작업 형식을 확인해 주세요.": "Check the saved work's format.",
   "작업 내용이 너무 커서 저장하지 못했어요.": "The work is too large to save.",
+  "\"{0}\" 순간으로 바꿨어요. 후보마다 고친 내용은 따로 남아 있어요.{1}":"Switched to the \"{0}\" moment. Each candidate keeps its own edits.{1}",
+  "다른 곳에서 작업이 바뀌었어요.":"The work was changed elsewhere.",
 };
