@@ -21,7 +21,9 @@ understand the cost, and generate one picture? It is not merged into main. main 
   A notice put together in English from `tr` parts and the AI's or a person's own words is passed through
   `doneText(…)` first, so `notice`'s `trMsg` leaves it whole (otherwise its " / " split looked up a word like
   "정사각형" again). `trMsg`'s pattern match looks a captured value up again only when it is a whole sentence (ends
-  with "."), so a name ("세로: 자동 연결 없음…") stays as written (GPT wip-en P3).
+  with "."), so a name ("세로: 자동 연결 없음…") stays as written (GPT wip-en P3). The mark survives `notice`'s
+  `스텝 → Steps` (it is kept by a key that reads 스텝 and Steps the same), so the AI's "스텝 / 정사각형" stays as written
+  apart from Steps; `localize` puts the English text in as written, so "$$" in a name stays "$$" (GPT wip-en P3, second review).
   The undo label, outfit origins, warnings that are filtered by their words, and the `스텝 → Steps` wording stay Korean
   inside; they are translated after the code has read them.
 - **AI prompts are unchanged.** Scene titles and the 추가 요청 words still come back in Korean. Changing the AI output
@@ -40,6 +42,11 @@ Step 2 (after the first iPhone try): the rest of the drawing tab — person card
 wardrobe, fixed look, pin), the "no profile" box with its link picker and the before-generating dialog, the
 left-out line, the chat's profile-link options, the final prompt form and counts, Free Shot's own texts and notices.
 
+Known limits, left as they are (GPT wip-en P3, second review): a name that is word for word a whole dictionary sentence
+(ends with ".") is shown translated inside "＋ {0} 프로필 만들기"; an outfit that itself ends with " · 잠금" is shown as
+"· locked" in the card's saved-outfit line even when unlocked (Korean shows the same ambiguous line; the lock checkbox
+next to it shows the real state). Both need the person to type an app sentence by hand.
+
 Still Korean: the Profiles / Settings / History tabs, the guide, the viewer, the server-version line, and texts the
 AI writes (candidate titles, request words).
 
@@ -53,7 +60,8 @@ AI writes (candidate titles, request words).
   buttons and progress stay English while redrawn; the V5 usage question is English and cancelling it sends nothing;
   Free Shot work saved on one language and loaded on the other still undoes as an extraction (both ways); every
   answer of [같은 요청으로 다시 확인] is English and says to check on NovelAI (GPT P2); a user named "세로" and the AI's
-  words "밤 / 정사각형 / 혼자" stay as written in English notices (GPT P3); the switch writes only `uiLanguage`.
+  words "밤 / 정사각형 / 혼자" and "스텝 / 정사각형 / 밤" stay as written in English notices, 스텝 aside (GPT P3); a name "A $$ B"
+  keeps "$$" in its English button; the switch writes only `uiLanguage`.
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

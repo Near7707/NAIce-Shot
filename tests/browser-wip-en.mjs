@@ -232,6 +232,11 @@ try{
    const said=await notice(page);
    assert.match(said,/Request applied: 밤 \/ 정사각형 \/ 혼자\./,`the AI words as given: ${said}`);
    assert.ok(!/Square|Portrait/.test(said),said);
+   // the AI's words hold 스텝: the panel still writes it as Steps, but the other words are not looked up again
+   await extractWith(page,{...TWO,requestApplied:['스텝 / 정사각형 / 밤']},'dance');
+   const steps=await notice(page);
+   assert.match(steps,/Request applied: Steps \/ 정사각형 \/ 밤\./,`the AI words as given: ${steps}`);
+   assert.ok(!/Square/.test(steps),steps);
    assert.deepEqual(t.errors,[]);await page.close();
   }
   // --- 7. the drawing tab: person cards, the no-profile box and Free Shot read in English, while names, the AI's
@@ -243,13 +248,14 @@ try{
      for(const el of root.querySelectorAll('*'))for(const a of ['aria-label','title','placeholder'])if(H.test(el.getAttribute(a)??''))out.push(`@${a} ${el.getAttribute(a)}`);}return out;},
     [sel,'textarea,strong,select[data-profile-switch],select[data-wear-once] option:not([value=""]),select[data-chat-outfit] option[value^="w:"]']);
    await page.evaluate(()=>{mock.extensionSettings.naice_shot.profiles[0].wardrobe=[{id:'w1',name:'저장',outfit:'yellow raincoat'}];
-    mock.extraction={characters:[{id:'leo',name:'Leo',expression:'가운데',action:'sitting',position:'auto',outfitMode:'replace',outfit:'white shirt'}],unregistered:['비우기'],location:'cafe',lighting:'sun',camera:'medium shot',interaction:''};});
+    mock.extraction={characters:[{id:'leo',name:'Leo',expression:'가운데',action:'sitting',position:'auto',outfitMode:'replace',outfit:'white shirt'}],unregistered:['비우기','A $$ B'],location:'cafe',lighting:'sun',camera:'medium shot',interaction:''};});
    await page.locator('[data-action="extract"]').click();await idle(page);
    assert.deepEqual(await leftKorean('#ncs-characters'),[],'the card words are English');
    assert.equal(await page.locator('[data-character="leo"] [data-field="expression"]').inputValue(),'가운데','the AI words stay');
    assert.equal(await page.locator('[data-character="leo"] select[data-wear-once] option[value="w1"]').textContent(),'저장','a wardrobe name stays');
    assert.deepEqual(await leftKorean('#ncs-unregistered'),[],'the no-profile list is English');
    assert.equal(await text(page,'[data-quick-profile-name="비우기"]'),'＋ Create a profile for 비우기','the name stays inside the English button');
+   assert.equal(await text(page,'[data-quick-profile-name="A $$ B"]'),'＋ Create a profile for A $$ B','"$$" in a name stays as written');
    assert.equal(await page.locator('#ncs-missing-main strong').first().textContent(),'⚠ No profile is linked to User "Mira".');
    await page.locator('[data-missing-do="link"]').first().evaluate(b=>b.click());
    assert.deepEqual(await leftKorean('#ncs-missing-main'),[],'the no-profile box and its link picker are English');

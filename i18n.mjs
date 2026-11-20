@@ -38,14 +38,16 @@ function one(text){
 }
 // doneText(text): a notice already put together in English (tr parts + the AI's or a person's own words). trMsg leaves it
 // as it is, so a word inside it ("정사각형", a name) is not looked up again (GPT wip-en P3). Korean: returns text.
-const finished=new Set();
+// notice turns 스텝 into Steps before trMsg ("28스텝" → "28 Steps", "스텝은" → "Steps는"), so a marked text is kept by a key
+// that reads both spellings the same; otherwise the AI's word "스텝" made the notice look unmarked (GPT wip-en P3).
+const finished=new Set(),doneKey=s=>s.replace(/ ?(?:스텝|Steps)[은는]?/g,'§');
 export function doneText(text){
   if(lang!=='en'||typeof text!=='string'||!text)return text;
-  finished.add(text);if(finished.size>50)finished.delete(finished.values().next().value);
+  finished.add(doneKey(text));if(finished.size>50)finished.delete(finished.values().next().value);
   return text;
 }
 export function trMsg(text){
-  if(lang!=='en'||typeof text!=='string'||!text||finished.has(text))return text;
+  if(lang!=='en'||typeof text!=='string'||!text||finished.has(doneKey(text)))return text;
   const whole=one(text);if(whole!==null)return whole;
   // A notice put together from several finished texts: each line, then each " / " part, on its own.
   if(text.includes('\n'))return text.split('\n').map(trMsg).join('\n');
@@ -61,7 +63,7 @@ export function localize(root,skip=''){
   for(let n=walker.nextNode();n;n=walker.nextNode()){
     const raw=n.nodeValue,text=raw.trim();if(!text||!/[가-힣]/.test(text))continue;
     if(skip&&n.parentElement?.closest(skip))continue;
-    const en=one(text);if(en!==null)n.nodeValue=raw.replace(text,en);
+    const en=one(text);if(en!==null)n.nodeValue=raw.replace(text,()=>en); // as written: "$$" in a name is not a replace pattern (GPT wip-en P3)
   }
   const all=root.querySelectorAll?[...(root.nodeType===1?[root]:[]),...root.querySelectorAll('*')]:[];
   for(const el of all)for(const a of ATTRS){const v=el.getAttribute(a);if(v&&/[가-힣]/.test(v)){const en=one(v.trim());if(en!==null)el.setAttribute(a,en);}}
