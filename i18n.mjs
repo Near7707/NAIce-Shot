@@ -27,11 +27,16 @@ export function tr(strings,...values){
 }
 
 // Keys with {n} as patterns, longest first, built once on the first English lookup.
+// A key with almost no fixed text is used by `tr` only (an exact lookup where it is made), never as a pattern: the
+// history count "{0} {1}장{2}" matched any text with a space and a "장" and cut it out ("저장" → "저", "장면" → "면"),
+// so a Korean error not in the dictionary showed broken on the English screen (GPT wip-en P3, ninth review).
+// tests/i18n-sweep.test.mjs looks every fixed Korean text of the app up and fails on a half translation.
+const TR_ONLY=new Set(['{0} {1}장{2}']);
 let patterns=null;
 const escapeRe=s=>s.replace(/[.*+?^$()|[\]\\]/g,'\\$&').replace(/[{}]/g,c=>'\\'+c);
 function patternList(){
   if(patterns)return patterns;
-  patterns=Object.keys(EN).filter(k=>/\{\d+\}/.test(k)).sort((a,b)=>b.length-a.length).map(k=>{
+  patterns=Object.keys(EN).filter(k=>/\{\d+\}/.test(k)&&!TR_ONLY.has(k)).sort((a,b)=>b.length-a.length).map(k=>{
     const order=[];const source=escapeRe(k).replace(/\\\{(\d+)\\\}/g,(all,n)=>{order.push(Number(n));return '([\\s\\S]*?)';});
     return {re:new RegExp(`^${source}$`),order,en:EN[k]};});
   return patterns;

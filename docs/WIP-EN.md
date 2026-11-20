@@ -130,6 +130,18 @@ selected `Profiles` ran out of their tab at 320px) and the gap before the save a
 `tests/i18n-compare.mjs` now reads a template put inside another one (`<span>${tr`${esc(name)} 열기`}</span>`) as the same
 text written in place, so the wrapped extension list entry compares equal to main.
 
+After the ninth review (GPT wip-en P3 ×3): the confirms that can drop edits are English — another candidate over a
+hand-edited final prompt, reloading the server's work after a save conflict, the two questions when the server's work
+differs or was deleted (`recallDraft`), and Free Shot's question about cards not in the text (`trMsg(confirmText(…))`:
+line by line, card names as written; its "추출하지 않았어요…" note too). The work memory's status line goes through `trMsg`
+where it is put on screen (`renderDraftState`: `draftNote`, `draftHoldNote`), so the notes stay Korean inside; the
+[다시 연결] notices are `tr`. The history count key "{0} {1}장{2}" is `tr` only (`TR_ONLY` in i18n.mjs): as a pattern it
+matched any text with a space and a "장" and cut it out ("저장" → "저", "장면" → "면"), so 31 Korean texts of the app not
+in the dictionary yet would have shown broken on the English screen. `tests/i18n-sweep.test.mjs` looks every quoted
+Korean text of the code up in English and fails on a half translation. Step 13's overflow check now looks at the English
+screen only (Korean is main's CSS, and Korean fonts differ between machines: "준비 중…" ran 1.2px over at 320px on another
+machine). Known: a Free Shot card with no name reads "이름 없는 인물" / "인물" inside the English question.
+
 Still Korean: the guide, the console-only error "NAIce Shot 패널 파일을 읽지 못했어요.", server texts the dictionary does
 not know, and texts the AI writes (candidate titles, request words).
 
@@ -165,7 +177,9 @@ not know, and texts the AI writes (candidate titles, request words).
   the tag pop-up read in each language; on every tab (Chat Shot, Free Shot, after extraction, Profiles and its form,
   Settings, History, all picked, saving with the picture files held, the viewer), with every folded line open, no button's
   words run outside its box (a text line past its edge by more than 0.5px, or a wider inside unless cut with "…") in either
-  language.
+  language (since the ninth review: English only). Step 14: the confirms for another candidate over a hand-edited final
+  prompt and for reloading after a save conflict (both cancelled, nothing changes) and the status line after Chat Shot
+  work came back from the server read in each language.
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

@@ -627,10 +627,10 @@ function syncWorkLock(){
 }
 function renderDraftState(){
   if(!dialog)return;syncWorkLock();const e=drafts.entry(workKey()),box=$('ncs-draft-status');
-  if(!draftsEnabled&&draftHold){box.hidden=false;box.textContent=draftHoldNote||DRAFT_HOLD_NOTE;$('ncs-draft-retry').hidden=false;$('ncs-draft-retry').textContent=tr`작업 기억 다시 연결`;return;}
+  if(!draftsEnabled&&draftHold){box.hidden=false;box.textContent=trMsg(draftHoldNote||DRAFT_HOLD_NOTE);$('ncs-draft-retry').hidden=false;$('ncs-draft-retry').textContent=tr`작업 기억 다시 연결`;return;}
   if(!draftsEnabled){box.hidden=!compatChecked;box.textContent=tr`작업 기억을 사용할 수 없어요. 서버 연결·업데이트를 확인해 주세요.`;$('ncs-draft-retry').hidden=!compatChecked;$('ncs-draft-retry').textContent=tr`연결 다시 확인`;return;}
   const held=draftDeletionChecks.has(workKey());
-  box.hidden=!draftsEnabled;box.textContent=held?tr`삭제 결과를 확인할 때까지 작업을 잠갔어요.`:draftLoading?tr`마지막 작업을 불러오는 중…`:e.error?tr`작업 저장을 확인해 주세요: ${trMsg(e.error.message)}`:e.saving||e.dirty||captureTimer?tr`마지막 작업 저장 중…`:draftNote||tr`마지막 작업을 서버에 기억해요.`;
+  box.hidden=!draftsEnabled;box.textContent=held?tr`삭제 결과를 확인할 때까지 작업을 잠갔어요.`:draftLoading?tr`마지막 작업을 불러오는 중…`:e.error?tr`작업 저장을 확인해 주세요: ${trMsg(e.error.message)}`:e.saving||e.dirty||captureTimer?tr`마지막 작업 저장 중…`:trMsg(draftNote)||tr`마지막 작업을 서버에 기억해요.`;
   $('ncs-draft-retry').hidden=!draftsEnabled||!held&&!e.error;
   $('ncs-draft-retry').textContent=held?draftDeletionRuns.has(workKey())?tr`삭제 결과 확인 중…`:tr`삭제 결과 다시 확인`:e.error?.status===409?tr`서버 작업 다시 불러오기`:tr`다시 시도`;
 }
@@ -687,7 +687,7 @@ async function recallDraft(key=workKey(),{connect=false,asked=false}={}){
   // 0.1.98 (GPT P2-1, user decision): the server keeps a deletion record for this work. Edits left on screen are never
   // saved over it unasked: 확인 empties the screen, 취소 keeps it and holds. [서버 작업 다시 불러오기] already asked.
   if(!saved&&drafts.entry(key).deleted&&(!mine||!emptyWork(mine))){
-    if(!asked&&!confirm('서버에 이 작업의 삭제 기록이 있어요. 화면에 남은 편집도 비울까요?\n취소하면 편집은 화면에 두고 작업 기억 연결을 멈춰요.')){
+    if(!asked&&!confirm(tr`서버에 이 작업의 삭제 기록이 있어요. 화면에 남은 편집도 비울까요?\n취소하면 편집은 화면에 두고 작업 기억 연결을 멈춰요.`)){
       holdDrafts(key,DRAFT_DELETED_HOLD_NOTE);return 'held';
     }
     if(key!==workKey())return 'moved';
@@ -697,7 +697,7 @@ async function recallDraft(key=workKey(),{connect=false,asked=false}={}){
     renderTargets();renderScene({forceFinal:true});renderResult();renderUndo();renderDraftState();return 'connected';
   }
   const differs=!asked&&!!saved&&!!mine&&!emptyWork(mine)&&compareForm(packWork(withoutDeleted(unpackWork(saved)),{retainRaw}))!==compareForm(mine);
-  if(differs&&!confirm('서버에 저장된 마지막 작업을 불러올까요?\n취소하면 지금 편집은 화면에, 서버 작업은 서버에 그대로 두고 작업 기억 연결을 멈춰요.')){
+  if(differs&&!confirm(tr`서버에 저장된 마지막 작업을 불러올까요?\n취소하면 지금 편집은 화면에, 서버 작업은 서버에 그대로 두고 작업 기억 연결을 멈춰요.`)){
     holdDrafts(key,DRAFT_HOLD_NOTE);return 'held';
   }
   if(connect){draftHold=false;draftHoldNote='';draftsEnabled=true;}
@@ -742,12 +742,12 @@ async function retryDraft(){
   if(draftDeletionChecks.has(key)){
     const outcome=await reconcileDraftDeletion(key);
     if(outcome==='settled')return; // the other press's answer already said it
-    if(outcome==='unknown')notice('아직 삭제 결과를 확인하지 못했어요. 확인할 때까지 작업을 잠가 둘게요.',true);
-    else if(outcome==='deleted')notice('서버에서 작업이 삭제된 것을 확인했어요.');
-    else notice('서버 작업을 확인했어요. 자동 저장을 다시 시작해요.');
+    if(outcome==='unknown')notice(tr`아직 삭제 결과를 확인하지 못했어요. 확인할 때까지 작업을 잠가 둘게요.`,true);
+    else if(outcome==='deleted')notice(tr`서버에서 작업이 삭제된 것을 확인했어요.`);
+    else notice(tr`서버 작업을 확인했어요. 자동 저장을 다시 시작해요.`);
     return;
   }
-  if(e.error?.status===409){if(!confirm('서버에 저장된 작업을 다시 불러올까요? 현재 화면의 저장되지 않은 편집은 바뀌어요.'))return;await recallDraft(key,{asked:true});}
+  if(e.error?.status===409){if(!confirm(tr`서버에 저장된 작업을 다시 불러올까요? 현재 화면의 저장되지 않은 편집은 바뀌어요.`))return;await recallDraft(key,{asked:true});}
   else if(!e.loaded)await recallDraft(key); // compares and asks like every other load (0.1.97)
   else await drafts.flush(key);
 }
@@ -1468,7 +1468,7 @@ let restoredFinal=null;
 function switchMoment(index){
   const list=scene.moments??[];if(!list[index]||index===scene.momentIndex)return;
   // A prompt restored from history is not the user's own edit; only a hand edit asks first.
-  if(finalOverride&&finalOverride!==restoredFinal&&!confirm('직접 고친 최종 프롬프트가 있어요. 다른 순간으로 바꾸면 고른 순간의 조립 결과로 돌아가요. 바꿀까요?'))return;
+  if(finalOverride&&finalOverride!==restoredFinal&&!confirm(tr`직접 고친 최종 프롬프트가 있어요. 다른 순간으로 바꾸면 고른 순간의 조립 결과로 돌아가요. 바꿀까요?`))return;
   const temps=scene.characters.filter(c=>c.temp);
   syncMoment();Object.assign(scene,{request:null},clone(list[index].scene));scene.momentIndex=index;carryTemps(temps,scene);
   lastLink=null;linkTarget=null;changed();renderScene({forceFinal:true});
@@ -1980,7 +1980,7 @@ async function freeFill() {
   const plan=planFreePeople(scene.characters,plainNames(asked,s.profiles),s.profiles);
   const existing=plan.present.map(c=>c.temp?{id:'',name:c.name}:{id:c.id,name:s.profiles.find(p=>p.id===c.id)?.name??''}).filter(p=>p.name);
   const prompt=freeScenePrompt(refs.text,s.profiles,existing,s.format,refs.required,displayText(asked));
-  if(plan.ask&&!confirm(confirmText(plan,s.profiles))){report('추출하지 않았어요. 글을 고치거나 남길 카드를 📌 고정해 주세요.');return;}
+  if(plan.ask&&!confirm(trMsg(confirmText(plan,s.profiles)))){report(tr`추출하지 않았어요. 글을 고치거나 남길 카드를 📌 고정해 주세요.`);return;}
   const before={...captureWork(),scene:clone(scene),undoClear:null,targetShown,kind:'extract',label:'추출 전으로 되돌려요. 다시 고치거나 생성·비우기·가져오기를 하면 사라져요.'};
   const ticket=++task,rev=revision,controller=new AbortController();extraction={ticket,controller,kind:'free'};
   setBusy(true,ticket);startProgress('free',ticket);report('적은 상황으로 장면 칸을 채우고 있어요.');
