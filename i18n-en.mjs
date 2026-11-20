@@ -1208,4 +1208,6 @@ export default {
   "{0}: @로 고른 같은 이름의 인물이 여러 명이라 누구인지 알 수 없어 비워 뒀어요.": "{0}: several people picked with @ share this name, so it is unclear who; left empty.",
   "{0}: {1}와 같은 인물로 보여 한 번만 넣었어요.": "{0}: looks like the same person as {1}, so added once.",
   "{0}: 이름에 맞춰 {1} 프로필로 연결을 바로잡았어요.": "{0}: the link was corrected to the {1} profile to match the name.",
+  "추출 인물의 name 필드가 없어요. 실제 인물 이름을 함께 반환해야 해요.": "A person in the result has no name field. The reply must include the real name of each person.",
+  "장면 설명에 들어간 이름({0})을 빼고 일반 표현으로 정리했어요.": "Removed the names in the scene description ({0}) and used general wording instead.",
 };

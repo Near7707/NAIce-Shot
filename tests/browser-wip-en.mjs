@@ -675,6 +675,17 @@ try{
      assert.ok(odds.includes(en?'Left out an unknown ID: unlisted123':'미등록 ID 제외: unlisted123'),odds);
      assert.ok(odds.includes(en?'Some fields are not in English (lighting). Fix them yourself or extract again.':'영어로 바뀌지 않은 칸이 있어요(lighting). 직접 고치거나 다시 추출해 주세요.'),odds);
      if(en)assert.ok(!HANGUL.test(odds.replace(/달빛/g,'')),odds);
+     // A known ID without its name stops the extraction, and a name in the scene description is taken out
+     // (GPT wip-en P3, thirteenth review): both texts in each language.
+     const {name,...nameless}=untitled.characters[0];
+     await extractWith(p,{...untitled,characters:[nameless]});await shows(p,'#ncs-notice',en?'no name field':'name 필드가 없어요');
+     const stop=await notice(p);
+     assert.ok(stop.includes(en?'A person in the result has no name field. The reply must include the real name of each person.':'추출 인물의 name 필드가 없어요. 실제 인물 이름을 함께 반환해야 해요.'),stop);
+     if(en)assert.ok(!HANGUL.test(stop),stop);
+     await extractWith(p,{...untitled,location:'cafe where Leo waits'});await shows(p,'#ncs-notice',en?'Removed the names':'장면 설명에 들어간 이름');
+     const plain=await notice(p);
+     assert.ok(plain.includes(en?'Removed the names in the scene description (Leo) and used general wording instead.':'장면 설명에 들어간 이름(Leo)을 빼고 일반 표현으로 정리했어요.'),plain);
+     if(en)assert.ok(!HANGUL.test(plain),plain);
      assert.deepEqual(c.errors,[]);await p.close();
     }
     // The status line when the work changed elsewhere while a deletion was being checked (GPT wip-en P3, eleventh review):

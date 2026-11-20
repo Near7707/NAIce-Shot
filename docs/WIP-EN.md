@@ -181,6 +181,18 @@ AI sent it and never looked up again, even when the ID is word for word an app s
 reads (the notice, the status line, the confirm) instead of a fixed time; with the status reply held 1.1s the earlier
 version failed and this one passes.
 
+After the fourteenth review (GPT wip-en P3 ×2 fixed, two left): two Chat Shot texts are in the dictionary — the error when
+the AI sends a known ID without its `name` ("추출 인물의 name 필드가 없어요. …") and the note after names were taken out of
+the scene description ("장면 설명에 들어간 이름({0})을 …"). Every warning from the shared code that carries a person's name, an
+alias or a list of names is in `AS_IS` now (13 keys with the unknown ID): a name word for word an app sentence ("위치 값이
+잘못됐어요.") is no longer translated. Warnings made by `tr` in index.js never look their values up, so they need no entry.
+Left as known limits (agreed with the user): a name or alias with ": " in it ("Captain: Leo") puts the warning's words
+after its first colon ("Captain: looks like the same person as Leo: Leo") — every word is kept, only the place is off;
+fixing it means passing the name apart from the warning text through the shared code. And `settledWork` in the checks
+still takes a save as finished after 1.2s without a new one (the app saves 0.45s after a change); the step-14 check that
+uses it only looks for the AI's title saved as written, which both candidates carry, so it cannot pass wrongly. It is
+shared by 7 checks, so it is left as it is.
+
 Still Korean: the guide, the console-only error "NAIce Shot 패널 파일을 읽지 못했어요.", server texts the dictionary does
 not know, and texts the AI writes (candidate titles, request words).
 
@@ -223,7 +235,8 @@ not know, and texts the AI writes (candidate titles, request words).
   review also the notice after another candidate (the AI's title "밤 / 닫기 / 정사각형" as written, with and without the note on a
   required person) and the status line when the work changed elsewhere while a lost deletion was checked (the edit stays);
   since the twelfth review also a reply without `lighting` (the whole reply, and one candidate beside a good one); since the
-  thirteenth an unknown ID without a name and lighting still in Korean after the second ask (both warnings in English).
+  thirteenth an unknown ID without a name and lighting still in Korean after the second ask (both warnings in English);
+  since the fourteenth a known ID without its name (the extraction stops) and a name taken out of the location (the note).
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

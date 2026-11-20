@@ -108,3 +108,21 @@ test('the AI reply read errors are English, also inside "JSON을 읽지 못했�
     assert.equal(trMsg('세로: 이름에 맞춰 Kai 프로필로 연결을 바로잡았어요.'),'세로: the link was corrected to the Kai profile to match the name.');
   }finally{setLang('ko');}
 });
+
+test('names in the warnings stay as written even when they read like an app sentence; two chat shot texts in English (GPT wip-en P3, thirteenth review)',()=>{
+  setLang('en');
+  try{
+    const S='위치 값이 잘못됐어요.'; // a name (or alias) word for word an app sentence
+    const cases={
+      [`${S}: Leo와 같은 인물로 보여 한 번만 넣었어요.`]:`${S}: looks like the same person as Leo, so added once.`,
+      [`Mira: 이름에 맞춰 ${S} 프로필로 연결을 바로잡았어요.`]:`Mira: the link was corrected to the ${S} profile to match the name.`,
+      [`${S}: 자동 연결 없음. 이름·별칭 또는 이 채팅의 연결을 확인해 주세요.`]:`${S}: no automatic match. Check names and aliases, or this chat's profile link.`,
+      [`${S}: 프로필을 확정하지 못해 자동 적용하지 않았어요. 장면 정보는 보관했어요.`]:`${S}: the profile is not settled, so it was not applied automatically. The scene details are kept.`,
+      [`${S}: 새 복장 후보가 있지만 잠금을 유지해요.`]:`${S}: a new outfit was found, but the lock is kept.`,
+      [`임시 인물 ${S}의 외형이 비어 있어요. 외형을 채우면 더 잘 그려져요.`]:`The temporary person ${S} has no look. Filling it in draws them better.`,
+      [`장면 설명에 들어간 이름(Mira, ${S})을 빼고 일반 표현으로 정리했어요.`]:`Removed the names in the scene description (Mira, ${S}) and used general wording instead.`,
+      '장면 설명에 들어간 이름(Mira, Leo)을 빼고 일반 표현으로 정리했어요.':'Removed the names in the scene description (Mira, Leo) and used general wording instead.',
+      '추출 인물의 name 필드가 없어요. 실제 인물 이름을 함께 반환해야 해요.':'A person in the result has no name field. The reply must include the real name of each person.'};
+    for(const [ko,en] of Object.entries(cases))assert.equal(trMsg(ko),en,ko);
+  }finally{setLang('ko');}
+});
