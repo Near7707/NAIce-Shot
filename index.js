@@ -579,7 +579,7 @@ async function removeMessageImage(item,attachment){
 function say(message,error=false,tab=activeTab()) {
   // The panel may be closed when deleting from the chat viewer; fall back to ST's toast.
   if(dialog?.open||!globalThis.toastr)notice(message,error,tab);
-  else globalThis.toastr[error?'error':'success'](message,brand());
+  else globalThis.toastr[error?'error':'success'](trMsg(message),brand()); // wip-en: notice translates inside; the toast had nothing (GPT wip-en P3)
 }
 function changed(){undoChatOutfit=null;dialog?.querySelectorAll('.ncs-outfit-undo').forEach(e=>e.remove());revision++;finalOverride=null;optionsOverride=null;dropUndo();updateFinal({force:true});scheduleDraft();}
 // History restore uses the stored options for the next generation only; the settings tab keeps the user's own values.
@@ -2405,7 +2405,7 @@ function renderShape(){
   $('ncs-shape-status').textContent=shapeStale?tr`이전 조회(${new Date(shapeAt).toLocaleTimeString(dateLocale(),{hour:'numeric',minute:'2-digit'})}) 결과예요. 이번 확인은 실패해서 복사할 수 없어요.`:'';
 }
 async function copyShape(){
-  if(!accountShape)return;try{await copyText(accountShape.join('\n'),dialog);$('ncs-shape-status').textContent=tr`복사했어요.`;}catch(e){$('ncs-shape-status').textContent=e.message;}
+  if(!accountShape)return;try{await copyText(accountShape.join('\n'),dialog);$('ncs-shape-status').textContent=tr`복사했어요.`;}catch(e){$('ncs-shape-status').textContent=trMsg(e.message);}
 }
 const GENERATION_REQUESTS='naice-shot-pending-generation';
 const pendingGenerations=new Map();

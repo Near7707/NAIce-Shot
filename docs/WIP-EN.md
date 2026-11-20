@@ -114,6 +114,10 @@ Dates and times read in the screen language: `shortDate` (history cards, waiting
 "이전 조회(…)" time use `dateLocale()` / `dateForm(…)` from i18n.mjs — Korean gets 'ko-KR' and the options as written
 ("2026. 11. 14. 오후 7:27"), English gets "Nov 14, 2026, 7:27 PM". Display only; the saved time is not touched.
 `tests/i18n-compare.mjs` reads `dateLocale()` as 'ko-KR' and `dateForm(x)` as x, so the Korean comparison stays whole.
+After the eighth review (GPT wip-en P3 ×2): clipboard.mjs's "복사하지 못했어요. …" is in the dictionary (the viewer's seed
+toast and prompt copy line already go through `trMsg`; the drawing tab's account copy line now does too); `say` passes
+`trMsg(message)` to SillyTavern's toast when the panel is closed (`notice` translated inside, the toast did not), so
+[이 메시지에서 빼기] in the chat shows its save error in English.
 
 Still Korean: the tag pop-up on the chat screen (`showTagPopup`), the guide, server texts the dictionary does not know,
 and texts the AI writes (candidate titles, request words).
@@ -144,6 +148,8 @@ and texts the AI writes (candidate titles, request words).
   picture's note and its remove button) are English; [글 아래로 옮기기] shows an English toast and saves the same placement
   in both languages. Steps 11 and 12 also check that the selection buttons fit their boxes at both widths and that the
   card's and the viewer's dates read in the screen language (Korean keeps "2026. 11. 14. 오후 7:27").
+  Step 12 also makes copying fail in the viewer (seed toast, prompt copy line) and the chat save fail on [이 메시지에서 빼기]
+  with the panel closed (English toast, the picture is back).
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

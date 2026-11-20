@@ -506,6 +506,16 @@ try{
     assert.equal(await text(page,'#ncs-viewer .ncsv-toast'),en?'Loading…':'불러오는 중…');
     slow.open();await page.waitForFunction(()=>document.querySelector('#ncs-viewer .ncsv-position').textContent==='20 / 20');
     await page.waitForFunction(()=>document.querySelector('#ncs-viewer .ncsv-toast').hidden,null,{timeout:4000});
+    // copying fails (clipboard and the fallback both refuse): the seed toast and the prompt's copy line are English (GPT wip-en P3)
+    await page.evaluate(()=>{window.__exec=document.execCommand;document.execCommand=()=>false;Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:()=>Promise.reject(new Error('denied'))}});});
+    await page.locator('#ncs-viewer [data-v="seed"]').click();await page.waitForFunction(()=>!document.querySelector('#ncs-viewer .ncsv-toast').hidden);
+    const copyFail=en?"Couldn't copy. Please select the text and copy it yourself.":'복사하지 못했어요. 내용을 직접 선택해 복사해 주세요.';
+    assert.equal(await text(page,'#ncs-viewer .ncsv-toast'),copyFail);
+    await page.evaluate(()=>{const d=document.querySelector('#ncs-viewer .ncsv-prompt');d.open=true;d.dispatchEvent(new Event('toggle'));});
+    await page.waitForFunction(()=>!document.querySelector('#ncs-viewer [data-v="copy"]').disabled);
+    await page.locator('#ncs-viewer [data-v="copy"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-viewer .ncsv-copy-status').textContent);
+    assert.equal(await page.locator('#ncs-viewer .ncsv-copy-status').textContent(),copyFail);
+    await page.evaluate(()=>{document.execCommand=window.__exec;});
     await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.querySelector('#ncs-viewer').open);
     // a picture in the chat: put in #1 from the history, then a second one whose file is missing (slide layout, two pictures)
     await page.evaluate(id=>document.querySelector(`[data-history-attach="${id}"]`).click(),uid(2));await page.waitForSelector('#ncs-attach-dialog[open]');
@@ -519,6 +529,12 @@ try{
     assert.equal(await text(page,'#chat .ncs-missing-note'),en?'This picture was deleted or cannot be found.':'삭제됐거나 찾을 수 없는 그림이에요.');
     assert.equal(await page.locator('#chat .ncs-inline-remove:not([hidden])').innerText(),en?'Take out of this message':'이 메시지에서 빼기');
     if(en)assert.deepEqual(await left(page,'#chat .ncs-inline-images'),[],'the chat pictures are English');
+    // [이 메시지에서 빼기] with the panel closed, and the chat is not saved: the picture comes back, the toast is English (GPT wip-en P3)
+    await page.evaluate(()=>{window.__toasts=[];window.__save=mock.saveChat;mock.saveChat=async function(){};});
+    await page.locator('#chat .ncs-inline-remove:not([hidden])').click();await page.waitForFunction(()=>window.__toasts.length);
+    assert.deepEqual(await page.evaluate(()=>window.__toasts),[en?'The chat was not saved, so it was put back as it was.':'채팅이 저장되지 않아 원래대로 돌려놨어요.']);
+    assert.equal(await page.evaluate(()=>mock.chat[1].extra.naice_shot_images.length),2,'the picture is back in the message');
+    await page.evaluate(()=>{mock.saveChat=window.__save;window.__toasts=[];});
     // the picture opened from its message: [이 메시지에서 빼기] on row 2, ⋯ → move below the text
     await page.locator('#chat .ncs-inline-slide-prev').click();await page.locator(`#chat [data-ncs-inline-view="${uid(2)}"]`).click();await page.waitForSelector('#ncs-viewer[open] .ncsv-stage img[src]');
     assert.equal(await text(page,'#ncs-viewer [data-v="detach"]'),en?'Take out of this message':'이 메시지에서 빼기');

@@ -1141,4 +1141,5 @@ export default {
   "[공통 Positive]\n{0}": "[Common Positive]\n{0}",
   "[공통 Negative]\n{0}": "[Common Negative]\n{0}",
   "[인물 {0}{1}{2}]\n{3}{4}": "[Character {0}{1}{2}]\n{3}{4}",
+  "복사하지 못했어요. 내용을 직접 선택해 복사해 주세요.":"Couldn't copy. Please select the text and copy it yourself.",
 };
