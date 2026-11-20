@@ -36,8 +36,12 @@ notices, request results frame, scene candidates heading, undo/clear buttons, wo
 summary, account box, cost verdict and V5 usage notes, generation questions (no preset, V5 usage), generation
 notices, the result area and its save menu, and the language switch itself (always both languages).
 
-Still Korean (by choice for the first try): character cards and the "no profile for this person" box, Free Shot's
-own texts, the Profiles / Settings / History tabs, the guide, the viewer, and texts the AI writes.
+Step 2 (after the first iPhone try): the rest of the drawing tab — person cards (temporary people, outfits, lock,
+wardrobe, fixed look, pin), the "no profile" box with its link picker and the before-generating dialog, the
+left-out line, the chat's profile-link options, the final prompt form and counts, Free Shot's own texts and notices.
+
+Still Korean: the Profiles / Settings / History tabs, the guide, the viewer, the server-version line, and texts the
+AI writes (candidate titles, request words).
 
 ## Checks
 
@@ -72,6 +76,12 @@ about 30 changed lines of working code (not text).
   5. the viewer's "불러오는 중…" text comparison — the viewer is not translated; use its flag instead if it ever is.
 - Big HTML blocks that hold a person's or the AI's words are not wrapped in `tr`; their fixed words are translated
   after drawing with `localize(root, skipSelector)`. The target list preview (chat text) is never localized.
+  Skip lists in use: cards `textarea,strong,select[data-profile-switch],select[data-wear-once] option:not([value=""]),
+  select[data-chat-outfit] option[value^="w:"]` (names, the AI's words, wardrobe names); the no-profile box and list
+  `select`; the before-generating dialog `b`; the final prompt form `textarea,legend`. A name inside a sentence
+  ("＋ {0} 프로필 만들기") is a pattern value and stays as written. Fixed words put into those sentences (유저,
+  페르소나, ORIGIN_TEXT values) go through `trMsg` where they are inserted, so the pattern gets them in English.
+  A redraw of one part (the "지금: …" outfit line while typing) uses `tr` inside its own template instead.
 - Only Free Shot's extraction leaves an undo; Chat Shot's does not. That is why the undo check uses Free Shot.
 - Tools, run by hand with `node_modules` linked: `tests/i18n-wrap.mjs` (wraps the Korean texts of named functions
   with `tr`; `--dry` first), `tests/i18n-keys.mjs` (tr keys missing from the dictionary), `tests/i18n-compare.mjs`.

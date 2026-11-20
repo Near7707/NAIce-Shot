@@ -6,7 +6,9 @@
 // 4. Work saved from the Korean screen (its undo label is Korean) loads on the English screen and its undo still works.
 // 5. Every answer of [같은 요청으로 다시 확인] says in English what to check on NovelAI (GPT wip-en P2).
 // 6. A user named like a dictionary word (세로) and the AI's request words stay as they are in English notices (P3).
-// 7. The language switch only adds uiLanguage to the settings.
+// 7. The drawing tab (person cards, the no-profile box, Free Shot) is English; names, the AI's words and wardrobe
+//    names stay as written even when they are dictionary words.
+// 8. The language switch only adds uiLanguage to the settings.
 // Header copied from browser-v01101 (lines 1–91) with a `lang` option; helpers from the same file.
 import zlib from 'node:zlib';
 import http from 'node:http';
@@ -232,7 +234,37 @@ try{
    assert.ok(!/Square|Portrait/.test(said),said);
    assert.deepEqual(t.errors,[]);await page.close();
   }
-  // --- 7. the switch writes uiLanguage only
+  // --- 7. the drawing tab: person cards, the no-profile box and Free Shot read in English, while names, the AI's
+  // words and wardrobe names stay exactly as written even when they are dictionary words (가운데, 비우기, 저장).
+  {
+   const t=await open(width,{lang:'en'});const {page}=t;await fakeGenerate(page);
+   const leftKorean=sel=>page.evaluate(([sel,own])=>{const H=/[가-힣]/,out=[];for(const root of document.querySelectorAll(sel)){
+     const w=document.createTreeWalker(root,4);for(let n=w.nextNode();n;n=w.nextNode()){const v=n.nodeValue.trim();if(v&&H.test(v.replaceAll('비우기',''))&&!n.parentElement.closest(own))out.push(v);}
+     for(const el of root.querySelectorAll('*'))for(const a of ['aria-label','title','placeholder'])if(H.test(el.getAttribute(a)??''))out.push(`@${a} ${el.getAttribute(a)}`);}return out;},
+    [sel,'textarea,strong,select[data-profile-switch],select[data-wear-once] option:not([value=""]),select[data-chat-outfit] option[value^="w:"]']);
+   await page.evaluate(()=>{mock.extensionSettings.naice_shot.profiles[0].wardrobe=[{id:'w1',name:'저장',outfit:'yellow raincoat'}];
+    mock.extraction={characters:[{id:'leo',name:'Leo',expression:'가운데',action:'sitting',position:'auto',outfitMode:'replace',outfit:'white shirt'}],unregistered:['비우기'],location:'cafe',lighting:'sun',camera:'medium shot',interaction:''};});
+   await page.locator('[data-action="extract"]').click();await idle(page);
+   assert.deepEqual(await leftKorean('#ncs-characters'),[],'the card words are English');
+   assert.equal(await page.locator('[data-character="leo"] [data-field="expression"]').inputValue(),'가운데','the AI words stay');
+   assert.equal(await page.locator('[data-character="leo"] select[data-wear-once] option[value="w1"]').textContent(),'저장','a wardrobe name stays');
+   assert.deepEqual(await leftKorean('#ncs-unregistered'),[],'the no-profile list is English');
+   assert.equal(await text(page,'[data-quick-profile-name="비우기"]'),'＋ Create a profile for 비우기','the name stays inside the English button');
+   assert.equal(await page.locator('#ncs-missing-main strong').first().textContent(),'⚠ No profile is linked to User "Mira".');
+   await page.locator('[data-missing-do="link"]').first().evaluate(b=>b.click());
+   assert.deepEqual(await leftKorean('#ncs-missing-main'),[],'the no-profile box and its link picker are English');
+   await page.locator('[data-temp-from="비우기"]').evaluate(b=>b.click());await page.locator('.ncs-temp strong').waitFor();
+   assert.equal(await page.locator('.ncs-temp strong').textContent(),'비우기','a temporary person keeps their name');
+   assert.deepEqual(await leftKorean('#ncs-characters'),[],'the temporary card is English');
+   await page.locator('[data-mode="free"]').click();await page.waitForFunction(()=>document.querySelector('[data-mode="free"]').getAttribute('aria-pressed')==='true');
+   assert.deepEqual(await leftKorean('#ncs-free-source'),[],'the Free Shot words are English');
+   await page.evaluate(()=>{mock.extraction={characters:[{id:'leo',name:'Leo',subject:'boy',appearance:'',outfit:'',expression:'smile',action:'standing',position:'auto'}],location:'bridge',lighting:'night',camera:'wide shot',interaction:''};});
+   await page.locator('#ncs-free-text').fill('Leo on a bridge');await extractWith(page);
+   assert.match(await notice(page),/^Filled the scene fields\. People to draw: 1\./);
+   assert.deepEqual(await leftKorean('#ncs-characters'),[],'the Free Shot card is English (pin included)');
+   assert.deepEqual(t.errors,[]);await page.close();
+  }
+  // --- 8. the switch writes uiLanguage only
   {
    const t=await open(width);const {page}=t;
    const before=await page.evaluate(()=>structuredClone(mock.extensionSettings.naice_shot));
