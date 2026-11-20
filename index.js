@@ -1742,7 +1742,7 @@ function updateFinal({force=false}={}) {
     $('ncs-warnings').textContent=warnings.map(trMsg).join('\n');
     renderCost();
     updatePresetState();
-  }catch(e){$('ncs-warnings').textContent=e.message;}
+  }catch(e){$('ncs-warnings').textContent=trMsg(e.message);}
 }
 // Field-by-field editor for the final prompt; the JSON box stays as an advanced view of the same data.
 function renderFinalForm(a,{force=false}={}) {

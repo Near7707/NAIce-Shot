@@ -43,13 +43,15 @@ const TR_ONLY=new Set(['{0} {1}장{2}','#{0} 메시지{1}','{0} 본문은 그대
 // The same for the warnings from the shared code that carry a person's name, an alias or a list of names: a name that
 // reads like an app sentence ("위치 값이 잘못됐어요.") stayed a name, not "The position value is wrong." (GPT wip-en P3,
 // thirteenth review). Warnings made by `tr` in index.js never look their values up, so they need no entry here.
+// The 프리샷 card question's lines carry card names the same way (GPT wip-en P3, fourteenth review).
 const AS_IS=new Set(['미등록 ID 제외: {0}',
   '{0}: 자동 연결 없음. 이름·별칭 또는 이 채팅의 연결을 확인해 주세요.','{0}: 자동 연결 없음. 필요하면 유저 프로필을 연결해 주세요.',
   '{0}: 프로필 연결이 겹쳐요. 이 채팅의 프로필을 지정해 주세요.','{0}: @로 고른 같은 이름의 인물이 여러 명이라 누구인지 알 수 없어 비워 뒀어요.',
   '{0}: 프로필을 확정하지 못해 자동 적용하지 않았어요. 장면 정보는 보관했어요.','{0}: {1}와 같은 인물로 보여 한 번만 넣었어요.',
   '{0}: 이름에 맞춰 {1} 프로필로 연결을 바로잡았어요.','{0}: 새 복장 후보가 있지만 잠금을 유지해요.','{0}: AI가 찾은 새 옷이 있지만 잠긴 복장을 입혀요.',
   '미등록 인물은 자동 생성하지 않아요: {0}','임시 인물 {0}의 외형이 비어 있어요. 외형을 채우면 더 잘 그려져요.',
-  '장면 설명에 들어간 이름({0})을 빼고 일반 표현으로 정리했어요.']);
+  '장면 설명에 들어간 이름({0})을 빼고 일반 표현으로 정리했어요.',
+  '지워져요: {0} (고정 안 함)','체크만 풀려요: {0} (📌 고정)','외형이 새 결과로 다시 채워져요: {0} (고정 안 한 임시 인물)']);
 const trOnly=k=>TR_ONLY.has(k)||k.replace(/\{\d+\}|\s/g,'').length<SHORT;
 let patterns=null;
 const escapeRe=s=>s.replace(/[.*+?^$()|[\]\\]/g,'\\$&').replace(/[{}]/g,c=>'\\'+c);

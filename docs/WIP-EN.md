@@ -193,8 +193,25 @@ still takes a save as finished after 1.2s without a new one (the app saves 0.45s
 uses it only looks for the AI's title saved as written, which both candidates carry, so it cannot pass wrongly. It is
 shared by 7 checks, so it is left as it is.
 
+After the fifteenth review (GPT wip-en P3 ×2): Free Shot's question about cards not in the text kept a card name that is
+word for word an app sentence ("위치 값이 잘못됐어요." → "The position value is wrong."); its three line keys ("지워져요: {0} …",
+"체크만 풀려요: {0} …", "외형이 새 결과로 다시 채워져요: {0} …") are in `AS_IS` now (16 keys), which also settles the "복사했어요."
+card left as a limit after the eighth review. Free Shot's two notices when the work or the situation text changed while the
+AI was answering are in the dictionary. The same kind kept coming back one sentence at a time, because the sweep check lets
+a sentence that stays whole in Korean pass; so every whole sentence the app's own code writes (a quoted text ending in 요.
+or 요?) was gone through and the 65 that stayed Korean are in the dictionary too: notices and thrown errors of index.js
+(waiting edits not sent, clearing the work, stopping an extraction, people already in the scene…), the shared core's
+generation settings (size, Steps — both "스텝은" and "Steps는" — Guidance, Seed, sampler, slots, deleted profile), presets.mjs,
+downloads.mjs, extractor.mjs, free-scene.mjs, and the length notices put together from fixed pieces (mentions.mjs
+`lengthProblem` and the @ field's "너무 길어서 … 못했어요" — one key per whole sentence). A new sweep check fails when such a
+sentence is added without English (four pieces are kept out on purpose and listed with the reason in the check). The one
+working-code change: an error thrown while the final prompt is put together is shown with `trMsg` in the warnings box (it
+was shown as raw text).
+
 Still Korean: the guide, the console-only error "NAIce Shot 패널 파일을 읽지 못했어요.", server texts the dictionary does
-not know, and texts the AI writes (candidate titles, request words).
+not know, texts the AI writes (candidate titles, request words), and the @ check's problem list ("{0}의 @참조를 확인해
+주세요. @Mira: …"): it joins several sentences with the names typed by the user into one line, so translating it needs
+index.js to look each problem up apart (a code change, left for later).
 
 ## Checks
 
@@ -237,6 +254,9 @@ not know, and texts the AI writes (candidate titles, request words).
   since the twelfth review also a reply without `lighting` (the whole reply, and one candidate beside a good one); since the
   thirteenth an unknown ID without a name and lighting still in Korean after the second ask (both warnings in English);
   since the fourteenth a known ID without its name (the extraction stops) and a name taken out of the location (the note).
+- `tests/i18n-sweep.test.mjs` since the fifteenth review (the code and test names call it the fourteenth): every whole sentence of the app's own files (not the server's)
+  is English after `stepsWord`, the V5 questions built with "이번 생성에서 Anlas가 차감될 수 있어요." too; Free Shot's card
+  question keeps names that read like app sentences; the waiting notices and the pieced length notices are English.
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

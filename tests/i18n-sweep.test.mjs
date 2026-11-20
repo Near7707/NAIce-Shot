@@ -37,13 +37,13 @@ test('the history count still reads in English where it is made, and is not a pa
   setLang('en');
   try{
     assert.equal(tr`${tr`총`} ${2}장${tr` · ${1}장 표시`}`,'Total 2 · 1 shown');
-    assert.equal(trMsg('삭제된 프로필이 장면에 있어요. 다시 선택해 주세요.'),'삭제된 프로필이 장면에 있어요. 다시 선택해 주세요.');
+    assert.equal(trMsg('오래된 장부가 서랍에 있어요. 다시 찾아 주세요.'),'오래된 장부가 서랍에 있어요. 다시 찾아 주세요.');
     assert.equal(trMsg('이 장면은 아직 저장하지 않았어요.'),'이 장면은 아직 저장하지 않았어요.');
     // localize reads text nodes with the same lookup
-    // (any Korean text not in the dictionary with a space and a "장"; "외형이나 복장이 비어 있어요." is in it since the twelfth review)
-    const node={nodeValue:' 복장 저장이 끝난 뒤 다시 선택해 주세요. ',parentElement:null};
+    // (any Korean text not in the dictionary with a space and a "장"; the app's own sentences are all in it since the fourteenth review)
+    const node={nodeValue:' 새 장갑을 고른 뒤 다시 눌러 주세요. ',parentElement:null};
     const fake={ownerDocument:{createTreeWalker:()=>{let done=false;return {nextNode:()=>done?null:(done=true,node)};}},querySelectorAll:()=>[],nodeType:11};
-    localize(fake);assert.equal(node.nodeValue,' 복장 저장이 끝난 뒤 다시 선택해 주세요. ');
+    localize(fake);assert.equal(node.nodeValue,' 새 장갑을 고른 뒤 다시 눌러 주세요. ');
   }finally{setLang('ko');}
 });
 
@@ -124,5 +124,62 @@ test('names in the warnings stay as written even when they read like an app sent
       '장면 설명에 들어간 이름(Mira, Leo)을 빼고 일반 표현으로 정리했어요.':'Removed the names in the scene description (Mira, Leo) and used general wording instead.',
       '추출 인물의 name 필드가 없어요. 실제 인물 이름을 함께 반환해야 해요.':'A person in the result has no name field. The reply must include the real name of each person.'};
     for(const [ko,en] of Object.entries(cases))assert.equal(trMsg(ko),en,ko);
+  }finally{setLang('ko');}
+});
+
+test('프리샷 question: card names that read like an app sentence stay as written (GPT wip-en P3, fourteenth review)',async()=>{
+  const {confirmText}=await import('../free-people.mjs');
+  const S='위치 값이 잘못됐어요.';
+  const text=confirmText({removed:[{temp:true,name:S},{temp:true,name:'복사했어요.'}],pinnedOut:[{id:'p1',included:true}],refilled:[{temp:true,name:S}]},[{id:'p1',name:S}]);
+  setLang('en');
+  try{
+    assert.equal(trMsg(text),['Some character cards are not in the text.',`Will be removed: ${S}, 복사했어요. (not pinned)`,`Will only be unticked: ${S} (📌 pinned)`,
+      `Look refilled from the new result: ${S} (temporary, not pinned)`,'','OK: extract as it is · Cancel: go back to edit the text or 📌 pin'].join('\n'));
+  }finally{setLang('ko');}
+  assert.equal(trMsg(text),text,'Korean: as written');
+});
+
+// Every whole sentence the app's own code writes (a quoted text ending in 요. or 요?) is in the dictionary: notices, thrown
+// errors and warnings reach the English screen through trMsg, so one missing sentence shows as Korean. The panel turns
+// 스텝 into Steps first, so both spellings are tried. Kept out on purpose, with the reason:
+const NOT_SHOWN={
+  'NAIce Shot 패널 파일을 읽지 못했어요.':'console only, before the panel exists',
+  '과(와) 이름이 같은 프로필이 여러 개라 연결하지 못했어요.':'a piece of the missing-person sentence, read by localize as a whole',
+  '에 연결된 프로필이 없어요.':'a piece of the missing-person sentence, read by localize as a whole',
+  '이번 생성에서 Anlas가 차감될 수 있어요.':'a piece of the V5 questions, checked whole below'};
+const stepsWord=text=>String(text).replace(/(\d+)스텝/g,'$1 Steps').replace(/스텝은/g,'Steps는').replace(/스텝/g,'Steps');
+test('every whole sentence of the app is English on the English screen; none is left in Korean (GPT wip-en P3, fourteenth review)',()=>{
+  const own=files.filter(f=>path.dirname(f)===root);const found=new Set();
+  for(const f of own)for(const line of fs.readFileSync(f,'utf8').split('\n')){
+    if(/^\s*\/\//.test(line))continue;
+    for(const m of line.matchAll(/'([^'\n\\<>]*[가-힣][^'\n\\<>]*)'/g))if(/요[.?]$/.test(m[1]))found.add(m[1]);}
+  assert.ok(found.size>150,`found the app's sentences (${found.size})`);
+  setLang('en');
+  try{
+    const korean=[...found].filter(t=>!NOT_SHOWN[t]&&/[가-힣]/.test(trMsg(stepsWord(t))));
+    assert.deepEqual(korean,[]);
+    const may='이번 생성에서 Anlas가 차감될 수 있어요.';
+    for(const t of [`V5 사용량을 확인하지 못했어요. ${may}`,`V5 기본 사용량이 0%로 표시돼요 (추가 구매 30%). ${may}`,`V5 사용량이 12% 남았어요. ${may}`])
+      assert.doesNotMatch(trMsg(t),/[가-힣]/,t);
+  }finally{setLang('ko');}
+});
+
+test('프리샷 notices while waiting and the notices put together from pieces are English (GPT wip-en P3, fourteenth review)',async()=>{
+  const {lengthProblem}=await import('../mentions.mjs');
+  setLang('en');
+  try{
+    const cases={
+      '작업 내용이 바뀌어서 채운 결과를 적용하지 않았어요.':'The work changed, so the filled result was not applied.',
+      '추출하는 동안 상황 글이 바뀌어서 결과를 적용하지 않았어요. 바꾼 글로 다시 눌러 주세요.':'The situation text changed during extraction, so the result was not applied. Press again with the new text.',
+      [lengthProblem('a'.repeat(4100),'free')]:'The situation text is too long. Up to 4,000 characters as shown on screen. (now 4,100)',
+      [lengthProblem('a'.repeat(201),'wish')]:'The extra request is too long. Up to 200 characters as shown on screen. (now 201)',
+      [`@이름을 프로필에 연결하면 ${lengthProblem('a'.repeat(4100),'free')}`]:'Linking the @names to profiles makes the situation text too long. Up to 4,000 characters as shown on screen. (now 4,100)',
+      [stepsWord('스텝은 1~50으로 입력해 주세요.')]:'Enter Steps from 1 to 50.'};
+    for(const [ko,en] of Object.entries(cases))assert.equal(trMsg(ko),en,ko);
+    for(const label of ['상황 글','추가 요청']){
+      for(const x of ['다른 프로필로 바꾸지','@이름을 넣지','붙여 넣지'])assert.doesNotMatch(trMsg(`${label}이 너무 길어서 ${x} 못했어요.`),/[가-힣]/);
+      assert.doesNotMatch(trMsg(`${label}이 글자 수 한도를 넘었어요. 줄이기 전에는 추출하거나 생성할 수 없어요.`),/[가-힣]/);
+      assert.doesNotMatch(trMsg(`${label}에 @프로필 연결이 너무 많아요. 줄여 주세요.`),/[가-힣]/);
+      assert.doesNotMatch(trMsg(`@이름을 프로필에 연결하면 ${label}에 @프로필 연결이 너무 많아요. 줄여 주세요.`),/[가-힣]/);}
   }finally{setLang('ko');}
 });
