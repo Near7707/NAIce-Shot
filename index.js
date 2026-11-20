@@ -25,6 +25,7 @@ import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, 
 import { cleanImageFile, saveCleanImage } from './downloads.mjs';
 import { jumpTargets, locateSource, locateAttached } from './message-jump.mjs';
 import {stableChatJson,comparableSavedMetadata,splitSavedChat,timedState} from './chat.mjs';
+import {tr,trMsg,localize,setLang} from './i18n.mjs'; // wip-en: Korean shows every text as written
 import {parseTags,cleanMarks,cleanPopupChats,setMark,forgetIds,forgetChat,starredIds,taggedIds,ownerOf,tagMatches,pickMatch,taggedFor} from './image-marks.mjs';
 
 const KEY='naice_shot',API='/api/plugins/naice-shot';
@@ -193,7 +194,7 @@ function renderMatching() {
     if(selected&&!s.profiles.some(p=>p.id===selected)){const option=document.createElement('option');option.value=selected;option.textContent='삭제된 프로필 · 다시 선택해 주세요';select.append(option);}
     select.value=selected;select.disabled=field==='character'&&context.groupId!==null&&context.groupId!==undefined;
   }
-  $('ncs-matching-state').textContent=matched.warnings.length?matched.warnings.join(' / '):'현재 채팅의 이름·카드 연결을 기준으로 자동 대응해요. 프로필 탭의 선택은 편집용이에요.';
+  $('ncs-matching-state').textContent=matched.warnings.length?matched.warnings.map(trMsg).join(' / '):tr`현재 채팅의 이름·카드 연결을 기준으로 자동 대응해요. 프로필 탭의 선택은 편집용이에요.`;
 }
 const tabNotices=new Map();
 // 0.1.62: while something runs, its progress box says it (no second banner); a success notice folds away after a while
@@ -207,13 +208,13 @@ function renderNotice(){if(!dialog)return;const n=tabNotices.get(activeTab()),bo
   if(typeof box.querySelector!=='function'){box.textContent=n?.message??'';box.classList?.toggle?.('ncs-error',n?.error===true);return;} // minimal test pages
   let text=box.querySelector(':scope > .ncs-notice-text');
   if(!text){box.textContent='';text=document.createElement('span');text.className='ncs-notice-text';
-    const close=document.createElement('button');close.type='button';close.className='ncs-notice-close';close.setAttribute('aria-label','알림 닫기');close.title='알림 닫기';
+    const close=document.createElement('button');close.type='button';close.className='ncs-notice-close';close.setAttribute('aria-label',tr`알림 닫기`);close.title=tr`알림 닫기`;
     close.addEventListener('click',()=>{tabNotices.delete(activeTab());renderNotice();});box.append(text,close);}
   text.textContent=n?.message??'';box.scrollTop=0;box.classList.toggle('ncs-error',n?.error===true);}
 // The shared core (also on the server) still says 스텝; the panel calls it Steps like Guidance and Seed (0.1.62).
 const stepsWord=text=>String(text??'').replace(/(\d+)스텝/g,'$1 Steps').replace(/스텝은/g,'Steps는').replace(/스텝/g,'Steps');
 function notice(message,error=false,tab=activeTab(),{keep=false}={}){
-  const text=stepsWord(message),until=error||keep?0:Date.now()+Math.min(15000,5000+text.length*60);
+  const text=trMsg(stepsWord(message)),until=error||keep?0:Date.now()+Math.min(15000,5000+text.length*60);
   tabNotices.set(tab,{message:text,error,until});renderNotice();
   if(until)setTimeout(renderNotice,until-Date.now()+50);
 }
@@ -222,14 +223,14 @@ const BUTTON_LABELS={extract:['extract','장면 추출',['extract','free']],gene
 function renderProgress() {
   if(!dialog)return;
   const box=$('ncs-progress');box.hidden=!progress;renderNotice();
-  for(const [action,label,kinds] of Object.values(BUTTON_LABELS)){const b=dialog.querySelector(`[data-action="${action}"].ncs-action-main`)??dialog.querySelector(`[data-action="${action}"]`);if(b)b.textContent=kinds.includes(progress?.kind)?`${label} 중…`:label;}
+  for(const [action,label,kinds] of Object.values(BUTTON_LABELS)){const b=dialog.querySelector(`[data-action="${action}"].ncs-action-main`)??dialog.querySelector(`[data-action="${action}"]`);if(b)b.textContent=kinds.includes(progress?.kind)?tr`${trMsg(label)} 중…`:trMsg(label);}
   if(!progress)return;
-  const sec=Math.max(0,Math.floor((Date.now()-progress.started)/1000)),time=sec<60?`${sec}초`:`${Math.floor(sec/60)}분 ${sec%60}초`;
+  const sec=Math.max(0,Math.floor((Date.now()-progress.started)/1000)),time=sec<60?tr`${sec}초`:tr`${Math.floor(sec/60)}분 ${sec%60}초`;
   box.dataset.kind=progress.kind;
-  const retry=progress.attempt>1?' · 다시 요청 (2/2)':'';
-  $('ncs-progress-title').textContent=progress.kind==='extract'?`장면 추출 중${retry}`:progress.kind==='free'?`장면 추출 중${retry}`:progress.kind==='profile'?`프로필 태그 변환 중${retry}`:'NAI 이미지 생성 중';
-  $('ncs-progress-detail').textContent=progress.kind==='generate'?`${time} 경과 · 이미 보낸 생성 요청은 중단할 수 없어요. 창을 닫거나 채팅을 바꿔도 서버가 결과를 저장해요.`:`${time} 경과 · 추출 AI 응답을 기다리고 있어요.`;
-  $('ncs-progress-cancel').hidden=progress.kind==='generate';$('ncs-progress-cancel').textContent=progress.kind==='profile'?'변환 중단':'추출 중단';
+  const retry=progress.attempt>1?tr` · 다시 요청 (2/2)`:'';
+  $('ncs-progress-title').textContent=progress.kind==='extract'?tr`장면 추출 중${retry}`:progress.kind==='free'?tr`장면 추출 중${retry}`:progress.kind==='profile'?tr`프로필 태그 변환 중${retry}`:tr`NAI 이미지 생성 중`;
+  $('ncs-progress-detail').textContent=progress.kind==='generate'?tr`${time} 경과 · 이미 보낸 생성 요청은 중단할 수 없어요. 창을 닫거나 채팅을 바꿔도 서버가 결과를 저장해요.`:tr`${time} 경과 · 추출 AI 응답을 기다리고 있어요.`;
+  $('ncs-progress-cancel').hidden=progress.kind==='generate';$('ncs-progress-cancel').textContent=progress.kind==='profile'?tr`변환 중단`:tr`추출 중단`;
 }
 function startProgress(kind,owner) {
   clearInterval(progress?.timer);progress={kind,owner,started:Date.now(),attempt:1,timer:setInterval(renderProgress,1000)};renderProgress();
@@ -626,12 +627,12 @@ function syncWorkLock(){
 }
 function renderDraftState(){
   if(!dialog)return;syncWorkLock();const e=drafts.entry(workKey()),box=$('ncs-draft-status');
-  if(!draftsEnabled&&draftHold){box.hidden=false;box.textContent=draftHoldNote||DRAFT_HOLD_NOTE;$('ncs-draft-retry').hidden=false;$('ncs-draft-retry').textContent='작업 기억 다시 연결';return;}
-  if(!draftsEnabled){box.hidden=!compatChecked;box.textContent='작업 기억을 사용할 수 없어요. 서버 연결·업데이트를 확인해 주세요.';$('ncs-draft-retry').hidden=!compatChecked;$('ncs-draft-retry').textContent='연결 다시 확인';return;}
+  if(!draftsEnabled&&draftHold){box.hidden=false;box.textContent=draftHoldNote||DRAFT_HOLD_NOTE;$('ncs-draft-retry').hidden=false;$('ncs-draft-retry').textContent=tr`작업 기억 다시 연결`;return;}
+  if(!draftsEnabled){box.hidden=!compatChecked;box.textContent=tr`작업 기억을 사용할 수 없어요. 서버 연결·업데이트를 확인해 주세요.`;$('ncs-draft-retry').hidden=!compatChecked;$('ncs-draft-retry').textContent=tr`연결 다시 확인`;return;}
   const held=draftDeletionChecks.has(workKey());
-  box.hidden=!draftsEnabled;box.textContent=held?'삭제 결과를 확인할 때까지 작업을 잠갔어요.':draftLoading?'마지막 작업을 불러오는 중…':e.error?`작업 저장을 확인해 주세요: ${e.error.message}`:e.saving||e.dirty||captureTimer?'마지막 작업 저장 중…':draftNote||'마지막 작업을 서버에 기억해요.';
+  box.hidden=!draftsEnabled;box.textContent=held?tr`삭제 결과를 확인할 때까지 작업을 잠갔어요.`:draftLoading?tr`마지막 작업을 불러오는 중…`:e.error?tr`작업 저장을 확인해 주세요: ${e.error.message}`:e.saving||e.dirty||captureTimer?tr`마지막 작업 저장 중…`:draftNote||tr`마지막 작업을 서버에 기억해요.`;
   $('ncs-draft-retry').hidden=!draftsEnabled||!held&&!e.error;
-  $('ncs-draft-retry').textContent=held?draftDeletionRuns.has(workKey())?'삭제 결과 확인 중…':'삭제 결과 다시 확인':e.error?.status===409?'서버 작업 다시 불러오기':'다시 시도';
+  $('ncs-draft-retry').textContent=held?draftDeletionRuns.has(workKey())?tr`삭제 결과 확인 중…`:tr`삭제 결과 다시 확인`:e.error?.status===409?tr`서버 작업 다시 불러오기`:tr`다시 시도`;
 }
 const emptyWork=w=>!w.scene.characters?.length&&!w.scene.unregistered?.length&&!w.scene.moments?.length&&!['location','lighting','camera','interaction'].some(k=>w.scene[k])&&
   !w.finalOverride&&!w.optionsOverride&&!w.result&&!w.undoClear&&!w.raw&&!w.target&&!w.wish&&!w.freeText;
@@ -797,16 +798,16 @@ function renderTargets() {
   // 0.1.144 (GPT 0.1.143 P2-1): a chosen message that is gone falls back to 가장 최근 메시지 only without 추가 요청;
   // with one, the number stays so [장면 추출] stops at TARGET_CHANGED instead of sending it to another message.
   if(select.value!==''&&chat.length&&!rows.includes(Number(select.value))&&!$('ncs-moment-wish').value.trim()){select.value='';draftSource=null;} // 0.1.145 (P3-1): no old fingerprint for 가장 최근 메시지
-  const text=i=>chat[i].mes.replace(/\s+/g,' ').trim(),hidden=i=>isHiddenSceneMessage(chat[i])?' · 숨김':'';
-  $('ncs-target-label').textContent=select.value===''?'가장 최근 메시지':!rows.includes(Number(select.value))?`#${select.value}${chat.length?' · 찾을 수 없는 메시지':''}`:`#${select.value} · ${chat[select.value].name??''}${hidden(Number(select.value))} · ${text(Number(select.value)).slice(0,55)}`;
+  const text=i=>chat[i].mes.replace(/\s+/g,' ').trim(),hidden=i=>isHiddenSceneMessage(chat[i])?tr` · 숨김`:'';
+  $('ncs-target-label').textContent=select.value===''?tr`가장 최근 메시지`:!rows.includes(Number(select.value))?`#${select.value}${chat.length?tr` · 찾을 수 없는 메시지`:''}`:`#${select.value} · ${chat[select.value].name??''}${hidden(Number(select.value))} · ${text(Number(select.value)).slice(0,55)}`;
   // Make sure the chosen message is among the shown rows, so its check mark is visible when the list opens.
   const at=select.value===''?-1:rows.indexOf(Number(select.value));
   targetShown=Math.max(TARGET_STEP,targetShown,at>=0?Math.ceil((at+1)/TARGET_STEP)*TARGET_STEP:0);
   const shown=rows.slice(0,targetShown),left=rows.length-shown.length;
-  $('ncs-target-page').textContent=rows.length?`최신순 · ${rows.length}개 중 ${shown.length}개 표시`:'선택할 메시지가 없어요';
-  const more=dialog.querySelector('[data-action="target-more"]');more.hidden=left<=0;more.textContent=`이전 메시지 ${Math.min(TARGET_STEP,left)}개 더 보기`;
+  $('ncs-target-page').textContent=rows.length?tr`최신순 · ${rows.length}개 중 ${shown.length}개 표시`:tr`선택할 메시지가 없어요`;
+  const more=dialog.querySelector('[data-action="target-more"]');more.hidden=left<=0;more.textContent=tr`이전 메시지 ${Math.min(TARGET_STEP,left)}개 더 보기`;
   if(!$('ncs-target-picker').open){targetListRendered=false;$('ncs-target-list').innerHTML='';return;}
-  const latest=`<button type="button" class="ncs-target-item" data-action="target-latest" aria-pressed="${select.value===''}"><span class="ncs-target-meta">가장 최근 메시지</span><span class="ncs-target-preview">숨기지 않은 최근 메시지를 따라가요</span></button>`;
+  const latest=`<button type="button" class="ncs-target-item" data-action="target-latest" aria-pressed="${select.value===''}"><span class="ncs-target-meta">${tr`가장 최근 메시지`}</span><span class="ncs-target-preview">${tr`숨기지 않은 최근 메시지를 따라가요`}</span></button>`;
   $('ncs-target-list').innerHTML=latest+shown.map(i=>`<button type="button" class="ncs-target-item" data-action="target-message" data-message-index="${i}" data-message-mark="${esc(rowMark(chat[i]))}" aria-pressed="${select.value===String(i)}"><span class="ncs-target-meta">#${i} · ${esc(chat[i].name??'')}${hidden(i)}</span><span class="ncs-target-preview">${esc(text(i).slice(0,90))}</span></button>`).join('');
   targetListRendered=true;restoreTargetScroll();
 }
@@ -860,7 +861,7 @@ function renderModeUI(){
   if(!dialog)return;const free=isFree();
   for(const b of dialog.querySelectorAll('[data-mode]'))b.setAttribute('aria-pressed',String(b.dataset.mode===mode));
   $('ncs-chat-source').hidden=free;$('ncs-free-source').hidden=!free;$('ncs-request').hidden=free; // 프리샷: the situation itself is the request
-  $('ncs-source-title').textContent=free?'1 · 그릴 장면':'1 · 그릴 순간';
+  $('ncs-source-title').textContent=free?tr`1 · 그릴 장면`:tr`1 · 그릴 순간`;
   placeRequest();
   dialog.dataset.workMode=mode;renderUndo();
 }
@@ -890,12 +891,12 @@ function renderUndo(){
   const row=dialog.querySelector('.ncs-clear-slot');if(typeof row?.querySelector!=='function')return; // one slot for both modes (each mode keeps its own undo)
   const clearUndo=!!undoClear&&!undoClear.label,importUndo=!!undoClear&&!!undoClear.label,b=row.querySelector('.ncs-action-slot');if(!b)return;
   b.dataset.action=clearUndo?'undo-clear':'blank';b.classList.toggle('ncs-undoing',clearUndo);
-  b.textContent=clearUndo?'↶ 비우기 취소':'그리기창 비우기';
-  b.title=clearUndo?'비우기 전으로 되돌려요. 다음에 고치거나 추출·생성하면 사라져요.':'인물·장면·후보·최종 프롬프트를 비워요. 공통 프롬프트와 설정은 그대로예요.';
+  b.textContent=clearUndo?tr`↶ 비우기 취소`:tr`그리기창 비우기`;
+  b.title=clearUndo?tr`비우기 전으로 되돌려요. 다음에 고치거나 추출·생성하면 사라져요.`:tr`인물·장면·후보·최종 프롬프트를 비워요. 공통 프롬프트와 설정은 그대로예요.`;
   let u=row.querySelector('.ncs-import-undo');
   if(importUndo&&!u){u=document.createElement('button');u.type='button';u.className='ncs-import-undo';u.dataset.action='undo-clear';b.before(u);}
   if(u){u.disabled=busy||attaching||checkingGeneration; // 0.1.102 (GPT P3): a button made while locked looks locked too
-    u.hidden=!importUndo;u.title=undoClear?.label??'';u.textContent=undoKind(undoClear)==='extract'?'↶ 추출 취소':'↶ 가져오기 취소';u.classList.toggle('ncs-extract-undo',undoKind(undoClear)==='extract');if(!importUndo)u.remove();}
+    u.hidden=!importUndo;u.title=trMsg(undoClear?.label??'');u.textContent=undoKind(undoClear)==='extract'?tr`↶ 추출 취소`:tr`↶ 가져오기 취소`;u.classList.toggle('ncs-extract-undo',undoKind(undoClear)==='extract');if(!importUndo)u.remove();}
 }
 // 추가 요청 sits under the candidates once there are some (it re-picks or changes them), else above 장면 추출.
 function placeRequest(){
@@ -904,7 +905,7 @@ function placeRequest(){
   if(box.parentElement!==home)home.append(box);
   const again=box.querySelector?.('.ncs-request-again');if(again)again.hidden=!near;box.classList?.toggle?.('ncs-request-near',near);
   const applied=$('ncs-request-applied'),r=scene.request;if(!applied)return;applied.hidden=!r||(!r.applied?.length&&!r.ignored?.length);
-  applied.textContent=r?[r.applied?.length?`추가 요청 반영: ${r.applied.join(' · ')}`:'',r.ignored?.length?`반영하지 않음: ${r.ignored.join(' · ')}`:''].filter(Boolean).join(' / '):'';
+  applied.textContent=r?[r.applied?.length?tr`추가 요청 반영: ${r.applied.join(' · ')}`:'',r.ignored?.length?tr`반영하지 않음: ${r.ignored.join(' · ')}`:''].filter(Boolean).join(' / '):'';
 }
 // One undo belongs to the saved work; edits, extraction and generation end it, while chat/tab switches keep it.
 // Saved work keeps only the label (the shared draft format), so the kind is read back from it.
@@ -1044,7 +1045,7 @@ function renderSettings() {
   for(const [id,k] of [['model','model'],['steps','steps'],['scale','scale'],['seed','seed'],['cfg','cfgRescale'],['sampler','sampler']])$(`ncs-${id}`).value=s.options[k];
   renderRawRetention();
   $('ncs-include-user').checked=s.includeUser;$('ncs-schema').checked=s.structuredOutput;$('ncs-retain-raw').checked=s.retainRawExtraction===true;$('ncs-allow-anlas').checked=s.allowAnlas;
-  $('ncs-image-placement').value=s.imagePlacement==='below'?'below':'above';renderPlacement();$('ncs-message-button').checked=messageButtonsOn();$('ncs-inline-layout').value=inlineLayout();$('ncs-inline-size').value=inlineSize();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
+  $('ncs-ui-language').value=s.uiLanguage==='en'?'en':'ko';$('ncs-image-placement').value=s.imagePlacement==='below'?'below':'above';renderPlacement();$('ncs-message-button').checked=messageButtonsOn();$('ncs-inline-layout').value=inlineLayout();$('ncs-inline-size').value=inlineSize();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
   renderImagePresets();renderExtractionProfiles();$('ncs-extraction-max-tokens').value=s.extractionMaxTokens;$('ncs-extraction-temperature').value=extractionTemperature()??'';
 }
 // --- Generation settings box in the scene tab: the same values as the settings tab, edited in place.
@@ -1056,14 +1057,14 @@ function renderGenBox() {
   const model=dialog.querySelector('[data-gen="model"]');if(!model.options.length)model.innerHTML=Object.entries(MODELS).map(([id,m])=>`<option value="${id}">${m.label}</option>`).join('');
   for(const k of GEN_FIELDS){const el=dialog.querySelector(`[data-gen="${k}"]`);if(el&&document.activeElement!==el)el.value=o[k];}
   const size=sizePresetOf(o);dialog.querySelector('[data-gen="size"]').value=size==='custom'?'portrait':size;
-  $('ncs-gen-scope').textContent=history?'이력 설정 · 이번 생성에만':'생성 설정';
+  $('ncs-gen-scope').textContent=history?tr`이력 설정 · 이번 생성에만`:tr`생성 설정`;
   $('ncs-gen-scope').classList.toggle('ncs-gen-history',history);$('ncs-gen-override').hidden=!history;($('ncs-gen-note').closest('.ncs-help')??$('ncs-gen-note')).hidden=history;
-  const parts=[MODELS[o.model]?.label??o.model,`${SIZE_PRESETS[size]?.label.split(' · ')[0]??'세로'} ${o.width}×${o.height}`,`${o.steps} Steps`,`Guidance ${o.scale}`,o.seed===-1?'새 seed':`seed ${o.seed}`];
+  const parts=[MODELS[o.model]?.label??o.model,`${trMsg(SIZE_PRESETS[size]?.label.split(' · ')[0]??'세로')} ${o.width}×${o.height}`,`${o.steps} Steps`,`Guidance ${o.scale}`,o.seed===-1?tr`새 seed`:`seed ${o.seed}`];
   $('ncs-gen-line').innerHTML=parts.map(part=>`<span>${esc(part)}</span>`).join(' · ');
   const p=s.imagePresets.find(p=>p.id===s.imagePresetId),over=dialog.querySelector('[data-action="gen-preset-overwrite"]');
   $('ncs-gen-presets').hidden=history;
-  over.hidden=!p;if(p)over.textContent=`‘${p.name}’에 덮어쓰기`;
-  $('ncs-gen-preset-state').textContent=p?(imagePresetModified(s)?`프리셋 ‘${p.name}’에서 수정됨 · 저장본은 그대로예요.`:`프리셋 ‘${p.name}’ 그대로예요.`):'프리셋을 고르지 않았어요. 지금 값을 새 프리셋으로 저장할 수 있어요.';
+  over.hidden=!p;if(p)over.textContent=tr`‘${p.name}’에 덮어쓰기`;
+  $('ncs-gen-preset-state').textContent=p?(imagePresetModified(s)?tr`프리셋 ‘${p.name}’에서 수정됨 · 저장본은 그대로예요.`:tr`프리셋 ‘${p.name}’ 그대로예요.`):tr`프리셋을 고르지 않았어요. 지금 값을 새 프리셋으로 저장할 수 있어요.`;
   $('ncs-gen-preset-namebox').hidden=!genNaming;
 }
 function editGenField(el) {
@@ -1084,13 +1085,13 @@ function renderImagePresets() {
 }
 function updatePresetState() {
   const s=settings(),p=s.imagePresets.find(p=>p.id===s.imagePresetId);
-  $('ncs-preset-state').textContent=p?`${p.name} · ${MODELS[p.model].label}${p.options?' · 생성 설정 포함':' · 이전 저장본: 생성 설정은 덮어쓰기 후 저장돼요.'}${imagePresetModified(s)?' · 현재 값이 수정됐어요. 저장본은 유지돼요.':''}`:'현재 포지·네거와 NAI 생성 설정을 이름 붙여 저장할 수 있어요.';
-  $('ncs-scene-preset-state').textContent=optionsOverride?'이력에서 불러온 프롬프트·생성 설정을 사용 중이에요. 프리셋을 고르면 선택한 값으로 다시 조립해요.':$('ncs-preset-state').textContent;
+  $('ncs-preset-state').textContent=p?`${p.name} · ${MODELS[p.model].label}${p.options?tr` · 생성 설정 포함`:tr` · 이전 저장본: 생성 설정은 덮어쓰기 후 저장돼요.`}${imagePresetModified(s)?tr` · 현재 값이 수정됐어요. 저장본은 유지돼요.`:''}`:tr`현재 포지·네거와 NAI 생성 설정을 이름 붙여 저장할 수 있어요.`;
+  $('ncs-scene-preset-state').textContent=optionsOverride?tr`이력에서 불러온 프롬프트·생성 설정을 사용 중이에요. 프리셋을 고르면 선택한 값으로 다시 조립해요.`:$('ncs-preset-state').textContent;
   // Buttons follow the selection (docs/DESIGN.md): a chosen preset → [변경 저장 · 이름] is the main button (asks
   // first) with [새 프리셋으로 저장] and [선택 프리셋 삭제]; none → only [새 프리셋으로 저장].
-  $('ncs-preset-save-hint').textContent=p?`변경 저장: 고른 "${p.name}"에 지금 값을 덮어써요(확인 창이 떠요). 새 프리셋으로 저장: 이름을 바꿔 따로 저장해요.`:'입력한 이름으로 새 프리셋을 저장해요. 기존 프리셋은 덮어쓰지 않아요.';
+  $('ncs-preset-save-hint').textContent=p?tr`변경 저장: 고른 "${p.name}"에 지금 값을 덮어써요(확인 창이 떠요). 새 프리셋으로 저장: 이름을 바꿔 따로 저장해요.`:tr`입력한 이름으로 새 프리셋을 저장해요. 기존 프리셋은 덮어쓰지 않아요.`;
   const over=dialog.querySelector('[data-action="save-preset"]'),as=dialog.querySelector('[data-action="save-preset-as"]'),del=dialog.querySelector('[data-action="delete-preset"]');
-  over.hidden=!p;over.disabled=!p;over.classList.toggle('ncs-primary',!!p);over.classList.toggle('ncs-action-main',!!p);over.textContent=p?`변경 저장 · ${p.name}`:'변경 저장';over.title=p?`"${p.name}"에 지금 값을 덮어써요`:'';
+  over.hidden=!p;over.disabled=!p;over.classList.toggle('ncs-primary',!!p);over.classList.toggle('ncs-action-main',!!p);over.textContent=p?tr`변경 저장 · ${p.name}`:tr`변경 저장`;over.title=p?tr`"${p.name}"에 지금 값을 덮어써요`:'';
   as.classList.toggle('ncs-primary',!p);as.classList.toggle('ncs-action-main',!p);del.hidden=!p;del.disabled=!p;
   renderGenBox();
 }
@@ -1473,7 +1474,7 @@ function switchMoment(index){
 }
 function renderMoments(){
   const list=scene.moments??[],box=$('ncs-moments');box.hidden=list.length<2;placeRequest();if(list.length<2){box.innerHTML='';return;}
-  box.innerHTML=`<strong class="ncs-moments-title">장면 후보 · 그릴 순간을 골라 주세요</strong><div class="ncs-moment-list" role="group" aria-label="장면 후보">${list.map((m,i)=>`<button type="button" class="ncs-moment" data-moment="${i}" aria-pressed="${i===scene.momentIndex}"><span class="ncs-moment-step">${i+1}</span><span class="ncs-moment-name">${esc(m.title||`후보 ${i+1}`)}</span>${i===list.length-1&&!scene.momentsPartial?'<small>마지막 순간</small>':''}</button>`).join('')}</div>`;
+  box.innerHTML=`<strong class="ncs-moments-title">장면 후보 · 그릴 순간을 골라 주세요</strong><div class="ncs-moment-list" role="group" aria-label="장면 후보">${list.map((m,i)=>`<button type="button" class="ncs-moment" data-moment="${i}" aria-pressed="${i===scene.momentIndex}"><span class="ncs-moment-step">${i+1}</span><span class="ncs-moment-name">${esc(m.title||tr`후보 ${i+1}`)}</span>${i===list.length-1&&!scene.momentsPartial?tr`<small>마지막 순간</small>`:''}</button>`).join('')}</div>`;localize(box,'.ncs-moment-name');
 }
 // --- Clothes on a scene card: 채팅 기본 복장 (this chat) · 복장 잠금 (lock) · 이번 그림 복장 (this image) · 옷장 -------
 let wardrobeTarget=null,undoChatOutfit=null,outfitSaving=false,outfitSavingId=null;
@@ -1689,7 +1690,7 @@ function renderScene({forceFinal=false}={}) {
     </article>`;
   }).join('');
   if(outfitSavingId)holdOutfitCard(outfitSavingId,true);
-  $('ncs-raw').value=raw;$('ncs-raw-copy').disabled=!raw;$('ncs-raw-copy').textContent='응답 복사';updateFinal({force:forceFinal});
+  $('ncs-raw').value=raw;$('ncs-raw-copy').disabled=!raw;$('ncs-raw-copy').textContent=tr`응답 복사`;updateFinal({force:forceFinal});
 }
 // --- 고정 외형 · 전용 태그 (0.1.70): edited right on the card for this picture only (c.look); the profile stays as it is.
 // [프로필 값으로 되돌리기] drops the edit; [프로필 편집] still opens the one profile editor to change the profile itself.
@@ -1732,7 +1733,7 @@ function updateFinal({force=false}={}) {
     if(a.base.length+a.characters.reduce((n,c)=>n+c.prompt.length,0)>2000)warnings.push('프롬프트가 길어요. 특히 V4.5는 전체 토큰 한도를 확인해 주세요.');
     if(finalOverride)warnings.push('직접 고친 최종 프롬프트를 이번 생성에 써요. 되돌리려면 "조립 결과로 되돌리기"를 눌러 주세요.');
     if(optionsOverride)warnings.push(`이력에서 불러온 생성 설정(seed ${optionsOverride.seed})을 이번 생성에만 써요. 생성 성공·조립 결과로 되돌리기 시 현재 설정으로 돌아가요. 이 채팅의 마지막 작업에 함께 기억해요.`);
-    $('ncs-warnings').textContent=warnings.join('\n');
+    $('ncs-warnings').textContent=warnings.map(trMsg).join('\n');
     renderCost();
     updatePresetState();
   }catch(e){$('ncs-warnings').textContent=e.message;}
@@ -1767,8 +1768,8 @@ function addCharacter(id) {
 function assertChat(){if(!keyOf())throw new Error('먼저 캐릭터 채팅을 열어 주세요.');if(chatLoading())throw new Error(CHAT_LOADING);} // 0.1.137 (GPT 0.1.136 P1-2·P2-1): extraction, outfits, generation, 본문에 넣기
 // Where the response length comes from depends on the connection used for extraction.
 function limitHint(){
-  return settings().extractionProfileId?`설정 → 추출 AI의 "독립 추출 응답 한도"(지금 ${settings().extractionMaxTokens})를 올려 주세요.`
-    :'본편 연결로 추출하면 본편 프리셋의 응답 길이가 그대로 적용돼요. 설정 → 추출 AI에서 별도 연결 프로필을 고르고 응답 한도를 넉넉히(8192부터) 잡아 주세요.';
+  return settings().extractionProfileId?tr`설정 → 추출 AI의 "독립 추출 응답 한도"(지금 ${settings().extractionMaxTokens})를 올려 주세요.`
+    :tr`본편 연결로 추출하면 본편 프리셋의 응답 길이가 그대로 적용돼요. 설정 → 추출 AI에서 별도 연결 프로필을 고르고 응답 한도를 넉넉히(8192부터) 잡아 주세요.`;
 }
 // --- @프로필 참조 (0.1.75) ----------------------------------------------------------------------------------------
 // Before an extraction: references typed by hand are confirmed into @Name#id (the text changes, and the note says so);
@@ -1801,7 +1802,7 @@ function ensureRequired(part,required,present=null){
   }
   return empty;
 }
-const emptyNote=names=>names.length?`결과에 없던 필수 인물을 넣었어요: ${names.join(', ')}. 표정·행동이 비어 있어요. 직접 채우거나 다시 추출해 주세요.`:'';
+const emptyNote=names=>names.length?tr`결과에 없던 필수 인물을 넣었어요: ${names.join(', ')}. 표정·행동이 비어 있어요. 직접 채우거나 다시 추출해 주세요.`:'';
 // The list under the field while typing "@…": names with aliases and a short look (hair, eyes, usual outfit) to tell
 // people with the same name apart. The id is never shown. Picking puts a chip in.
 let refList=null; // {field,q,items,active}
@@ -2064,7 +2065,7 @@ const TARGET_CHANGED='고른 대상 메시지가 수정·삭제·리롤됐어요
 async function extract() {
   const originTab='scene',report=(message,error=false)=>notice(message,error,originTab);
   if(busy)return;assertChat();
-  const s=settings();if(!s.profiles.length){openQuickProfile();report('등록된 프로필이 없어요. 아래에서 첫 프로필을 만들면 바로 추출할 수 있어요.');return;}
+  const s=settings();if(!s.profiles.length){openQuickProfile();report(tr`등록된 프로필이 없어요. 아래에서 첫 프로필을 만들면 바로 추출할 수 있어요.`);return;}
   if(ctx().streamingProcessor && !ctx().streamingProcessor.isFinished)throw new Error('본편 생성이 끝난 뒤 추출해 주세요.');
   // 0.1.142 (user decision A): the chosen message was edited, deleted or rerolled (its fingerprint differs), so 대상·추가 요청
   // may belong to another message now. Nothing is emptied: the person picks the target again (가장 최근 메시지 never stops).
@@ -2085,15 +2086,15 @@ async function extract() {
   if(scene.source?.target===selection.source.target)for(const part of [scene,...(scene.moments??[]).map(m=>m.scene)])for(const c of part.characters??[])if(c.positionManual&&c.id)manualPositions.set(c.id,c.position);
   const prompt=momentExtractionPrompt(selection.messages,matching.profiles,outfits,s.format,matching.mappings,refs.text.trim(),refs.required);
   const controller=new AbortController();extraction={ticket,controller};
-  dropUndo();setBusy(true,ticket);startProgress('extract',ticket);report('장면 추출을 시작했어요.');
+  dropUndo();setBusy(true,ticket);startProgress('extract',ticket);report(tr`장면 추출을 시작했어요.`);
   let response='',failure;
   try {
     let retryForLanguage=false;
     for(let attempt=0;attempt<2;attempt++) {
       if(ticket!==task||keyOf()!==startKey||revision!==rev||controller.signal.aborted)return;
-      if($('ncs-target').value!==startTarget){report('추출하는 동안 대상 메시지가 바뀌어서 결과를 적용하지 않았어요. 고른 대상으로 다시 눌러 주세요.');return;} // 0.1.144 (GPT 0.1.143 P2-2): no retry for the old target
-      if(attempt&&!sourceValid(selection.source,ctx().chat)){report('채팅·장면 또는 원문이 바뀌어서 추출 결과를 적용하지 않았어요.');return;} // 0.1.145 (GPT 0.1.144 P2-2): nor for a changed message
-      if(attempt&&$('ncs-moment-wish').value.trim()!==wish){report('추출하는 동안 추가 요청이 바뀌어서 결과를 적용하지 않았어요. 바꾼 요청으로 다시 눌러 주세요.');return;} // 0.1.146 (GPT 0.1.145 P2-2): nor for a changed 추가 요청
+      if($('ncs-target').value!==startTarget){report(tr`추출하는 동안 대상 메시지가 바뀌어서 결과를 적용하지 않았어요. 고른 대상으로 다시 눌러 주세요.`);return;} // 0.1.144 (GPT 0.1.143 P2-2): no retry for the old target
+      if(attempt&&!sourceValid(selection.source,ctx().chat)){report(tr`채팅·장면 또는 원문이 바뀌어서 추출 결과를 적용하지 않았어요.`);return;} // 0.1.145 (GPT 0.1.144 P2-2): nor for a changed message
+      if(attempt&&$('ncs-moment-wish').value.trim()!==wish){report(tr`추출하는 동안 추가 요청이 바뀌어서 결과를 적용하지 않았어요. 바꾼 요청으로 다시 눌러 주세요.`);return;} // 0.1.146 (GPT 0.1.145 P2-2): nor for a changed 추가 요청
       if(progress?.owner===ticket){progress.attempt=attempt+1;renderProgress();}
       let received=false;
       try {
@@ -2103,11 +2104,11 @@ async function extract() {
         const parsed=unmark(parseMoments(response,profiles));
         // Fields in the chat's language instead of English: ask once more, then accept with a note.
         const foreign=foreignFields(parsed.moments);
-        if(foreign.length&&attempt===0){retryForLanguage=true;report('추출 결과가 영어가 아니어서 영어로 다시 요청하고 있어요.');continue;}
+        if(foreign.length&&attempt===0){retryForLanguage=true;report(tr`추출 결과가 영어가 아니어서 영어로 다시 요청하고 있어요.`);continue;}
         if(foreign.length)parsed.warnings.push(`영어로 바뀌지 않은 칸이 있어요(${foreign.join(', ')}). 직접 고치거나 다시 추출해 주세요.`);
-        if(ticket!==task||keyOf()!==startKey||revision!==rev||!sourceValid(selection.source,ctx().chat)){report('채팅·장면 또는 원문이 바뀌어서 추출 결과를 적용하지 않았어요.');return;}
-        if($('ncs-moment-wish').value.trim()!==wish){report('추출하는 동안 추가 요청이 바뀌어서 결과를 적용하지 않았어요. 바꾼 요청으로 다시 눌러 주세요.');return;} // UI-055-04
-        if($('ncs-target').value!==startTarget){report('추출하는 동안 대상 메시지가 바뀌어서 결과를 적용하지 않았어요. 고른 대상으로 다시 눌러 주세요.');return;}
+        if(ticket!==task||keyOf()!==startKey||revision!==rev||!sourceValid(selection.source,ctx().chat)){report(tr`채팅·장면 또는 원문이 바뀌어서 추출 결과를 적용하지 않았어요.`);return;}
+        if($('ncs-moment-wish').value.trim()!==wish){report(tr`추출하는 동안 추가 요청이 바뀌어서 결과를 적용하지 않았어요. 바꾼 요청으로 다시 눌러 주세요.`);return;} // UI-055-04
+        if($('ncs-target').value!==startTarget){report(tr`추출하는 동안 대상 메시지가 바뀌어서 결과를 적용하지 않았어요. 고른 대상으로 다시 눌러 주세요.`);return;}
         // Each candidate is reconciled and cleaned on its own, so one moment's people and poses never leak into another.
         const c=ctx(),baseNames=[...s.profiles.flatMap(p=>[p.name,...p.aliases]),...matching.profiles.flatMap(p=>[p.name,...p.aliases]),...matching.mappings.map(m=>m.name),
           matching.userName,matching.characterName,c.name1,c.name2];
@@ -2131,13 +2132,13 @@ async function extract() {
         scene={...blankScene(),...clone(moments[parsed.defaultIndex].scene),source:selection.source,moments:moments.length>1?moments:[],momentIndex:moments.length>1?parsed.defaultIndex:0,momentWish:wish,momentsPartial:parsed.partial};
         finalOverride=null;optionsOverride=null;lastLink=null;linkTarget=null;revision++;renderScene();
         if(removed.size)warnings.push(`장면 설명에 들어간 이름(${[...removed].join(', ')})을 빼고 일반 표현으로 정리했어요.`);
-        const lead=parsed.partial?`응답이 불완전해요. 온전히 받은 후보 ${moments.length}개만 보여줘요. 메시지의 마지막 순간이 빠졌을 수 있어요. ${limitHint()} `:wish&&!parsed.requestMatched?'요청한 순간을 이 메시지에서 찾지 못해서 마지막 순간으로 골랐어요. ':moments.length>1?`장면 후보 ${moments.length}개를 찾았어요. 위에서 그릴 순간을 고를 수 있어요. `:'';
-        const asked=request?[request.applied.length?`추가 요청 반영: ${request.applied.join(' · ')}.`:'',request.ignored.length?`반영하지 않음: ${request.ignored.join(' · ')}.`:''].filter(Boolean).join(' ')+' ':'';
+        const lead=parsed.partial?tr`응답이 불완전해요. 온전히 받은 후보 ${moments.length}개만 보여줘요. 메시지의 마지막 순간이 빠졌을 수 있어요. ${limitHint()} `:wish&&!parsed.requestMatched?tr`요청한 순간을 이 메시지에서 찾지 못해서 마지막 순간으로 골랐어요. `:moments.length>1?tr`장면 후보 ${moments.length}개를 찾았어요. 위에서 그릴 순간을 고를 수 있어요. `:'';
+        const asked=request?[request.applied.length?tr`추가 요청 반영: ${request.applied.join(' · ')}.`:'',request.ignored.length?tr`반영하지 않음: ${request.ignored.join(' · ')}.`:''].filter(Boolean).join(' ')+' ':'';
         const must=emptyNote(emptyRequired);
-        notice(refs.note+lead+asked+(must?must+' ':'')+(warnings.length?warnings.join(' / '):'추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.'),false,originTab,{keep:!!must||!!refs.note||parsed.partial||!!(wish&&!parsed.requestMatched)||foreign.length>0});return;
+        notice(refs.note+lead+asked+(must?must+' ':'')+(warnings.length?warnings.map(trMsg).join(' / '):tr`추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.`),false,originTab,{keep:!!must||!!refs.note||parsed.partial||!!(wish&&!parsed.requestMatched)||foreign.length>0});return;
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}
     }
-    if(ticket===task&&keyOf()===startKey){raw=response;renderScene();report(`추출 실패: ${failure?.message}.${looksCut(response)?` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
+    if(ticket===task&&keyOf()===startKey){raw=response;renderScene();report(tr`추출 실패: ${failure?.message}.${looksCut(response)?tr` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
   }finally{
     if(extraction?.ticket===ticket)extraction=null;
     stopProgress(ticket);if(busyOwner===ticket)setBusy(false);
@@ -2258,53 +2259,53 @@ function refreshAccount({shape=false}={}){
 }
 // --- Account box D (0.1.67): line 1 "tier · this generation", line 2 "Anlas · V5 · checked at", details on tap.
 const TIER_NAMES={0:'Paper',1:'Tablet',2:'Scroll',3:'Opus'};
-const tierName=sub=>typeof sub?.tier==='number'?TIER_NAMES[sub.tier]??`구독 등급 ${sub.tier}`:'';
+const tierName=sub=>typeof sub?.tier==='number'?TIER_NAMES[sub.tier]??tr`구독 등급 ${sub.tier}`:'';
 const modelShort=model=>String(model).includes('diffusion-5')?'V5':String(model).includes('4-5')?'V4.5':MODELS[model]?.label??'';
 // GPT 0.1.67 wording: we cannot tell the reply changed, only that a needed field is missing.
-const missingText=()=>'계정 정보에서 필요한 항목을 확인하지 못했어요. 무료 생성 여부를 확인할 수 없어, '+(settings().allowAnlas===true?'현재 Anlas 사용이 허용되어 있어요. 생성하면 Anlas가 차감될 수 있어요.':'생성하려면 Anlas 사용 허용이 필요해요.');
+const missingText=()=>tr`계정 정보에서 필요한 항목을 확인하지 못했어요. 무료 생성 여부를 확인할 수 없어, `+(settings().allowAnlas===true?tr`현재 Anlas 사용이 허용되어 있어요. 생성하면 Anlas가 차감될 수 있어요.`:tr`생성하려면 Anlas 사용 허용이 필요해요.`);
 function v5Short(sub){
   if(sub?.tier!==3)return '';const u=usageOf(sub);
-  if(!u||u.percent===null||u.isNegative===null)return '<span class="ncs-v5-warn">V5 확인 못 함</span>';
-  if(u.isNegative)return '<span class="ncs-v5-warn">V5 쓸 수 없음</span>';
+  if(!u||u.percent===null||u.isNegative===null)return tr`<span class="ncs-v5-warn">V5 확인 못 함</span>`;
+  if(u.isNegative)return tr`<span class="ncs-v5-warn">V5 쓸 수 없음</span>`;
   // 0.1.90: labels bold, the extra usage in the number colour, the base number in the warning colour once V5 asks.
   return `<span class="ncs-anlas-label">V5</span> <b${u.percent<=V5_ASK_AT?' class="ncs-low"':''}>${esc(String(u.percent))}%</b>${u.purchasedPercent?` <span class="ncs-v5-extra">(+${esc(String(u.purchasedPercent))}%)</span>`:''}`;
 }
 function v5Detail(sub){
-  const u=usageOf(sub);if(!u||u.percent===null||u.isNegative===null)return '확인하지 못했어요';
-  return `${u.isNegative?'지금 쓸 수 없어요 · ':''}${u.percent}%${u.purchasedPercent!==null?` · 추가 구매 ${u.purchasedPercent}%`:''}`;
+  const u=usageOf(sub);if(!u||u.percent===null||u.isNegative===null)return tr`확인하지 못했어요`;
+  return `${u.isNegative?tr`지금 쓸 수 없어요 · `:''}${u.percent}%${u.purchasedPercent!==null?tr` · 추가 구매 ${u.purchasedPercent}%`:''}`;
 }
 function verdictOf(guard,model){
   const sub=account.sub,tier=tierName(sub),m=modelShort(model),pre=tier?`${tier} · `:'';
-  if(!sub){if(account.checking&&!account.at)return {text:'계정 확인 중…',state:'neutral'};
-    if(account.failed)return {text:account.keyConfigured===false?'NAI 키가 없어요 · 설정에서 확인':'계정 확인 실패 · 다시 확인',state:'warn'};
-    return {text:'계정 확인 전',state:'neutral'};}
+  if(!sub){if(account.checking&&!account.at)return {text:tr`계정 확인 중…`,state:'neutral'};
+    if(account.failed)return {text:account.keyConfigured===false?tr`NAI 키가 없어요 · 설정에서 확인`:tr`계정 확인 실패 · 다시 확인`,state:'warn'};
+    return {text:tr`계정 확인 전`,state:'neutral'};}
   switch(guard.kind){
-    case 'free':return {text:`${pre}${m} 무료 조건에 해당해요 ✓`,state:'ok'};
+    case 'free':return {text:tr`${pre}${m} 무료 조건에 해당해요 ✓`,state:'ok'};
     // 0.1.90: green = Anlas is not expected by what was checked; orange "ask" = this generation is confirmed first.
-    case 'usage':return {text:`${pre}V5 남은 사용량으로 생성`,state:'ok'};
-    case 'ask':return guard.reason==='low'?{text:`${pre}V5 사용량 거의 소진 · 생성 때 확인`,state:'ask'}
-      :guard.reason==='empty'?{text:`${pre}V5 기본 사용량 0% · 생성 때 확인`,state:'ask'}
-      :{text:guard.reason==='negative'?`${pre}V5 사용량을 지금 쓸 수 없어요`:`${pre}V5 사용량 확인 못 함`,state:'warn'};
-    case 'inactive':return {text:`${pre}구독 비활성 · 무료 생성 대상 아님`,state:'warn'};
-    case 'uses':return {text:`${pre}${sub.tier===3?'기본 조건을 넘어 Anlas를 사용해요':'이 생성은 Anlas를 사용해요'}`,state:'spend'};
-    default:return {text:guard.missing?'계정 정보에서 필요한 항목을 확인하지 못했어요':`${pre}무료 여부를 확인할 수 없어요`,state:'warn'};
+    case 'usage':return {text:tr`${pre}V5 남은 사용량으로 생성`,state:'ok'};
+    case 'ask':return guard.reason==='low'?{text:tr`${pre}V5 사용량 거의 소진 · 생성 때 확인`,state:'ask'}
+      :guard.reason==='empty'?{text:tr`${pre}V5 기본 사용량 0% · 생성 때 확인`,state:'ask'}
+      :{text:guard.reason==='negative'?tr`${pre}V5 사용량을 지금 쓸 수 없어요`:tr`${pre}V5 사용량 확인 못 함`,state:'warn'};
+    case 'inactive':return {text:tr`${pre}구독 비활성 · 무료 생성 대상 아님`,state:'warn'};
+    case 'uses':return {text:`${pre}${sub.tier===3?tr`기본 조건을 넘어 Anlas를 사용해요`:tr`이 생성은 Anlas를 사용해요`}`,state:'spend'};
+    default:return {text:guard.missing?tr`계정 정보에서 필요한 항목을 확인하지 못했어요`:tr`${pre}무료 여부를 확인할 수 없어요`,state:'warn'};
   }
 }
 function renderAccount(){
   if(!dialog)return;const box=$('ncs-anlas-balance'),total=anlasTotal(account.sub),button=dialog.querySelector('[data-action="refresh-anlas"]');
   button.disabled=!!account.checking;
   const v5=v5Short(account.sub),time=account.at?new Date(account.at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hourCycle:'h23'}):''; // 24-hour (0.1.90)
-  if(account.checking&&!account.at&&!account.failed)box.textContent='Anlas 확인 중…';
-  else if(account.failed)box.textContent=account.keyConfigured===false?'NAI 키가 없어요 · 설정에서 확인':'잔액 확인 실패 · 다시 확인';
-  else if(total===null)box.innerHTML=account.at?`Anlas 잔액을 알 수 없어요${v5?` · ${v5}`:''} · ${esc(time)} 확인`:'Anlas 확인 전';
+  if(account.checking&&!account.at&&!account.failed)box.textContent=tr`Anlas 확인 중…`;
+  else if(account.failed)box.textContent=account.keyConfigured===false?tr`NAI 키가 없어요 · 설정에서 확인`:tr`잔액 확인 실패 · 다시 확인`;
+  else if(total===null)box.innerHTML=account.at?tr`Anlas 잔액을 알 수 없어요${v5?` · ${v5}`:''} · ${esc(time)} 확인`:tr`Anlas 확인 전`;
   else{const diff=account.previous!=null?total-account.previous:0;
-    box.innerHTML=`<span class="ncs-anlas-label">Anlas</span> <b${total<=0?' class="ncs-low"':''}>${total.toLocaleString()}</b>${v5?` · ${v5}`:''} · ${esc(time)} 확인${diff?` · 이전 조회보다 ${diff>0?'+':'−'}${Math.abs(diff).toLocaleString()}`:''}`;}
+    box.innerHTML=tr`<span class="ncs-anlas-label">Anlas</span> <b${total<=0?' class="ncs-low"':''}>${total.toLocaleString()}</b>${v5?` · ${v5}`:''} · ${esc(time)} 확인${diff?tr` · 이전 조회보다 ${diff>0?'+':'−'}${Math.abs(diff).toLocaleString()}`:''}`;}
   const sub=account.sub,tier=tierName(sub),s=sub?.anlas;
-  $('ncs-account-tier').textContent=sub?`${tier} · ${sub.active===true?'활성':sub.active===false?'비활성':'활성 여부 확인 못 함'}${sub.isGracePeriod===true?' · 유예 기간':''}`:'—';
+  $('ncs-account-tier').textContent=sub?`${tier} · ${sub.active===true?tr`활성`:sub.active===false?tr`비활성`:tr`활성 여부 확인 못 함`}${sub.isGracePeriod===true?tr` · 유예 기간`:''}`:'—';
   $('ncs-v5-row').hidden=sub?.tier!==3;if(sub?.tier===3)$('ncs-v5-detail').textContent=v5Detail(sub);
   const guard=costGuard(effectiveOptions(),sub);
-  $('ncs-status').textContent=account.failed?(account.message||'연결을 확인하지 못했어요.'):sub?
-    `서버 연결됨 · ${tier} · Anlas ${total===null?'?':total.toLocaleString()} (구독 ${s?.subscription??'?'} + 구매 ${s?.purchased??'?'})${sub.tier===3?` · V5 ${v5Detail(sub)}`:''}${guard.missing?' · 계정 정보에서 필요한 항목을 확인하지 못했어요.':''}`:$('ncs-status').textContent;
+  $('ncs-status').textContent=account.failed?(account.message||tr`연결을 확인하지 못했어요.`):sub?
+    tr`서버 연결됨 · ${tier} · Anlas ${total===null?'?':total.toLocaleString()} (구독 ${s?.subscription??'?'} + 구매 ${s?.purchased??'?'})${sub.tier===3?` · V5 ${v5Detail(sub)}`:''}${guard.missing?tr` · 계정 정보에서 필요한 항목을 확인하지 못했어요.`:''}`:$('ncs-status').textContent;
 }
 // A refusal from the server means the shown verdict may be old: forget it until the next check comes back.
 function dropAccount(){accountEpoch++;subscription=null;account={...account,sub:null,at:0,failed:false,message:'',checking:null};if(dialog)renderAccount();}
@@ -2319,20 +2320,20 @@ function renderCost(){
   const guard=costGuard(effectiveOptions(),subscription),off=settings().allowAnlas!==true,blocked=off&&guard.consent==='setting'&&!!subscription;
   if(!off)consentRefused=false; // only consent or a fresh successful check (refreshAccount) clears a server refusal
   const v=verdictOf(guard,effectiveOptions().model);$('ncs-verdict').textContent=v.text;$('ncs-anlas-box').dataset.state=v.state;
-  $('ncs-cost').textContent=guard.missing?missingText():stepsWord(guard.message);$('ncs-cost-link').hidden=false; // every model (0.1.90)
+  $('ncs-cost').textContent=guard.missing?missingText():trMsg(stepsWord(guard.message));$('ncs-cost-link').hidden=false; // every model (0.1.90)
   renderUsageNote(guard);
   const show=blocked||(off&&consentRefused);$('ncs-consent-note').hidden=!show;const here=dialog.querySelector('.ncs-consent-check');here.hidden=!show;$('ncs-allow-anlas-here').checked=settings().allowAnlas===true;
   return {guard,blocked};
 }
 // 0.1.90: one line under the Opus V5 verdict, in place of the switch (V5 no longer uses the saved switch).
 function renderUsageNote(guard){
-  const note=$('ncs-usage-note'),may='<b>Anlas가 차감될 수 있어서</b> 생성할 때마다 한 번씩 물어봐요.';
-  const text=guard.kind==='usage'?'확인한 사용량 기준으로 <b>V5 사용량으로 생성해요.</b>'
+  const note=$('ncs-usage-note'),may=tr`<b>Anlas가 차감될 수 있어서</b> 생성할 때마다 한 번씩 물어봐요.`;
+  const text=guard.kind==='usage'?tr`확인한 사용량 기준으로 <b>V5 사용량으로 생성해요.</b>`
     :guard.kind!=='ask'?''
-    :guard.reason==='low'?`V5 사용량이 ${esc(String(guard.percent))}% 남았어요. 이제부터 ${may}`
-    :guard.reason==='empty'?(guard.purchasedPercent>0?'기본 사용량이 0%로 표시돼요. 추가 구매 사용량이 먼저 쓰일 수도 있지만 <b>Anlas가 차감될 수도 있어서</b> 생성할 때마다 물어봐요.':`V5 기본 사용량이 0%로 표시돼요. ${may}`)
-    :guard.reason==='negative'?`V5 사용량을 지금 쓸 수 없어요. ${may}`
-    :'사용량을 확인하지 못했어요. ↻로 다시 확인해 주세요. 그대로 생성하면 <b>Anlas가 차감될 수 있다고</b> 한 번 물어봐요.';
+    :guard.reason==='low'?tr`V5 사용량이 ${esc(String(guard.percent))}% 남았어요. 이제부터 ${may}`
+    :guard.reason==='empty'?(guard.purchasedPercent>0?tr`기본 사용량이 0%로 표시돼요. 추가 구매 사용량이 먼저 쓰일 수도 있지만 <b>Anlas가 차감될 수도 있어서</b> 생성할 때마다 물어봐요.`:tr`V5 기본 사용량이 0%로 표시돼요. ${may}`)
+    :guard.reason==='negative'?tr`V5 사용량을 지금 쓸 수 없어요. ${may}`
+    :tr`사용량을 확인하지 못했어요. ↻로 다시 확인해 주세요. 그대로 생성하면 <b>Anlas가 차감될 수 있다고</b> 한 번 물어봐요.`;
   note.innerHTML=text;note.hidden=!text;note.classList.toggle('ncs-usage-alert',guard.kind==='ask');
 }
 // The server's usage-confirm question, one sentence per line.
@@ -2378,7 +2379,7 @@ async function generationStatus(ticket,{v5Send=false}={}){
   return {reached,features,v5,version:reached?data.version:null};
 }
 const EDITED_NOT_SENT='기다리는 동안 내용이 바뀌어서 보내지 않았어요. 바뀐 내용으로 [이미지 생성]을 다시 눌러 주세요.';
-const usageQuestion=message=>`${String(message).replace(/\. /g,'.\n')}\n이번만 생성할까요?`;
+const usageQuestion=message=>tr`${String(trMsg(message)).replace(/\. /g,'.\n')}\n이번만 생성할까요?`;
 let consentRefused=false;
 // Shows the switch; turning it on is left to the person.
 function gotoAnlasSetting(){
@@ -2473,9 +2474,9 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   if(busy||checkingGeneration)return;if(!isFree())assertChat();
   // Nothing extracted or entered yet: the image would be the common prompt alone. Ask first.
   const emptyScene=!scene.characters.some(c=>c.included!==false)&&!['location','lighting','camera','interaction'].some(k=>(scene[k]??'').trim());
-  if(!skipMissingCheck&&emptyScene&&!finalOverride&&!confirm(isFree()?'장면 칸이 비어 있어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 상황을 적고 "장면 추출"을 누르거나 인물 추가하기':'장면을 아직 추출하지 않았어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "장면 추출" 누르기')){report(isFree()?'생성하지 않았어요. 상황을 적고 "장면 추출"을 누르거나 인물을 추가해 주세요.':'생성하지 않았어요. "장면 추출"을 먼저 눌러 주세요.');return;}
+  if(!skipMissingCheck&&emptyScene&&!finalOverride&&!confirm(isFree()?tr`장면 칸이 비어 있어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 상황을 적고 "장면 추출"을 누르거나 인물 추가하기`:tr`장면을 아직 추출하지 않았어요. 인물·장소 없이 공통 프롬프트만으로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "장면 추출" 누르기`)){report(isFree()?tr`생성하지 않았어요. 상황을 적고 "장면 추출"을 누르거나 인물을 추가해 주세요.`:tr`생성하지 않았어요. "장면 추출"을 먼저 눌러 주세요.`);return;}
   // No 공통 이미지 프리셋 chosen (and no history settings in use): say which settings will be used, every time.
-  if(!skipMissingCheck&&!settings().imagePresetId&&!optionsOverride&&!confirm('공통 이미지 프리셋을 고르지 않았어요.\n설정 탭의 기본 생성 설정(모델·크기·Steps 등)과 공통 프롬프트로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "3 · 생성"에서 프리셋 고르기')){report('생성하지 않았어요. "3 · 생성"에서 공통 이미지 프리셋을 고를 수 있어요.');return;}
+  if(!skipMissingCheck&&!settings().imagePresetId&&!optionsOverride&&!confirm(tr`공통 이미지 프리셋을 고르지 않았어요.\n설정 탭의 기본 생성 설정(모델·크기·Steps 등)과 공통 프롬프트로 그릴까요?\n\n확인: 그대로 그리기 · 취소: 돌아가서 "3 · 생성"에서 프리셋 고르기`)){report(tr`생성하지 않았어요. "3 · 생성"에서 공통 이미지 프리셋을 고를 수 있어요.`);return;}
   if(!skipMissingCheck){const {main}=missingState();if(main.length&&!skipMissingWarning()){openMissingDialog(main,seedMode);return;}}
   const s=settings(),startKey=workKey(),ticket=++task;
   if(isFree()){const tooLong=lengthProblem($('ncs-free-text').value,'free');if(tooLong)throw new Error(tooLong);} // before anything is sent
@@ -2508,11 +2509,11 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
     const {pending}=await api(`/generation?chatKey=${encodeURIComponent(startKey)}`,{signal:draftSignal()});
     if(ticket!==task||workKey()!==startKey||busy||attaching||checkingGeneration)return;
     if(changedSince()){report(EDITED_NOT_SENT);return;}
-    if(pending?.length&&!confirm('이 작업에 저장을 마치지 못한 그림이 있어요. 이력에서 저장을 다시 시도할 수 있어요. 새 그림을 생성할까요?')){
+    if(pending?.length&&!confirm(tr`이 작업에 저장을 마치지 못한 그림이 있어요. 이력에서 저장을 다시 시도할 수 있어요. 새 그림을 생성할까요?`)){
       showTab('history');return;
     }
   }
-  if(priorRequest&&!confirm('이전 요청의 결과가 아직 확인되지 않았어요. 새로 생성하면 Anlas가 다시 차감될 수 있어요. 새 요청을 보낼까요?'))return;
+  if(priorRequest&&!confirm(tr`이전 요청의 결과가 아직 확인되지 않았어요. 새로 생성하면 Anlas가 다시 차감될 수 있어요. 새 요청을 보낼까요?`))return;
   // 0.1.92 (user decision A), 0.1.93: Opus V5 goes only to server 0.1.25+, decided by this press's own answer (②),
   // asked as close to the send as the page allows. What is left is the moment between that answer and the send.
   if(v5){
@@ -2524,7 +2525,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
   }
   const requestId=uuid(),canRecover=features.includes('generation-recovery');
   if(canRecover)rememberGeneration(startKey,requestId);
-  dropUndo();setBusy(true,ticket);startProgress('generate',ticket);report('NAI에 생성 요청을 보내고 있어요. 창을 닫거나 채팅을 바꿔도 서버는 결과를 저장해요.');
+  dropUndo();setBusy(true,ticket);startProgress('generate',ticket);report(tr`NAI에 생성 요청을 보내고 있어요. 창을 닫거나 채팅을 바꿔도 서버는 결과를 저장해요.`);
   rememberDraft(startKey,null,{flush:true});const startedConnected=draftsEnabled,mark=workMark(startKey),generationDraft=mark.e;generationDraft.pinned=true;const savedDraftVersion=generationDraft.version;
   // 0.1.99 (GPT P2): the work this press belongs to is still going on only while its queue entry is the same one in the
   // same generation. A connect, [서버 작업 다시 불러오기] or a pause replaces the entry; a deletion resets it (gen).
@@ -2540,14 +2541,14 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
         if(e.code!=='usage-confirm'||confirmUsage)throw e;
         refreshAccount().catch(()=>{});
         const stop=()=>{if(pendingGenerations.get(startKey)===requestId)rememberGeneration(startKey,priorRequest);};
-        if(ticket!==task||workKey()!==startKey){stop();report('작업이 바뀌어서 생성 요청을 보내지 않았어요.');return;}
+        if(ticket!==task||workKey()!==startKey){stop();report(tr`작업이 바뀌어서 생성 요청을 보내지 않았어요.`);return;}
         if(changedSince()){stop();report(EDITED_NOT_SENT);return;}
-        if(!confirm(usageQuestion(e.message))){stop();report('생성 요청을 보내지 않았어요.');return;}
-        if(ticket!==task||workKey()!==startKey){stop();report('작업이 바뀌어서 생성 요청을 보내지 않았어요.');return;}
+        if(!confirm(usageQuestion(e.message))){stop();report(tr`생성 요청을 보내지 않았어요.`);return;}
+        if(ticket!==task||workKey()!==startKey){stop();report(tr`작업이 바뀌어서 생성 요청을 보내지 않았어요.`);return;}
         // 0.1.93 (③, user decision): the server may have changed while the question was open — asked again, and a failed
         // or old answer sends nothing (this request's mark goes, an earlier one comes back).
         const again=await generationStatus(ticket,{v5Send:true});
-        if(ticket!==task||workKey()!==startKey){stop();report('작업이 바뀌어서 생성 요청을 보내지 않았어요.');return;}
+        if(ticket!==task||workKey()!==startKey){stop();report(tr`작업이 바뀌어서 생성 요청을 보내지 않았어요.`);return;}
         if(!again.reached){stop();report(V5_SERVER_UNREACHED,true);return;}
         if(!again.v5){stop();report(V5_SERVER_NEEDED,true);return;}
         // 0.1.91 (GPT P2-2), 0.1.92: the yes is for what was asked about; a change made meanwhile is never sent as the
@@ -2572,7 +2573,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
         drafts.put(startKey,packWork(w,{retainRaw:s.retainRawExtraction===true}));drafts.flush(startKey);
         if(workKey()===startKey){if(same(finalOverride,submittedFinal))finalOverride=null;if(same(optionsOverride,submittedOptions))optionsOverride=null;result=w.result;renderScene({forceFinal:true});renderResult();}
       }
-      report('생성이 끝났어요. 시작한 곳의 이력에서 확인할 수 있어요.');return;
+      report(tr`생성이 끝났어요. 시작한 곳의 이력에서 확인할 수 있어요.`);return;
     }
     // Consume only the submitted overrides; keep a newer edit made while awaiting the response.
     const resetFinal=finalOverride===submittedFinal;
@@ -2580,7 +2581,7 @@ async function generate(seedMode=null,{skipMissingCheck=false}={}) {
     if(optionsOverride===submittedOptions)optionsOverride=null;
     revision++;updateFinal({force:resetFinal});
     if(!isDeletedPicture(item.id))result=item; // 0.1.130: deleted from another tab's 저장 대기 before it arrived
-    renderResult();report('생성했어요 · 그림을 누르면 크게 볼 수 있어요.');loadHistory().catch(()=>{});
+    renderResult();report(tr`생성했어요 · 그림을 누르면 크게 볼 수 있어요.`);loadHistory().catch(()=>{});
     refreshAccount().catch(()=>{}); // a failed balance check never turns a finished image into a failure
   }catch(e){
     const refused=['anlas-consent','usage-confirm','nai-account','nai-auth','nai-anlas','nai-permission','nai-busy','nai-rejected','generation-not-sent'];
@@ -2611,7 +2612,7 @@ function imageControls(item) {
 function renderResult() {
   renderGenerationCheck();
   $('ncs-result').innerHTML=result?`<button type="button" class="ncs-image-open" data-view-result aria-label="생성된 장면 크게 보기"><img src="${esc(result.image)}" alt="생성된 장면"></button>${imageControls(result)}<div class="ncs-row"><button data-action="same-seed">같은 seed로 생성</button><button data-action="new-seed">새 seed로 생성</button><button type="button" data-view-result>크게 보기</button></div><small>seed ${esc(result.seed)} · ${esc(MODELS[result.options?.model]?.label)} · 메시지 본문은 유지되고, 첨부 그림은 본편 AI 입력에 포함되지 않아요.</small>`:'';
-  updateAttachButtons();
+  localize($('ncs-result'));updateAttachButtons();
 }
 function updateAttachButtons() {
   const locked=busy||attaching||checkingGeneration;
@@ -2930,9 +2931,9 @@ function setupHelpFolds(root){
     short.append(box.dataset.short,' ');
     const more=document.createElement('button');more.type='button';more.className='ncs-help-toggle';more.dataset.helpToggle='open';more.setAttribute('aria-expanded','false');
     // 0.1.111: the Anlas permission note folds on every screen; its opener is red so it is not skipped (DESIGN.md 4-2).
-    const must=box.classList.contains('ncs-help-must');more.textContent=must?'꼭 확인해 주세요 ›':'더보기 ›';if(must)more.classList.add('ncs-help-must-open');
+    const must=box.classList.contains('ncs-help-must');more.textContent=must?tr`꼭 확인해 주세요 ›`:tr`더보기 ›`;if(must)more.classList.add('ncs-help-must-open');
     short.append(more);
-    const less=document.createElement('button');less.type='button';less.className='ncs-help-toggle ncs-help-less';less.dataset.helpToggle='close';less.setAttribute('aria-expanded','true');less.textContent='접기 ‹';
+    const less=document.createElement('button');less.type='button';less.className='ncs-help-toggle ncs-help-less';less.dataset.helpToggle='close';less.setAttribute('aria-expanded','true');less.textContent=tr`접기 ‹`;
     box.prepend(short);box.append(less);box.classList.add('ncs-help-ready');
   }
 }
@@ -3150,7 +3151,7 @@ function promptText(item){
 }
 async function copyRaw(){
   if(!raw){notice('복사할 추출 응답이 없어요.');return;}
-  $('ncs-raw-copy').textContent='응답 복사';
+  $('ncs-raw-copy').textContent=tr`응답 복사`;
   await copyText(raw,dialog);$('ncs-raw-copy').textContent='복사됨';notice('추출 응답을 복사했어요.');
 }
 // How many messages of the open chat hold this picture.
@@ -3339,6 +3340,7 @@ async function importSettings(file) {
   // already empties the scene; during a generation the picture is kept in the history either way.
   if(!confirm('현재 프로필과 공통 설정을 이 백업으로 바꿀까요? 편집 중인 장면도 비워져요. 현재 설정을 내보낸 뒤 진행할 수 있어요.'))return;
   clean.imageMarks=cleanMarks(settings().imageMarks);clean.tagPopupChats=cleanPopupChats(settings().tagPopupChats); // 0.1.84: kept, never taken from a backup
+  if(settings().uiLanguage==='en')clean.uiLanguage='en'; // wip-en: the screen language is this person's, not the backup's
   ctx().extensionSettings[KEY]=clean;syncGen(mode);ctx().saveSettingsDebounced();renderChatImages();scene=blankScene();finalOverride=null;optionsOverride=null;revision++;renderSettings();renderProfiles();editProfile();renderScene();
   rememberDraft(); // 0.1.131 (GPT 0.1.130 P2-1): the emptied scene is saved (a file pick is not a panel click; leaving no longer saves the screen)
   useSkin(clean.skin).catch(()=>{});notice('백업을 가져왔어요. Anlas 사용 가능성 허용과 추출 원문 보관은 꺼진 상태로 가져왔어요.');
@@ -3670,6 +3672,7 @@ function bindEvents() {
         if(!Object.hasOwn(TAG_POP_SIZES,el.value))return;tagPopStore('size',el.value);
         const pop=document.getElementById('ncs-tag-pop');if(pop){pop.dataset.size=el.value;pop.style.setProperty('--ncs-tag-pop-h',`${TAG_POP_SIZES[el.value]}vh`);fitTagPop();}
         notice(`태그 추천 팝업 크기: ${el.selectedOptions[0]?.textContent??el.value} (이 기기)`);return;}
+      if(el.id==='ncs-ui-language'){settings().uiLanguage=el.value==='en'?'en':'ko';ctx().saveSettingsDebounced();notice('실리태번을 새로고침하면 바뀌어요. · Reload SillyTavern to apply.');return;}
       if(el.id==='ncs-message-button'){settings().messageButton=el.checked;ctx().saveSettingsDebounced();setMessageButtons(el.checked);renderChatImageSummary();notice(el.checked?'메시지 날짜 옆에 그리기 아이콘을 넣었어요.':'메시지의 그리기 아이콘을 뺐어요.');return;}
       if(el.id==='ncs-inline-layout'||el.id==='ncs-inline-size'){settings()[el.id==='ncs-inline-layout'?'inlineLayout':'inlineSize']=el.value;ctx().saveSettingsDebounced();renderChatImages();renderChatImageSummary();return;}
       if(el.id==='ncs-chat-image-placement'){
@@ -3874,10 +3877,11 @@ function mountSettingsDrawer() {
 async function initialize() {
   if(document.getElementById('naice-shot-dialog'))return;
   mountSettingsDrawer();
+  setLang(settings().uiLanguage); // wip-en: read once; a change applies after reloading
   {const s=settings();s.imageMarks=cleanMarks(s.imageMarks);s.tagPopupChats=cleanPopupChats(s.tagPopupChats);} // 0.1.84: read once, broken entries dropped
   dialog=document.createElement('dialog');dialog.id='naice-shot-dialog';dialog.tabIndex=-1;
   const template=await fetch(new URL('panel.html',import.meta.url));if(!template.ok)throw new Error('NAIce Shot 패널 파일을 읽지 못했어요.');
-  dialog.innerHTML=await template.text();document.body.append(dialog);
+  dialog.innerHTML=await template.text();localize(dialog,'#ncs-ui-language-box');document.body.append(dialog);
   // The 챗샷/프리샷 switch sits in the title row now, outside the work fields; it waits with them (draft loading, server check).
   {const work=$('ncs-work-fields'),sync=()=>{$('ncs-mode-fields').disabled=work.disabled;};new MutationObserver(sync).observe(work,{attributes:true,attributeFilter:['disabled']});sync();}
   dialog.addEventListener('close',()=>{closeGuide({focus:false});closeMissingDialog();closeAttachPicker();rememberDraft(workKey(),null,{flush:true});});
