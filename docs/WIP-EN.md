@@ -36,7 +36,7 @@ understand the cost, and generate one picture? It is not merged into main. main 
 Header, tabs, the drawing tab's fixed words, target message list, extraction progress and buttons, extraction
 notices, request results frame, scene candidates heading, undo/clear buttons, work-memory line, generation settings
 summary, account box, cost verdict and V5 usage notes, generation questions (no preset, V5 usage), generation
-notices, the result area and its save menu, and the language switch itself (always both languages).
+notices, the result area and its save menu, and the language switch itself (both languages on the Korean screen).
 
 Step 2 (after the first iPhone try): the rest of the drawing tab — person cards (temporary people, outfits, lock,
 wardrobe, fixed look, pin), the "no profile" box with its link picker and the before-generating dialog, the
@@ -57,6 +57,12 @@ notice and "열린 채팅 없음" (missed in step 1), and the header switch, whi
 "Chat Shot" / "Free Shot" were cut on a phone (`initialize` sets the short words after `localize`; the full name stays
 as the button's aria-label; Korean is untouched). "세로" is "Vertical" now: the same word is the size (세로 · 832 × 1216
 stays "Portrait · …") and the picture view summary (세로로 나열).
+After the fourth review: the language box is English on the English screen ("한국어" stays as it is, so a Korean
+reader can always find the way back; the Korean screen keeps both languages, so an English reader can find the box);
+the server-version line and the update warning box (compat.mjs messages) are shown with `trMsg` (the code still
+compares the Korean message). `tr` itself now marks a text it fills with values as finished (`doneText`), so `notice`
+never splits a name at " / " and looks a part up again ("밤 / 보통 / 옷" showed as "밤 / Medium / 옷", GPT wip-en P3,
+fourth review). Error messages put into such texts go through `trMsg` where they are put in.
 
 Known limits, left as they are (GPT wip-en P3, second review): a name that is word for word a whole dictionary sentence
 (ends with ".") is shown translated inside "＋ {0} 프로필 만들기"; an outfit that itself ends with " · 잠금" is shown as
@@ -68,7 +74,7 @@ with 스텝 shows as Steps in that error in both languages: that is main's `step
 Also left (step 4): the account-fields "earlier check" line shows its time in Korean form (`toLocaleTimeString('ko-KR')`,
 a value); the language switch's own notice stays in both languages.
 
-Still Korean: the History tab, the guide, the viewer, the server-version line, and texts the
+Still Korean: the History tab, the guide, the viewer, and texts the
 AI writes (candidate titles, request words).
 
 ## Checks
@@ -85,7 +91,8 @@ AI writes (candidate titles, request words).
   keeps "$$" in its English button; the Profiles tab is English while profile and wardrobe names that are dictionary
   words (옷장, 제거) stay as written, and the same edits save the same profiles in both languages; the switch writes only `uiLanguage`;
   the Settings tab is English while a preset named 보통 (= Medium) stays as written and saves the same in both languages,
-  the header switch reads Chat / Free and fits, and the chat-changed notice is English.
+  the header switch reads Chat / Free and fits, and the chat-changed notice is English; a preset and an outfit named
+  "밤 / 보통 / 옷" stay whole in their English notices; the language box and the server-version line are English.
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

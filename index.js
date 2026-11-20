@@ -630,7 +630,7 @@ function renderDraftState(){
   if(!draftsEnabled&&draftHold){box.hidden=false;box.textContent=draftHoldNote||DRAFT_HOLD_NOTE;$('ncs-draft-retry').hidden=false;$('ncs-draft-retry').textContent=tr`작업 기억 다시 연결`;return;}
   if(!draftsEnabled){box.hidden=!compatChecked;box.textContent=tr`작업 기억을 사용할 수 없어요. 서버 연결·업데이트를 확인해 주세요.`;$('ncs-draft-retry').hidden=!compatChecked;$('ncs-draft-retry').textContent=tr`연결 다시 확인`;return;}
   const held=draftDeletionChecks.has(workKey());
-  box.hidden=!draftsEnabled;box.textContent=held?tr`삭제 결과를 확인할 때까지 작업을 잠갔어요.`:draftLoading?tr`마지막 작업을 불러오는 중…`:e.error?tr`작업 저장을 확인해 주세요: ${e.error.message}`:e.saving||e.dirty||captureTimer?tr`마지막 작업 저장 중…`:draftNote||tr`마지막 작업을 서버에 기억해요.`;
+  box.hidden=!draftsEnabled;box.textContent=held?tr`삭제 결과를 확인할 때까지 작업을 잠갔어요.`:draftLoading?tr`마지막 작업을 불러오는 중…`:e.error?tr`작업 저장을 확인해 주세요: ${trMsg(e.error.message)}`:e.saving||e.dirty||captureTimer?tr`마지막 작업 저장 중…`:draftNote||tr`마지막 작업을 서버에 기억해요.`;
   $('ncs-draft-retry').hidden=!draftsEnabled||!held&&!e.error;
   $('ncs-draft-retry').textContent=held?draftDeletionRuns.has(workKey())?tr`삭제 결과 확인 중…`:tr`삭제 결과 다시 확인`:e.error?.status===409?tr`서버 작업 다시 불러오기`:tr`다시 시도`;
 }
@@ -1722,7 +1722,7 @@ function updateFinal({force=false}={}) {
   if(!dialog)return;
   const help=$('ncs-character-help');if(help)help.textContent=tr`인물 카드 하나가 NAI의 캐릭터 프롬프트 하나에 해당해요. V5 최대 22명 · V4.5 최대 6명. (${MODELS[effectiveOptions().model]?.label??''} 최대 ${MODELS[effectiveOptions().model]?.limit??6}명)`;
   try {
-    if(finalOverride?.invalid){$('ncs-warnings').textContent=tr`최종 프롬프트 JSON을 확인해 주세요: ${finalOverride.message}`;return;} // keep the user's in-progress text
+    if(finalOverride?.invalid){$('ncs-warnings').textContent=tr`최종 프롬프트 JSON을 확인해 주세요: ${trMsg(finalOverride.message)}`;return;} // keep the user's in-progress text
     const a=finalData();if(force||!(finalOverride&&document.activeElement===$('ncs-final')))$('ncs-final').value=JSON.stringify(a,null,2);
     renderFinalForm(a,{force});$('ncs-final-badge').hidden=!finalOverride;
     const lengths=[tr`공통 ${a.base.length}자`,...a.characters.map(c=>tr`${c.name}: ${c.prompt.length}자`)];
@@ -2144,7 +2144,7 @@ async function extract() {
         notice(doneText(refs.note+lead+asked+(must?must+' ':'')+(warnings.length?warnings.map(trMsg).join(' / '):tr`추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.`)),false,originTab,{keep:!!must||!!refs.note||parsed.partial||!!(wish&&!parsed.requestMatched)||foreign.length>0});return;
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}
     }
-    if(ticket===task&&keyOf()===startKey){raw=response;renderScene();report(tr`추출 실패: ${failure?.message}.${looksCut(response)?tr` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
+    if(ticket===task&&keyOf()===startKey){raw=response;renderScene();report(tr`추출 실패: ${trMsg(failure?.message)}.${looksCut(response)?tr` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
   }finally{
     if(extraction?.ticket===ticket)extraction=null;
     stopProgress(ticket);if(busyOwner===ticket)setBusy(false);
@@ -2229,8 +2229,8 @@ async function checkServerOnce(force) {
 }
 function renderCompat() {
   if(!dialog)return;const show=(compatResult.level==='warn'||compatResult.level==='error')&&!compatDismissed;
-  $('ncs-compat').hidden=!show;$('ncs-compat').dataset.level=compatResult.level;$('ncs-compat-text').textContent=compatResult.message;
-  $('ncs-server-version').textContent=compatResult.level==='none'?'':compatResult.message;
+  $('ncs-compat').hidden=!show;$('ncs-compat').dataset.level=compatResult.level;$('ncs-compat-text').textContent=trMsg(compatResult.message);
+  $('ncs-server-version').textContent=compatResult.level==='none'?'':trMsg(compatResult.message);
 }
 // --- Account and Anlas ------------------------------------------------------------------------------
 // One account check feeds both the drawing tab (balance + ↻) and Settings (NAI 연결 확인). A failed check
@@ -3646,7 +3646,7 @@ function bindEvents() {
       if(el.id==='ncs-final'){
         // 0.1.141 (GPT 0.1.140 P2-3): the box shows the assembled prompt (with the open chat's clothes) until it is edited.
         if(!finalOverride&&!isFree()&&chatLoading())throw new Error(CHAT_LOADING);
-        revision++;try{const value=JSON.parse(el.value);buildPayload(value,{...effectiveOptions(),seed:0});if(typeof value.base!=='string'||typeof value.negative!=='string'||value.characters.some(c=>typeof c.prompt!=='string'||typeof c.name!=='string'))throw new Error('base·negative·characters[].name·prompt는 문자열이어야 해요.');finalOverride=value;renderFinalForm(value);$('ncs-final-badge').hidden=false;$('ncs-warnings').textContent=tr`직접 수정한 최종 프롬프트를 이번 생성에 사용해요.`;}catch(e){finalOverride={invalid:true,message:e.message};$('ncs-warnings').textContent=tr`최종 프롬프트 JSON을 확인해 주세요: ${e.message}`;}return;
+        revision++;try{const value=JSON.parse(el.value);buildPayload(value,{...effectiveOptions(),seed:0});if(typeof value.base!=='string'||typeof value.negative!=='string'||value.characters.some(c=>typeof c.prompt!=='string'||typeof c.name!=='string'))throw new Error('base·negative·characters[].name·prompt는 문자열이어야 해요.');finalOverride=value;renderFinalForm(value);$('ncs-final-badge').hidden=false;$('ncs-warnings').textContent=tr`직접 수정한 최종 프롬프트를 이번 생성에 사용해요.`;}catch(e){finalOverride={invalid:true,message:e.message};$('ncs-warnings').textContent=tr`최종 프롬프트 JSON을 확인해 주세요: ${trMsg(e.message)}`;}return;
       }
       if(el.hasAttribute('data-profile-switch')){
         const oldId=el.closest('[data-character]').dataset.character;
@@ -3887,7 +3887,7 @@ async function initialize() {
   {const s=settings();s.imageMarks=cleanMarks(s.imageMarks);s.tagPopupChats=cleanPopupChats(s.tagPopupChats);} // 0.1.84: read once, broken entries dropped
   dialog=document.createElement('dialog');dialog.id='naice-shot-dialog';dialog.tabIndex=-1;
   const template=await fetch(new URL('panel.html',import.meta.url));if(!template.ok)throw new Error('NAIce Shot 패널 파일을 읽지 못했어요.');
-  dialog.innerHTML=await template.text();localize(dialog,'#ncs-ui-language-box');document.body.append(dialog);
+  dialog.innerHTML=await template.text();localize(dialog);document.body.append(dialog);
   // wip-en: "Chat Shot" / "Free Shot" are cut in the header switch on a phone; the full name stays as its label.
   if(currentLang()==='en')for(const b of dialog.querySelectorAll('.ncs-header [data-mode]')){b.setAttribute('aria-label',b.textContent);b.textContent=b.dataset.mode==='free'?'Free':'Chat';}
   // The 챗샷/프리샷 switch sits in the title row now, outside the work fields; it waits with them (draft loading, server check).

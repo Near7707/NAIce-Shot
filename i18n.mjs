@@ -16,7 +16,10 @@ const fill=(template,values)=>template.replace(/\{(\d+)\}/g,(all,n)=>Number(n)<v
 export function tr(strings,...values){
   if(lang!=='en')return join(strings,values);
   let key=strings[0];for(let i=1;i<strings.length;i++)key+=`{${i-1}}`+strings[i];
-  const en=EN[key];return en===undefined?join(strings,values):fill(en,values);
+  const en=EN[key];if(en===undefined)return join(strings,values);
+  // A text put together with values (a name, the AI's words) is finished English: notice's trMsg must not split it at
+  // " / " and look a part of a name up again ("밤 / 보통 / 옷" → "밤 / Medium / 옷", GPT wip-en P3, fourth review).
+  const out=fill(en,values);if(values.length)doneText(out);return out;
 }
 
 // Keys with {n} as patterns, longest first, built once on the first English lookup.
@@ -43,7 +46,7 @@ function one(text){
 const finished=new Set(),doneKey=s=>s.replace(/ ?(?:스텝|Steps)[은는]?/g,'§');
 export function doneText(text){
   if(lang!=='en'||typeof text!=='string'||!text)return text;
-  finished.add(doneKey(text));if(finished.size>50)finished.delete(finished.values().next().value);
+  finished.add(doneKey(text));if(finished.size>200)finished.delete(finished.values().next().value);
   return text;
 }
 export function trMsg(text){

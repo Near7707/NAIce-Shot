@@ -10,8 +10,9 @@
 //    names stay as written even when they are dictionary words.
 // 8. The language switch only adds uiLanguage to the settings.
 // 9. The Profiles tab is English; profile and wardrobe names stay as written; the same edits save the same profiles.
-// 10. The Settings tab is English (a preset named like a dictionary word stays as written), the header switch reads
-//     Chat / Free and fits, the chat-changed notice is English, and the same preset save keeps the same settings.
+// 10. The Settings tab is English (language box and server-version line too); a preset or outfit named "밤 / 보통 / 옷"
+//     stays whole in its notices; the header switch reads Chat / Free and fits; the chat-changed notice is English;
+//     the same preset save keeps the same settings.
 // Header copied from browser-v01101 (lines 1–91) with a `lang` option; helpers from the same file.
 import zlib from 'node:zlib';
 import http from 'node:http';
@@ -321,25 +322,39 @@ try{
    assert.deepEqual(saved.en,saved.ko,'the same profiles are saved in both languages');
    assert.deepEqual(saved.en[0].wardrobe.map(w=>w.name),['제거','robe']);
   }
-  // --- 10. the Settings tab reads in English; a preset named like a dictionary word (보통 = Medium) stays as written,
-  // the header switch reads Chat / Free and fits, the chat-changed notice is English, and the same save keeps the same preset.
+  // --- 10. the Settings tab reads in English (the language box too, apart from "한국어", and the server-version line);
+  // a preset or outfit named with " / " and a dictionary word (밤 / 보통 / 옷, 보통 = Medium) stays whole in the finished
+  // notices (GPT wip-en P3, fourth review); the header switch reads Chat / Free and fits; the chat-changed notice is
+  // English; the same save keeps the same preset.
   {
-   const saved={};
+   const saved={},NAME='밤 / 보통 / 옷';
    for(const lang of ['ko','en']){
     const t=await open(width,{lang});const {page}=t;const en=lang==='en';
     const modes=await page.evaluate(()=>[...document.querySelectorAll('.ncs-header [data-mode]')].map(b=>[b.textContent,b.getAttribute('aria-label'),b.scrollWidth<=b.clientWidth]));
     assert.deepEqual(modes.map(m=>m.slice(0,2)),en?[['Chat','Chat Shot'],['Free','Free Shot']]:[['챗샷',null],['프리샷',null]]);
     if(en)assert.ok(modes.every(m=>m[2]),'Chat / Free fit their buttons');
+    // wearing a wardrobe outfit for this picture: the outfit name stays whole in the notice
+    await page.evaluate(n=>{mock.extensionSettings.naice_shot.profiles[0].wardrobe=[{id:'w9',name:n,outfit:'pajamas'}];
+     mock.extraction={characters:[{id:'leo',name:'Leo',expression:'calm',action:'sitting',position:'auto',outfitMode:'unchanged',outfit:''}],unregistered:[],location:'cafe',lighting:'sun',camera:'medium shot',interaction:''};},NAME);
+    await page.locator('[data-action="extract"]').click();await idle(page);await clearNotice(page);
+    await page.locator('[data-character="leo"] select[data-wear-once]').selectOption('w9');
+    assert.equal(await notice(page),en?`Wearing "${NAME}" in this picture only. The clothes saved in the chat are unchanged.`:`이번 그림에만 "${NAME}"을(를) 입혀요. 채팅에 저장된 옷은 그대로예요.`);
     await page.locator('[data-tab="settings"]').click();
-    await page.locator('#ncs-common-preset-name').fill('보통');await clearNotice(page);await page.locator('[data-action="save-preset-as"]').click();
-    assert.equal(await notice(page),en?'Saved the current values as the new preset "보통".':'지금 값을 새 프리셋 "보통"(으)로 저장했어요.');
-    assert.ok((await page.locator('#ncs-common-preset option:checked').innerText()).startsWith('보통'),'the preset name stays in the list');
-    assert.ok((await text(page,'#ncs-preset-state')).startsWith('보통 · '),'the preset name stays in its line');
-    assert.equal(await text(page,'[data-action="save-preset"]'),en?'Save changes · 보통':'변경 저장 · 보통');
+    await page.locator('#ncs-common-preset-name').fill(NAME);await clearNotice(page);await page.locator('[data-action="save-preset-as"]').click();
+    assert.equal(await notice(page),en?`Saved the current values as the new preset "${NAME}".`:`지금 값을 새 프리셋 "${NAME}"(으)로 저장했어요.`);
+    await clearNotice(page);await page.locator('[data-action="save-preset"]').click();
+    assert.equal(await notice(page),en?`Saved the current values to the "${NAME}" preset.`:`"${NAME}" 프리셋에 지금 값을 저장했어요.`);
+    assert.ok((await page.locator('#ncs-common-preset option:checked').innerText()).startsWith(NAME),'the preset name stays in the list');
+    assert.ok((await text(page,'#ncs-preset-state')).startsWith(NAME+' · '),'the preset name stays in its line');
+    assert.equal(await text(page,'[data-action="save-preset"]'),en?`Save changes · ${NAME}`:`변경 저장 · ${NAME}`);
+    await page.waitForFunction(()=>document.querySelector('#ncs-server-version').textContent);
+    assert.match(await page.locator('#ncs-server-version').textContent(),en?/^Server plugin v/:/^서버 플러그인 v/);
+    const box=await page.evaluate(()=>[document.querySelector('#ncs-ui-language-box h3').textContent,...[...document.querySelectorAll('#ncs-ui-language option')].map(o=>o.textContent)]);
+    assert.deepEqual(box,en?['Language','한국어','English (experimental)']:['화면 언어 · Language','한국어','English (시험판 · experimental)']);
     if(en){
-     const left=await page.evaluate(()=>{const H=/[가-힣]/,out=[],root=document.querySelector('section[data-page="settings"]'),own='#ncs-ui-language-box,#ncs-server-version,code,#ncs-extraction-profile';
-      const w=document.createTreeWalker(root,4);for(let n=w.nextNode();n;n=w.nextNode()){const v=n.nodeValue.trim().replaceAll('보통','');if(v&&H.test(v)&&!n.parentElement.closest(own))out.push(v);}
-      for(const el of root.querySelectorAll('*'))for(const a of ['aria-label','title','placeholder','data-short'])if(H.test((el.getAttribute(a)??'').replaceAll('보통','')))out.push(`@${a} ${el.getAttribute(a)}`);return out;});
+     const left=await page.evaluate(n=>{const H=/[가-힣]/,out=[],root=document.querySelector('section[data-page="settings"]'),own='code,#ncs-extraction-profile',clean=v=>v.replaceAll(n,'').replace(/^한국어$/,'');
+      const w=document.createTreeWalker(root,4);for(let x=w.nextNode();x;x=w.nextNode()){const v=clean(x.nodeValue.trim());if(v&&H.test(v)&&!x.parentElement.closest(own))out.push(v);}
+      for(const el of root.querySelectorAll('*'))for(const a of ['aria-label','title','placeholder','data-short'])if(H.test(clean(el.getAttribute(a)??'')))out.push(`@${a} ${el.getAttribute(a)}`);return out;},NAME);
      assert.deepEqual(left,[],'the Settings tab is English');
      assert.match(await page.locator('#ncs-skins').textContent(),/Default/);
     }
@@ -352,7 +367,7 @@ try{
     assert.deepEqual(t.errors,[]);await page.close();
    }
    assert.deepEqual(saved.en,saved.ko,'the same preset is saved in both languages');
-   assert.equal(saved.en[0].name,'보통');
+   assert.equal(saved.en[0].name,NAME);
   }
  }
  console.log('PASS browser-wip-en');
