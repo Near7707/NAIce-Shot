@@ -1122,3 +1122,7 @@
 #naice-shot-dialog .ncs-guide-text ol > li::before {content:counter(ncs-step);position:absolute;left:0;top:0;display:grid;place-items:center;width:26px;height:26px;box-sizing:border-box;border:2px solid var(--ncs-edge);border-radius:50%;background:var(--ncs-bg);color:var(--ncs-accent-text);font-size:13px;font-weight:700;line-height:1;}
 #naice-shot-dialog .ncs-guide-text ol > li:not(:last-child)::after {content:"";position:absolute;left:12px;top:28px;bottom:-12px;width:2px;background:var(--ncs-rule);}
 #naice-shot-dialog .ncs-guide-text a {color:var(--ncs-accent-text);}
+/* wip-en: English words are longer than the Korean ones. On very narrow phones (320px) the tabs "Settings" and the bold
+   selected "Profiles" ran out of their tab, and the history [Saving… ▾] (while picked pictures are saved) reached the
+   next button. Only the English screen gets a little less room between word and icon / arrow; Korean is untouched. */
+@media (max-width:360px) { #naice-shot-dialog.ncs-lang-en .ncs-tabs button {gap:3px;font-size:12.5px;} #naice-shot-dialog.ncs-lang-en .ncs-history-tools .ncs-save-toggle {gap:4px;} }

@@ -119,8 +119,19 @@ toast and prompt copy line already go through `trMsg`; the drawing tab's account
 `trMsg(message)` to SillyTavern's toast when the panel is closed (`notice` translated inside, the toast did not), so
 [이 메시지에서 빼기] in the chat shows its save error in English.
 
-Still Korean: the tag pop-up on the chat screen (`showTagPopup`), the guide, server texts the dictionary does not know,
-and texts the AI writes (candidate titles, request words).
+Step 6 (outside the panel and narrow phones, GPT wip-en P3 ×3 of the ninth review): the extension list entry ("프로필 ·
+장면 편집 · 이미지 생성", "NAIce Shot 열기") — `initialize` now reads the language *before* `mountSettingsDrawer`, which
+draws the entry right away (before the panel file loads); the message draw button's name (title, aria-label; the button
+is built once, after `setLang`) and the notices of a press (`tr`, also translated by `notice`'s `trMsg` through the
+dictionary); the tag pop-up's label, picture text, ✕ and hint (`tr`, drawn after `setLang`). On narrow phones: "준비 중…"
+(the history [저장 ▾] while picked pictures are saved) is "Saving…" (was "Preparing…", only this button uses it), and
+`style.css` gives the English screen a little less room up to 360px — tab icon gap and size (`Settings` and the bold
+selected `Profiles` ran out of their tab at 320px) and the gap before the save arrow. Korean CSS is untouched.
+`tests/i18n-compare.mjs` now reads a template put inside another one (`<span>${tr`${esc(name)} 열기`}</span>`) as the same
+text written in place, so the wrapped extension list entry compares equal to main.
+
+Still Korean: the guide, the console-only error "NAIce Shot 패널 파일을 읽지 못했어요.", server texts the dictionary does
+not know, and texts the AI writes (candidate titles, request words).
 
 ## Checks
 
@@ -149,7 +160,12 @@ and texts the AI writes (candidate titles, request words).
   in both languages. Steps 11 and 12 also check that the selection buttons fit their boxes at both widths and that the
   card's and the viewer's dates read in the screen language (Korean keeps "2026. 11. 14. 오후 7:27").
   Step 12 also makes copying fail in the viewer (seed toast, prompt copy line) and the chat save fail on [이 메시지에서 빼기]
-  with the panel closed (English toast, the picture is back).
+  with the panel closed (English toast, the picture is back). Step 13 (run at 375 only, for 320 and 375px): the extension
+  list entry, the message draw button (title, aria-label, the notices of picked / changed meanwhile / cannot be picked) and
+  the tag pop-up read in each language; on every tab (Chat Shot, Free Shot, after extraction, Profiles and its form,
+  Settings, History, all picked, saving with the picture files held, the viewer), with every folded line open, no button's
+  words run outside its box (a text line past its edge by more than 0.5px, or a wider inside unless cut with "…") in either
+  language.
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

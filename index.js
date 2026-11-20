@@ -107,8 +107,8 @@ function onMessageButton(event){
 let messageButtonNode=null;
 function messageButtonTemplate(){
   if(messageButtonNode)return messageButtonNode;
-  const button=document.createElement('div');button.className='mes_button ncs-mes-draw';button.title='NAIce Shot으로 그리기';
-  button.setAttribute('role','button');button.setAttribute('aria-label','이 메시지로 NAIce Shot 그림 그리기');button.tabIndex=0;
+  const button=document.createElement('div');button.className='mes_button ncs-mes-draw';button.title=tr`NAIce Shot으로 그리기`;
+  button.setAttribute('role','button');button.setAttribute('aria-label',tr`이 메시지로 NAIce Shot 그림 그리기`);button.tabIndex=0;
   // The icon is one shared image (CSS background) on an inner box, so a long chat holds empty boxes, not a thousand
   // vector drawings, and themes that clear every .mes_button background cannot erase it.
   const icon=document.createElement('span');icon.className='ncs-mes-draw-icon';icon.setAttribute('aria-hidden','true');button.append(icon);
@@ -157,22 +157,22 @@ async function drawFromMessage(index){
   await (panelReady??Promise.resolve());
   // 0.1.149 (GPT 0.1.148 P2·P3): checked again right after the panel opens, before the busy note or the switch to 챗샷 —
   // a later press, or a picture brought in from 이력 meanwhile, is the newer choice and keeps its own mode and note.
-  if(busy||attaching||draftLoading){await open();if(press!==drawPress)return;notice('진행 중인 작업이 끝난 뒤 선택해 주세요.',true);return;}
+  if(busy||attaching||draftLoading){await open();if(press!==drawPress)return;notice(tr`진행 중인 작업이 끝난 뒤 선택해 주세요.`,true);return;}
   await open();
   if(press!==drawPress)return;
   if(isFree())await setMode('chat'); // the message button always draws in 챗샷; 프리샷 work waits as it was
   if(press!==drawPress)return; // a later press took over (its own tab, note and pick)
   showTab('scene');
   const m=ctx().chat?.[index];
-  if(!Number.isInteger(index)||!isSceneMessage(m)){notice('이 메시지는 그림 대상으로 고를 수 없어요.',true);return;}
-  if(keyOf()!==key||rowMark(m)!==mark){notice('버튼을 누른 뒤 그 메시지가 바뀌었어요. 메시지를 확인하고 다시 눌러 주세요.',true);return;}
+  if(!Number.isInteger(index)||!isSceneMessage(m)){notice(tr`이 메시지는 그림 대상으로 고를 수 없어요.`,true);return;}
+  if(keyOf()!==key||rowMark(m)!==mark){notice(tr`버튼을 누른 뒤 그 메시지가 바뀌었어요. 메시지를 확인하고 다시 눌러 주세요.`,true);return;}
   chooseTarget(String(index),{reveal:true});
-  notice(`#${index} 메시지를 대상으로 골랐어요. "장면 추출"을 눌러 진행해 주세요.`);
+  notice(tr`#${index} 메시지를 대상으로 골랐어요. "장면 추출"을 눌러 진행해 주세요.`);
 }
 function brand(){return BRAND;}
 function renderBrand() {
   for(const el of document.querySelectorAll('#naice-shot-dialog [data-brand],#ncs-extension-settings [data-brand],#extensionsMenu .ncs-menu-item [data-brand]'))el.textContent=brand();
-  const launch=document.querySelector('#ncs-extension-settings .ncs-launch-button span');if(launch)launch.textContent=`${brand()} 열기`;
+  const launch=document.querySelector('#ncs-extension-settings .ncs-launch-button span');if(launch)launch.textContent=tr`${brand()} 열기`;
   if(dialog)$('ncs-brand-icon').innerHTML=CAMERA_ICON;
 }
 function keyOf(c=ctx()) {
@@ -3778,10 +3778,10 @@ function showTagPopup(list,where){
   closeTagPopup();lastTagPop=choice.id;
   const box=document.createElement('div');
   tagPop={...choice,...where};
-  box.id='ncs-tag-pop';box.className='ncs-tag-pop';box.dataset.size=tagPopSize();box.setAttribute('role','dialog');box.setAttribute('aria-label','태그 추천 그림');
+  box.id='ncs-tag-pop';box.className='ncs-tag-pop';box.dataset.size=tagPopSize();box.setAttribute('role','dialog');box.setAttribute('aria-label',tr`태그 추천 그림`);
   box.style.setProperty('--ncs-tag-pop-h',`${TAG_POP_SIZES[tagPopSize()]}vh`);
-  box.innerHTML=`<img alt="태그 추천 그림" draggable="false" src="/user/images/naice-shot/${esc(choice.id)}.png"><div class="ncs-tag-pop-tools"><button type="button" data-tag-pop="close" aria-label="닫기" title="닫기">${CLOSE_ICON}</button></div>`;
-  box.tabIndex=0;box.title='눌러서 크게 보기 · 길게 눌러 옮기기';
+  box.innerHTML=`<img alt="${tr`태그 추천 그림`}" draggable="false" src="/user/images/naice-shot/${esc(choice.id)}.png"><div class="ncs-tag-pop-tools"><button type="button" data-tag-pop="close" aria-label="${tr`닫기`}" title="${tr`닫기`}">${CLOSE_ICON}</button></div>`;
+  box.tabIndex=0;box.title=tr`눌러서 크게 보기 · 길게 눌러 옮기기`;
   const img=box.querySelector('img');
   // A picture that no longer loads (deleted elsewhere) gives way to another match, or the popup closes.
   img.addEventListener('error',()=>{if(tagPop?.id!==choice.id)return;closeTagPopup();showTagPopup(list.filter(x=>x.id!==choice.id),where);},{once:true});
@@ -3880,14 +3880,14 @@ function mountSettingsDrawer() {
   if(document.getElementById('ncs-extension-settings'))return;
   const holder=document.getElementById('extensions_settings')??document.getElementById('extensions_settings2');if(!holder)return;
   const box=document.createElement('div');box.id='ncs-extension-settings';box.className='ncs-extension-settings';
-  box.innerHTML=`<div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><b class="ncs-drawer-title">${CAMERA_ICON}<span data-brand>${esc(brand())}</span></b><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content"><div class="ncs-extension-body"><p>프로필 · 장면 편집 · 이미지 생성</p><button type="button" class="menu_button ncs-launch-button">${CAMERA_ICON}<span>${esc(brand())} 열기</span></button></div></div></div>`;
+  box.innerHTML=`<div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><b class="ncs-drawer-title">${CAMERA_ICON}<span data-brand>${esc(brand())}</span></b><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content"><div class="ncs-extension-body"><p>${tr`프로필 · 장면 편집 · 이미지 생성`}</p><button type="button" class="menu_button ncs-launch-button">${CAMERA_ICON}<span>${tr`${esc(brand())} 열기`}</span></button></div></div></div>`;
   box.querySelector('.ncs-launch-button').addEventListener('click',()=>(panelReady??Promise.resolve()).then(open).catch(e=>notice(e.message,true)));
   holder.append(box);
 }
 async function initialize() {
   if(document.getElementById('naice-shot-dialog'))return;
+  setLang(settings().uiLanguage); // wip-en: read once (before the extension list entry is drawn); a change applies after reloading
   mountSettingsDrawer();
-  setLang(settings().uiLanguage); // wip-en: read once; a change applies after reloading
   {const s=settings();s.imageMarks=cleanMarks(s.imageMarks);s.tagPopupChats=cleanPopupChats(s.tagPopupChats);} // 0.1.84: read once, broken entries dropped
   dialog=document.createElement('dialog');dialog.id='naice-shot-dialog';dialog.tabIndex=-1;
   const template=await fetch(new URL('panel.html',import.meta.url));if(!template.ok)throw new Error('NAIce Shot 패널 파일을 읽지 못했어요.');

@@ -18,7 +18,10 @@ function norm(n){
   if(n.type==='TemplateLiteral'&&!n.expressions.length)return {type:'Str',value:n.quasis[0].value.cooked};
   if(n.type==='TemplateLiteral'){ // a template whose value is itself a plain template is the same text
     const q=[],e=[];let cur=n.quasis[0].value.cooked;
-    n.expressions.forEach((x,i)=>{const v=norm(x);if(v?.type==='Str'){cur+=v.value+n.quasis[i+1].value.cooked;}else{q.push(cur);e.push(v);cur=n.quasis[i+1].value.cooked;}});
+    // A template with values inside one (`<span>${tr`${name} 열기`}</span>`) is the same text as the values written in place.
+    n.expressions.forEach((x,i)=>{const v=norm(x);if(v?.type==='Str'){cur+=v.value+n.quasis[i+1].value.cooked;}
+      else if(v?.type==='Tpl'){cur+=v.q[0];v.e.forEach((y,j)=>{q.push(cur);e.push(y);cur=v.q[j+1];});cur+=n.quasis[i+1].value.cooked;}
+      else{q.push(cur);e.push(v);cur=n.quasis[i+1].value.cooked;}});
     q.push(cur);return e.length?{type:'Tpl',q,e}:{type:'Str',value:q[0]};
   }
   const out={};for(const [k,v] of Object.entries(n)){if(['start','end','loc','range','raw'].includes(k))continue;out[k]=norm(v);}return out;

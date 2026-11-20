@@ -17,6 +17,8 @@
 //     a message, deleting and [챗샷으로 보내기] do the same in both languages (the undo label stays Korean).
 // 12. The enlarged view and the pictures in the chat are English; "불러오는 중…" still clears in English; moving a chat
 //     picture saves the same in both languages.
+// 13. Outside the panel (the extension list entry, the message draw button and its notices, the tag pop-up) is English;
+//     at 320 and 375px no button's words run outside its box on any tab, while saving or in the viewer either.
 // Header copied from browser-v01101 (lines 1–91) with a `lang` option; helpers from the same file.
 import zlib from 'node:zlib';
 import http from 'node:http';
@@ -549,6 +551,63 @@ try{
     assert.deepEqual(t.errors,[]);await page.close();
    }
    assert.deepEqual(seen.en,seen.ko,'moving a chat picture saves the same in both languages');
+  }
+  // --- 13. outside the panel and on narrow phones (GPT wip-en P3 ×3): the extension list entry, the message draw button
+  //     (its name and the notices it leaves) and the tag pop-up are English (Korean stays as written); at 320 and 375px no
+  //     button's words run outside its box on any tab, also while picked pictures are being saved ("준비 중…") and in the viewer.
+  for(const w of width===375?[320,375]:[]){
+   // Words outside their button: a text line past the button's left or right edge, or a button wider inside than outside
+   // (a name cut with "…" on purpose is left out).
+   const over=page=>page.evaluate(()=>{const out=[],vis=e=>e.getClientRects().length&&getComputedStyle(e).visibility!=='hidden';
+    for(const b of document.querySelectorAll('#naice-shot-dialog button,#naice-shot-dialog summary,#ncs-viewer button')){
+     if(!vis(b))continue;const r=b.getBoundingClientRect();if(r.width<2)continue;let worst=0;
+     const walk=document.createTreeWalker(b,4);for(let n=walk.nextNode();n;n=walk.nextNode()){if(!n.nodeValue.trim())continue;const g=document.createRange();g.selectNodeContents(n);for(const q of g.getClientRects())worst=Math.max(worst,r.left-q.left,q.right-r.right);}
+     const cut=[b,...b.querySelectorAll('*')].some(x=>getComputedStyle(x).textOverflow==='ellipsis');
+     if(worst>0.5||(b.scrollWidth>b.clientWidth+1&&!cut))out.push(`${b.innerText.replace(/\s+/g,' ').trim()} (${worst.toFixed(1)}px)`);}
+    return out;});
+   const openAll=page=>page.evaluate(()=>{for(const d of document.querySelectorAll('#naice-shot-dialog details'))d.open=true;});
+   const fits=async(page,where)=>assert.deepEqual(await over(page),[],`${w}px ${where}: every button's words stay inside it`);
+   const waitNotice=(page,want)=>page.waitForFunction(want=>document.querySelector('#ncs-notice').textContent.includes(want),want);
+   for(const lang of ['ko','en']){
+    const en=lang==='en',t=await open(w,{lang,seed:[pic(1),pic(2)],marks:{[uid(1)]:{chatKey:KEY,tags:['웃음']}}});const {page}=t;await closeCompat(page);
+    assert.equal((await page.locator('#ncs-extension-settings .ncs-extension-body').innerText()).replace(/\s+/g,' ').trim(),
+     en?'Profiles · Scene editing · Image generation Open NAIce Shot':'프로필 · 장면 편집 · 이미지 생성 NAIce Shot 열기');
+    // every tab, folded lines opened
+    await openAll(page);await fits(page,'Chat Shot');
+    await page.locator('.ncs-header [data-mode="free"]').click();await page.waitForSelector('.ncs-header [data-mode="free"][aria-pressed="true"]');await openAll(page);await fits(page,'Free Shot');
+    await page.locator('.ncs-header [data-mode="chat"]').click();await page.waitForSelector('.ncs-header [data-mode="chat"][aria-pressed="true"]');
+    await extractWith(page,TWO,'smiling');await openAll(page);await fits(page,'after extraction');
+    for(const tab of ['profiles','settings']){await page.locator(`[data-tab="${tab}"]`).click();await openAll(page);await fits(page,tab);}
+    await page.locator('[data-tab="profiles"]').click();await page.locator('[data-action="new-profile"]').click();await openAll(page);await fits(page,'profile form');
+    await page.locator('[data-tab="history"]').click();await page.waitForSelector('.ncs-history-card');await openAll(page);await fits(page,'history');
+    await page.locator('[data-action="select-all-history"]').click();await fits(page,'history, all picked');
+    // saving the picked pictures: the picture files are held, so the button shows "준비 중…" (GPT wip-en P3-1)
+    const held=gate();await page.route('**/user/images/naice-shot/**',async r=>{await held;await r.fallback();});
+    await page.locator('[data-image-more="ncs-selection-save"]').click();await page.locator('[data-action="save-selected-clean"]').click();
+    await page.waitForFunction(()=>document.querySelector('[data-image-more="ncs-selection-save"]').disabled);
+    await fits(page,'history, saving');
+    assert.equal(await page.locator('[data-image-more="ncs-selection-save"] .ncs-save-label').textContent(),en?'Saving…':'준비 중…');held.open();
+    await page.waitForFunction(()=>!document.querySelector('[data-image-more="ncs-selection-save"]').disabled);
+    await page.locator(`[data-view-history="${uid(1)}"]`).click();await page.locator('#ncs-viewer[open]').waitFor();await page.waitForTimeout(150);await fits(page,'viewer');
+    await page.evaluate(()=>document.getElementById('ncs-viewer').close());
+    // the message draw button: its name, and the notices of a press (picked / changed meanwhile / cannot be picked)
+    await page.locator('[data-tab="settings"]').click();await page.evaluate(()=>{document.getElementById('ncs-chat-image-more').open=true;});
+    await page.locator('#ncs-message-button').check();const draw=page.locator('#chat .mes[mesid="1"] .ncs-mes-draw');await draw.waitFor();
+    assert.deepEqual(await draw.evaluate(b=>[b.title,b.getAttribute('aria-label')]),en?['Draw with NAIce Shot','Draw a NAIce Shot picture from this message']:['NAIce Shot으로 그리기','이 메시지로 NAIce Shot 그림 그리기']);
+    const press=async()=>{await page.evaluate(()=>{document.querySelector('dialog[open]')?.close();document.querySelector('#ncs-notice').textContent='';});await draw.click();};
+    await press();await waitNotice(page,en?'Picked message #1. Press "Extract scene" to go on.':'#1 메시지를 대상으로 골랐어요. "장면 추출"을 눌러 진행해 주세요.');
+    await page.evaluate(()=>{const o=HTMLDialogElement.prototype.showModal;HTMLDialogElement.prototype.showModal=function(){HTMLDialogElement.prototype.showModal=o;mock.chat[1].mes='Leo looks away.';return o.call(this);};});
+    await press();await waitNotice(page,en?'The message changed after you pressed the button. Check the message and press it again.':'버튼을 누른 뒤 그 메시지가 바뀌었어요. 메시지를 확인하고 다시 눌러 주세요.');
+    await page.evaluate(()=>{delete mock.chat[1].mes;});
+    await press();await waitNotice(page,en?"This message can't be picked for a picture.":'이 메시지는 그림 대상으로 고를 수 없어요.');
+    // the tag pop-up (on the chat screen, the panel closed)
+    await page.evaluate(k=>{mock.chat[1].mes='Leo looks away.';mock.extensionSettings.naice_shot.tagPopupChats={[k]:true};document.querySelector('dialog[open]')?.close();
+     mock.chat.push({name:'Leo',mes:'웃음'});mock.savedChat=JSON.stringify(mock.chat);mock.renderChat();mock.emit('rendered',mock.chat.length-1,'normal');},KEY);
+    const pop=page.locator('#ncs-tag-pop');await pop.waitFor();
+    assert.deepEqual(await pop.evaluate(p=>[p.getAttribute('aria-label'),p.title,p.querySelector('img').alt,p.querySelector('[data-tag-pop="close"]').getAttribute('aria-label'),p.querySelector('[data-tag-pop="close"]').title]),
+     en?['Tag pop-up picture','Tap to view large · Hold to move','Tag pop-up picture','Close','Close']:['태그 추천 그림','눌러서 크게 보기 · 길게 눌러 옮기기','태그 추천 그림','닫기','닫기']);
+    assert.deepEqual(t.errors,[]);await page.close();
+   }
   }
  }
  console.log('PASS browser-wip-en');
