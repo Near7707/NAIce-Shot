@@ -435,6 +435,25 @@ try{
     assert.equal(work.undoClear.label,'이력에서 가져왔어요. 원래 챗샷 작업은 되돌리기로 돌아와요.');
     assert.equal(await page.locator('.ncs-import-undo').getAttribute('title'),en?'Brought from the history. The earlier Chat Shot work comes back with undo.':work.undoClear.label);
     seen[lang]={attached,deletions:page.deletions,scene:work.scene,label:work.undoClear.label};
+    // a missing picture file, server errors on ↻, and [Go to message] in the same chat after the message was edited
+    // (GPT wip-en P3 ×3, sixth review)
+    {
+     const SRC={target:1,fingerprints:[{index:1,swipeId:0,sendDate:'t1',text:'Leo sits by the window. Scene Info: sunny afternoon.'}]};
+     const u=await open(width,{lang,seed:[{...pic(7),snapshot:{scene:{source:SRC}}}],broken:[uid(7)]});const p=u.page;
+     await closeCompat(p);await p.locator('[data-tab="history"]').click();await p.waitForSelector('.ncs-image-open.ncs-missing');
+     assert.equal(await p.evaluate(()=>getComputedStyle(document.querySelector('.ncs-image-open.ncs-missing'),'::after').content),en?'"Picture file not found"':'"그림 파일을 찾을 수 없어요"');
+     for(const [status,reply,said] of [[502,{contentType:'text/html',body:'<html>Bad gateway</html>'},en?'Check the server plugin (502).':'서버 플러그인을 확인해 주세요 (502).'],[503,{json:{}},en?'Request failed (503)':'요청 실패 (503)']]){
+      const fail=r=>r.fulfill({status,...reply});await p.route('**/api/plugins/naice-shot/history?*',fail);
+      await clearNotice(p);await p.locator('[data-action="history"]').click();await p.waitForFunction(()=>document.querySelector('#ncs-notice').textContent);
+      assert.equal(await notice(p),said);await p.unroute('**/api/plugins/naice-shot/history?*',fail);
+     }
+     await p.locator('[data-action="history"]').click();await p.waitForSelector('.ncs-history-card');
+     await p.evaluate(()=>{window.__toasts=[];const keep=m=>window.__toasts.push(m);window.toastr={info:keep,warning:keep,success:keep,error:keep};mock.chat[1].send_date='t1';mock.chat[1].mes='Leo stands up and leaves.';mock.renderChat();});
+     await p.locator('[data-image-more^="ncs-history-menu"]').first().click();await p.locator('.ncs-image-popup:popover-open [data-history-jump]').click();
+     await p.waitForFunction(()=>window.__toasts.length);
+     assert.deepEqual(await p.evaluate(()=>window.__toasts),[en?'#1 · changed after the picture was made.':'#1 · 그림을 만든 뒤 내용이 바뀌었어요.']);
+     assert.deepEqual(u.errors,[]);await p.close();
+    }
     assert.deepEqual(t.errors,[]);await page.close();
    }
    assert.deepEqual(seen.en,seen.ko,'the same history actions send and save the same in both languages');

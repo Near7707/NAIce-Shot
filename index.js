@@ -3103,7 +3103,7 @@ async function goToMessage(item,index,kind){
     // Re-check now: the chat may have changed since the menu opened.
     const now=Array.isArray(jumpChoices(item))?jumpChoices(item).find(j=>j.kind===kind)??jumpChoices(item)[0]:null;
     if(!now)throw new Error('그림을 만든 메시지를 찾지 못했어요. 지워졌거나 채팅이 바뀌었을 수 있어요.');
-    index=now.index;if(JUMP_STATE[now.state])toast(`#${index}${JUMP_STATE[now.state]}.`);
+    index=now.index;if(JUMP_STATE[now.state])toast(trMsg(`#${index}${JUMP_STATE[now.state]}.`));
   }
   closeImageMenu();document.getElementById('ncs-viewer')?.open&&document.getElementById('ncs-viewer').close();
   if(dialog?.open){rememberScroll();dialog.close();}
@@ -3894,6 +3894,7 @@ async function initialize() {
   dialog.innerHTML=await template.text();localize(dialog);document.body.append(dialog);
   // wip-en: "Chat Shot" / "Free Shot" are cut in the header switch on a phone; the full name stays as its label.
   if(currentLang()==='en')for(const b of dialog.querySelectorAll('.ncs-header [data-mode]')){b.setAttribute('aria-label',b.textContent);b.textContent=b.dataset.mode==='free'?'Free':'Chat';}
+  if(currentLang()==='en')dialog.classList.add('ncs-lang-en'); // wip-en: CSS-only words (a missing picture's note) read in English
   // The 챗샷/프리샷 switch sits in the title row now, outside the work fields; it waits with them (draft loading, server check).
   {const work=$('ncs-work-fields'),sync=()=>{$('ncs-mode-fields').disabled=work.disabled;};new MutationObserver(sync).observe(work,{attributes:true,attributeFilter:['disabled']});sync();}
   dialog.addEventListener('close',()=>{closeGuide({focus:false});closeMissingDialog();closeAttachPicker();rememberDraft(workKey(),null,{flush:true});});

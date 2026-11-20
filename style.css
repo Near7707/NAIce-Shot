@@ -217,6 +217,7 @@
 #naice-shot-dialog .ncs-image-open.ncs-missing {min-height:80px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--ncs-border);line-height:1.4;}
 #naice-shot-dialog .ncs-image-open.ncs-missing img {display:none;}
 #naice-shot-dialog .ncs-image-open.ncs-missing::after {content:'그림 파일을 찾을 수 없어요';font-size:12px;color:var(--ncs-muted);padding:12px;}
+#naice-shot-dialog.ncs-lang-en .ncs-image-open.ncs-missing::after {content:'Picture file not found';}
 #chat .ncs-inline-image.ncs-missing .ncs-inline-open {cursor:default;line-height:1.4;padding:12px;border:1px dashed currentColor;border-radius:8px;opacity:.75;}
 #ncs-viewer .ncsv-delete {color:#ffb38a;border-color:#ffb38a99;}
 @media (hover:hover){#ncs-viewer .ncsv-delete:hover {background:#ffb38a22;}}

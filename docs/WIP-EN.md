@@ -78,6 +78,10 @@ lists: `.ncs-chat-name,.ncs-history-tags,.ncs-history-date` (cards), the first `
 "#{0}에 넣기", so the tag skip matters. `chatLabel`'s own words (프리샷, 알 수 없는 채팅, 그룹 · …) are `tr`, the chat name
 stays as written. The import's undo label (`이력에서 가져왔어요. 원래 … 작업은…`) is still made and saved in Korean; only the
 notice gets `trMsg(name)`.
+After the sixth review (GPT wip-en P3 ×3): a missing picture's note on a history card is CSS (`::after`), so
+`initialize` puts `ncs-lang-en` on the panel in English and style.css has the English words for it; [Go to message] in
+the same chat shows its state toast through `trMsg` (the other-chat path already did); `api`'s two shared errors
+("서버 플러그인을 확인해 주세요 (502).", "요청 실패 (503)") are dictionary patterns.
 
 Known limits, left as they are (GPT wip-en P3, second review): a name that is word for word a whole dictionary sentence
 (ends with ".") is shown translated inside "＋ {0} 프로필 만들기"; an outfit that itself ends with " · 잠금" is shown as
@@ -113,7 +117,8 @@ AI writes (candidate titles, request words).
   reads in English in both modes; the language box and the server-version line are English. Step 11: the History tab is English
   (count line, ⋯ menu with its message lines, every-chat view, attach picker, delete confirm and notices) while a chat
   named 선택 and a tag 1에 넣기 stay as written; putting in, deleting and [챗샷으로 보내기] send and save the same in both
-  languages, and the import's undo label is saved in Korean.
+  languages, and the import's undo label is saved in Korean. Also in step 11: a missing picture's note, ↻ with an
+  HTML 502 and an empty JSON 503 reply, and the same-chat [Go to message] toast after the message was edited.
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

@@ -1087,4 +1087,6 @@ export default {
   "태그·즐겨찾기는 그림 {0}장까지 기억해요. 쓰지 않는 표시를 지워 주세요.":"Tags and favorites are kept for up to {0} pictures. Remove marks you no longer use.",
   "태그는 {0}자까지예요: \"{1}…\"":"A tag can be up to {0} characters: \"{1}…\"",
   "태그는 그림마다 {0}개까지 붙일 수 있어요.":"Each picture can have up to {0} tags.",
+  "서버 플러그인을 확인해 주세요 ({0}).":"Check the server plugin ({0}).",
+  "요청 실패 ({0})":"Request failed ({0})",
 };
