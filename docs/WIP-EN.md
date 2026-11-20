@@ -48,6 +48,16 @@ notices and confirms, and the shared core's profile and wardrobe errors (through
 (chips) and wardrobe names are drawn after `localize(dialog)` runs, from templates where only the fixed words are `tr`,
 so they stay as written. "직접 입력" is "Manual" (the temporary-person badge and the profile form's mode button share it).
 
+Step 4: the Settings tab — every fixed word of panel.html's settings page (themes and their names, pictures in chat,
+tag pop-up, presets, common prompt, NAI generation settings, account fields, Extraction AI, advanced, delete all work,
+backup), the folded lines' summaries, and the settings notices, confirms and errors (`tr` in index.js; thrown errors
+through `notice`'s `trMsg`). Preset names and connection profile names are drawn after `localize(dialog)` and stay as
+written. Theme names and notes come from skins.mjs and are shown with `trMsg`. Also in this step: the chat-changed
+notice and "열린 채팅 없음" (missed in step 1), and the header switch, which reads "Chat" / "Free" in English because
+"Chat Shot" / "Free Shot" were cut on a phone (`initialize` sets the short words after `localize`; the full name stays
+as the button's aria-label; Korean is untouched). "세로" is "Vertical" now: the same word is the size (세로 · 832 × 1216
+stays "Portrait · …") and the picture view summary (세로로 나열).
+
 Known limits, left as they are (GPT wip-en P3, second review): a name that is word for word a whole dictionary sentence
 (ends with ".") is shown translated inside "＋ {0} 프로필 만들기"; an outfit that itself ends with " · 잠금" is shown as
 "· locked" in the card's saved-outfit line even when unlocked (Korean shows the same ambiguous line; the lock checkbox
@@ -55,7 +65,10 @@ next to it shows the real state). Both need the person to type an app sentence b
 named exactly like an app sentence inside the shared core's wardrobe error (GPT wip-en P3, third review). An outfit name
 with 스텝 shows as Steps in that error in both languages: that is main's `stepsWord`, not this branch.
 
-Still Korean: the Settings / History tabs, the guide, the viewer, the server-version line, and texts the
+Also left (step 4): the account-fields "earlier check" line shows its time in Korean form (`toLocaleTimeString('ko-KR')`,
+a value); the language switch's own notice stays in both languages.
+
+Still Korean: the History tab, the guide, the viewer, the server-version line, and texts the
 AI writes (candidate titles, request words).
 
 ## Checks
@@ -70,7 +83,9 @@ AI writes (candidate titles, request words).
   answer of [같은 요청으로 다시 확인] is English and says to check on NovelAI (GPT P2); a user named "세로" and the AI's
   words "밤 / 정사각형 / 혼자" and "스텝 / 정사각형 / 밤" stay as written in English notices, 스텝 aside (GPT P3); a name "A $$ B"
   keeps "$$" in its English button; the Profiles tab is English while profile and wardrobe names that are dictionary
-  words (옷장, 제거) stay as written, and the same edits save the same profiles in both languages; the switch writes only `uiLanguage`.
+  words (옷장, 제거) stay as written, and the same edits save the same profiles in both languages; the switch writes only `uiLanguage`;
+  the Settings tab is English while a preset named 보통 (= Medium) stays as written and saves the same in both languages,
+  the header switch reads Chat / Free and fits, and the chat-changed notice is English.
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules
