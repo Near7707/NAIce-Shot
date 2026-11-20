@@ -3617,7 +3617,7 @@ function bindEvents() {
   dialog.addEventListener('toggle',event=>{const box=event.target;if(!box?.matches?.('.ncs-fixed-look'))return;const id=box.closest('[data-character]')?.dataset.character;if(!id)return;if(box.open)lookOpen.add(id);else lookOpen.delete(id);},true);
   dialog.addEventListener('input',event=>{
     const el=event.target;
-    if(el.matches?.('[data-w="name"]'))el.closest('.ncs-wardrobe-item').querySelector('summary').textContent=el.value.trim()||'새 옷';
+    if(el.matches?.('[data-w="name"]'))el.closest('.ncs-wardrobe-item').querySelector('summary').textContent=el.value.trim()||tr`새 옷`;
     if(el.closest('#ncs-profile-form')||el.id==='ncs-import'||el.id==='ncs-raw')return;
     try {
       if(el.closest('#ncs-work-fields'))dropUndo();

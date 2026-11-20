@@ -304,7 +304,10 @@ try{
     }
     await page.locator('#ncs-profile-aliases').fill('Lee');
     await page.locator('[data-action="wardrobe-add"]').click();await page.locator('.ncs-wardrobe-item').last().evaluate(d=>d.open=true);
-    await page.locator('.ncs-wardrobe-item').last().locator('[data-w="name"]').fill('robe');await page.locator('.ncs-wardrobe-item').last().locator('[data-w="outfit"]').fill('bathrobe');
+    const last=page.locator('.ncs-wardrobe-item').last();
+    await last.locator('[data-w="name"]').fill('x');await last.locator('[data-w="name"]').fill('');
+    assert.equal(await last.locator('summary').innerText(),lang==='en'?'New outfit':'새 옷','an emptied outfit name reads in the screen language');
+    await last.locator('[data-w="name"]').fill('robe');await page.locator('.ncs-wardrobe-item').last().locator('[data-w="outfit"]').fill('bathrobe');
     await clearNotice(page);await page.locator('#ncs-profile-submit').click();
     assert.equal(await notice(page),lang==='en'?'Profile saved.':'프로필을 저장했어요.');
     await P2.click();await page.locator('[data-action="delete-profile"]').click();await P2.waitFor({state:'detached'});

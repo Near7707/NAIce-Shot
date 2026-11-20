@@ -51,7 +51,9 @@ so they stay as written. "직접 입력" is "Manual" (the temporary-person badge
 Known limits, left as they are (GPT wip-en P3, second review): a name that is word for word a whole dictionary sentence
 (ends with ".") is shown translated inside "＋ {0} 프로필 만들기"; an outfit that itself ends with " · 잠금" is shown as
 "· locked" in the card's saved-outfit line even when unlocked (Korean shows the same ambiguous line; the lock checkbox
-next to it shows the real state). Both need the person to type an app sentence by hand.
+next to it shows the real state). Both need the person to type an app sentence by hand. The same goes for an outfit
+named exactly like an app sentence inside the shared core's wardrobe error (GPT wip-en P3, third review). An outfit name
+with 스텝 shows as Steps in that error in both languages: that is main's `stepsWord`, not this branch.
 
 Still Korean: the Settings / History tabs, the guide, the viewer, the server-version line, and texts the
 AI writes (candidate titles, request words).
