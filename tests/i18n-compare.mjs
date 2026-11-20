@@ -1,5 +1,5 @@
 // wip-en check (run by hand): node tests/i18n-compare.mjs <old file> <new file>
-// Takes the screen-language wrapping out of the new file — tr`…` back to a plain template, trMsg(x) and localize(x, …)
+// Takes the screen-language wrapping out of the new file — tr`…` back to a plain template, trMsg(x), doneText(x) and localize(x, …)
 // back to x, list.map(trMsg) back to list, a localize(…) statement left out — and compares the result with the old file, statement by statement, ignoring positions and quote styles
 // ('…' equals `…` with the same text). Every statement that still differs is printed: those are the real changes.
 import fs from 'node:fs';import * as acorn from 'acorn';
@@ -10,7 +10,7 @@ function norm(n){
   if(Array.isArray(n))return n.filter(x=>!isLocalize(x)).map(norm); // localize(…) alone on a line only translates what is on screen
   if(!n||typeof n!=='object')return n;
   if(n.type==='TaggedTemplateExpression'&&n.tag.type==='Identifier'&&n.tag.name==='tr')return norm(n.quasi);
-  if(n.type==='CallExpression'&&n.callee.type==='Identifier'&&['trMsg','localize'].includes(n.callee.name))return norm(n.arguments[0]);
+  if(n.type==='CallExpression'&&n.callee.type==='Identifier'&&['trMsg','localize','doneText'].includes(n.callee.name))return norm(n.arguments[0]);
   if(n.type==='CallExpression'&&n.callee.type==='MemberExpression'&&n.callee.property.name==='map'&&n.arguments.length===1&&n.arguments[0].name==='trMsg')return norm(n.callee.object);
   if(n.type==='Literal'&&typeof n.value==='string')return {type:'Str',value:n.value};
   if(n.type==='TemplateLiteral'&&!n.expressions.length)return {type:'Str',value:n.quasis[0].value.cooked};

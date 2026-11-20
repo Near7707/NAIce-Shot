@@ -25,7 +25,7 @@ import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, 
 import { cleanImageFile, saveCleanImage } from './downloads.mjs';
 import { jumpTargets, locateSource, locateAttached } from './message-jump.mjs';
 import {stableChatJson,comparableSavedMetadata,splitSavedChat,timedState} from './chat.mjs';
-import {tr,trMsg,localize,setLang} from './i18n.mjs'; // wip-en: Korean shows every text as written
+import {tr,trMsg,localize,setLang,doneText} from './i18n.mjs'; // wip-en: Korean shows every text as written
 import {parseTags,cleanMarks,cleanPopupChats,setMark,forgetIds,forgetChat,starredIds,taggedIds,ownerOf,tagMatches,pickMatch,taggedFor} from './image-marks.mjs';
 
 const KEY='naice_shot',API='/api/plugins/naice-shot';
@@ -2135,7 +2135,7 @@ async function extract() {
         const lead=parsed.partial?tr`응답이 불완전해요. 온전히 받은 후보 ${moments.length}개만 보여줘요. 메시지의 마지막 순간이 빠졌을 수 있어요. ${limitHint()} `:wish&&!parsed.requestMatched?tr`요청한 순간을 이 메시지에서 찾지 못해서 마지막 순간으로 골랐어요. `:moments.length>1?tr`장면 후보 ${moments.length}개를 찾았어요. 위에서 그릴 순간을 고를 수 있어요. `:'';
         const asked=request?[request.applied.length?tr`추가 요청 반영: ${request.applied.join(' · ')}.`:'',request.ignored.length?tr`반영하지 않음: ${request.ignored.join(' · ')}.`:''].filter(Boolean).join(' ')+' ':'';
         const must=emptyNote(emptyRequired);
-        notice(refs.note+lead+asked+(must?must+' ':'')+(warnings.length?warnings.map(trMsg).join(' / '):tr`추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.`),false,originTab,{keep:!!must||!!refs.note||parsed.partial||!!(wish&&!parsed.requestMatched)||foreign.length>0});return;
+        notice(doneText(refs.note+lead+asked+(must?must+' ':'')+(warnings.length?warnings.map(trMsg).join(' / '):tr`추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.`)),false,originTab,{keep:!!must||!!refs.note||parsed.partial||!!(wish&&!parsed.requestMatched)||foreign.length>0});return;
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}
     }
     if(ticket===task&&keyOf()===startKey){raw=response;renderScene();report(tr`추출 실패: ${failure?.message}.${looksCut(response)?tr` 응답이 불완전해요. ${limitHint()}`:''} 기존 편집 내용은 유지했어요.`,true);}
@@ -2439,7 +2439,7 @@ async function checkGeneration(entry=null){
   try{
     let reply=await api(`/generation?requestId=${encodeURIComponent(requestId)}`,{signal:draftSignal()});
     if(!current())return;
-    if(reply.state==='save-failed'&&(entry||confirm('그림은 이미 받았어요. 같은 그림을 서버에 다시 저장할까요?'))){
+    if(reply.state==='save-failed'&&(entry||confirm(tr`그림은 이미 받았어요. 같은 그림을 서버에 다시 저장할까요?`))){
       reply=await api('/generation',{method:'POST',body:{requestId},signal:draftSignal()});
       if(!current())return;
     }

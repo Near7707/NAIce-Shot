@@ -31,12 +31,21 @@ function patternList(){
 }
 function one(text){
   const exact=EN[text];if(exact!==undefined&&!/\{\d+\}/.test(text))return exact;
-  // A captured value may be a finished text itself ("{0} Anlas 사용 허용이 꺼져 있어서…"): one level is looked up too.
-  for(const p of patternList()){const m=p.re.exec(text);if(!m)continue;const values=[];p.order.forEach((n,i)=>{const v=m[i+1];values[n]=v&&/[가-힣]/.test(v)?(EN[v]!==undefined&&!/\{\d+\}/.test(v)?EN[v]:v):v;});return fill(p.en,values);}
+  // A captured value may be a finished text itself ("{0} Anlas 사용 허용이 꺼져 있어서…"): one level is looked up too,
+  // but only a whole sentence (ends with "."). A name or the AI's words ("세로", "정사각형") stay as they are (GPT wip-en P3).
+  for(const p of patternList()){const m=p.re.exec(text);if(!m)continue;const values=[];p.order.forEach((n,i)=>{const v=m[i+1];values[n]=v&&/[가-힣]/.test(v)&&/\.\s*$/.test(v)?(EN[v]!==undefined&&!/\{\d+\}/.test(v)?EN[v]:v):v;});return fill(p.en,values);}
   return null;
 }
-export function trMsg(text){
+// doneText(text): a notice already put together in English (tr parts + the AI's or a person's own words). trMsg leaves it
+// as it is, so a word inside it ("정사각형", a name) is not looked up again (GPT wip-en P3). Korean: returns text.
+const finished=new Set();
+export function doneText(text){
   if(lang!=='en'||typeof text!=='string'||!text)return text;
+  finished.add(text);if(finished.size>50)finished.delete(finished.values().next().value);
+  return text;
+}
+export function trMsg(text){
+  if(lang!=='en'||typeof text!=='string'||!text||finished.has(text))return text;
   const whole=one(text);if(whole!==null)return whole;
   // A notice put together from several finished texts: each line, then each " / " part, on its own.
   if(text.includes('\n'))return text.split('\n').map(trMsg).join('\n');

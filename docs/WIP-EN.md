@@ -18,6 +18,10 @@ understand the cost, and generate one picture? It is not merged into main. main 
 - **Nothing translated is saved or compared.** Translation happens only at the moment text goes on screen:
   `tr` on texts written in index.js, `trMsg` on finished texts (thrown errors, the shared core, the server) in
   `notice` and a few display lines, `localize` on fixed words of panel.html and of HTML just put on screen.
+  A notice put together in English from `tr` parts and the AI's or a person's own words is passed through
+  `doneText(…)` first, so `notice`'s `trMsg` leaves it whole (otherwise its " / " split looked up a word like
+  "정사각형" again). `trMsg`'s pattern match looks a captured value up again only when it is a whole sentence (ends
+  with "."), so a name ("세로: 자동 연결 없음…") stays as written (GPT wip-en P3).
   The undo label, outfit origins, warnings that are filtered by their words, and the `스텝 → Steps` wording stay Korean
   inside; they are translated after the code has read them.
 - **AI prompts are unchanged.** Scene titles and the 추가 요청 words still come back in Korean. Changing the AI output
@@ -37,14 +41,15 @@ own texts, the Profiles / Settings / History tabs, the guide, the viewer, and te
 
 ## Checks
 
-- `node tests/i18n-compare.mjs <main index.js> index.js` — takes `tr`/`trMsg`/`localize` out and compares with main
+- `node tests/i18n-compare.mjs <main index.js> index.js` — takes `tr`/`trMsg`/`doneText`/`localize` out and compares with main
   statement by statement. Expected differences: the import, `renderSettings`, `importSettings`, `bindEvents`,
   `initialize` (the language switch). Anything else means Korean behaviour may have changed.
 - `tests/prompt-snapshot.test.mjs` — the AI prompts must equal `prompt-snapshot.json` (written from main 47f690d).
 - `tests/browser-wip-en.mjs` — same AI reply in Korean and English saves the same work and sends the same prompt;
   buttons and progress stay English while redrawn; the V5 usage question is English and cancelling it sends nothing;
-  Free Shot work saved on one language and loaded on the other still undoes as an extraction (both ways); the switch
-  writes only `uiLanguage`.
+  Free Shot work saved on one language and loaded on the other still undoes as an extraction (both ways); every
+  answer of [같은 요청으로 다시 확인] is English and says to check on NovelAI (GPT P2); a user named "세로" and the AI's
+  words "밤 / 정사각형 / 혼자" stay as written in English notices (GPT P3); the switch writes only `uiLanguage`.
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

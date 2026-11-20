@@ -4,7 +4,9 @@
 // 2. The extract/generate buttons and the progress box stay English while they are redrawn (Korean stays Korean).
 // 3. Cost: the Opus V5 usage question is English; cancelling it sends no generation (Korean: the same requests).
 // 4. Work saved from the Korean screen (its undo label is Korean) loads on the English screen and its undo still works.
-// 5. The language switch only adds uiLanguage to the settings.
+// 5. Every answer of [같은 요청으로 다시 확인] says in English what to check on NovelAI (GPT wip-en P2).
+// 6. A user named like a dictionary word (세로) and the AI's request words stay as they are in English notices (P3).
+// 7. The language switch only adds uiLanguage to the settings.
 // Header copied from browser-v01101 (lines 1–91) with a `lang` option; helpers from the same file.
 import zlib from 'node:zlib';
 import http from 'node:http';
@@ -204,7 +206,33 @@ try{
    assert.deepEqual(after['ko>en'],after['ko>ko'],'undo saves the same work in both languages');assert.deepEqual(after['en>ko'],after['ko>ko']);
    assert.equal(after['ko>en'].undoClear,null);
   }
-  // --- 5. the switch writes uiLanguage only
+  // --- 5. [같은 요청으로 다시 확인]: every answer says in English what to check before generating again (GPT wip-en P2)
+  {
+   const id=uid(9),t=await open(width,{lang:'en',pending:[[KEY,id]]});const {page}=t;
+   const check=async reply=>{page.generationReply=reply;await clearNotice(page);
+    await page.locator('[data-action="generation-check"]').first().evaluate(b=>b.click());
+    await page.waitForFunction(()=>document.querySelector('#ncs-notice').textContent.trim());return notice(page);};
+   for(const reply of [{state:'missing'},{state:'unknown'},{state:'discarded',unconfirmed:true},{state:'processing'},{state:'save-failed'}]){
+    const said=await check(reply);assert.ok(!HANGUL.test(said),`${reply.state}: ${said}`);
+    if(['missing','unknown','discarded'].includes(reply.state))assert.match(said,/Check on NovelAI/,`${reply.state} says what to check`);
+   }
+   assert.ok(!t.asked.some(a=>HANGUL.test(a)),`the re-save question is English: ${t.asked.join(' | ')}`);
+   const said=await check({state:'rejected'});assert.equal(said,'NovelAI refused this request.');
+   assert.deepEqual(t.errors,[]);await page.close();
+  }
+  // --- 6. a person's name and the AI's words stay as they are inside English notices (GPT wip-en P3)
+  {
+   const t=await open(width,{lang:'en'});const {page}=t;
+   await page.evaluate(()=>{mock.name1='세로';mock.emit('edited');}); // a user named like a dictionary word, no profile
+   await page.waitForFunction(()=>/세로/.test(document.querySelector('#ncs-matching-state').textContent));
+   assert.equal(await page.locator('#ncs-matching-state').textContent(),'세로: no automatic match. Link a user profile if needed.');
+   await extractWith(page,{...TWO,requestApplied:['밤 / 정사각형 / 혼자']},'night');
+   const said=await notice(page);
+   assert.match(said,/Request applied: 밤 \/ 정사각형 \/ 혼자\./,`the AI words as given: ${said}`);
+   assert.ok(!/Square|Portrait/.test(said),said);
+   assert.deepEqual(t.errors,[]);await page.close();
+  }
+  // --- 7. the switch writes uiLanguage only
   {
    const t=await open(width);const {page}=t;
    const before=await page.evaluate(()=>structuredClone(mock.extensionSettings.naice_shot));
