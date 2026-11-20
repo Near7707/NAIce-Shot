@@ -217,7 +217,7 @@ the whole-sentence check did not look at); it is, with the two wardrobe and prof
 "상황은 {0}자까지 적을 수 있어요.". A new sweep check fills the values of every sentence the app throws, notices or pushes as a
 warning and fails when one stays Korean; the pieces kept out are listed with the reason in the check.
 
-Still Korean: the guide, the console-only error "NAIce Shot 패널 파일을 읽지 못했어요.", server texts the dictionary does
+Still Korean (the guide is English since the guide step below): the console-only error "NAIce Shot 패널 파일을 읽지 못했어요.", server texts the dictionary does
 not know, texts the AI writes (candidate titles, request words), and the @ check's problem list ("{0}의 @참조를 확인해
 주세요. @Mira: …"): it joins several sentences with the names typed by the user into one line, so translating it needs
 index.js to look each problem up apart (a code change, left for later). The same for "{0} 복장 · 장면에서 찾지 못함" inside "반영하지 않음: …"
@@ -230,6 +230,19 @@ up (at 320px Korean overlaps too from 4 digits — main's CSS, left for main). F
 (viewer.mjs, one line), and only on the English screen row 1's side columns are `minmax(max-content,1fr)`: ‹ n/m › stays
 exactly centred while it fits and slides left only as far as Save ▾ · Delete need (at 393px with 1630: 8.5px; at 320px
 with 12345: 26px). Shrinking the button padding alone saves about 16–20px, not enough at 320/375px. Korean is unchanged.
+
+Guide step (after main 0.1.164 brought guide.md up to date with the 0.1.163 screens): the English screen reads a separate
+`guide-en.md`; `guide.md` is not touched. `localFile('guide.md')` (i18n.mjs) gives the file for the screen language, and
+the group icons stay one table keyed by the Korean titles: `koOf(title)` turns an English group title back into its Korean
+one (`GUIDE_TITLES_EN`). `i18n-compare` reads both helpers as their argument, so it still shows the same 9 statements.
+guide-en.md follows guide.md group by group and topic by topic and names buttons and notices exactly as the English screen
+does. While writing it, two places the guide names were found still Korean on the English screen and are English now: the
+guide sheet's own words (title "📖 사용 가이드", "✕ 닫기", "‹ 목차", "다음 ›", the read error) and the @ pill row and menu
+("연결됨", "끊김", the pills' titles, "프로필 보기 / 다시 고르기 / 칸에서 지우기", "다른 프로필", the head "@{0} · 끊긴 연결" /
+"@{0} 대신 고르기", "고를 수 있는 프로필이 없어요."). These were HTML strings in index.js that neither `tr` nor `localize`
+reached; i18n-sweep only reads quoted strings, not those inside a template's HTML.
+**From now on: whenever guide.md changes (on main), guide-en.md must change the same way** (tests/guide-en.test.mjs fails
+when the groups or topic counts differ or a [button] is not on the English screen, but it cannot see a changed sentence).
 
 ## Checks
 
@@ -280,6 +293,14 @@ with 12345: 26px). Shrinking the button padding alone saves about 16–20px, not
   question keeps names that read like app sentences; the waiting notices and the pieced length notices are English.
   Since the sixteenth: every sentence with values (filled in) is English, and names and tags in the wardrobe, profile-name and
   tag errors stay as written.
+- `tests/guide-en.test.mjs`: guide-en.md has the same groups (ids, English titles of the Korean ones) and topic counts as
+  guide.md, no Korean, links only inside the guide or to the project on GitHub, no cost promise; every [button] and
+  "quoted notice" is on the English screen (the dictionary English of a Korean text found in the screen files); the file
+  and icon helpers; the guide sheet and pill words are English. A wrong button name or a missing dictionary line fails it.
+- `tests/browser-wip-en.mjs` step 16 (run at 375): opening the guide asks for guide-en.md on the English screen and
+  guide.md on the Korean one; contents, icons (the same in both), the bar and a group's text have no Korean; the @ pill row
+  ("Linked", "broken") and both menus are English (profile names and aliases in the pick list stay as written). Each fix
+  undone alone makes it fail. At 320px nothing in the guide or the pill menu runs outside its box (checked once by hand).
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

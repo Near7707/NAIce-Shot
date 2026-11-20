@@ -14,6 +14,12 @@ export const currentLang=()=>lang;
 // exactly as written; English reads "Nov 14, 2026, 7:27 PM". Display only: the saved value is the ISO time.
 export const dateLocale=()=>lang==='en'?'en-US':'ko-KR';
 export const dateForm=options=>lang==='en'&&options.month==='numeric'?{...options,month:'short'}:options;
+// The 사용 가이드: English reads guide-en.md (guide.md stays as it is). An English group title is looked up back to its
+// Korean title, so the icons keyed by the Korean titles (index.js GUIDE_ICONS) stay one table. Korean: both as written.
+export const localFile=name=>lang==='en'&&name==='guide.md'?'guide-en.md':name;
+export const GUIDE_TITLES_EN={'처음 사용하기':'Getting started','개인정보와 저장되는 내용':'Privacy and what is saved','그리기':'Drawing','인물':'People',
+  '그림 다루기':'Working with pictures','비용':'Cost','작업 기억':'Work memory','문제가 생겼을 때':'When something goes wrong'};
+export const koOf=title=>lang==='en'?(Object.keys(GUIDE_TITLES_EN).find(k=>GUIDE_TITLES_EN[k]===title)??title):title;
 
 const join=(strings,values)=>{let out=strings[0];for(let i=1;i<strings.length;i++)out+=String(values[i-1])+strings[i];return out;};
 const fill=(template,values)=>template.replace(/\{(\d+)\}/g,(all,n)=>Number(n)<values.length?String(values[Number(n)]):all);

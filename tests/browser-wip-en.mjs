@@ -23,6 +23,8 @@
 //     the work memory's status line after the work came back are English.
 // 15. The viewer's row 1 with a 4- and 5-digit count (3 / 1630, user's iPhone): in English › never runs under Save ▾ and
 //     nothing on the row overlaps at 320, 375 and 393px; in Korean ‹ n/m › stays exactly centred as before.
+// 16. The 사용 가이드: the English screen reads guide-en.md (contents, icons, bar, a group's text: no Korean), the Korean
+//     screen reads guide.md as before; the @ pill row and its menu, which the guide names, are English.
 // Header copied from browser-v01101 (lines 1–91) with a `lang` option; helpers from the same file.
 import zlib from 'node:zlib';
 import http from 'node:http';
@@ -756,6 +758,47 @@ try{
     else assert.ok(row.offCentre<0.5,`${w}px ${total}: Korean ‹ n/m › stays exactly centred (${row.offCentre})`);
     assert.deepEqual(t.errors,[]);await page.close();
    }
+  }
+  // --- 16. the guide in each language (the user's iPhone: "가이드는 아직 한글"), and the @ pill row and menu it names.
+  for(const w of width===375?[375]:[]){
+   const tok=(name,id)=>`@[${name}](ref:${id})`;
+   // Korean left on screen (a profile's own name or alias in the pick list, `own`, is the user's and stays as written).
+   const hangul=(page,sel,own='')=>page.evaluate(([sel,own])=>{const H=/[가-힣]/,out=[],root=document.querySelector(sel);const t=document.createTreeWalker(root,4);
+    for(let x=t.nextNode();x;x=t.nextNode())if(H.test(x.nodeValue)&&!(own&&x.parentElement.closest(own)))out.push(x.nodeValue.trim());
+    for(const el of [root,...root.querySelectorAll('*')])for(const a of ['aria-label','title'])if(H.test(el.getAttribute(a)??''))out.push(`@${a} ${el.getAttribute(a)}`);return out;},[sel,own]);
+   const seen={};
+   for(const lang of ['ko','en']){
+    const en=lang==='en',t=await open(w,{lang});const {page}=t;await closeCompat(page);
+    const asked=[];page.on('request',r=>{if(/\/guide(-en)?\.md/.test(r.url()))asked.push(new URL(r.url()).pathname.split('/').pop());});
+    await page.locator('[data-action="open-guide"]').click();await page.waitForSelector('#ncs-guide:not([hidden]) .ncs-guide-toc button');
+    assert.deepEqual(asked,[en?'guide-en.md':'guide.md']);
+    const toc=await page.locator('#ncs-guide .ncs-guide-toc-name').allInnerTexts(),icons=await page.locator('#ncs-guide .ncs-guide-toc-icon').allInnerTexts();
+    assert.equal(toc.length,8);assert.equal(toc[0],en?'1. Getting started':'1. 처음 사용하기');assert.equal(toc[2],en?'3. Drawing':'3. 그리기');
+    assert.ok(!icons.includes('📘'),`every group keeps its icon: ${icons}`);seen[lang]=icons;
+    if(en)assert.deepEqual(await hangul(page,'#ncs-guide'),[],'the guide contents are English');
+    // a group: the bar (‹ 목차 · n / 8 · 다음 ›) and the text
+    await page.locator('#ncs-guide [data-guide-group="2"]').click();await page.waitForSelector('#ncs-guide-nav:not([hidden]) [data-guide-toc]');
+    assert.equal(await text(page,'#ncs-guide-nav [data-guide-toc]'),en?'‹ Contents':'‹ 목차');
+    assert.equal(await text(page,'#ncs-guide-nav [data-guide-group]'),en?'Next ›':'다음 ›');
+    assert.equal(await text(page,'#ncs-guide-body h3'),en?'3. Drawing':'3. 그리기');
+    if(en)assert.deepEqual(await hangul(page,'#ncs-guide'),[],'a group of the guide is English');
+    else assert.match(await text(page,'#ncs-guide-body'),/챗샷 — 채팅 장면으로 그리기/);
+    await page.locator('#ncs-guide [data-action="close-guide"]').click();await page.waitForSelector('#ncs-guide[hidden]',{state:'attached'});
+    // the @ pill row (a linked pill and a broken one) and the menu of each
+    await page.locator('#ncs-moment-wish').evaluate((f,v)=>{f.value=v;},`${tok('Leo','leo')} and ${tok('Ghost','gone')}`);
+    await page.waitForFunction(()=>document.querySelectorAll('[data-pills-for="ncs-moment-wish"] .ncs-ref-pill').length===2);
+    assert.equal(await text(page,'[data-pills-for="ncs-moment-wish"] .ncs-ref-pills-cap'),en?'Linked':'연결됨');
+    assert.equal(await text(page,'[data-pills-for="ncs-moment-wish"] .ncs-ref-pill-broken small'),en?'broken':'끊김');
+    await page.locator('[data-pills-for="ncs-moment-wish"] .ncs-ref-pill',{hasText:'@Leo'}).click();await page.waitForSelector('.ncs-pill-menu');
+    assert.deepEqual(await page.locator('.ncs-pill-menu button').allInnerTexts(),en?['View profile','Pick again','Remove from box']:['프로필 보기','다시 고르기','칸에서 지우기']);
+    if(en)assert.deepEqual(await hangul(page,'[data-pills-for="ncs-moment-wish"]'),[],'the pill row and its menu are English');
+    await page.locator('[data-pills-for="ncs-moment-wish"] .ncs-ref-pill-broken').click();await page.waitForSelector('.ncs-pill-menu .ncs-pill-menu-head:text-matches("Ghost")');
+    assert.match(await text(page,'.ncs-pill-menu-head'),en?/^@Ghost · broken link$/:/^@Ghost · 끊긴 연결$/);
+    assert.equal(await text(page,'.ncs-pill-menu .ncs-pill-menu-drop'),en?'Remove from box':'칸에서 지우기');
+    if(en)assert.deepEqual(await hangul(page,'[data-pills-for="ncs-moment-wish"]','.ncs-ref-item'),[],'the broken pill\'s menu is English');
+    assert.deepEqual(t.errors,[]);await page.close();
+   }
+   assert.deepEqual(seen.en,seen.ko,'the same icons in both languages');
   }
  }
  console.log('PASS browser-wip-en');

@@ -25,7 +25,7 @@ import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, 
 import { cleanImageFile, saveCleanImage } from './downloads.mjs';
 import { jumpTargets, locateSource, locateAttached } from './message-jump.mjs';
 import {stableChatJson,comparableSavedMetadata,splitSavedChat,timedState} from './chat.mjs';
-import {tr,trMsg,localize,setLang,doneText,currentLang,dateLocale,dateForm} from './i18n.mjs'; // wip-en: Korean shows every text as written
+import {tr,trMsg,localize,setLang,doneText,currentLang,dateLocale,dateForm,localFile,koOf} from './i18n.mjs'; // wip-en: Korean shows every text as written
 import {parseTags,cleanMarks,cleanPopupChats,setMark,forgetIds,forgetChat,starredIds,taggedIds,ownerOf,tagMatches,pickMatch,taggedFor} from './image-marks.mjs';
 
 const KEY='naice_shot',API='/api/plugins/naice-shot';
@@ -1875,9 +1875,9 @@ function renderRefPills(field){
   const pills=linkedPills(field.refs(),settings().profiles);
   box.hidden=!pills.length;
   const attrs=p=>`type="button" data-pill-key="${esc(p.key)}" aria-haspopup="menu" aria-expanded="false"`;
-  box.innerHTML=pills.length?`<span class="ncs-ref-pills-cap">연결됨</span>${pills.map(p=>p.broken
-    ?`<button ${attrs(p)} class="ncs-ref-pill ncs-ref-pill-broken" title="어느 프로필인지 알 수 없어요. 눌러서 다시 골라 주세요."><b>@${esc(p.label)}</b><small>끊김</small></button>`
-    :`<button ${attrs(p)} class="ncs-ref-pill" title="눌러서 프로필 보기·다시 고르기·지우기"><b>@${esc(p.label)}</b>${p.look?`<small>${esc(p.look)}</small>`:''}</button>`).join('')}`:'';
+  box.innerHTML=pills.length?`<span class="ncs-ref-pills-cap">${tr`연결됨`}</span>${pills.map(p=>p.broken
+    ?`<button ${attrs(p)} class="ncs-ref-pill ncs-ref-pill-broken" title="${tr`어느 프로필인지 알 수 없어요. 눌러서 다시 골라 주세요.`}"><b>@${esc(p.label)}</b><small>${tr`끊김`}</small></button>`
+    :`<button ${attrs(p)} class="ncs-ref-pill" title="${tr`눌러서 프로필 보기·다시 고르기·지우기`}"><b>@${esc(p.label)}</b>${p.look?`<small>${esc(p.look)}</small>`:''}</button>`).join('')}`:'';
 }
 function closePillMenu(){
   pillMenu=null;
@@ -1898,12 +1898,12 @@ function renderPillMenu(){
     const others=profiles.filter(p=>String(p.id)!==pill.id),near=suggestions(others,pill.label,Infinity);
     const rest=suggestions(others,'',Infinity).filter(it=>!near.some(n=>n.id===it.id));
     const row=it=>`<button type="button" class="ncs-ref-item" data-pill-pick="${esc(it.id)}"><b>${esc(it.name)}</b>${it.aliases.length?`<span class="ncs-ref-aliases">${esc(it.aliases.join(', '))}</span>`:''}${it.look?`<span class="ncs-ref-look">${esc(it.look)}</span>`:''}</button>`;
-    rows=near.length||rest.length?`<div class="ncs-pill-menu-list">${near.map(row).join('')}${near.length&&rest.length?'<small class="ncs-pill-menu-sub">다른 프로필</small>':''}${rest.map(row).join('')}</div>`
-      :'<small class="ncs-pill-menu-empty">고를 수 있는 프로필이 없어요.</small>';
-  }else rows='<button type="button" data-pill-do="profile">프로필 보기</button><button type="button" data-pill-do="pick">다시 고르기</button>';
-  const head=pill.broken?`@${esc(pill.label)} · 끊긴 연결`:pick?`@${esc(pill.label)} 대신 고르기`:`@${esc(pill.label)}`;
+    rows=near.length||rest.length?`<div class="ncs-pill-menu-list">${near.map(row).join('')}${near.length&&rest.length?`<small class="ncs-pill-menu-sub">${tr`다른 프로필`}</small>`:''}${rest.map(row).join('')}</div>`
+      :`<small class="ncs-pill-menu-empty">${tr`고를 수 있는 프로필이 없어요.`}</small>`;
+  }else rows=`<button type="button" data-pill-do="profile">${tr`프로필 보기`}</button><button type="button" data-pill-do="pick">${tr`다시 고르기`}</button>`;
+  const head=pill.broken?tr`@${esc(pill.label)} · 끊긴 연결`:pick?tr`@${esc(pill.label)} 대신 고르기`:`@${esc(pill.label)}`;
   const el=document.createElement('div');el.className='ncs-pill-menu';el.setAttribute('role','menu');
-  el.innerHTML=`<div class="ncs-pill-menu-head">${head}</div>${rows}<button type="button" class="ncs-pill-menu-drop" data-pill-do="drop">칸에서 지우기</button>`;
+  el.innerHTML=`<div class="ncs-pill-menu-head">${head}</div>${rows}<button type="button" class="ncs-pill-menu-drop" data-pill-do="drop">${tr`칸에서 지우기`}</button>`;
   box.append(el);
 }
 // One pill's action on the field. Last link first, so the places before it stay where they are.
@@ -3360,20 +3360,20 @@ async function importSettings(file) {
 // While it is open the panel under it is inert, so nothing behind it can be pressed or focused.
 let guideData=null,guideAt=null;
 function loadGuide(){
-  if(!guideData)guideData=fetch(new URL('guide.md',import.meta.url)).then(r=>{if(!r.ok)throw new Error(String(r.status));return r.text();})
+  if(!guideData)guideData=fetch(new URL(localFile('guide.md'),import.meta.url)).then(r=>{if(!r.ok)throw new Error(String(r.status));return r.text();})
     .then(parseGuide).catch(e=>{guideData=null;throw e;});
   return guideData;
 }
 const GUIDE_ICONS={'처음 사용하기':'🚀','개인정보와 저장되는 내용':'🔒','그리기':'🎨','인물':'👤','그림 다루기':'🖼️','비용':'💰','작업 기억':'💾','문제가 생겼을 때':'🛟'};
 async function renderGuide(){
   const body=$('ncs-guide-body'),nav=$('ncs-guide-nav');let groups;nav.hidden=true;nav.textContent='';
-  try{groups=await loadGuide();}catch{body.innerHTML='<p>가이드를 읽지 못했어요. 확장을 다시 설치하거나 새로고침한 뒤 열어 주세요.</p>';return;}
+  try{groups=await loadGuide();}catch{body.innerHTML=`<p>${tr`가이드를 읽지 못했어요. 확장을 다시 설치하거나 새로고침한 뒤 열어 주세요.`}</p>`;return;}
   if(guideAt===null||!groups[guideAt]){guideAt=null;
     // 0.1.110 (user choice B): each group shows an icon and the names of its topics, taken from guide.md.
-    body.innerHTML=`<div class="ncs-guide-toc">${groups.map((g,i)=>`<button type="button" data-guide-group="${i}"><i class="ncs-guide-toc-icon" aria-hidden="true">${GUIDE_ICONS[g.title]??'📘'}</i><span class="ncs-guide-toc-text"><span class="ncs-guide-toc-name">${i+1}. ${esc(g.title)}</span><small>${g.topics.map(t=>esc(t.title.split(' — ')[0])).join(' · ')}</small></span><i class="ncs-guide-toc-arrow" aria-hidden="true">›</i></button>`).join('')}</div>`;}
+    body.innerHTML=`<div class="ncs-guide-toc">${groups.map((g,i)=>`<button type="button" data-guide-group="${i}"><i class="ncs-guide-toc-icon" aria-hidden="true">${GUIDE_ICONS[koOf(g.title)]??'📘'}</i><span class="ncs-guide-toc-text"><span class="ncs-guide-toc-name">${i+1}. ${esc(g.title)}</span><small>${g.topics.map(t=>esc(t.title.split(' — ')[0])).join(' · ')}</small></span><i class="ncs-guide-toc-arrow" aria-hidden="true">›</i></button>`).join('')}</div>`;}
   else{const i=guideAt,g=groups[i];
     // 0.1.110 (user request): ‹ 목차 · n / 8 · 다음 › sits under the title outside the scrolling text, so it never scrolls away.
-    nav.innerHTML=`<div class="ncs-guide-bar"><button type="button" data-guide-toc>‹ 목차</button><small>${i+1} / ${groups.length}</small>${i<groups.length-1?`<button type="button" data-guide-group="${i+1}">다음 ›</button>`:'<span></span>'}</div>`;nav.hidden=false;
+    nav.innerHTML=`<div class="ncs-guide-bar"><button type="button" data-guide-toc>${tr`‹ 목차`}</button><small>${i+1} / ${groups.length}</small>${i<groups.length-1?`<button type="button" data-guide-group="${i+1}">${tr`다음 ›`}</button>`:'<span></span>'}</div>`;nav.hidden=false;
     body.innerHTML=`<div class="ncs-guide-text"><h3>${i+1}. ${esc(g.title)}</h3>${g.topics.map(t=>`<h4>${esc(t.title)}</h4>${t.html}`).join('')}</div>`;}
   body.scrollTop=0;
 }
