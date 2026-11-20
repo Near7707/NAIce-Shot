@@ -651,6 +651,20 @@ try{
      assert.ok(JSON.stringify(await settledWork(p)).includes('"밤 / 닫기 / 정사각형"'),'saved as written');
      assert.deepEqual(c.errors,[]);await p.close();
     }
+    // The AI leaves out a required field (GPT wip-en P3, twelfth review): the whole reply cannot be read, or one candidate
+    // is left out beside a good one. The reason is English, the field name as written.
+    {
+     const c=await open(width,{lang}),p=c.page;await closeCompat(p);
+     const {lighting,...noLight}=TWO.moments[0];
+     await extractWith(p,{characters:noLight.characters,unregistered:[],location:'cafe',camera:'medium shot',interaction:''});
+     const whole=await notice(p);
+     assert.ok(whole.includes(en?'Could not read the JSON: the lighting field has the wrong format.':'JSON을 읽지 못했어요: lighting 필드 형식이 잘못됐어요.'),whole);
+     if(en)assert.ok(!HANGUL.test(whole),whole);
+     await extractWith(p,{...TWO,moments:[noLight,TWO.moments[1]],defaultIndex:0});
+     const one=await notice(p);
+     assert.ok(one.includes(en?'Left out a candidate that could not be read: the lighting field has the wrong format.':'읽지 못한 후보를 뺐어요: lighting 필드 형식이 잘못됐어요.'),one);
+     assert.deepEqual(c.errors,[]);await p.close();
+    }
     // The status line when the work changed elsewhere while a deletion was being checked (GPT wip-en P3, eleventh review):
     // the deletion's reply is lost, the check then finds another revision on the server. The edit stays.
     {
@@ -658,7 +672,9 @@ try{
      await p.locator('#ncs-location').fill('cafe at night');await settledWork(p);
      p.loseDraftDelete=true;p.draftReadFails=true;
      await p.locator('[data-tab="settings"]').click();await p.locator('[data-action="delete-all-work"]').click();
-     await p.waitForFunction(()=>document.querySelector('#ncs-work-fields').disabled);
+     // wait for the notice that the deletion was not verified (the fields lock already while the request is out)
+     await p.waitForFunction(()=>/전체 삭제 응답을 받지 못했어요|No reply to the delete-all request/.test(document.querySelector('#ncs-notice').textContent));
+     assert.equal(await p.locator('#ncs-work-fields').evaluate(f=>f.disabled),true,'locked until checked');
      p.loseDraftDelete=false;p.draftReadFails=false;p.draftReply={revision:'elsewhere',work:null};
      await p.locator('[data-tab="scene"]').click();await p.locator('#ncs-draft-retry').click();
      await p.waitForFunction(()=>!document.querySelector('#ncs-work-fields').disabled);

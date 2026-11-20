@@ -40,9 +40,10 @@ test('the history count still reads in English where it is made, and is not a pa
     assert.equal(trMsg('삭제된 프로필이 장면에 있어요. 다시 선택해 주세요.'),'삭제된 프로필이 장면에 있어요. 다시 선택해 주세요.');
     assert.equal(trMsg('이 장면은 아직 저장하지 않았어요.'),'이 장면은 아직 저장하지 않았어요.');
     // localize reads text nodes with the same lookup
-    const node={nodeValue:' 외형이나 복장이 비어 있어요. ',parentElement:null};
+    // (any Korean text not in the dictionary with a space and a "장"; "외형이나 복장이 비어 있어요." is in it since the twelfth review)
+    const node={nodeValue:' 복장 저장이 끝난 뒤 다시 선택해 주세요. ',parentElement:null};
     const fake={ownerDocument:{createTreeWalker:()=>{let done=false;return {nextNode:()=>done?null:(done=true,node)};}},querySelectorAll:()=>[],nodeType:11};
-    localize(fake);assert.equal(node.nodeValue,' 외형이나 복장이 비어 있어요. ');
+    localize(fake);assert.equal(node.nodeValue,' 복장 저장이 끝난 뒤 다시 선택해 주세요. ');
   }finally{setLang('ko');}
 });
 
@@ -81,4 +82,21 @@ test('프리샷 question about cards not in the text: every line in English, car
       'Look refilled from the new result: 보통 (temporary, not pinned)','','OK: extract as it is · Cancel: go back to edit the text or 📌 pin'].join('\n'));
   }finally{setLang('ko');}
   assert.equal(trMsg(text),text,'Korean: as written');
+});
+
+test('the AI reply read errors are English, also inside "JSON을 읽지 못했어요" and the left-out candidate warning (GPT wip-en P3, twelfth review)',()=>{
+  setLang('en');
+  try{
+    const cases={
+      'JSON을 읽지 못했어요: lighting 필드 형식이 잘못됐어요.':'Could not read the JSON: the lighting field has the wrong format.',
+      '읽지 못한 후보를 뺐어요: lighting 필드 형식이 잘못됐어요.':'Left out a candidate that could not be read: the lighting field has the wrong format.',
+      'JSON을 읽지 못했어요: 캐릭터가 중복됐어요: leo':'Could not read the JSON: a character appears twice: leo',
+      '읽지 못한 후보를 뺐어요: 위치 값이 잘못됐어요.':'Left out a candidate that could not be read: The position value is wrong.',
+      'JSON을 읽지 못했어요: name 값이 문자열이 아니에요.':'Could not read the JSON: the name value is not text.',
+      'JSON을 읽지 못했어요: characters 배열을 확인해 주세요.':'Could not read the JSON: Check the characters list.'};
+    for(const [ko,en] of Object.entries(cases))assert.equal(trMsg(ko),en,ko);
+    // the field name is never looked up, and a wrapped text the dictionary does not know stays whole
+    assert.equal(trMsg('JSON을 읽지 못했어요: 닫기 필드 형식이 잘못됐어요.'),'Could not read the JSON: the 닫기 field has the wrong format.');
+    assert.equal(trMsg('장면 추출 실패: x 필드 형식이 잘못됐어요.'),'장면 추출 실패: x 필드 형식이 잘못됐어요.');
+  }finally{setLang('ko');}
 });

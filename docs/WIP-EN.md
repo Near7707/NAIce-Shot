@@ -162,6 +162,16 @@ candidate is `tr` with the AI's title as a value, so a title like "밤 / 닫기 
 정사각형"); the work memory's own "다른 곳에서 작업이 바뀌었어요." (the server's work changed while a deletion was checked) is in the
 dictionary, so the status line reads "Check work saving: The work was changed elsewhere.".
 
+After the twelfth review (GPT wip-en P3 ×2): the errors of reading the AI's reply are in the dictionary — the shared
+core's `validateScene` ("lighting 필드 형식이 잘못됐어요.", "characters 배열을 확인해 주세요.", position, outfit state,
+unregistered list, character ID, duplicates), Free Shot's and the profile draft's own ones, and the warning "읽지 못한 후보를
+뺐어요: …" (a candidate left out beside a good one). The ones with a field name or an ID are always wrapped
+("JSON을 읽지 못했어요: …" or the warning), so they are keys of the whole wrapped text ("JSON을 읽지 못했어요: {0} 필드 형식이
+잘못됐어요.") and never a bare open pattern; the field name stays as written. Known (main too): "장면 추출 실패: {0}." adds a "."
+after an error that already ends with one ("…format.. Your edits were kept."). Step 14's deletion check now waits for the
+notice that the deletion was not verified (the fields lock already while the request is out, so waiting for the lock let
+the flags clear before the reply was lost).
+
 Still Korean: the guide, the console-only error "NAIce Shot 패널 파일을 읽지 못했어요.", server texts the dictionary does
 not know, and texts the AI writes (candidate titles, request words).
 
@@ -202,7 +212,8 @@ not know, and texts the AI writes (candidate titles, request words).
   work came back from the server read in each language; so do the notice when the server's work cannot be read on
   connecting and the status line when the edits on screen are too long to compare (both keep the edits); since the eleventh
   review also the notice after another candidate (the AI's title "밤 / 닫기 / 정사각형" as written, with and without the note on a
-  required person) and the status line when the work changed elsewhere while a lost deletion was checked (the edit stays).
+  required person) and the status line when the work changed elsewhere while a lost deletion was checked (the edit stays);
+  since the twelfth review also a reply without `lighting` (the whole reply, and one candidate beside a good one).
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules
