@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.164 — 2026-11-21 (extension only — server v0.1.25 unchanged)
+
+사용 가이드 (`guide.md`) only — no code behaviour changes. From a check of the guide against the 0.1.163 screens:
+- New topic **패널 열기** under 처음 사용하기: the three places that open the panel (the extensions menu, the **NAIce Shot 열기** button in the SillyTavern extension settings — now at the top of the left column — and the message draw button), and that the real settings are in the panel's 설정 tab.
+- **[서버·NAI 연결 확인]** is placed as 설정 탭 → NAI 생성 설정 (bottom), both in 필요한 것 and in 서버 연결이 늦을 때.
+- 채팅 속 그림: the settings are under **[위치·보기 설정]**; the list now also names 이 채팅의 기본 위치, 채팅 속 그림 크기 and 메시지에 그리기 버튼 표시.
+- 본문에 넣기: the **넣을 위치** choice (기본 위치 · 글 위 · 글 아래), and the enlarged view's ⋯ **[글 위로 옮기기]/[글 아래로 옮기기]** and **[기본 위치로 되돌리기]**.
+- **Anlas 사용 가능성 허용** is said to be on the drawing tab (3 · 생성, above [이미지 생성]), not the 설정 tab.
+- History ⋯ menu: "프리셋으로 저장" → **설정을 프리셋으로** (the real name); **채팅에서 이 그림 빼기** and **태그 편집** added.
+- 대상 메시지: picking a different message (가장 최근 메시지 too) empties 추가 요청; the same message keeps it. The guide now says to copy the request first and paste it back, and to check the **연결됨** pills for `@` people.
+
 ## 0.1.163 — 2026-11-20 (extension only — server v0.1.25 unchanged)
 
 - The settings drawer now goes in the left column of the extensions screen (the right one only if there is no left one), and `loading_order` is 2, so it shows near the top instead of at the bottom. Nothing else changes.

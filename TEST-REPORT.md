@@ -1,3 +1,14 @@
+# v0.1.164 validation — 2026-11-21 (extension only, server v0.1.25)
+
+- Guide text only (`guide.md`); no code behaviour changed. Version moved to 0.1.164 in `core.mjs`, `manifest.json`, `package.json`.
+- Extension Node suite: **199 passed, 0 failed** (with NAIce-Shot-Server cloned beside it, so the two compat tests ran). `tests/guide.test.mjs` checks that every new `[button]` name (위치·보기 설정, 글 위로 옮기기, 글 아래로 옮기기, 기본 위치로 되돌리기, …) is on the real screen.
+- Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- The new **패널 열기** topic parses as the third topic of 처음 사용하기, with no stray Markdown marks left in any topic.
+- Each new sentence was checked against the code: the launch button in `mountSettingsDrawer` (left column first), the extensions-menu item, the message draw button setting, the attach picker's 넣을 위치 row, the viewer ⋯ move actions, the history ⋯ labels, and `chooseTarget` emptying 추가 요청 only when a different target is picked.
+- Not run: the Chromium browser scripts (Playwright is not installed here and package installs are off); the panel code did not change. Not checked: a real iPhone, a real SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.162 validation — 2026-11-16 (extension only, server v0.1.25)
 
 - Extension Node suite: **199 passed, 0 failed**.
