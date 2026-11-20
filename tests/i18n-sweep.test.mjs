@@ -11,17 +11,20 @@ import {fileURLToPath} from 'node:url';
 import {setLang,tr,trMsg,localize} from '../i18n.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const files=fs.readdirSync(root).filter(f=>/\.(mjs|js)$/.test(f)&&!f.startsWith('i18n'));
+// The server plugin's texts reach the panel too (errors, check lines): its folder sits next to this one when npm test runs.
+const server=['naice-shot-server','NAIce-Shot-Server'].map(d=>path.resolve(root,'..',d)).find(d=>fs.existsSync(path.join(d,'handlers.mjs')));
+const files=[...fs.readdirSync(root).filter(f=>/\.(mjs|js)$/.test(f)&&!f.startsWith('i18n')).map(f=>path.join(root,f)),
+  ...(server?fs.readdirSync(server).filter(f=>/\.mjs$/.test(f)).map(f=>path.join(server,f)):[])];
 const QUOTED=/(['"`])((?:(?!\1)[^\\\n]|\\.)*?[가-힣](?:(?!\1)[^\\\n]|\\.)*?)\1/g;
 const unescape=s=>s.replace(/\\n/g,'\n').replace(/\\(['"`\\])/g,'$1');
 function texts(){
   const out=new Set();
-  for(const f of files)for(const m of fs.readFileSync(path.join(root,f),'utf8').matchAll(QUOTED)){
+  for(const f of files)for(const m of fs.readFileSync(f,'utf8').matchAll(QUOTED)){
     if(/\$\{|`/.test(m[2]))continue;out.add(unescape(m[2]));} // a template with values, or a piece cut out of one
   return out;
 }
 
-test('every fixed Korean text of the app is either left as it is or fully English (never half translated)',()=>{
+test('every fixed Korean text of the app and the server is either left as it is or fully English (never half translated)',()=>{
   setLang('en');
   try{
     const list=texts();assert.ok(list.size>500,`found the app's texts (${list.size})`);
@@ -35,11 +38,23 @@ test('the history count still reads in English where it is made, and is not a pa
   try{
     assert.equal(tr`${tr`총`} ${2}장${tr` · ${1}장 표시`}`,'Total 2 · 1 shown');
     assert.equal(trMsg('삭제된 프로필이 장면에 있어요. 다시 선택해 주세요.'),'삭제된 프로필이 장면에 있어요. 다시 선택해 주세요.');
-    assert.equal(trMsg('작업 내용이 너무 커서 저장하지 못했어요.'),'작업 내용이 너무 커서 저장하지 못했어요.');
+    assert.equal(trMsg('이 장면은 아직 저장하지 않았어요.'),'이 장면은 아직 저장하지 않았어요.');
     // localize reads text nodes with the same lookup
     const node={nodeValue:' 외형이나 복장이 비어 있어요. ',parentElement:null};
     const fake={ownerDocument:{createTreeWalker:()=>{let done=false;return {nextNode:()=>done?null:(done=true,node)};}},querySelectorAll:()=>[],nodeType:11};
     localize(fake);assert.equal(node.nodeValue,' 외형이나 복장이 비어 있어요. ');
+  }finally{setLang('ko');}
+});
+
+test('keys with under 4 fixed letters are tr only: texts not in the dictionary stay whole (GPT wip-en P3, tenth review)',()=>{
+  setLang('en');
+  try{
+    // texts a server or an older version may send, not in the dictionary: each matched a short key before
+    for(const t of ['서버 응답 제한 시간: 30초','서버 연결 확인 중…','모델 정보 열기','다른 후보 3','기본 인물 2','남은 시간 1분 5초','설명: 12자'])
+      assert.equal(trMsg(t),t,t);
+    // the app still makes them in English where it shows them
+    assert.equal(tr`${3}초`,'3s');assert.equal(tr`${1}분 ${5}초`,'1m 5s');assert.equal(tr`${'NAIce Shot'} 열기`,'Open NAIce Shot');
+    assert.equal(tr`${'Saving'} 중…`,'Saving…');
   }finally{setLang('ko');}
 });
 

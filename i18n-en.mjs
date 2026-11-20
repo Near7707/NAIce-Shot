@@ -1172,4 +1172,11 @@ export default {
   "아직 삭제 결과를 확인하지 못했어요. 확인할 때까지 작업을 잠가 둘게요.": "The delete result is not confirmed yet. The work stays locked until it is.",
   "서버에서 작업이 삭제된 것을 확인했어요.": "Confirmed that the work was deleted on the server.",
   "서버 작업을 확인했어요. 자동 저장을 다시 시작해요.": "Checked the server's work. Auto-save starts again.",
+  "서버 작업을 확인하지 못해서 작업 기억을 연결하지 않았어요. 다시 눌러 주세요.": "Couldn't check the server's work, so work memory is not connected. Please press again.",
+  "지금 작업을 확인하지 못해서 작업 기억을 잠시 멈췄어요({0}). 지금 편집은 아직 저장되지 않았어요. 채팅을 바꾸면 사라질 수 있어요.": "Couldn't check the current work, so work memory is paused ({0}). Your edits are not saved yet and may be lost if you change chats.",
+  "작업 구조가 너무 깊어서 저장하지 못했어요.": "The work is nested too deeply to save.",
+  "작업 내용이 너무 길어요.": "The work is too long.",
+  "작업 항목이 너무 많아요.": "The work has too many items.",
+  "저장된 작업 형식을 확인해 주세요.": "Check the saved work's format.",
+  "작업 내용이 너무 커서 저장하지 못했어요.": "The work is too large to save.",
 };

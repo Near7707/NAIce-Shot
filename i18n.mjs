@@ -30,13 +30,17 @@ export function tr(strings,...values){
 // A key with almost no fixed text is used by `tr` only (an exact lookup where it is made), never as a pattern: the
 // history count "{0} {1}장{2}" matched any text with a space and a "장" and cut it out ("저장" → "저", "장면" → "면"),
 // so a Korean error not in the dictionary showed broken on the English screen (GPT wip-en P3, ninth review).
-// tests/i18n-sweep.test.mjs looks every fixed Korean text of the app up and fails on a half translation.
-const TR_ONLY=new Set(['{0} {1}장{2}']);
+// The same held for every key with under 4 fixed letters (spaces aside): "{0}초", "{0} 중…" and "{0} 열기" cut the end
+// off server texts not in the dictionary ("서버 응답 제한 시간: 30초" → "…: 30s", "모델 정보 열기" → "Open 모델 정보",
+// GPT wip-en P3, tenth review). Such keys are all made by `tr` where they are shown, so none of them is a pattern.
+// tests/i18n-sweep.test.mjs looks every fixed Korean text of the app and the server up and fails on a half translation.
+const TR_ONLY=new Set(['{0} {1}장{2}']),SHORT=4;
+const trOnly=k=>TR_ONLY.has(k)||k.replace(/\{\d+\}|\s/g,'').length<SHORT;
 let patterns=null;
 const escapeRe=s=>s.replace(/[.*+?^$()|[\]\\]/g,'\\$&').replace(/[{}]/g,c=>'\\'+c);
 function patternList(){
   if(patterns)return patterns;
-  patterns=Object.keys(EN).filter(k=>/\{\d+\}/.test(k)&&!TR_ONLY.has(k)).sort((a,b)=>b.length-a.length).map(k=>{
+  patterns=Object.keys(EN).filter(k=>/\{\d+\}/.test(k)&&!trOnly(k)).sort((a,b)=>b.length-a.length).map(k=>{
     const order=[];const source=escapeRe(k).replace(/\\\{(\d+)\\\}/g,(all,n)=>{order.push(Number(n));return '([\\s\\S]*?)';});
     return {re:new RegExp(`^${source}$`),order,en:EN[k]};});
   return patterns;

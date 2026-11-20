@@ -635,6 +635,29 @@ try{
     await page.waitForFunction(()=>document.querySelector('#ncs-location').value==='cafe');
     assert.match(await page.locator('#ncs-draft-status').innerText(),en?/^Loaded the scene you were working on in this chat · Target message(: latest| #\d+)$/:/^이 채팅에서 작업하던 장면을 불러왔어요 · 대상 메시지(: 최신| #\d+)$/);
     assert.deepEqual(t.errors,[]);await page.close();
+    // Work memory that cannot connect says why in each language (GPT wip-en P3, tenth review): the server's work could not
+    // be read, or the edits on screen are too long to compare with the saved copy. The edits stay either way.
+    for(const why of ['unread','long']){
+     const b=await open(width,{lang}),p=b.page;p.quickFail=true;await p.reload();
+     await p.locator('#ncs-extension-settings .inline-drawer-toggle').click();await p.locator('.ncs-launch-button').click();await p.locator('#naice-shot-dialog[open]').waitFor();
+     await p.waitForFunction(()=>!document.getElementById('ncs-work-fields').disabled);
+     p.draftByKey={[KEY]:saved};
+     if(why==='long')await p.locator('#ncs-location').evaluate((e,v)=>{e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));},'x'.repeat(200001));
+     else{await p.locator('#ncs-location').fill('local place');p.draftReadFails=true;}
+     p.quickFail=false;const q=p.quickCalls??0;await p.locator('#ncs-draft-retry').evaluate(x=>x.click());
+     for(let i=0;i<80&&(p.quickCalls??0)===q;i++)await p.waitForTimeout(50);
+     await p.waitForFunction(()=>!document.getElementById('ncs-work-fields').disabled);await p.waitForTimeout(300);
+     if(why==='unread'){
+      assert.equal(await notice(p),en?"Couldn't check the server's work, so work memory is not connected. Please press again.":'서버 작업을 확인하지 못해서 작업 기억을 연결하지 않았어요. 다시 눌러 주세요.');
+      assert.equal(await p.locator('#ncs-location').inputValue(),'local place','the edit stays');
+     }else{
+      const said=en?"Couldn't check the current work, so work memory is paused (The work is too long). Your edits are not saved yet and may be lost if you change chats.":
+       '지금 작업을 확인하지 못해서 작업 기억을 잠시 멈췄어요(작업 내용이 너무 길어요). 지금 편집은 아직 저장되지 않았어요. 채팅을 바꾸면 사라질 수 있어요.';
+      assert.equal(await p.locator('#ncs-draft-status').innerText(),said);assert.equal(await notice(p),said);
+      assert.equal((await p.locator('#ncs-location').inputValue()).length,200001,'the edit stays');
+     }
+     assert.deepEqual(b.errors,[]);await p.close();
+    }
    }
   }
  }

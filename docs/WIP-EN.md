@@ -142,6 +142,16 @@ Korean text of the code up in English and fails on a half translation. Step 13's
 screen only (Korean is main's CSS, and Korean fonts differ between machines: "준비 중…" ran 1.2px over at 320px on another
 machine). Known: a Free Shot card with no name reads "이름 없는 인물" / "인물" inside the English question.
 
+After the tenth review (GPT wip-en P3 ×2 fixed, one left): every dictionary key with under 4 fixed letters (spaces
+aside: "{0}초", "{0} 중…", "{0} 열기", "후보 {0}", "인물 {0}", …) is `tr` only, like the history count: as patterns they
+cut the end off server texts not in the dictionary ("서버 응답 제한 시간: 30초" → "…: 30s", "모델 정보 열기" → "Open
+모델 정보"). All of them are made by `tr` where they are shown. `tests/i18n-sweep.test.mjs` now also looks up the server
+plugin's texts (its folder next to this one) and a few made-up server texts. The work memory says why it did not connect
+in English: the server's work could not be read (`connectDraftsOnce`'s notice is `tr`), or the work on screen cannot be
+packed (`draftUnreadableNote` is `tr`, its error is looked up with `trMsg` before the "." is cut; the note is shown only,
+never saved or compared); draft-work.mjs's five errors are in the dictionary. Left (known): a Free Shot card named word
+for word like a whole app sentence ("복사했어요.") is shown translated in the question about cards not in the text.
+
 Still Korean: the guide, the console-only error "NAIce Shot 패널 파일을 읽지 못했어요.", server texts the dictionary does
 not know, and texts the AI writes (candidate titles, request words).
 
@@ -179,7 +189,8 @@ not know, and texts the AI writes (candidate titles, request words).
   words run outside its box (a text line past its edge by more than 0.5px, or a wider inside unless cut with "…") in either
   language (since the ninth review: English only). Step 14: the confirms for another candidate over a hand-edited final
   prompt and for reloading after a save conflict (both cancelled, nothing changes) and the status line after Chat Shot
-  work came back from the server read in each language.
+  work came back from the server read in each language; so do the notice when the server's work cannot be read on
+  connecting and the status line when the edits on screen are too long to compare (both keep the edits).
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

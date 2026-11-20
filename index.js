@@ -611,7 +611,8 @@ let draftHold=false,draftHoldNote='',connectingDrafts=null,reconnectRun=null;
 const sortedJson=v=>JSON.stringify(v,(k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(n=>[n,x[n]])):x);
 const DRAFT_HOLD_NOTE='서버에 다른 작업이 저장돼 있어서 작업 기억을 잠시 멈췄어요. 지금 편집은 아직 저장되지 않았어요. 채팅을 바꾸면 사라질 수 있어요.';
 const DRAFT_DELETED_HOLD_NOTE='서버에 이 작업의 삭제 기록이 있어서 작업 기억을 잠시 멈췄어요. 지금 편집은 아직 저장되지 않았어요. 채팅을 바꾸면 사라질 수 있어요.';
-const draftUnreadableNote=m=>`지금 작업을 확인하지 못해서 작업 기억을 잠시 멈췄어요(${String(m).replace(/[.\s]+$/,'')}). 지금 편집은 아직 저장되지 않았어요. 채팅을 바꾸면 사라질 수 있어요.`;
+// Display only (draftHoldNote is shown, never saved or compared): the error is looked up before its "." is cut (GPT wip-en P3, tenth review).
+const draftUnreadableNote=m=>tr`지금 작업을 확인하지 못해서 작업 기억을 잠시 멈췄어요(${String(trMsg(m)).replace(/[.\s]+$/,'')}). 지금 편집은 아직 저장되지 않았어요. 채팅을 바꾸면 사라질 수 있어요.`;
 // 0.1.96 (GPT P3-1): what counts when comparing the screen with the saved copy — not how many target messages are
 // listed, and a valid final-prompt JSON by its content (key order aside). Saving still keeps the text as typed.
 const compareForm=w=>{const out={...w};delete out.targetShown;
@@ -729,7 +730,7 @@ async function connectDraftsOnce(){
     if(!dialog||!key){draftHold=false;draftHoldNote='';draftsEnabled=true;return;} // no work on screen; the other mode's is compared when it comes back
     const r=await recallDraft(key,{connect:true});
     if(r==='moved')continue; // the chat changed while reading: decide for the one on screen now
-    if(r==='failed')notice('서버 작업을 확인하지 못해서 작업 기억을 연결하지 않았어요. 다시 눌러 주세요.',true);
+    if(r==='failed')notice(tr`서버 작업을 확인하지 못해서 작업 기억을 연결하지 않았어요. 다시 눌러 주세요.`,true);
     return;
   }
 }
