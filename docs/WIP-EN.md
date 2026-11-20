@@ -83,6 +83,21 @@ After the sixth review (GPT wip-en P3 ×3): a missing picture's note on a histor
 the same chat shows its state toast through `trMsg` (the other-chat path already did); `api`'s two shared errors
 ("서버 플러그인을 확인해 주세요 (502).", "요청 실패 (503)") are dictionary patterns.
 
+Step 5-2: the enlarged view (viewer.mjs) and the pictures in the chat (inline-images.mjs). viewer.mjs now imports
+`tr`/`trMsg`/`localize`: its fixed HTML is `localize`d once when it is built (on the first open, after `initialize` set the
+language); its own texts (seed button, prompt loading and copy, [메시지로 가기]) are `tr`; everything it is given or
+catches is shown with `trMsg` — the toast (`say`, also for thrown errors), the ⋯ menu's `label`/`note` from index.js's
+`viewerActions` (and `jumpChoices`, the same dictionary entries the history ⋯ menu uses), the prompt error and the copy
+error. The labels stay Korean inside index.js. `promptText`'s lines ("모델: …", "[공통 Positive]", "[인물 n · …]") are `tr`
+(display and copy only; never saved). The viewer actions' toasts in index.js (`away`, the move notes) get `trMsg`.
+inline-images.mjs uses `tr` for the chat pictures' buttons, the slide arrows and a missing picture's note; it is drawn by
+`renderChatImages`, which runs after `setLang`. The throws "채팅 저장에 실패해 …" / "채팅이 저장되지 않아 …" are in the dictionary.
+"불러오는 중…" (place 5 below) is still compared by its words, now as `trMsg('불러오는 중…')` against what `say` showed, so
+Korean compares exactly as before.
+After the seventh review (GPT wip-en P3, test only): step 11 no longer refreshes the history once more before [Go to
+message]: the card stays after the failed refreshes, and the extra refresh's late reply could redraw the card under the
+open ⋯ menu.
+
 Known limits, left as they are (GPT wip-en P3, second review): a name that is word for word a whole dictionary sentence
 (ends with ".") is shown translated inside "＋ {0} 프로필 만들기"; an outfit that itself ends with " · 잠금" is shown as
 "· locked" in the card's saved-outfit line even when unlocked (Korean shows the same ambiguous line; the lock checkbox
@@ -92,11 +107,11 @@ with 스텝 shows as Steps in that error in both languages: that is main's `step
 
 Also left (step 4): the account-fields "earlier check" line shows its time in Korean form (`toLocaleTimeString('ko-KR')`,
 a value); the language switch's own notice stays in both languages.
-Also left (step 5-1): history dates keep the Korean form (`shortDate`, `toLocaleString('ko-KR')`, a value); the tag
-pop-up on the chat screen and the viewer (also its ⋯ menu lines, which share `jumpChoices`) are the next step.
+Also left (step 5-1): history dates keep the Korean form (`shortDate`, `toLocaleString('ko-KR')`, a value); the same
+date is the viewer's caption (step 5-2).
 
-Still Korean: the viewer (enlarged picture), the tag pop-up, the guide, and texts the
-AI writes (candidate titles, request words).
+Still Korean: the tag pop-up on the chat screen (`showTagPopup`), the guide, server texts the dictionary does not know,
+and texts the AI writes (candidate titles, request words).
 
 ## Checks
 
@@ -118,7 +133,11 @@ AI writes (candidate titles, request words).
   (count line, ⋯ menu with its message lines, every-chat view, attach picker, delete confirm and notices) while a chat
   named 선택 and a tag 1에 넣기 stay as written; putting in, deleting and [챗샷으로 보내기] send and save the same in both
   languages, and the import's undo label is saved in Korean. Also in step 11: a missing picture's note, ↻ with an
-  HTML 502 and an empty JSON 503 reply, and the same-chat [Go to message] toast after the message was edited.
+  HTML 502 and an empty JSON 503 reply, and the same-chat [Go to message] toast after the message was edited. Step 12:
+  the viewer is English (fixed words, ⋯ menu from the history and from the chat, prompt lines, seed button, the detach
+  button); a slow next page that brings nothing still clears "Loading…"; the chat pictures (slide arrows, a missing
+  picture's note and its remove button) are English; [글 아래로 옮기기] shows an English toast and saves the same placement
+  in both languages.
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules
@@ -138,7 +157,8 @@ about 30 changed lines of working code (not text).
   2. outfit origin (`origin==='이번 편집'`, character cards — not translated yet; translate `ORIGIN_TEXT` values only).
   3. warnings filtered by their words (`startsWith('미등록 인물은…')`) — filtered first, then `warnings.map(trMsg)`.
   4. `stepsWord` (스텝 → Steps) — runs first, then `trMsg`; dictionary keys use the "28 Steps" wording.
-  5. the viewer's "불러오는 중…" text comparison — the viewer is not translated; use its flag instead if it ever is.
+  5. the viewer's "불러오는 중…" text comparison — `say` shows `trMsg(text)`, and the check compares with
+     `trMsg('불러오는 중…')` (step 12 fails if the comparison goes back to the Korean words).
 - Big HTML blocks that hold a person's or the AI's words are not wrapped in `tr`; their fixed words are translated
   after drawing with `localize(root, skipSelector)`. The target list preview (chat text) is never localized.
   Skip lists in use: cards `textarea,strong,select[data-profile-switch],select[data-wear-once] option:not([value=""]),

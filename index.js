@@ -319,7 +319,7 @@ async function recordOf(item){const rec=await findRecord(item);if(!rec?.assemble
 function viewerActions(item,{attachment=null}={}){
   const here=sameChat(item.chatKey,keyOf()),free=item.chatKey===FREE_KEY;
   // Leaving the enlarged view: errors go to the panel notice and a toast, since the view is closed.
-  const away=fn=>()=>Promise.resolve().then(fn).catch(e=>{toast(e.message,true);notice(e.message,true);});
+  const away=fn=>()=>Promise.resolve().then(fn).catch(e=>{toast(trMsg(e.message),true);notice(e.message,true);});
   // 0.1.150 (GPT 0.1.149 P2): the press count at the click; a message's draw button pressed while the record or the panel
   // is still on its way is the newer choice — this send stops before the tab switch and the import.
   const send=nextMode=>away(async()=>{const press=drawPress;const rec=await recordOf(item);if(press!==drawPress)return;
@@ -339,7 +339,7 @@ function viewerActions(item,{attachment=null}={}){
   if(count)actions.push({label:`채팅에서 이 그림 빼기${count>1?` (${count}곳)`:''}`,run:async()=>removeImageFromChat(await recordOf(item))});
   // 0.1.74: a chat picture can move above or below the text on its own, or go back to the default place.
   if(attachment){const entry=visibleInlineImages(attachment.message).find(x=>x.id===item.id),fallback=imagePlacement(),now=placementOf(entry,fallback),other=now==='above'?'below':'above';
-    const move=(placement,done)=>away(async()=>{const r=await placeChatImage(item,attachment,placement);if(!r?.unverified)toast(done);}); // UI-072-01: no success note when the save could not be checked
+    const move=(placement,done)=>away(async()=>{const r=await placeChatImage(item,attachment,placement);if(!r?.unverified)toast(trMsg(done));}); // UI-072-01: no success note when the save could not be checked
     actions.push({label:other==='above'?'글 위로 옮기기':'글 아래로 옮기기',note:'이 그림만 옮겨요.',divider:true,leave:true,run:move(other,other==='above'?'그림을 글 위로 옮겼어요.':'그림을 글 아래로 옮겼어요.')});
     if(entry?.placement)actions.push({label:'기본 위치로 되돌리기',note:`지금 기본: 글 ${fallback==='above'?'위':'아래'}`,leave:true,run:move(null,'그림을 기본 위치로 되돌렸어요.')});}
   // 0.1.141 (GPT 0.1.140 P3): the record found by id carries the key it was saved with (an older group key is listed in "모든 채팅").
@@ -3153,8 +3153,8 @@ function promptText(item){
   // 0.1.86 (B3): the rest of the generation settings, under the names the preset editor uses.
   const a=item.assembled??{},o=item.options??{},has=v=>v!==undefined&&v!==null&&v!=='',
     more=[has(o.scale)&&`Guidance ${o.scale}`,has(o.cfgRescale)&&`CFG Rescale ${o.cfgRescale}`,has(o.sampler)&&`Sampler ${o.sampler}`,has(o.scheduler)&&`Noise Schedule ${o.scheduler}`].filter(Boolean),
-    lines=[`모델: ${MODELS[o.model]?.label??o.model??''} · ${o.width??'?'}×${o.height??'?'} · Steps ${o.steps??'?'} · seed ${item.seed??o.seed??''}${more.length?`\n${more.join(' · ')}`:''}`,'',`[공통 Positive]\n${a.base??''}`,`[공통 Negative]\n${a.negative??''}`];
-  (a.characters??[]).forEach((c,i)=>lines.push(`[인물 ${i+1}${c.name?` · ${c.name}`:''}${c.position&&c.position!=='auto'?` · ${c.position}`:''}]\n${c.prompt??''}${c.negative?`\nNegative: ${c.negative}`:''}`));
+    lines=[tr`모델: ${MODELS[o.model]?.label??o.model??''} · ${o.width??'?'}×${o.height??'?'} · Steps ${o.steps??'?'} · seed ${item.seed??o.seed??''}${more.length?`\n${more.join(' · ')}`:''}`,'',tr`[공통 Positive]\n${a.base??''}`,tr`[공통 Negative]\n${a.negative??''}`];
+  (a.characters??[]).forEach((c,i)=>lines.push(tr`[인물 ${i+1}${c.name?` · ${c.name}`:''}${c.position&&c.position!=='auto'?` · ${c.position}`:''}]\n${c.prompt??''}${c.negative?`\nNegative: ${c.negative}`:''}`));
   return lines.join('\n\n');
 }
 async function copyRaw(){

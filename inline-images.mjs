@@ -1,6 +1,7 @@
 import {buildImageMessage} from './chat.mjs';
 import {isSceneMessage} from './scene-messages.mjs';
 import {textSignature,clone} from './core.mjs';
+import {tr} from './i18n.mjs'; // wip-en: Korean shows every text as written
 // Shown under each save choice wherever a PNG can be saved.
 export const SAVE_NOTES={shared:'프롬프트·seed 등 메타데이터를 제거한 사본이에요.',original:'프롬프트·seed 등 메타데이터를 제거하지 않고 그대로 저장해요.'};
 export const SAVE_DETAILS=`<details class="ncs-save-info"><summary>PNG 저장 안내</summary><p>PNG 저장은 원본을 유지해요. 클린 PNG는 프롬프트 메타데이터와 알파 채널 정보를 제거한 불투명 사본을 만들어요. 원본과 이력은 그대로예요. 그림 안에 보이는 이름·글자는 제거하지 않아요.</p></details>`;
@@ -201,7 +202,7 @@ export const INLINE_LAYOUTS=['slide','grid','stack'],INLINE_SIZES=['small','medi
 function slideControls(holder,tiles){
  const count=tiles.length,bar=document.createElement('div');bar.className='ncs-inline-slide-bar';
  const make=(dir,label,text)=>{const b=document.createElement('button');b.type='button';b.className=`ncs-inline-slide-${dir}`;b.setAttribute('aria-label',label);b.textContent=text;return b;};
- const prev=make('prev','이전 그림','‹'),next=make('next','다음 그림','›'),position=document.createElement('span');position.className='ncs-inline-slide-count';
+ const prev=make('prev',tr`이전 그림`,'‹'),next=make('next',tr`다음 그림`,'›'),position=document.createElement('span');position.className='ncs-inline-slide-count';
  let shown=0;
  const show=i=>{shown=Math.min(count-1,Math.max(0,i));tiles.forEach((t,k)=>t.classList.toggle('ncs-current',k===shown));position.textContent=`${shown+1} / ${count}`;prev.disabled=shown<=0;next.disabled=shown>=count-1;};
  const go=step=>event=>{event.preventDefault();event.stopPropagation();show(shown+step);};
@@ -239,12 +240,12 @@ function renderGroup(element,where,items,{shape,scale,chatKey}){
   const tiles=[];
   for(const item of items){
    const tile=document.createElement('figure');tile.className='ncs-inline-image';
-   const img=document.createElement('img');img.src=item.image;img.alt='생성된 장면';img.loading='lazy';
-   const open=document.createElement('button');open.type='button';open.className='ncs-inline-open';open.dataset.ncsInlineView=item.id;open.setAttribute('aria-label','생성된 장면 크게 보기');open.append(img);
+   const img=document.createElement('img');img.src=item.image;img.alt=tr`생성된 장면`;img.loading='lazy';
+   const open=document.createElement('button');open.type='button';open.className='ncs-inline-open';open.dataset.ncsInlineView=item.id;open.setAttribute('aria-label',tr`생성된 장면 크게 보기`);open.append(img);
    const remove=document.createElement('button');
    // A deleted or missing file shows a note instead of a broken image; the remove button stays.
-   img.addEventListener('error',()=>{tile.classList.add('ncs-missing');open.disabled=true;remove.hidden=false;const note=document.createElement('span');note.className='ncs-missing-note';note.textContent='삭제됐거나 찾을 수 없는 그림이에요.';open.replaceChildren(note);},{once:true});
-   remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent='이 메시지에서 빼기';
+   img.addEventListener('error',()=>{tile.classList.add('ncs-missing');open.disabled=true;remove.hidden=false;const note=document.createElement('span');note.className='ncs-missing-note';note.textContent=tr`삭제됐거나 찾을 수 없는 그림이에요.`;open.replaceChildren(note);},{once:true});
+   remove.type='button';remove.dataset.ncsInlineRemove=item.id;remove.textContent=tr`이 메시지에서 빼기`;
    // 0.1.63: no ⋯ over the picture. Saving, removing and deleting live in the enlarged view (tap the picture);
    // only a picture whose file is gone shows a plain [이 메시지에서 빼기] under its note.
    remove.className='ncs-inline-remove';remove.hidden=true;tile.append(open,remove);holder.append(tile);tiles.push(tile);

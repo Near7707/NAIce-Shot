@@ -15,6 +15,8 @@
 //     the same preset save keeps the same settings.
 // 11. The History tab is English; a chat name and a tag that are dictionary words stay as written; putting a picture in
 //     a message, deleting and [챗샷으로 보내기] do the same in both languages (the undo label stays Korean).
+// 12. The enlarged view and the pictures in the chat are English; "불러오는 중…" still clears in English; moving a chat
+//     picture saves the same in both languages.
 // Header copied from browser-v01101 (lines 1–91) with a `lang` option; helpers from the same file.
 import zlib from 'node:zlib';
 import http from 'node:http';
@@ -447,7 +449,8 @@ try{
       await clearNotice(p);await p.locator('[data-action="history"]').click();await p.waitForFunction(()=>document.querySelector('#ncs-notice').textContent);
       assert.equal(await notice(p),said);await p.unroute('**/api/plugins/naice-shot/history?*',fail);
      }
-     await p.locator('[data-action="history"]').click();await p.waitForSelector('.ncs-history-card');
+     // the card drawn before the failed refreshes stays (an error keeps the list); refreshing again here let its late
+     // reply redraw the card under the open ⋯ menu (GPT wip-en P3, seventh review)
      await p.evaluate(()=>{window.__toasts=[];const keep=m=>window.__toasts.push(m);window.toastr={info:keep,warning:keep,success:keep,error:keep};mock.chat[1].send_date='t1';mock.chat[1].mes='Leo stands up and leaves.';mock.renderChat();});
      await p.locator('[data-image-more^="ncs-history-menu"]').first().click();await p.locator('.ncs-image-popup:popover-open [data-history-jump]').click();
      await p.waitForFunction(()=>window.__toasts.length);
@@ -457,6 +460,73 @@ try{
     assert.deepEqual(t.errors,[]);await page.close();
    }
    assert.deepEqual(seen.en,seen.ko,'the same history actions send and save the same in both languages');
+  }
+  // --- 12. the enlarged view (viewer) reads in English: its fixed words, ⋯ menu, prompt lines and toasts; "불러오는 중…"
+  //     still clears after a slow page in English (it was compared by its Korean words); a picture in the chat (its
+  //     buttons, the slide arrows, a missing file's note) is English; moving it in the chat saves the same in both languages.
+  {
+   const seen={};
+   const left=(page,sel,own='')=>page.evaluate(([sel,own])=>{const H=/[가-힣]/,out=[];
+    for(const root of document.querySelectorAll(sel)){const w=document.createTreeWalker(root,4);for(let x=w.nextNode();x;x=w.nextNode()){const v=x.nodeValue.trim();if(v&&H.test(v)&&!(own&&x.parentElement.closest(own)))out.push(v);}
+     for(const el of [root,...root.querySelectorAll('*')])for(const a of ['aria-label','title','placeholder','data-short','alt'])if(H.test(el.getAttribute(a)??''))out.push(`@${a} ${el.getAttribute(a)}`);}return out;},[sel,own]);
+   for(const lang of ['ko','en']){
+    const idOf=n=>`${String(n).padStart(8,'0')}-aaaa-4bbb-8ccc-${String(n).padStart(12,'0')}`; // uid() fits one digit only
+    const t=await open(width,{lang,seed:Array.from({length:21},(x,i)=>({...pic(i+1),id:idOf(i+1),image:`/user/images/naice-shot/${idOf(i+1)}.png`})),broken:[idOf(30)]});const {page}=t;const en=lang==='en';
+    await page.evaluate(()=>{window.__toasts=[];const keep=m=>window.__toasts.push(m);window.toastr={info:keep,warning:keep,success:keep,error:keep};});
+    // 21 pictures: the list shows 20; the viewer's next page (offset 20) waits until released and then brings nothing (the
+    // last picture was deleted elsewhere), so no new picture is shown and only the loading flag can clear the note
+    const slow=gate();
+    await page.route('**/api/plugins/naice-shot/history?*',r=>new URL(r.request().url()).searchParams.get('offset')==='20'?slow.then(()=>r.fulfill({json:{items:[],total:20,hasMore:false,pending:[],pendingBytes:0}})):r.fallback());
+    await closeCompat(page);await page.locator('[data-tab="history"]').click();await page.waitForFunction(()=>document.querySelectorAll('.ncs-history-card').length===20);
+    // the 20th card (uid(2)): opening it already asks for the next page
+    await page.evaluate(id=>document.querySelector(`[data-view-history="${id}"]`).click(),uid(2));
+    await page.waitForSelector('#ncs-viewer[open] .ncsv-stage img[src]');
+    await page.locator('#ncs-viewer [data-v="more"]').click();
+    const more=await page.locator('#ncs-viewer .ncsv-more-items').innerText();
+    assert.match(more,en?/Send to Chat Shot[\s\S]*Settings as a preset[\s\S]*Name it on the history card and save\.[\s\S]*Go to message/:/챗샷으로 보내기[\s\S]*설정을 프리셋으로[\s\S]*메시지로 가기/);
+    await page.keyboard.press('Escape');
+    await page.evaluate(()=>{const d=document.querySelector('#ncs-viewer .ncsv-prompt');d.open=true;d.dispatchEvent(new Event('toggle'));});
+    await page.waitForFunction(()=>/1boy/.test(document.querySelector('#ncs-viewer .ncsv-prompt-text').textContent));
+    const prompt=await page.locator('#ncs-viewer .ncsv-prompt-text').textContent();
+    assert.ok(prompt.startsWith(en?'Model: V4.5 Full · 832×1216 · Steps 28 · seed 2':'모델: V4.5 Full · 832×1216 · Steps 28 · seed 2'),prompt);
+    assert.ok(prompt.includes(en?'[Common Positive]\n1boy':'[공통 Positive]\n1boy'),prompt);
+    assert.equal(await text(page,'#ncs-viewer [data-v="seed"]'),en?'Copy seed 2':'seed 2 복사');
+    // the date is a value in Korean form (a known limit, like the history card's)
+    if(en)assert.deepEqual(await left(page,'#ncs-viewer','.ncsv-meta'),[],'the viewer is English');
+    // › waits for the slow page: "불러오는 중…" shows, and goes once the page is in
+    assert.equal(await text(page,'#ncs-viewer .ncsv-position'),'20 / 21');
+    await page.locator('#ncs-viewer [data-v="next"]').click();
+    await page.waitForFunction(()=>!document.querySelector('#ncs-viewer .ncsv-toast').hidden);
+    assert.equal(await text(page,'#ncs-viewer .ncsv-toast'),en?'Loading…':'불러오는 중…');
+    slow.open();await page.waitForFunction(()=>document.querySelector('#ncs-viewer .ncsv-position').textContent==='20 / 20');
+    await page.waitForFunction(()=>document.querySelector('#ncs-viewer .ncsv-toast').hidden,null,{timeout:4000});
+    await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.querySelector('#ncs-viewer').open);
+    // a picture in the chat: put in #1 from the history, then a second one whose file is missing (slide layout, two pictures)
+    await page.evaluate(id=>document.querySelector(`[data-history-attach="${id}"]`).click(),uid(2));await page.waitForSelector('#ncs-attach-dialog[open]');
+    await page.locator('[data-attach-target="1"]').click();await page.locator('[data-action="attach-confirm"]').click();
+    await page.waitForFunction(()=>mock.chat[1].extra?.naice_shot_images?.length===1);
+    await page.evaluate(id=>{const list=mock.chat[1].extra.naice_shot_images;list.push({...list[0],id,image:`/user/images/naice-shot/${id}.png`});mock.savedChat=JSON.stringify(mock.chat);mock.renderChat();mock.emit('edited');},idOf(30));
+    await page.evaluate(()=>document.getElementById('naice-shot-dialog').close());
+    // slide layout: the second picture loads (lazy) once it is shown
+    await page.locator('#chat .ncs-inline-slide-next').click();await page.waitForSelector('#chat .ncs-missing-note');
+    assert.equal(await page.locator('#chat .ncs-inline-slide-next').getAttribute('aria-label'),en?'Next picture':'다음 그림');
+    assert.equal(await text(page,'#chat .ncs-missing-note'),en?'This picture was deleted or cannot be found.':'삭제됐거나 찾을 수 없는 그림이에요.');
+    assert.equal(await page.locator('#chat .ncs-inline-remove:not([hidden])').innerText(),en?'Take out of this message':'이 메시지에서 빼기');
+    if(en)assert.deepEqual(await left(page,'#chat .ncs-inline-images'),[],'the chat pictures are English');
+    // the picture opened from its message: [이 메시지에서 빼기] on row 2, ⋯ → move below the text
+    await page.locator('#chat .ncs-inline-slide-prev').click();await page.locator(`#chat [data-ncs-inline-view="${uid(2)}"]`).click();await page.waitForSelector('#ncs-viewer[open] .ncsv-stage img[src]');
+    assert.equal(await text(page,'#ncs-viewer [data-v="detach"]'),en?'Take out of this message':'이 메시지에서 빼기');
+    await page.locator('#ncs-viewer [data-v="more"]').click();
+    const chatMore=await page.locator('#ncs-viewer .ncsv-more-items').innerText();
+    assert.match(chatMore,en?/Move below the text[\s\S]*Moves only this picture\.[\s\S]*View in history/:/글 아래로 옮기기[\s\S]*이 그림만 옮겨요\.[\s\S]*이력에서 보기/);
+    if(en)assert.deepEqual(await left(page,'#ncs-viewer','.ncsv-meta'),[],'the viewer opened from the chat is English');
+    await page.locator('#ncs-viewer .ncsv-more-items button',{hasText:en?'Move below the text':'글 아래로 옮기기'}).click();
+    await page.waitForFunction(()=>window.__toasts.length);
+    assert.deepEqual(await page.evaluate(()=>window.__toasts),[en?'Moved the picture below the text.':'그림을 글 아래로 옮겼어요.']);
+    seen[lang]=await page.evaluate(()=>mock.chat[1].extra.naice_shot_images.map(x=>[x.id,x.placement??null]));
+    assert.deepEqual(t.errors,[]);await page.close();
+   }
+   assert.deepEqual(seen.en,seen.ko,'moving a chat picture saves the same in both languages');
   }
  }
  console.log('PASS browser-wip-en');
