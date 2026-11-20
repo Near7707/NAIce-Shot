@@ -25,7 +25,7 @@ import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, 
 import { cleanImageFile, saveCleanImage } from './downloads.mjs';
 import { jumpTargets, locateSource, locateAttached } from './message-jump.mjs';
 import {stableChatJson,comparableSavedMetadata,splitSavedChat,timedState} from './chat.mjs';
-import {tr,trMsg,localize,setLang,doneText,currentLang} from './i18n.mjs'; // wip-en: Korean shows every text as written
+import {tr,trMsg,localize,setLang,doneText,currentLang,dateLocale,dateForm} from './i18n.mjs'; // wip-en: Korean shows every text as written
 import {parseTags,cleanMarks,cleanPopupChats,setMark,forgetIds,forgetChat,starredIds,taggedIds,ownerOf,tagMatches,pickMatch,taggedFor} from './image-marks.mjs';
 
 const KEY='naice_shot',API='/api/plugins/naice-shot';
@@ -278,7 +278,7 @@ async function promptForImage(item) {
   throw new Error('이 그림의 프롬프트 기록을 찾을 수 없어요.');
 }
 // 2026. 10. 27. 오후 12:27 — minutes, no seconds.
-function shortDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?'':d.toLocaleString('ko-KR',{year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'});}
+function shortDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?'':d.toLocaleString(dateLocale(),dateForm({year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'}));}
 // One history page for a range. With ★ only, the favorites' IDs go to the server, which keeps its own range rules.
 function marks(){const s=settings();if(!s.imageMarks||typeof s.imageMarks!=='object')s.imageMarks={};return s.imageMarks;}
 function historyPage({scope,filter,key,offset,limit,markFilter}){
@@ -2402,7 +2402,7 @@ function renderShape(){
   $('ncs-shape-list').textContent=accountShape?accountShape.join('\n'):tr`서버 플러그인을 0.1.14 이상으로 업데이트하면 보여요.`;
   dialog.querySelector('[data-action="copy-shape"]').disabled=!accountShape||shapeStale;
   // UI-066-01: after a failed check the old list stays readable but is marked and cannot be copied as current.
-  $('ncs-shape-status').textContent=shapeStale?tr`이전 조회(${new Date(shapeAt).toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'})}) 결과예요. 이번 확인은 실패해서 복사할 수 없어요.`:'';
+  $('ncs-shape-status').textContent=shapeStale?tr`이전 조회(${new Date(shapeAt).toLocaleTimeString(dateLocale(),{hour:'numeric',minute:'2-digit'})}) 결과예요. 이번 확인은 실패해서 복사할 수 없어요.`:'';
 }
 async function copyShape(){
   if(!accountShape)return;try{await copyText(accountShape.join('\n'),dialog);$('ncs-shape-status').textContent=tr`복사했어요.`;}catch(e){$('ncs-shape-status').textContent=e.message;}

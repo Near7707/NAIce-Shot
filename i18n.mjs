@@ -10,6 +10,10 @@ let lang='ko';
 export const LANGUAGES=['ko','en'];
 export function setLang(value){lang=value==='en'?'en':'ko';}
 export const currentLang=()=>lang;
+// Dates and times shown on screen (history cards, the viewer's caption, "이전 조회"): Korean keeps 'ko-KR' and the options
+// exactly as written; English reads "Nov 14, 2026, 7:27 PM". Display only: the saved value is the ISO time.
+export const dateLocale=()=>lang==='en'?'en-US':'ko-KR';
+export const dateForm=options=>lang==='en'&&options.month==='numeric'?{...options,month:'short'}:options;
 
 const join=(strings,values)=>{let out=strings[0];for(let i=1;i<strings.length;i++)out+=String(values[i-1])+strings[i];return out;};
 const fill=(template,values)=>template.replace(/\{(\d+)\}/g,(all,n)=>Number(n)<values.length?String(values[Number(n)]):all);

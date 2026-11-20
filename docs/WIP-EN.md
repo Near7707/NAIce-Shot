@@ -105,10 +105,15 @@ next to it shows the real state). Both need the person to type an app sentence b
 named exactly like an app sentence inside the shared core's wardrobe error (GPT wip-en P3, third review). An outfit name
 with 스텝 shows as Steps in that error in both languages: that is main's `stepsWord`, not this branch.
 
-Also left (step 4): the account-fields "earlier check" line shows its time in Korean form (`toLocaleTimeString('ko-KR')`,
-a value); the language switch's own notice stays in both languages.
-Also left (step 5-1): history dates keep the Korean form (`shortDate`, `toLocaleString('ko-KR')`, a value); the same
-date is the viewer's caption (step 5-2).
+Also left (step 4): the language switch's own notice stays in both languages. The account box's check time is 24-hour
+("14:20") in both languages.
+
+After the user's iPhone try of step 5-1/5-2: the selection button [본문에 넣기] is "Insert" ("Put in message" ran over the
+next button: the four buttons share one row in equal boxes), and the two sentences that name the button say [Insert] too.
+Dates and times read in the screen language: `shortDate` (history cards, waiting rows, the viewer's caption) and the
+"이전 조회(…)" time use `dateLocale()` / `dateForm(…)` from i18n.mjs — Korean gets 'ko-KR' and the options as written
+("2026. 11. 14. 오후 7:27"), English gets "Nov 14, 2026, 7:27 PM". Display only; the saved time is not touched.
+`tests/i18n-compare.mjs` reads `dateLocale()` as 'ko-KR' and `dateForm(x)` as x, so the Korean comparison stays whole.
 
 Still Korean: the tag pop-up on the chat screen (`showTagPopup`), the guide, server texts the dictionary does not know,
 and texts the AI writes (candidate titles, request words).
@@ -116,7 +121,7 @@ and texts the AI writes (candidate titles, request words).
 ## Checks
 
 - `node tests/i18n-compare.mjs <main index.js> index.js` — takes `tr`/`trMsg`/`doneText`/`localize` out and compares with main
-  statement by statement. Expected differences: the import, `renderSettings`, `importSettings`, `bindEvents`,
+  statement by statement (`dateLocale()` counts as 'ko-KR', `dateForm(x)` as x). Expected differences: the import, `renderSettings`, `importSettings`, `bindEvents`,
   `initialize` (the language switch). Anything else means Korean behaviour may have changed.
 - `tests/prompt-snapshot.test.mjs` — the AI prompts must equal `prompt-snapshot.json` (written from main 47f690d).
 - `tests/browser-wip-en.mjs` — same AI reply in Korean and English saves the same work and sends the same prompt;
@@ -137,7 +142,8 @@ and texts the AI writes (candidate titles, request words).
   the viewer is English (fixed words, ⋯ menu from the history and from the chat, prompt lines, seed button, the detach
   button); a slow next page that brings nothing still clears "Loading…"; the chat pictures (slide arrows, a missing
   picture's note and its remove button) are English; [글 아래로 옮기기] shows an English toast and saves the same placement
-  in both languages.
+  in both languages. Steps 11 and 12 also check that the selection buttons fit their boxes at both widths and that the
+  card's and the viewer's dates read in the screen language (Korean keeps "2026. 11. 14. 오후 7:27").
 - All earlier checks run unchanged (none of their expectations were edited).
 
 ## Stop rules

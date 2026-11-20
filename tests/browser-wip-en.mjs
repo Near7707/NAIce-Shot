@@ -399,6 +399,12 @@ try{
     const t=await open(width,{lang,seed:[pic(1),pic(2),pic(3,CHAT)],marks:{[uid(1)]:{star:true,tags:['1에 넣기'],chatKey:KEY}}});const {page}=t;const en=lang==='en';
     await closeCompat(page);await page.locator('[data-tab="history"]').click();await page.waitForSelector('.ncs-history-card');
     await page.evaluate(()=>document.querySelectorAll('section[data-page="history"] details').forEach(d=>{d.open=true;}));
+    // the selection buttons fit their boxes on a phone ("Put in message" ran over [Save] on the user's iPhone), and a card's
+    // date reads in the screen language ("Nov 14, 2026, 7:27 PM"); Korean keeps its form ("2026. 11. 14. 오후 7:27")
+    assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('.ncs-history-tools > button:not([hidden])')].filter(x=>x.scrollWidth>x.clientWidth+1).map(x=>x.textContent)),[],'the selection buttons fit');
+    assert.equal(await text(page,'[data-action="attach-selected"]'),en?'Insert':'본문에 넣기');
+    const dates=await page.locator('.ncs-history-date').allTextContents();assert.ok(dates.length>=2);
+    for(const d of dates)assert.match(d,en?/^[A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d{2}\s[AP]M$/:/^\d{4}\. \d{1,2}\. \d{1,2}\. 오[전후] \d{1,2}:\d{2}$/);
     await page.locator('[data-history-pick]').first().check();
     await page.waitForFunction(()=>document.querySelector('#ncs-history-count').textContent.includes('·'));
     assert.equal(await text(page,'#ncs-history-count'),en?'Total 2 · 1 picked':'총 2장 · 1장 고름');
@@ -491,8 +497,8 @@ try{
     assert.ok(prompt.startsWith(en?'Model: V4.5 Full · 832×1216 · Steps 28 · seed 2':'모델: V4.5 Full · 832×1216 · Steps 28 · seed 2'),prompt);
     assert.ok(prompt.includes(en?'[Common Positive]\n1boy':'[공통 Positive]\n1boy'),prompt);
     assert.equal(await text(page,'#ncs-viewer [data-v="seed"]'),en?'Copy seed 2':'seed 2 복사');
-    // the date is a value in Korean form (a known limit, like the history card's)
-    if(en)assert.deepEqual(await left(page,'#ncs-viewer','.ncsv-meta'),[],'the viewer is English');
+    // the caption's date reads in the screen language too
+    if(en){assert.deepEqual(await left(page,'#ncs-viewer'),[],'the viewer is English');assert.match(await text(page,'#ncs-viewer .ncsv-meta'),/[AP]M/);}
     // › waits for the slow page: "불러오는 중…" shows, and goes once the page is in
     assert.equal(await text(page,'#ncs-viewer .ncsv-position'),'20 / 21');
     await page.locator('#ncs-viewer [data-v="next"]').click();
@@ -519,7 +525,7 @@ try{
     await page.locator('#ncs-viewer [data-v="more"]').click();
     const chatMore=await page.locator('#ncs-viewer .ncsv-more-items').innerText();
     assert.match(chatMore,en?/Move below the text[\s\S]*Moves only this picture\.[\s\S]*View in history/:/글 아래로 옮기기[\s\S]*이 그림만 옮겨요\.[\s\S]*이력에서 보기/);
-    if(en)assert.deepEqual(await left(page,'#ncs-viewer','.ncsv-meta'),[],'the viewer opened from the chat is English');
+    if(en)assert.deepEqual(await left(page,'#ncs-viewer'),[],'the viewer opened from the chat is English');
     await page.locator('#ncs-viewer .ncsv-more-items button',{hasText:en?'Move below the text':'글 아래로 옮기기'}).click();
     await page.waitForFunction(()=>window.__toasts.length);
     assert.deepEqual(await page.evaluate(()=>window.__toasts),[en?'Moved the picture below the text.':'그림을 글 아래로 옮겼어요.']);

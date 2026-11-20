@@ -11,6 +11,8 @@ function norm(n){
   if(!n||typeof n!=='object')return n;
   if(n.type==='TaggedTemplateExpression'&&n.tag.type==='Identifier'&&n.tag.name==='tr')return norm(n.quasi);
   if(n.type==='CallExpression'&&n.callee.type==='Identifier'&&['trMsg','localize','doneText'].includes(n.callee.name))return norm(n.arguments[0]);
+  if(n.type==='CallExpression'&&n.callee.type==='Identifier'&&n.callee.name==='dateForm')return norm(n.arguments[0]); // Korean: the options as written
+  if(n.type==='CallExpression'&&n.callee.type==='Identifier'&&n.callee.name==='dateLocale')return {type:'Str',value:'ko-KR'}; // Korean: 'ko-KR'
   if(n.type==='CallExpression'&&n.callee.type==='MemberExpression'&&n.callee.property.name==='map'&&n.arguments.length===1&&n.arguments[0].name==='trMsg')return norm(n.callee.object);
   if(n.type==='Literal'&&typeof n.value==='string')return {type:'Str',value:n.value};
   if(n.type==='TemplateLiteral'&&!n.expressions.length)return {type:'Str',value:n.quasis[0].value.cooked};
