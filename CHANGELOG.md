@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.163 — 2026-11-20 (extension only — server v0.1.25 unchanged)
+
+- The settings drawer now goes in the left column of the extensions screen (the right one only if there is no left one), and `loading_order` is 2, so it shows near the top instead of at the bottom. Nothing else changes.
+
 ## 0.1.162 — 2026-11-16 (extension only — server v0.1.25 unchanged)
 
 From the GPT review of 0.1.161 (one P2):

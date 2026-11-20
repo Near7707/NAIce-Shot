@@ -3865,7 +3865,7 @@ async function open() {
 let panelReady=null;
 function mountSettingsDrawer() {
   if(document.getElementById('ncs-extension-settings'))return;
-  const holder=document.getElementById('extensions_settings2')??document.getElementById('extensions_settings');if(!holder)return;
+  const holder=document.getElementById('extensions_settings')??document.getElementById('extensions_settings2');if(!holder)return;
   const box=document.createElement('div');box.id='ncs-extension-settings';box.className='ncs-extension-settings';
   box.innerHTML=`<div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><b class="ncs-drawer-title">${CAMERA_ICON}<span data-brand>${esc(brand())}</span></b><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div><div class="inline-drawer-content"><div class="ncs-extension-body"><p>프로필 · 장면 편집 · 이미지 생성</p><button type="button" class="menu_button ncs-launch-button">${CAMERA_ICON}<span>${esc(brand())} 열기</span></button></div></div></div>`;
   box.querySelector('.ncs-launch-button').addEventListener('click',()=>(panelReady??Promise.resolve()).then(open).catch(e=>notice(e.message,true)));
