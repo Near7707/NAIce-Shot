@@ -52,3 +52,27 @@ own texts, the Profiles / Settings / History tabs, the guide, the viewer, and te
 Stop and rethink if: saved work differs between languages for the same AI reply; an earlier check needs its
 expectation changed to pass; `i18n-compare` shows a statement outside the expected list; one step needs more than
 about 30 changed lines of working code (not text).
+
+## Notes for whoever continues
+
+- The translation function is `tr`, not `t`: index.js already uses `t` as a local variable in many places.
+- The language is read once in `initialize` (`setLang(settings().uiLanguage)`), so a change applies after a reload.
+  The switch (`#ncs-ui-language-box`) sits just above 설정 백업: earlier checks expect 테마 first and 설정 백업 last.
+- Five places decide by Korean words. They keep doing so; translation comes after:
+  1. the saved undo label (`undoClear.label`: present or not, and whether it starts with "추출 전") — made and saved in
+     Korean, shown with `trMsg`. Wrapping the label in `tr` breaks undo across languages (browser-wip-en step 4 fails).
+  2. outfit origin (`origin==='이번 편집'`, character cards — not translated yet; translate `ORIGIN_TEXT` values only).
+  3. warnings filtered by their words (`startsWith('미등록 인물은…')`) — filtered first, then `warnings.map(trMsg)`.
+  4. `stepsWord` (스텝 → Steps) — runs first, then `trMsg`; dictionary keys use the "28 Steps" wording.
+  5. the viewer's "불러오는 중…" text comparison — the viewer is not translated; use its flag instead if it ever is.
+- Big HTML blocks that hold a person's or the AI's words are not wrapped in `tr`; their fixed words are translated
+  after drawing with `localize(root, skipSelector)`. The target list preview (chat text) is never localized.
+- Only Free Shot's extraction leaves an undo; Chat Shot's does not. That is why the undo check uses Free Shot.
+- Tools, run by hand with `node_modules` linked: `tests/i18n-wrap.mjs` (wraps the Korean texts of named functions
+  with `tr`; `--dry` first), `tests/i18n-keys.mjs` (tr keys missing from the dictionary), `tests/i18n-compare.mjs`.
+  The dictionary `i18n-en.mjs` is edited by hand.
+- In `tests/browser-wip-en.mjs` the language is put into the settings the moment the extension creates them (an init
+  script hooks `window.mock` and `extensionSettings.naice_shot`); setting it on `DOMContentLoaded` is too late.
+- Keep this branch level with main: merge main into wip-en whenever main moves. Do not edit version numbers,
+  CHANGELOG, REVIEW or ROADMAP here.
+- Review notes and test recipes for the whole extension: [DEV-NOTES.md](DEV-NOTES.md) (Korean).
