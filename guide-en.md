@@ -358,7 +358,7 @@ A status like **Saving the last work…** shows at the top of the Draw tab. If t
 
 ## When the server connection is slow
 
-If the server cannot be checked when the panel opens, work memory may not start right away. Press **[Check connection again]** on the Draw tab, or **[Check server · NAI connection]** at the bottom of **Settings tab → NAI generation settings**.
+If the server cannot be checked when the panel opens, work memory may not start right away. Press **[Check again]** on the Draw tab, or **[Check server · NAI connection]** at the bottom of **Settings tab → NAI generation settings**.
 
 Once connected, the saved work is checked. If the scene on screen and the scene on the server differ, you are asked:
 
@@ -373,7 +373,7 @@ Cancelling keeps the server's work as it is. But the edits left on screen are no
 
 While paused you can still edit, but nothing is saved on the server.
 
-To continue, press **[Reconnect work memory]**. It checks the server's last work again and asks again if it differs from the screen. Look at which side to keep before pressing OK.
+To continue, press **[Reconnect]**. It checks the server's last work again and asks again if it differs from the screen. Look at which side to keep before pressing OK.
 
 ## When the work was deleted somewhere else
 
@@ -437,7 +437,7 @@ A timeout does not prove the picture was not made. If you are not sure whether i
 
 If the server's reply is lost while deleting, the result may be unclear. Only confirmed deletions are shown on screen, and remaining pictures can be seen again in the history.
 
-If the last work's deletion could not be confirmed, **Work is locked until the deletion is confirmed.** shows. Press **[Check deletion again]**. Once confirmed, you can use it again.
+If the last work's deletion could not be confirmed, **Work is locked until the deletion is confirmed.** shows. Press **[Check deletion]**. Once confirmed, you can use it again.
 
 If you took a picture out of a chat and are not sure it was saved, open that chat again to check.
 

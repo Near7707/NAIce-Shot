@@ -846,6 +846,22 @@ try{
     assert.deepEqual(t.errors,[]);await page.close();
    }
   }
+  // --- 19. The work memory bar's button (user screenshot, 2026-11-22; main 0.1.166 keeps it on one line): the English
+  //     labels are short, so each fits on one line beside the note, which keeps room to wrap; Korean is main's check.
+  for(const w of width===375?[320,375,393]:[]){
+   const t=await open(w,{lang:'en',features:FEATURES.filter(f=>!f.startsWith('draft'))});const {page}=t;await closeCompat(page);
+   await page.waitForFunction(()=>!document.getElementById('ncs-draft-retry').hidden);
+   assert.equal(await text(page,'#ncs-draft-retry'),'Check again');
+   const EN=(await import('../i18n-en.mjs')).default,labels=['연결 다시 확인','작업 기억 다시 연결','삭제 결과 다시 확인','삭제 결과 확인 중…','서버 작업 다시 불러오기','다시 시도'].map(k=>EN[k]);
+   const seen=await page.evaluate(labels=>{const b=document.getElementById('ncs-draft-retry'),s=document.getElementById('ncs-draft-status'),out=[];
+    for(const label of labels){
+     b.textContent=label;out.push({t:b.textContent,w:Math.round(b.getBoundingClientRect().width),note:Math.round(s.getBoundingClientRect().width),
+      inside:b.scrollWidth<=b.clientWidth+1&&b.scrollHeight<=b.clientHeight+1,apart:s.getBoundingClientRect().right<=b.getBoundingClientRect().left+0.5});}
+    return out;},labels);
+   assert.deepEqual(seen.map(x=>x.t),['Check again','Reconnect','Check deletion','Checking…','Reload work','Try again']);
+   for(const x of seen){assert.ok(x.inside&&x.apart,`${w}px "${x.t}" one line beside the note`);assert.ok(x.note>=150,`${w}px "${x.t}": the note keeps room (${x.note}px)`);}
+   assert.deepEqual(t.errors,[]);await page.close();
+  }
  }
  console.log('PASS browser-wip-en');
 }finally{await browser.close();server.close();}

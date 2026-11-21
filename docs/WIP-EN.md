@@ -294,6 +294,14 @@ the line and the notice in both languages; undoing either `map(trMsg)` or either
 the old code. i18n-sweep checks a name that reads like an app sentence stays as written (fails without the `AS_IS` entry)
 and no longer keeps "X 복장 · 장면에서 찾지 못함" out as a known limit.
 
+Work memory bar button (user screenshot, 2026-11-22; the user chose C): "Check connection again" wrapped to three lines in
+the 32px button and ran over the text below. Korean wrapped too, so main 0.1.166 keeps that button on one line (CSS, with
+`browser-v01166`) and the note beside it wraps; merged here. On this branch the English labels set in that place are short:
+Check again, Reconnect, Check deletion, Checking…, Reload work (Try again as before); `guide-en.md` names the three it
+mentions the same way. browser-wip-en step 19 (only.py 18, at 320/375/393) checks each English label is one line beside
+the note and the note keeps at least 150px; changing a label back fails it. Taking main's CSS rule out does not fail this
+step (the short labels fit anyway); `browser-v01166` guards that rule.
+
 ## Checks
 
 - `node tests/i18n-compare.mjs <main index.js> index.js` — takes `tr`/`trMsg`/`doneText`/`localize` out and compares with main
