@@ -906,7 +906,7 @@ function placeRequest(){
   if(box.parentElement!==home)home.append(box);
   const again=box.querySelector?.('.ncs-request-again');if(again)again.hidden=!near;box.classList?.toggle?.('ncs-request-near',near);
   const applied=$('ncs-request-applied'),r=scene.request;if(!applied)return;applied.hidden=!r||(!r.applied?.length&&!r.ignored?.length);
-  applied.textContent=r?[r.applied?.length?tr`추가 요청 반영: ${r.applied.join(' · ')}`:'',r.ignored?.length?tr`반영하지 않음: ${r.ignored.join(' · ')}`:''].filter(Boolean).join(' / '):'';
+  applied.textContent=r?[r.applied?.length?tr`추가 요청 반영: ${r.applied.join(' · ')}`:'',r.ignored?.length?tr`반영하지 않음: ${r.ignored.map(trMsg).join(' · ')}`:''].filter(Boolean).join(' / '):'';
 }
 // One undo belongs to the saved work; edits, extraction and generation end it, while chat/tab switches keep it.
 // Saved work keeps only the label (the shared draft format), so the kind is read back from it.
@@ -2140,7 +2140,7 @@ async function extract() {
         finalOverride=null;optionsOverride=null;lastLink=null;linkTarget=null;revision++;renderScene();
         if(removed.size)warnings.push(`장면 설명에 들어간 이름(${[...removed].join(', ')})을 빼고 일반 표현으로 정리했어요.`);
         const lead=parsed.partial?tr`응답이 불완전해요. 온전히 받은 후보 ${moments.length}개만 보여줘요. 메시지의 마지막 순간이 빠졌을 수 있어요. ${limitHint()} `:wish&&!parsed.requestMatched?tr`요청한 순간을 이 메시지에서 찾지 못해서 마지막 순간으로 골랐어요. `:moments.length>1?tr`장면 후보 ${moments.length}개를 찾았어요. 위에서 그릴 순간을 고를 수 있어요. `:'';
-        const asked=request?[request.applied.length?tr`추가 요청 반영: ${request.applied.join(' · ')}.`:'',request.ignored.length?tr`반영하지 않음: ${request.ignored.join(' · ')}.`:''].filter(Boolean).join(' ')+' ':'';
+        const asked=request?[request.applied.length?tr`추가 요청 반영: ${request.applied.join(' · ')}.`:'',request.ignored.length?tr`반영하지 않음: ${request.ignored.map(trMsg).join(' · ')}.`:''].filter(Boolean).join(' ')+' ':'';
         const must=emptyNote(emptyRequired);
         notice(doneText(refs.note+lead+asked+(must?must+' ':'')+(warnings.length?warnings.map(trMsg).join(' / '):tr`추출했어요. 복장과 행동을 확인한 뒤 생성해 주세요.`)),false,originTab,{keep:!!must||!!refs.note||parsed.partial||!!(wish&&!parsed.requestMatched)||foreign.length>0});return;
       }catch(e){if(controller.signal.aborted)return;failure=e;if(!received)break;}

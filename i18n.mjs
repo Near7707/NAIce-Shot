@@ -54,7 +54,7 @@ const TR_ONLY=new Set(['{0} {1}장{2}','#{0} 메시지{1}','{0} 본문은 그대
 // thirteenth review). Warnings made by `tr` in index.js never look their values up, so they need no entry here.
 // The 프리샷 card question's lines carry card names the same way (GPT wip-en P3, fourteenth review), and so do the
 // errors with a wardrobe item's name, a profile name or a picture tag in them (GPT wip-en P3, fifteenth review).
-const AS_IS=new Set(['미등록 ID 제외: {0}',
+const AS_IS=new Set(['미등록 ID 제외: {0}','{0} 복장 · 장면에서 찾지 못함',
   '{0}: 자동 연결 없음. 이름·별칭 또는 이 채팅의 연결을 확인해 주세요.','{0}: 자동 연결 없음. 필요하면 유저 프로필을 연결해 주세요.',
   '{0}: 프로필 연결이 겹쳐요. 이 채팅의 프로필을 지정해 주세요.','{0}: @로 고른 같은 이름의 인물이 여러 명이라 누구인지 알 수 없어 비워 뒀어요.',
   '{0}: 프로필을 확정하지 못해 자동 적용하지 않았어요. 장면 정보는 보관했어요.','{0}: {1}와 같은 인물로 보여 한 번만 넣었어요.',

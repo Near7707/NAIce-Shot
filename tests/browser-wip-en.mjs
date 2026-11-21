@@ -828,6 +828,24 @@ try{
    assert.deepEqual(saved.en,saved.ko,'the name put together is the same in both languages');
    assert.equal(saved.en[1],'임시 인물');
   }
+  // --- 18. The app's own pieces in "Not applied: …" (user, 2026-11-22): a person's outfit the scene did not take and the
+  //     hair/eye words dropped from an outfit read English on the English screen, next to the AI's English words; the
+  //     person's name stays as written, and the Korean screen is as before.
+  for(const w of width===375?[375]:[]){
+   for(const lang of ['ko','en']){
+    const en=lang==='en',t=await open(w,{lang});const {page}=t;await closeCompat(page);
+    const coat={...TWO.moments[1],characters:[{...TWO.moments[1].characters[0],outfitMode:'replace',outfit:'red coat, blue hair'}]};
+    await extractWith(page,{...TWO,moments:[TWO.moments[0],coat],requestApplied:['red coat'],requestIgnored:['hair color'],
+     requestOutfits:[{id:'leo',name:'Leo',outfit:'red coat, blue hair'},{id:'kai',name:'Kai',outfit:'green hat'}]},'red coat');
+    const line=await text(page,'#ncs-request-applied'),said=await notice(page);
+    assert.equal(line,en?'Request applied: red coat / Not applied: hair color · Kai outfit · not found in the scene · hair, eyes etc. in the outfit · fixed profile look'
+     :'추가 요청 반영: red coat / 반영하지 않음: hair color · Kai 복장 · 장면에서 찾지 못함 · 복장 속 머리·눈 등 · 프로필 고정 외형');
+    assert.ok(said.includes(en?'Not applied: hair color · Kai outfit · not found in the scene · hair, eyes etc. in the outfit · fixed profile look.'
+     :'반영하지 않음: hair color · Kai 복장 · 장면에서 찾지 못함 · 복장 속 머리·눈 등 · 프로필 고정 외형.'),said);
+    if(en)assert.ok(!HANGUL.test(line),line);
+    assert.deepEqual(t.errors,[]);await page.close();
+   }
+  }
  }
  console.log('PASS browser-wip-en');
 }finally{await browser.close();server.close();}

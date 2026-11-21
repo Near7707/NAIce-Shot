@@ -120,6 +120,7 @@ test('names in the warnings stay as written even when they read like an app sent
       [`${S}: 프로필을 확정하지 못해 자동 적용하지 않았어요. 장면 정보는 보관했어요.`]:`${S}: the profile is not settled, so it was not applied automatically. The scene details are kept.`,
       [`${S}: 새 복장 후보가 있지만 잠금을 유지해요.`]:`${S}: a new outfit was found, but the lock is kept.`,
       [`임시 인물 ${S}의 외형이 비어 있어요. 외형을 채우면 더 잘 그려져요.`]:`The temporary person ${S} has no look. Filling it in draws them better.`,
+      [`${S} 복장 · 장면에서 찾지 못함`]:`${S} outfit · not found in the scene`, // a piece of "Not applied: …" (user, 2026-11-22)
       [`장면 설명에 들어간 이름(Mira, ${S})을 빼고 일반 표현으로 정리했어요.`]:`Removed the names in the scene description (Mira, ${S}) and used general wording instead.`,
       '장면 설명에 들어간 이름(Mira, Leo)을 빼고 일반 표현으로 정리했어요.':'Removed the names in the scene description (Mira, Leo) and used general wording instead.',
       '추출 인물의 name 필드가 없어요. 실제 인물 이름을 함께 반환해야 해요.':'A person in the result has no name field. The reply must include the real name of each person.'};
@@ -206,7 +207,6 @@ const PIECED=[
   /^X의 @참조를 확인해 주세요/,  // joins the user's @names and several problems into one line: needs a code change (known limit)
   /^@X: |^X: 같은 이름·별칭의 프로필이 여러 개예요/, // the @ problems above, never shown alone
   /^@이름을 프로필에 연결하면 X$/,/^X이 너무 길어서 X 못했어요/,/^X이 글자 수 한도를 넘었어요/, // pieces, checked whole above
-  /^X 복장 · 장면에서 찾지 못함$/, // a piece of "반영하지 않음: …" (known limit)
   /^X 필드 형식이 잘못됐어요|^캐릭터가 중복됐어요: X|^X 값이 문자열이 아니에요/]; // only shown inside "JSON을 읽지 못했어요: …"
 test('every sentence with values in it is English on the English screen (GPT wip-en P3, fifteenth review)',()=>{
   const own=files.filter(f=>path.dirname(f)===root);const found=new Set();

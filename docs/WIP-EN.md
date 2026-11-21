@@ -222,8 +222,8 @@ warning and fails when one stays Korean; the pieces kept out are listed with the
 Still Korean (the guide is English since the guide step below): the console-only error "NAIce Shot 패널 파일을 읽지 못했어요.", server texts the dictionary does
 not know, texts the AI writes (candidate titles, request words), and the @ check's problem list ("{0}의 @참조를 확인해
 주세요. @Mira: …"): it joins several sentences with the names typed by the user into one line, so translating it needs
-index.js to look each problem up apart (a code change, left for later). The same for "{0} 복장 · 장면에서 찾지 못함" inside "반영하지 않음: …"
-(the AI-request note): a piece that needs index.js to translate it where it is put in.
+index.js to look each problem up apart (a code change, left for later). (The pieces of "반영하지 않음: …" are English
+now, see "The app's pieces in Not applied" below.)
 
 After the user's iPhone try (no review): in the enlarged view, row 1 "⋯ | ‹ 3 / 1630 › | Save ▾ · Delete" ran › under the
 red Save — the English Save ▾ · Delete are wider than 저장 ▾ · 삭제, and ‹ n/m › is pinned to the exact centre. Measured
@@ -268,8 +268,7 @@ character. index.js passes `currentLang()` in two places (the extraction prompt 
 moment prompt asks the AI for words in a human language for the person; Free Shot's and the profile prompts ask only for
 English tags and names as written, so they are unchanged. Not changed: saved work from either language is read as it
 is, so an old Korean title stays Korean on the English screen (and the other way round). The app's own pieces in
-"Not applied: …" ("{0} 복장 · 장면에서 찾지 못함", "복장 속 머리·눈 등 · 프로필 고정 외형") are still Korean, so that
-line can mix English AI words with them (left for main, like before). `i18n-compare` reads a trailing `currentLang()`
+"Not applied: …" were still Korean at this step (fixed in the step after the unnamed temporary person). `i18n-compare` reads a trailing `currentLang()`
 of `momentExtractionPrompt` as the default and `languageRetry(…)` as main's Korean text, so it still shows 9 statements.
 
 Unnamed temporary person (found by a sweep of the English screen for Korean inside template HTML, 2026-11-22; the user
@@ -281,6 +280,19 @@ as written. `i18n-compare` reads `shownName(x, …)` as x, so it still shows 9 s
 three places, Korean as before, and the same saved name in both languages; undoing any one of the four changes (three
 places, one dictionary line) fails it. The same sweep found nothing else new: the tag help's "비, rain" example is on
 purpose, and `SAVE_DETAILS` (inline-images.mjs) is not used on screen. The sweep cannot open every rare error.
+
+The app's pieces in "Not applied: …" (2026-11-22, the user said do it): `applyRequestOutfits` (index.js) adds two Korean
+pieces to the request's ignored list next to the AI's words — "{0} 복장 · 장면에서 찾지 못함" (a person's outfit the scene
+did not take) and "복장 속 머리·눈 등 · 프로필 고정 외형" (hair/eye words dropped from an outfit). The list is saved as it
+is; only where it is shown (the line under the candidates and the extraction notice) each item goes through `trMsg`
+(`r.ignored.map(trMsg)`, `request.ignored.map(trMsg)`), with two dictionary lines. The first key is in `AS_IS`, so the
+name stays as written. The AI's own words go through `trMsg` too: English words stay as they are, and an old Korean word
+that is word for word a dictionary text would read English on screen only (nothing saved changes). `i18n-compare` reads
+`list.map(trMsg)` as list, so it still shows 9 statements. Left as it is: when the AI sends no name the app writes
+"인물" as the name, which stays Korean ("인물 outfit · …"), like other names. browser-wip-en step 18 (only.py 17) checks
+the line and the notice in both languages; undoing either `map(trMsg)` or either dictionary line fails it, and so does
+the old code. i18n-sweep checks a name that reads like an app sentence stays as written (fails without the `AS_IS` entry)
+and no longer keeps "X 복장 · 장면에서 찾지 못함" out as a known limit.
 
 ## Checks
 

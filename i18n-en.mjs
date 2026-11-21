@@ -1301,4 +1301,6 @@ export default {
   "@{0} · 끊긴 연결": "@{0} · broken link",
   "@{0} 대신 고르기": "Pick instead of @{0}",
   "칸에서 지우기": "Remove from box",
+  "{0} 복장 · 장면에서 찾지 못함": "{0} outfit · not found in the scene",
+  "복장 속 머리·눈 등 · 프로필 고정 외형": "hair, eyes etc. in the outfit · fixed profile look",
 };
