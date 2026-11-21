@@ -44,6 +44,6 @@ test('guide-en: the file and the icons follow the screen language; Korean stays 
   for(const g of ko)assert.equal(koOf(GUIDE_TITLES_EN[g.title]),g.title);
   assert.equal(koOf('Something else'),'Something else');
   // the guide sheet's own words (bar, error) and the @ pill words named by the guide are English
-  for(const t of ['‹ 목차','다음 ›','📖 사용 가이드','✕ 닫기','칸에서 지우기','프로필 보기','다시 고르기','연결됨','끊김'])assert.doesNotMatch(trMsg(t),/[가-힣]/,t);
+  for(const t of ['☰ 목차','‹ 이전','다음 ›','📖 사용 가이드','✕ 닫기','칸에서 지우기','프로필 보기','다시 고르기','연결됨','끊김'])assert.doesNotMatch(trMsg(t),/[가-힣]/,t);
   setLang('ko');
 });

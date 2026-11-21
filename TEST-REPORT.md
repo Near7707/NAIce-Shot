@@ -1,3 +1,14 @@
+# v0.1.165 validation — 2026-11-22 (extension only, server v0.1.25)
+
+- Guide bar only (`panel.html`, `index.js` guide functions, `style.css`). Version moved to 0.1.165 in `core.mjs`, `manifest.json`, `package.json`.
+- Extension Node suite: **199 passed, 0 failed**. Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **144 of 144 Chromium browser scripts passed** (run 4 at a time; `browser-v01140` timed out once in parallel and passed alone).
+- New `tests/browser-v01165.mjs` (320, 375, 393, 1100px, and all 17 themes at 320px): contents show no [☰ 목차] and no bar; first group has no ‹ 이전, last no 다음 ›; ‹ 이전 goes back and starts at the top; [☰ 목차] returns to the contents; n / 8 centred within 0.5px; every button on one line, inside the screen, nothing overlapping. Fails on the 0.1.164 code (no header 목차), and fails with the old flex bar CSS (n / 8 off centre at 320px).
+- Old checks changed on purpose: `browser-v01110` presses the header [☰ 목차]; `browser-v01111` expects keyboard focus on 다음 › and Shift+Tab to ‹ 이전.
+- Not checked: a real iPhone, a real SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.164 validation — 2026-11-21 (extension only, server v0.1.25)
 
 - Guide text only (`guide.md`); no code behaviour changed. Version moved to 0.1.164 in `core.mjs`, `manifest.json`, `package.json`.

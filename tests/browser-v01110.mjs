@@ -256,7 +256,7 @@ try{
   await page.waitForFunction(()=>document.querySelector('#ncs-guide-body h3')?.textContent==='4. 인물');
   assert.equal(await body.evaluate(b=>b.scrollTop),0);assert.match(await page.locator('.ncs-guide-bar small').innerText(),/4 \/ 8/);
   await body.evaluate(b=>{b.scrollTop=b.scrollHeight;});
-  await page.locator('.ncs-guide-bar [data-guide-toc]').click();
+  await page.locator('.ncs-guide-head [data-guide-toc]').click(); // 0.1.165: [☰ 목차] moved up beside [✕ 닫기]
   await page.locator('#ncs-guide-body .ncs-guide-toc').waitFor();assert.equal(await page.locator('#ncs-guide-nav').isVisible(),false);
   await group(page,7);assert.equal(await page.locator('.ncs-guide-bar [data-guide-group]').count(),0,'no 다음 on the last group');
   await page.keyboard.press('Escape');assert.equal(await page.locator('#ncs-guide').isVisible(),false);
@@ -271,7 +271,7 @@ try{
   await group(page,2);
   const step=await page.locator('#ncs-guide-body ol > li').first().evaluate(li=>[getComputedStyle(li.parentElement).listStyleType,getComputedStyle(li,'::before').content,getComputedStyle(li,'::after').content]);
   assert.deepEqual(step,['none','counter(ncs-step)','""']);
-  await page.locator('.ncs-guide-bar [data-guide-toc]').click();await group(page,0);
+  await page.locator('.ncs-guide-head [data-guide-toc]').click();await group(page,0);
   assert.equal(await page.locator('#ncs-guide-body blockquote').first().evaluate(b=>getComputedStyle(b,'::before').content),'"💡"');
   assert.deepEqual(errors,[]);await page.close();}
  console.log('PASS: with SillyTavern\'s code style, guide code is readable in all 17 themes (≥4.5:1, theme font/color); contents names and headings ≥4.5:1, every guide opaque; the bar stays under the title after scrolling (320/390/1100) and is hidden on the contents; icons, topic names, step circles and 💡 quotes');

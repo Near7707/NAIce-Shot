@@ -3366,14 +3366,15 @@ function loadGuide(){
 }
 const GUIDE_ICONS={'처음 사용하기':'🚀','개인정보와 저장되는 내용':'🔒','그리기':'🎨','인물':'👤','그림 다루기':'🖼️','비용':'💰','작업 기억':'💾','문제가 생겼을 때':'🛟'};
 async function renderGuide(){
-  const body=$('ncs-guide-body'),nav=$('ncs-guide-nav');let groups;nav.hidden=true;nav.textContent='';
+  const body=$('ncs-guide-body'),nav=$('ncs-guide-nav'),toc=$('ncs-guide').querySelector('.ncs-guide-head [data-guide-toc]');let groups;nav.hidden=true;nav.textContent='';toc.hidden=true;
   try{groups=await loadGuide();}catch{body.innerHTML=`<p>${tr`가이드를 읽지 못했어요. 확장을 다시 설치하거나 새로고침한 뒤 열어 주세요.`}</p>`;return;}
   if(guideAt===null||!groups[guideAt]){guideAt=null;
     // 0.1.110 (user choice B): each group shows an icon and the names of its topics, taken from guide.md.
     body.innerHTML=`<div class="ncs-guide-toc">${groups.map((g,i)=>`<button type="button" data-guide-group="${i}"><i class="ncs-guide-toc-icon" aria-hidden="true">${GUIDE_ICONS[koOf(g.title)]??'📘'}</i><span class="ncs-guide-toc-text"><span class="ncs-guide-toc-name">${i+1}. ${esc(g.title)}</span><small>${g.topics.map(t=>esc(t.title.split(' — ')[0])).join(' · ')}</small></span><i class="ncs-guide-toc-arrow" aria-hidden="true">›</i></button>`).join('')}</div>`;}
   else{const i=guideAt,g=groups[i];
-    // 0.1.110 (user request): ‹ 목차 · n / 8 · 다음 › sits under the title outside the scrolling text, so it never scrolls away.
-    nav.innerHTML=`<div class="ncs-guide-bar"><button type="button" data-guide-toc>${tr`‹ 목차`}</button><small>${i+1} / ${groups.length}</small>${i<groups.length-1?`<button type="button" data-guide-group="${i+1}">${tr`다음 ›`}</button>`:'<span></span>'}</div>`;nav.hidden=false;
+    // 0.1.110 (user request): the bar sits under the title outside the scrolling text, so it never scrolls away.
+    // 0.1.165 (user choice B): [‹ 이전] n / 8 [다음 ›] with n / 8 in the exact middle; [☰ 목차] moved up beside [✕ 닫기].
+    nav.innerHTML=`<div class="ncs-guide-bar"><span>${i>0?`<button type="button" data-guide-prev="${i-1}">${tr`‹ 이전`}</button>`:''}</span><small>${i+1} / ${groups.length}</small><span>${i<groups.length-1?`<button type="button" data-guide-group="${i+1}">${tr`다음 ›`}</button>`:''}</span></div>`;nav.hidden=false;toc.hidden=false;
     body.innerHTML=`<div class="ncs-guide-text"><h3>${i+1}. ${esc(g.title)}</h3>${g.topics.map(t=>`<h4>${esc(t.title)}</h4>${t.html}`).join('')}</div>`;}
   body.scrollTop=0;
 }
@@ -3386,13 +3387,14 @@ function closeGuide({focus=true}={}){
   box.hidden=true;dialog.querySelector('.ncs-shell').inert=false;if(focus)dialog.querySelector('[data-action="open-guide"]')?.focus();return true;
 }
 async function guideClick(event){
-  const el=event.target.closest('[data-guide-group],[data-guide-toc],[data-guide-link]');if(!el)return;event.preventDefault();
+  const el=event.target.closest('[data-guide-group],[data-guide-prev],[data-guide-toc],[data-guide-link]');if(!el)return;event.preventDefault();
   if(el.dataset.guideLink!==undefined){const groups=await loadGuide().catch(()=>[]),i=groups.findIndex(g=>g.id===el.dataset.guideLink);guideAt=i<0?null:i;}
-  else guideAt=el.dataset.guideGroup!==undefined?Number(el.dataset.guideGroup):null;
+  else guideAt=el.dataset.guideGroup!==undefined?Number(el.dataset.guideGroup):el.dataset.guidePrev!==undefined?Number(el.dataset.guidePrev):null;
   // 0.1.111 (GPT P3): opened with the keyboard (a click with no pointer: detail 0), focus starts on the bar above the
-  // text ([‹ 목차]), so Tab reaches 다음 › before the text's links. A finger or mouse keeps the focus on the text.
+  // text, before the text's links. A finger or mouse keeps the focus on the text.
+  // 0.1.165: the bar's first button there is [다음 ›] ([‹ 이전] on the last group), so Enter keeps going forward.
   await renderGuide();
-  const bar=guideAt!==null&&event.detail===0?$('ncs-guide-nav').querySelector('[data-guide-toc]'):null;
+  const nav=$('ncs-guide-nav'),bar=guideAt!==null&&event.detail===0?nav.querySelector('[data-guide-group]')??nav.querySelector('[data-guide-prev]'):null;
   (bar??$('ncs-guide-body')).focus({preventScroll:true});
 }
 function dismissKeyboard(){if(document.activeElement?.matches?.('input,textarea'))document.activeElement.blur();}

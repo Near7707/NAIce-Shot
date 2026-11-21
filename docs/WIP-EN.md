@@ -239,7 +239,7 @@ the group icons stay one table keyed by the Korean titles: `koOf(title)` turns a
 one (`GUIDE_TITLES_EN`). `i18n-compare` reads both helpers as their argument, so it still shows the same 9 statements.
 guide-en.md follows guide.md group by group and topic by topic and names buttons and notices exactly as the English screen
 does. While writing it, two places the guide names were found still Korean on the English screen and are English now: the
-guide sheet's own words (title "📖 사용 가이드", "✕ 닫기", "‹ 목차", "다음 ›", the read error) and the @ pill row and menu
+guide sheet's own words (title "📖 사용 가이드", "✕ 닫기", "‹ 목차" — "☰ 목차" since main 0.1.165 —, "다음 ›", the read error) and the @ pill row and menu
 ("연결됨", "끊김", the pills' titles, "프로필 보기 / 다시 고르기 / 칸에서 지우기", "다른 프로필", the head "@{0} · 끊긴 연결" /
 "@{0} 대신 고르기", "고를 수 있는 프로필이 없어요."). These were HTML strings in index.js that neither `tr` nor `localize`
 reached; i18n-sweep only reads quoted strings, not those inside a template's HTML.
@@ -373,4 +373,7 @@ about 30 changed lines of working code (not text).
   script hooks `window.mock` and `extensionSettings.naice_shot`); setting it on `DOMContentLoaded` is too late.
 - Keep this branch level with main: merge main into wip-en whenever main moves. Do not edit version numbers,
   CHANGELOG, REVIEW or ROADMAP here.
+- Main 0.1.165 (guide [‹ 이전], [☰ 목차] moved beside [✕ 닫기]) merged here: the dictionary gained "☰ 목차" and "‹ 이전"
+  (the unused "‹ 목차" key went), and browser-wip-en step 16 and guide-en.test now name those buttons. These two
+  expectations changed because main moved the buttons on purpose, not because of a wip-en change.
 - Review notes and test recipes for the whole extension: [DEV-NOTES.md](DEV-NOTES.md) (Korean).

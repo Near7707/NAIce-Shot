@@ -780,9 +780,10 @@ try{
     assert.equal(toc.length,8);assert.equal(toc[0],en?'1. Getting started':'1. 처음 사용하기');assert.equal(toc[2],en?'3. Drawing':'3. 그리기');
     assert.ok(!icons.includes('📘'),`every group keeps its icon: ${icons}`);seen[lang]=icons;
     if(en)assert.deepEqual(await hangul(page,'#ncs-guide'),[],'the guide contents are English');
-    // a group: the bar (‹ 목차 · n / 8 · 다음 ›) and the text
-    await page.locator('#ncs-guide [data-guide-group="2"]').click();await page.waitForSelector('#ncs-guide-nav:not([hidden]) [data-guide-toc]');
-    assert.equal(await text(page,'#ncs-guide-nav [data-guide-toc]'),en?'‹ Contents':'‹ 목차');
+    // a group: the bar (‹ 이전 · n / 8 · 다음 ›, main 0.1.165), ☰ 목차 beside ✕ 닫기, and the text
+    await page.locator('#ncs-guide [data-guide-group="2"]').click();await page.waitForSelector('#ncs-guide-nav:not([hidden]) [data-guide-prev]');
+    assert.equal(await text(page,'.ncs-guide-head [data-guide-toc]'),en?'☰ Contents':'☰ 목차');
+    assert.equal(await text(page,'#ncs-guide-nav [data-guide-prev]'),en?'‹ Prev':'‹ 이전');
     assert.equal(await text(page,'#ncs-guide-nav [data-guide-group]'),en?'Next ›':'다음 ›');
     assert.equal(await text(page,'#ncs-guide-body h3'),en?'3. Drawing':'3. 그리기');
     if(en)assert.deepEqual(await hangul(page,'#ncs-guide'),[],'a group of the guide is English');
