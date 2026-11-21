@@ -644,8 +644,8 @@ try{
     assert.deepEqual(t.asked.slice(n),[en?'Load the work saved on the server again? Unsaved edits on screen will be replaced.':'서버에 저장된 작업을 다시 불러올까요? 현재 화면의 저장되지 않은 편집은 바뀌어요.']);
     page.draftByKey={[KEY]:saved};await reopen(page);
     await page.waitForFunction(()=>document.querySelector('#ncs-location').value==='cafe');
-    await shows(page,'#ncs-draft-status',{re:en?'^Loaded the scene':'^이 채팅에서 작업하던 장면을 불러왔어요'});
-    assert.match(await page.locator('#ncs-draft-status').innerText(),en?/^Loaded the scene you were working on in this chat · Target message(: latest| #\d+)$/:/^이 채팅에서 작업하던 장면을 불러왔어요 · 대상 메시지(: 최신| #\d+)$/);
+    await shows(page,'#ncs-draft-status',{re:en?'^Chat scene loaded':'^이 채팅에서 작업하던 장면을 불러왔어요'});
+    assert.match(await page.locator('#ncs-draft-status').innerText(),en?/^Chat scene loaded · Target message(: latest| #\d+)$/:/^이 채팅에서 작업하던 장면을 불러왔어요 · 대상 메시지(: 최신| #\d+)$/);
     assert.deepEqual(t.errors,[]);await page.close();
     // The notice after another candidate is English and the AI's title stays as written ("닫기" is a dictionary word),
     // also with the note on a required person added to that candidate (GPT wip-en P3, eleventh review).

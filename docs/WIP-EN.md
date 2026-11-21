@@ -252,7 +252,15 @@ pause; the English kept line ("The last work is remembered on the server.", 42 c
 iPhone (the user saw it wrap) while the Korean one never did. Chromium shows one line at 320–430px, and the DOM changes
 on a pause are the same in both languages, so the text length is the only difference. Fix: the kept line is "Work kept
 on the server." (24 characters, shorter than the Korean). `tests/wip-en-status.test.mjs` keeps the three texts that swap
-while typing at 24 characters or fewer (it fails with the old text). Not checked on the iPhone yet.
+while typing at 24 characters or fewer (it fails with the old text).
+That was not the cause (the user's next screenshots): after saved work is loaded, its note stays on that line and swaps
+with "Saving the last work…" on every pause, and the English note was two lines on the iPhone ("Loaded the scene you
+were working on in Free Shot. The AI was not called again.", 79 characters; the iPhone fits about 55 a line), while the
+Korean one (39) fits one line — the user saw no jump in Korean. The notes that can stay there are short now: "Free Shot
+scene loaded. No new AI call.", "Chat scene loaded · Target message: latest" / "#{0}", "Work deleted on the server; screen
+cleared." The stale-source note is two lines in both languages (Korean 65 characters), so it can still move the fields on
+a pause after such a load; the English one is cut to about two lines too, and fixing the swap itself is for main. The
+check holds these notes at 48 characters or fewer (the stale one at 100). Not checked on the iPhone yet.
 
 AI output language step (the user chose "English screen → English words"): `momentExtractionPrompt(…, lang)` and
 `languageRetry(lang)` (scene-extraction.mjs) take the screen language; 'ko', the default, gives main's prompt to the
