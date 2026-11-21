@@ -128,7 +128,7 @@ export default {
   "마지막 작업을 불러오는 중…":"Loading the last work…",
   "작업 저장을 확인해 주세요: {0}":"Check work saving: {0}",
   "마지막 작업 저장 중…":"Saving the last work…",
-  "마지막 작업을 서버에 기억해요.":"The last work is remembered on the server.",
+  "마지막 작업을 서버에 기억해요.":"Work kept on the server.",
   "삭제 결과 확인 중…":"Checking deletion…",
   "삭제 결과 다시 확인":"Check deletion again",
   "서버 작업 다시 불러오기":"Reload work from server",

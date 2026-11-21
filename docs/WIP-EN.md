@@ -246,6 +246,14 @@ reached; i18n-sweep only reads quoted strings, not those inside a template's HTM
 **From now on: whenever guide.md changes (on main), guide-en.md must change the same way** (tests/guide-en.test.mjs fails
 when the groups or topic counts differ or a [button] is not on the English screen, but it cannot see a changed sentence).
 
+After the user's second iPhone try (no review): typing in Free Shot and pausing moved the fields down and up on the
+English screen only. The work-memory line above the fields swaps "Saving the last work…" and the kept line on every
+pause; the English kept line ("The last work is remembered on the server.", 42 characters) went to two lines on the
+iPhone (the user saw it wrap) while the Korean one never did. Chromium shows one line at 320–430px, and the DOM changes
+on a pause are the same in both languages, so the text length is the only difference. Fix: the kept line is "Work kept
+on the server." (24 characters, shorter than the Korean). `tests/wip-en-status.test.mjs` keeps the three texts that swap
+while typing at 24 characters or fewer (it fails with the old text). Not checked on the iPhone yet.
+
 AI output language step (the user chose "English screen → English words"): `momentExtractionPrompt(…, lang)` and
 `languageRetry(lang)` (scene-extraction.mjs) take the screen language; 'ko', the default, gives main's prompt to the
 character. index.js passes `currentLang()` in two places (the extraction prompt and the retry line). Only Chat Shot's
