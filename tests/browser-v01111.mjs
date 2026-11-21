@@ -2,7 +2,7 @@
 // The Anlas permission note folds on every screen to its first sentence; the opener is a red "꼭 확인해 주세요 ›".
 // A history refresh keeps as many pictures as were shown (it fell back to 100). The enlarged view fetches the next
 // picture's file ahead. The guide hides the panel under it (see-through SillyTavern themes), keeps small text undimmed,
-// and opened with the keyboard it puts focus on ‹ 목차 so Tab reaches 다음 ›.
+// and opened with the keyboard it puts focus on the bar above the text (0.1.165: on 다음 ›).
 import zlib from 'node:zlib';
 import http from 'node:http';
 import fs from 'node:fs/promises';
@@ -347,21 +347,22 @@ try{
   assert.deepEqual(low,[],'topic names at least 4.5:1');}
  console.log('PASS: guide small text is not dimmed');
 
- // 6. Keyboard: Enter on a group puts focus on ‹ 목차, Tab goes to 다음 ›; a click keeps focus on the text.
+ // 6. Keyboard: Enter on a group puts focus on 다음 › (0.1.165), Shift+Tab goes to ‹ 이전; a click keeps focus on the text.
  for(const width of [375,1100]){
   const {page,errors}=await open(width,{height:760});
   await page.locator('[data-action="open-guide"]').click();await page.locator('#ncs-guide-body .ncs-guide-toc').waitFor();
   await page.locator('#ncs-guide-body [data-guide-group="0"]').focus();await page.keyboard.press('Enter');
   await page.waitForFunction(()=>document.querySelector('#ncs-guide-body h3')?.textContent.startsWith('1.'));
-  await until(()=>page.evaluate(()=>document.activeElement?.matches('#ncs-guide-nav [data-guide-toc]')),'focus on ‹ 목차');
-  await page.keyboard.press('Tab');
-  assert.equal(await page.evaluate(()=>document.activeElement?.closest('#ncs-guide-nav')&&document.activeElement.dataset.guideGroup),'1',`${width}px: Tab reaches 다음 ›`);
+  // 0.1.165: [☰ 목차] moved up beside [✕ 닫기]; the keyboard starts on the bar's [다음 ›] (first group: no [‹ 이전]).
+  await until(()=>page.evaluate(()=>document.activeElement?.closest('#ncs-guide-nav')&&document.activeElement.dataset.guideGroup==='1'),'focus on 다음 ›');
   await page.keyboard.press('Enter');await page.waitForFunction(()=>document.querySelector('#ncs-guide-body h3')?.textContent.startsWith('2.'));
-  assert.equal(await page.evaluate(()=>document.activeElement?.matches('#ncs-guide-nav [data-guide-toc]')),true,'다음 by keyboard: ‹ 목차 again');
+  assert.equal(await page.evaluate(()=>document.activeElement?.closest('#ncs-guide-nav')&&document.activeElement.dataset.guideGroup),'2','다음 by keyboard: on 다음 › again');
+  await page.keyboard.press('Shift+Tab');
+  assert.equal(await page.evaluate(()=>document.activeElement?.dataset.guidePrev),'0',`${width}px: Shift+Tab reaches ‹ 이전`);
   await page.locator('#ncs-guide-nav [data-guide-group="2"]').click();await page.waitForFunction(()=>document.querySelector('#ncs-guide-body h3')?.textContent.startsWith('3.'));
   assert.equal(await page.evaluate(()=>document.activeElement?.id),'ncs-guide-body',`${width}px: a click keeps the text focused`);
   await page.keyboard.press('Escape');assert.equal(await page.locator('#ncs-guide').isVisible(),false);
   assert.deepEqual(errors,[]);await page.close();
  }
- console.log('PASS: keyboard opens a group on ‹ 목차');
+ console.log('PASS: keyboard opens a group on 다음 ›');
 }finally{await browser.close();server.close();}

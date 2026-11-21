@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.165 — 2026-11-22 (extension only — server v0.1.25 unchanged)
+
+User request + user choice B (from three layouts shot on the real panel):
+- The guide has a **‹ 이전** (previous) button. Inside a group the bar now reads **[‹ 이전] n / 8 [다음 ›]**, with n / 8 exactly in the middle; the first group has no ‹ 이전 and the last no 다음 ›.
+- **[☰ 목차]** (back to the contents) moved up beside **[✕ 닫기]**, shown only inside a group.
+- Opened with the keyboard, a group starts on **다음 ›** (‹ 이전 on the last group), so Enter keeps going forward.
+- Fits on one line at 320px in all 17 themes. `guide.md` text unchanged (it does not describe these buttons).
+
 ## 0.1.164 — 2026-11-21 (extension only — server v0.1.25 unchanged)
 
 사용 가이드 (`guide.md`) only — no code behaviour changes. From a check of the guide against the 0.1.163 screens:

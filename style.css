@@ -1091,6 +1091,9 @@
 #naice-shot-dialog .ncs-guide-head {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px 10px;border-bottom:1px solid var(--ncs-rule);}
 #naice-shot-dialog .ncs-guide-head strong {font-size:16px;}
 #naice-shot-dialog .ncs-guide-head button {width:auto;min-height:36px;margin:0;padding:4px 12px;}
+/* 0.1.165 (user choice B): [☰ 목차] beside [✕ 닫기], shown only inside a group */
+#naice-shot-dialog .ncs-guide-head-buttons {display:flex;gap:6px;flex:none;}
+#naice-shot-dialog .ncs-guide-head [hidden] {display:none;}
 #naice-shot-dialog .ncs-guide-scroll {flex:1;min-height:0;overflow:auto;padding:12px 18px 24px;outline:none;}
 #naice-shot-dialog .ncs-guide-toc {display:grid;gap:10px;margin:4px 0 12px;}
 /* 0.1.110 (user choice B): icon, group name and its topic names */
@@ -1103,7 +1106,9 @@
 /* 0.1.110 (user request): the bar lives in its own row under the title, outside the scrolling text */
 #naice-shot-dialog .ncs-guide-nav {flex:none;padding:8px 18px;border-bottom:1px solid var(--ncs-rule);}
 #naice-shot-dialog .ncs-guide-nav[hidden] {display:none;}
-#naice-shot-dialog .ncs-guide-bar {display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0;}
+/* 0.1.165 (user choice B): [‹ 이전] n / 8 [다음 ›], n / 8 in the exact middle (equal side columns) */
+#naice-shot-dialog .ncs-guide-bar {display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin:0;}
+#naice-shot-dialog .ncs-guide-bar > span:last-child {justify-self:end;}
 #naice-shot-dialog .ncs-guide-bar button {width:auto;min-height:36px;margin:0;padding:4px 12px;}
 #naice-shot-dialog .ncs-guide-bar small {color:var(--ncs-muted);font-size:12px;}
 #naice-shot-dialog .ncs-guide-text h3 {font-size:17px;margin:4px 0 12px;padding:10px 14px;border:1px solid var(--ncs-rule);border-radius:var(--ncs-radius-card);background:var(--ncs-control);}
