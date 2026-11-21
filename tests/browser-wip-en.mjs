@@ -26,6 +26,8 @@
 //     nothing on the row overlaps at 320, 375 and 393px; in Korean ‹ n/m › stays exactly centred as before.
 // 16. The 사용 가이드: the English screen reads guide-en.md (contents, icons, bar, a group's text: no Korean), the Korean
 //     screen reads guide.md as before; the @ pill row and its menu, which the guide names, are English.
+// 17. A temporary person left unnamed reads "Temporary person" / "(no name)" where it is shown on the English screen; the
+//     name put together and saved with the picture stays "임시 인물" in both languages.
 // Header copied from browser-v01101 (lines 1–91) with a `lang` option; helpers from the same file.
 import zlib from 'node:zlib';
 import http from 'node:http';
@@ -804,6 +806,27 @@ try{
     assert.deepEqual(t.errors,[]);await page.close();
    }
    assert.deepEqual(seen.en,seen.ko,'the same icons in both languages');
+  }
+  // --- 17. A temporary person left unnamed (user, 2026-11-22): where its name is shown (the final prompt slot, the length
+  //     line, the empty-look warning) the English screen reads "Temporary person" / "(no name)"; the name put together and
+  //     saved with the picture stays "임시 인물" in both languages, and the Korean screen is as before.
+  for(const w of width===375?[375]:[]){
+   const saved={};
+   for(const lang of ['ko','en']){
+    const en=lang==='en',t=await open(w,{lang});const {page}=t;await closeCompat(page);
+    await extractWith(page,TWO,'smiling');
+    await page.locator('[data-action="add-temp"]').first().click();
+    await page.waitForFunction(()=>document.querySelectorAll('.ncs-final-slot').length===2);
+    const seen=await page.evaluate(()=>({legend:document.querySelectorAll('.ncs-final-slot legend')[1].textContent,length:document.getElementById('ncs-length').textContent,
+     warnings:document.getElementById('ncs-warnings').textContent,saved:JSON.parse(document.getElementById('ncs-final').value).characters.map(c=>c.name)}));
+    assert.equal(seen.legend,en?'Temporary person':'임시 인물');
+    assert.match(seen.length,en?/ · Temporary person: \d+ chars · /:/ · 임시 인물: \d+자 · /);
+    assert.ok(seen.warnings.includes(en?'The temporary person (no name) has no look.':'임시 인물 (이름 없음)의 외형이 비어 있어요.'),seen.warnings);
+    if(en)assert.ok(!/[가-힣]/.test(seen.legend+seen.length+seen.warnings),`no Korean: ${seen.legend} / ${seen.length} / ${seen.warnings}`);
+    saved[lang]=seen.saved;assert.deepEqual(t.errors,[]);await page.close();
+   }
+   assert.deepEqual(saved.en,saved.ko,'the name put together is the same in both languages');
+   assert.equal(saved.en[1],'임시 인물');
   }
  }
  console.log('PASS browser-wip-en');

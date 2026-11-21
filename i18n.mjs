@@ -17,6 +17,9 @@ export const dateForm=options=>lang==='en'&&options.month==='numeric'?{...option
 // The 사용 가이드: English reads guide-en.md (guide.md stays as it is). An English group title is looked up back to its
 // Korean title, so the icons keyed by the Korean titles (index.js GUIDE_ICONS) stay one table. Korean: both as written.
 export const localFile=name=>lang==='en'&&name==='guide.md'?'guide-en.md':name;
+// A temporary person left unnamed is put together (and saved with the picture) as "임시 인물". Only where that name is
+// shown it reads in the screen language; `unnamed` says it is that person (by id), so a profile named alike stays as written.
+export const shownName=(name,unnamed)=>unnamed&&lang==='en'?tr`임시 인물`:name;
 export const GUIDE_TITLES_EN={'처음 사용하기':'Getting started','개인정보와 저장되는 내용':'Privacy and what is saved','그리기':'Drawing','인물':'People',
   '그림 다루기':'Working with pictures','비용':'Cost','작업 기억':'Work memory','문제가 생겼을 때':'When something goes wrong'};
 export const koOf=title=>lang==='en'?(Object.keys(GUIDE_TITLES_EN).find(k=>GUIDE_TITLES_EN[k]===title)??title):title;

@@ -12,7 +12,7 @@ function norm(n){
   if(n.type==='TaggedTemplateExpression'&&n.tag.type==='Identifier'&&n.tag.name==='tr')return norm(n.quasi);
   if(n.type==='CallExpression'&&n.callee.type==='Identifier'&&['trMsg','localize','doneText'].includes(n.callee.name))return norm(n.arguments[0]);
   if(n.type==='CallExpression'&&n.callee.type==='Identifier'&&n.callee.name==='dateForm')return norm(n.arguments[0]); // Korean: the options as written
-  if(n.type==='CallExpression'&&n.callee.type==='Identifier'&&['localFile','koOf'].includes(n.callee.name))return norm(n.arguments[0]); // Korean: as written
+  if(n.type==='CallExpression'&&n.callee.type==='Identifier'&&['localFile','koOf','shownName'].includes(n.callee.name))return norm(n.arguments[0]); // Korean: as written
   // The AI's words for the person follow the screen language: Korean is the default argument (the prompt as main writes it),
   // and the language retry line is main's Korean-title text.
   if(n.type==='ImportDeclaration'&&n.source.value==='./scene-extraction.mjs'&&n.specifiers.some(s=>s.imported?.name==='languageRetry'))return norm({...n,specifiers:n.specifiers.filter(s=>s.imported?.name!=='languageRetry')}); // its import

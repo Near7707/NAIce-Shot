@@ -25,7 +25,7 @@ import { mainPeopleOf, classifyMissing, descriptionFor, roleLabel, sourceLabel, 
 import { cleanImageFile, saveCleanImage } from './downloads.mjs';
 import { jumpTargets, locateSource, locateAttached } from './message-jump.mjs';
 import {stableChatJson,comparableSavedMetadata,splitSavedChat,timedState} from './chat.mjs';
-import {tr,trMsg,localize,setLang,doneText,currentLang,dateLocale,dateForm,localFile,koOf} from './i18n.mjs'; // wip-en: Korean shows every text as written
+import {tr,trMsg,localize,setLang,doneText,currentLang,dateLocale,dateForm,localFile,koOf,shownName} from './i18n.mjs'; // wip-en: Korean shows every text as written
 import {parseTags,cleanMarks,cleanPopupChats,setMark,forgetIds,forgetChat,starredIds,taggedIds,ownerOf,tagMatches,pickMatch,taggedFor} from './image-marks.mjs';
 
 const KEY='naice_shot',API='/api/plugins/naice-shot';
@@ -1726,13 +1726,13 @@ function updateFinal({force=false}={}) {
     if(finalOverride?.invalid){$('ncs-warnings').textContent=tr`최종 프롬프트 JSON을 확인해 주세요: ${trMsg(finalOverride.message)}`;return;} // keep the user's in-progress text
     const a=finalData();if(force||!(finalOverride&&document.activeElement===$('ncs-final')))$('ncs-final').value=JSON.stringify(a,null,2);
     renderFinalForm(a,{force});$('ncs-final-badge').hidden=!finalOverride;
-    const lengths=[tr`공통 ${a.base.length}자`,...a.characters.map(c=>tr`${c.name}: ${c.prompt.length}자`)];
+    const lengths=[tr`공통 ${a.base.length}자`,...a.characters.map(c=>tr`${shownName(c.name,scene.characters.some(t=>t.temp&&!t.name&&t.id===c.id))}: ${c.prompt.length}자`)];
     $('ncs-length').textContent=tr`${lengths.join(' · ')} · 글자 수예요. NAI 토큰 수와 달라요.`;
     // The shared core still words this one the old way; show it in the clothes vocabulary of the scene card.
     // The core's lock note is wrong when this picture's own clothes win (이번 편집, 추가 요청): those are drawn, not the lock (UI-056-01).
     const ownClothes=new Set(scene.characters.filter(c=>c.included!==false&&c.manualOutfit!==null&&c.manualOutfit!==undefined).map(c=>settings().profiles.find(p=>p.id===c.id)?.name).filter(Boolean));
     const warnings=[...(a.warnings??[])].filter(w=>!w.startsWith('미등록 인물은 자동 생성하지 않아요')&&![...ownClothes].some(n=>w===`${n}: 새 복장 후보가 있지만 잠금을 유지해요.`)).map(w=>w.replace(/: 새 복장 후보가 있지만 잠금을 유지해요\.$/,': AI가 찾은 새 옷이 있지만 잠긴 복장을 입혀요.'));
-    for(const t of scene.characters.filter(c=>c.temp&&c.included!==false&&!(c.appearance??'').trim()))warnings.push(`임시 인물 ${t.name||'(이름 없음)'}의 외형이 비어 있어요. 외형을 채우면 더 잘 그려져요.`);
+    for(const t of scene.characters.filter(c=>c.temp&&c.included!==false&&!(c.appearance??'').trim()))warnings.push(`임시 인물 ${t.name||trMsg('(이름 없음)')}의 외형이 비어 있어요. 외형을 채우면 더 잘 그려져요.`);
     if(scene.source?.historical)warnings.push('지난 메시지를 그리고 있어요. 여기서 고른 옷은 "채팅 기본 복장"을 자동으로 바꾸지 않아요.');
     if(scene.moments?.length>1&&scene.momentIndex<scene.moments.length-1)warnings.push('앞쪽 순간을 골랐어요. 메시지 끝에서는 옷이 달라졌을 수 있어요. "기본 복장 지정"은 마지막 순간에서 누르는 걸 추천해요.');
     if(scene.source&&!sourceValid(scene.source,ctx().chat))warnings.push('대상 메시지가 수정·삭제·리롤됐어요. 다시 추출하거나 내용을 확인해 주세요.');
@@ -1749,7 +1749,7 @@ function renderFinalForm(a,{force=false}={}) {
   const box=$('ncs-final-form');if(!force&&box.contains(document.activeElement))return; // preserve typing except when the draft is reset or replaced
   const area=(label,attrs,value,rows)=>`<label>${label}<textarea ${attrs} rows="${rows}" spellcheck="false">${esc(value)}</textarea></label>`;
   box.innerHTML=area(tr`공통 Positive`,'data-final="base"',a.base,3)+area(tr`공통 Negative`,'data-final="negative"',a.negative,2)+
-    (a.characters.length?a.characters.map((c,i)=>`<fieldset class="ncs-final-slot"><legend>${esc(c.name||tr`인물 ${i+1}`)}</legend>${area('Positive',`data-final="prompt" data-slot="${i}"`,c.prompt,3)}${area('Negative',`data-final="negative" data-slot="${i}"`,c.negative,2)}<label>위치<select data-final="position" data-slot="${i}">${['auto','left','center','right'].map((x,k)=>`<option value="${x}" ${c.position===x?'selected':''}>${['AI 선택','왼쪽','가운데','오른쪽'][k]}</option>`).join('')}</select></label></fieldset>`).join('')
+    (a.characters.length?a.characters.map((c,i)=>`<fieldset class="ncs-final-slot"><legend>${esc(shownName(c.name,scene.characters.some(t=>t.temp&&!t.name&&t.id===c.id))||tr`인물 ${i+1}`)}</legend>${area('Positive',`data-final="prompt" data-slot="${i}"`,c.prompt,3)}${area('Negative',`data-final="negative" data-slot="${i}"`,c.negative,2)}<label>위치<select data-final="position" data-slot="${i}">${['auto','left','center','right'].map((x,k)=>`<option value="${x}" ${c.position===x?'selected':''}>${['AI 선택','왼쪽','가운데','오른쪽'][k]}</option>`).join('')}</select></label></fieldset>`).join('')
     :`<small>${tr`장면에 인물이 없어요. 공통 프롬프트만 보내요.`}</small>`);
   localize(box,'textarea,legend');
 }

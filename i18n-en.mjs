@@ -335,6 +335,8 @@ export default {
   // wip-en step 2: the drawing tab (person cards, the no-profile box, Free Shot)
   "자동 · ":"Auto · ",
   "이름 없음":"no name",
+  "(이름 없음)":"(no name)",
+  "임시 인물":"Temporary person",
   " · 연결 없음":" · not linked",
   "삭제된 프로필 · 다시 선택해 주세요":"Deleted profile · choose again",
   "\"{0}\"을(를) {1} 프로필로 연결하고 장면에 넣었어요.{2}{3}":"Linked \"{0}\" to the {1} profile and put them in the scene.{2}{3}",

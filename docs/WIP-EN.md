@@ -272,6 +272,16 @@ is, so an old Korean title stays Korean on the English screen (and the other way
 line can mix English AI words with them (left for main, like before). `i18n-compare` reads a trailing `currentLang()`
 of `momentExtractionPrompt` as the default and `languageRetry(…)` as main's Korean text, so it still shows 9 statements.
 
+Unnamed temporary person (found by a sweep of the English screen for Korean inside template HTML, 2026-11-22; the user
+said fix it): a temporary person left without a name is put together as "임시 인물" (index.js `assembleScene`), and that
+name is saved with the picture, so it is not changed. Only where it is shown — the final prompt slot's heading, the
+length line, and the empty-look warning's "(이름 없음)" — the English screen reads "Temporary person" / "(no name)".
+`shownName(name, unnamed)` (i18n.mjs) swaps the name only for that person, found by id, so a profile named "임시 인물" stays
+as written. `i18n-compare` reads `shownName(x, …)` as x, so it still shows 9 statements. browser-wip-en step 17 checks the
+three places, Korean as before, and the same saved name in both languages; undoing any one of the four changes (three
+places, one dictionary line) fails it. The same sweep found nothing else new: the tag help's "비, rain" example is on
+purpose, and `SAVE_DETAILS` (inline-images.mjs) is not used on screen. The sweep cannot open every rare error.
+
 ## Checks
 
 - `node tests/i18n-compare.mjs <main index.js> index.js` — takes `tr`/`trMsg`/`doneText`/`localize` out and compares with main
