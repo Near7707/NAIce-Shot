@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.166 — 2026-11-22 (extension only — server v0.1.25 unchanged)
+
+From a user screenshot:
+- The button on the work memory line of the drawing tab (**연결 다시 확인**, and the other labels shown there: 작업 기억 다시 연결, 삭제 결과 다시 확인, 서버 작업 다시 불러오기, 다시 시도) stays on one line. It has a fixed height, so a label that wrapped ran out of the button over the text below ("연결 다시 확인" wrapped on phones). The note beside it now wraps instead.
+
 ## 0.1.165 — 2026-11-22 (extension only — server v0.1.25 unchanged)
 
 User request + user choice B (from three layouts shot on the real panel):

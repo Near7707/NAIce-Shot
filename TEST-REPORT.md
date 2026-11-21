@@ -1,3 +1,13 @@
+# v0.1.166 validation — 2026-11-22 (extension only, server v0.1.25)
+
+- One CSS rule (`style.css`, the work memory bar). Version moved to 0.1.166 in `core.mjs`, `manifest.json`, `package.json`.
+- Extension Node suite: **199 passed, 0 failed**. Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **145 of 145 Chromium browser scripts passed** (run 4 at a time; `browser-v0138` timed out once in parallel and passed alone).
+- New `tests/browser-v01166.mjs` (320, 375, 393, 1100px, and all 17 themes at 320px), with the server's work memory off so the bar shows its note and [연결 다시 확인]: for each label set in that place, the label stays inside the button, the button is one line (32px), the note and the button do not overlap, nothing runs out of the bar or the panel, and the note keeps at least 120px. Fails on the 0.1.165 CSS ("연결 다시 확인" ran out of the button at 320px).
+- Not checked: a real iPhone, a real SillyTavern, a real NovelAI account.
+
+---
+
 # v0.1.165 validation — 2026-11-22 (extension only, server v0.1.25)
 
 - Guide bar only (`panel.html`, `index.js` guide functions, `style.css`). Version moved to 0.1.165 in `core.mjs`, `manifest.json`, `package.json`.

@@ -429,7 +429,8 @@
 #naice-shot-dialog .ncs-work-fields {border:0;padding:0;margin:0;min-width:0;}
 #naice-shot-dialog .ncs-work-fields:disabled {opacity:.7;}
 #naice-shot-dialog .ncs-draft-bar {display:flex;align-items:center;gap:8px;margin:0 0 8px;}
-#naice-shot-dialog .ncs-draft-bar button {font-size:12px;padding:6px 10px;}
+#naice-shot-dialog .ncs-draft-bar button {font-size:12px;padding:6px 10px;white-space:nowrap;flex:none;}
+#naice-shot-dialog .ncs-draft-bar small {flex:1;min-width:0;} /* 0.1.166: the button stays one line; the note beside it wraps */
 #naice-shot-dialog .ncs-image-popup a[download],#naice-shot-dialog .ncs-image-popup button,#chat .ncs-image-popup a,#chat .ncs-image-popup button {flex-direction:column;align-items:flex-start;}
 #naice-shot-dialog .ncs-image-popup small,#chat .ncs-image-popup small {display:block;font-size:11px;line-height:1.5;color:var(--ncs-muted,inherit);}
 @media(max-width:360px){#ncs-privacy-dialog .ncs-privacy-actions{display:grid;grid-template-columns:1fr 1fr;}#ncs-privacy-dialog [data-choice="shared"]{grid-column:1/-1;}}
