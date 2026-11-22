@@ -211,6 +211,13 @@ UI-055-01~06: 구조화 출력 스키마 strict 호환, "혼자"일 때 남은 �
 - 수정: UI-075-01~04, 06~08, UI-072-01, 본문에 넣기 상자 한 줄. 자세한 내용은 [REVIEW.md](REVIEW.md).
 - 규칙(0.1.75에서 유지): 필수 출연이 제외 요청보다 우선, 같은 프로필은 한 명, 모델 한도(V4.5 6명, V5 22명), NovelAI에는 @ 없음.
 
+### README 정리 (버전 없음, 글만) · **구현(확장만, 앱 코드 변경 없음)**
+사용자 결정(2026-11-23, "2하자 시작해"): 한국어 README 아래에 있던 긴 영어 설명("Detailed documentation (English)")을 `README-en.md`의 "## Details"로 옮기고, 그 안의 한국어 버튼 이름을 영어 화면 이름으로 바꿈(사전 값으로 대조). 글 다듬기(③)는 하지 않음.
+- 겹치던 영어 Install·Uninstall·소개·비공식 안내는 README-en.md 앞부분에 이미 있어서 뺌. Install에만 있던 두 줄(서버는 `plugins/` 바로 아래, CHANGELOG 안내)은 Repository layout으로.
+- 지금 화면과 달라진 설명 두 곳을 고침: 태그 추천 팝업에는 [넣기]가 없고 누르면 크게 보기, Anlas가 꺼져 있으면 "Anlas 허용 설정으로 이동" 대신 그리기 탭에 바로 [Allow Anlas use] 체크.
+- 한국어 README 끝에 "## 더 보기"(영어 Details 링크, CHANGELOG·REVIEW, 라이선스 한 줄).
+- 규칙: 한국어 README는 한국어만, 영어 README는 영어만. Details의 버튼 이름은 영어 화면 그대로(DEV-NOTES 9절).
+
 ### 0.1.170 — 삭제 방법 안내 · **구현(확장만, 서버 0.1.25 그대로·서버 README만, [af06de1](https://github.com/Near7707/NAIce-Shot/commit/af06de1))**
 사용자 결정(2026-11-22, "시작해"): 삭제 방법을 README와 가이드에 모두. 함께 정한 것(추천대로): 확장 0.1.170, 서버는 README만, 리뷰 없이 아이폰에서 가이드 확인, README 제목의 옛 버전 숫자(v0.1.41) 빼기.
 - 같은 내용 다섯 곳: 가이드(한·영, 문제가 생겼을 때 마지막 주제 "삭제하기"), README 한국어 "삭제", README-en "Uninstall", README 영어 "Uninstall", 서버 README "삭제".

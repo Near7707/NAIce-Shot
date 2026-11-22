@@ -214,7 +214,7 @@
 - 새 한국어 완성 문장(요./요?)이나 값이 든 문장을 넣으면 `i18n-en.mjs`에 영어도(안 넣으면 `i18n-sweep` 실패). 사전에 문장을 넣을 땐 그 문장과 똑같은 이름이 다른 `trMsg` 패턴의 값으로 들어갈 수 있는지(AS_IS 필요한지) 같이 볼 것.
 - `guide.md`를 고치면 `guide-en.md`도 같이.
 - 실리태번 언어(`getCurrentLocale`)는 설정을 처음 만들 때만 본다(0.1.168). 이미 있는 설정의 빈 `uiLanguage`는 한국어 — 바꾸면 쓰던 사람 화면이 바뀜. 검사 fixture엔 `getCurrentLocale`이 없어 옛 검사는 한국어 그대로, 새 설치 흉내는 `tests/browser-v01168.mjs`의 `open(w,{locale,fresh,chosen})`.
-- README를 고치면 `README-en.md`도(앞부분 영어판. 자세한 영어 설명은 README.md 안에만).
+- README를 고치면 `README-en.md`도. 한국어 README는 한국어만, 영어 README는 영어만(2026-11-23). 자세한 영어 설명은 `README-en.md`의 "## Details"에 있고, **버튼 이름은 영어 화면 그대로**(사전의 영어 값) 적어요. 화면 글을 바꾸면 거기 적힌 이름도 같이.
 - 작업 기억 줄 버튼 글을 더하거나 바꾸면 영어도 짧게, `browser-v01166`과 `browser-i18n` 19단계 목록에.
 - 영어가 한국어보다 길면 320·375px에서 버튼에 들어가는지 재기.
 - `browser-i18n.mjs`의 한 단계만 돌리기·하나씩 되돌려 확인하는 요령은 I18N.md와 6절 요령과 같음.
