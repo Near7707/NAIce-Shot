@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.167 — 2026-11-22 (extension only — server v0.1.25 unchanged)
+
+**English screen.** Merged from the `wip-en` branch (21 steps, six GPT reviews with no P1/P2, checked by the user on an iPhone in both languages):
+- Settings tab → **화면 언어 · Language**: 한국어 (default) or English, applied after a reload. The only new saved value is `uiLanguage`; profiles, wardrobes, history and saved work are the same data in both languages.
+- On the English screen the whole panel is English: tabs, buttons, notices, confirms, the work memory line, the enlarged view, the message draw button, the tag popup, the @ pills and their menu, and an English 사용 가이드 (`guide-en.md`).
+- On the English screen the extraction AI is asked to write the words shown to the person (candidate names, 추가 요청 results) in English. Picture tags were English already.
+- Names, tags, the AI's words and anything saved stay exactly as written; only what is shown is translated.
+- English-only layout: the enlarged view's ‹ n/m › moves left a few px only when Save ▾ · Delete leave no room; short English texts on the work memory line and its button so they stay on one phone line.
+- Korean screen: no change (every text and AI prompt is what 0.1.166 had).
+
 ## 0.1.166 — 2026-11-22 (extension only — server v0.1.25 unchanged)
 
 From a user screenshot:

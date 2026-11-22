@@ -217,6 +217,7 @@
 #naice-shot-dialog .ncs-image-open.ncs-missing {min-height:80px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--ncs-border);line-height:1.4;}
 #naice-shot-dialog .ncs-image-open.ncs-missing img {display:none;}
 #naice-shot-dialog .ncs-image-open.ncs-missing::after {content:'그림 파일을 찾을 수 없어요';font-size:12px;color:var(--ncs-muted);padding:12px;}
+#naice-shot-dialog.ncs-lang-en .ncs-image-open.ncs-missing::after {content:'Picture file not found';}
 #chat .ncs-inline-image.ncs-missing .ncs-inline-open {cursor:default;line-height:1.4;padding:12px;border:1px dashed currentColor;border-radius:8px;opacity:.75;}
 #ncs-viewer .ncsv-delete {color:#ffb38a;border-color:#ffb38a99;}
 @media (hover:hover){#ncs-viewer .ncsv-delete:hover {background:#ffb38a22;}}
@@ -1127,3 +1128,10 @@
 #naice-shot-dialog .ncs-guide-text ol > li::before {content:counter(ncs-step);position:absolute;left:0;top:0;display:grid;place-items:center;width:26px;height:26px;box-sizing:border-box;border:2px solid var(--ncs-edge);border-radius:50%;background:var(--ncs-bg);color:var(--ncs-accent-text);font-size:13px;font-weight:700;line-height:1;}
 #naice-shot-dialog .ncs-guide-text ol > li:not(:last-child)::after {content:"";position:absolute;left:12px;top:28px;bottom:-12px;width:2px;background:var(--ncs-rule);}
 #naice-shot-dialog .ncs-guide-text a {color:var(--ncs-accent-text);}
+/* wip-en: English words are longer than the Korean ones. On very narrow phones (320px) the tabs "Settings" and the bold
+   selected "Profiles" ran out of their tab, and the history [Saving… ▾] (while picked pictures are saved) reached the
+   next button. Only the English screen gets a little less room between word and icon / arrow; Korean is untouched. */
+/* wip-en: the viewer's row 1. Save ▾ · Delete are wider than 저장 ▾ · 삭제, so a 4-digit count (3 / 1630) ran › under Save.
+   ‹ n/m › stays exactly centred while it fits; when the side groups need more room it slides left instead of overlapping. */
+#ncs-viewer.ncs-lang-en .ncsv-tools {grid-template-columns:minmax(max-content,1fr) auto minmax(max-content,1fr);}
+@media (max-width:360px) { #naice-shot-dialog.ncs-lang-en .ncs-tabs button {gap:3px;font-size:12.5px;} #naice-shot-dialog.ncs-lang-en .ncs-history-tools .ncs-save-toggle {gap:4px;} }

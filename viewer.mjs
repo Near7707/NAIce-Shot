@@ -5,6 +5,7 @@ import { saveCleanImage } from './downloads.mjs';
 import { currentSkin } from './skins.mjs';
 import { copyText } from './clipboard.mjs';
 import { BRAND_ICON } from './icons.mjs';
+import { tr, trMsg, localize, currentLang } from './i18n.mjs'; // wip-en: Korean shows every text as written
 
 export const ZOOM_MIN = 0.05, ZOOM_MAX = 8, ZOOM_STEP = 1.25;
 
@@ -39,6 +40,7 @@ let viewer = null;
 function build() {
   const dialog = document.createElement('dialog');
   dialog.id = 'ncs-viewer';
+  if(currentLang()==='en')dialog.classList.add('ncs-lang-en'); // wip-en: English-only CSS (row 1 below)
   dialog.setAttribute('aria-label', '이미지 크게 보기');
   // 0.1.70 layout (user's design): top = 맞춤·원본 | − % + | panel · ✕; row 1 = ⋯ | ‹ n/m › (centred) | 저장 ▾ · 삭제;
   // row 2 (thin) = ⓘ 프롬프트 보기 | [이 메시지에서 빼기] for a picture opened from its message. ⋯ matches the history
@@ -54,12 +56,13 @@ function build() {
     <div class="ncsv-group ncsv-save-group"><div class="ncsv-save-wrap"><button type="button" class="ncs-save-toggle" data-v="save-menu" aria-expanded="false" aria-haspopup="true">저장<span class="ncs-caret" aria-hidden="true"></span></button><div class="ncsv-save-menu" role="group" aria-label="저장 방식" hidden><button type="button" class="ncs-popup-primary" data-v="clean">클린 PNG<small>${SAVE_NOTES.shared}</small></button><a class="ncsv-save" download>원본 PNG<small>${SAVE_NOTES.original}</small></a></div></div><button type="button" data-v="delete" class="ncsv-delete" hidden>삭제</button></div>
     <p class="ncsv-toast" role="status" hidden></p></div>
   <div class="ncsv-prompt-row"><details class="ncsv-prompt"><summary><span class="ncsv-info-icon" aria-hidden="true">i</span>프롬프트 보기</summary><div class="ncsv-prompt-body"><div class="ncsv-info"><span class="ncsv-meta"></span></div><div class="ncsv-copy-row"><button type="button" class="ncsv-seed" data-v="seed" hidden></button><button type="button" class="ncsv-copy" data-v="copy" disabled>프롬프트 복사</button><span class="ncsv-copy-status" role="status"></span></div><pre class="ncsv-prompt-text"></pre></div></details><div class="ncsv-jump-wrap"><button type="button" class="ncsv-jump" data-v="jump" hidden aria-haspopup="true" aria-expanded="false">메시지로 가기</button><div class="ncsv-jump-menu" role="group" aria-label="이동할 메시지" hidden></div><button type="button" class="ncsv-detach" data-v="detach" hidden>이 메시지에서 빼기</button><button type="button" class="ncsv-no-jump" data-v="no-jump" hidden aria-expanded="false">연결된 메시지 없음 ⓘ</button><p class="ncsv-no-jump-note" role="status" hidden></p></div></div>`;
+  localize(dialog); // wip-en: the fixed words above (built on the first open, after the language is set)
   document.body.append(dialog);
 
   const stage = dialog.querySelector('.ncsv-stage');let img = stage.querySelector('img');
   const zoomLabel = dialog.querySelector('.ncsv-zoom'), meta = dialog.querySelector('.ncsv-meta'), save = dialog.querySelector('.ncsv-save');
   const toastBox=dialog.querySelector('.ncsv-toast');let toastTimer=0,loadingShown=false;
-  const say=(text,{stay=false}={})=>{clearTimeout(toastTimer);toastBox.textContent=text;toastBox.hidden=!text;if(text&&!stay)toastTimer=setTimeout(()=>{toastBox.hidden=true;},5000);};
+  const say=(text,{stay=false}={})=>{clearTimeout(toastTimer);toastBox.textContent=trMsg(text);toastBox.hidden=!text;if(text&&!stay)toastTimer=setTimeout(()=>{toastBox.hidden=true;},5000);};
   const state = { loadToken:0, nat: { w: 0, h: 0 }, view: { scale: 1, x: 0, y: 0 }, mode: 'fit', caption: '', seed: null, onDelete: null, onDetach:null, actions:[], onPanel:null, jumps:[], loadPrompt:null, promptText:'', epoch:0, item: null, gallery:null, index:0, navBusy:false, actionBusy:false };
   const jumpButton=dialog.querySelector('[data-v="jump"]'),jumpMenu=dialog.querySelector('.ncsv-jump-menu');
   const noJumpButton=dialog.querySelector('[data-v="no-jump"]'),noJumpNote=dialog.querySelector('.ncsv-no-jump-note');
@@ -87,22 +90,22 @@ function build() {
   dialog.addEventListener('scroll',event=>{if(!saveMenu.hidden&&!saveMenu.contains(event.target))showSaveMenu(false);},true);
   dialog.addEventListener('cancel',event=>{if(!saveMenu.hidden){event.preventDefault();showSaveMenu(false);saveToggle.focus({preventScroll:true});}});
   dialog.addEventListener('cancel',event=>{if(!jumpMenu.hidden){event.preventDefault();showJumpMenu(false);jumpButton.focus({preventScroll:true});}});
-  const seedLabel=()=>`seed ${state.seed} 복사`;
-  async function copySeed(){const epoch=state.epoch;try{await copyText(String(state.seed),dialog);if(epoch===state.epoch)seedButton.textContent='seed 복사됨';}catch(e){if(epoch===state.epoch)say(e.message);}}
+  const seedLabel=()=>tr`seed ${state.seed} 복사`;
+  async function copySeed(){const epoch=state.epoch;try{await copyText(String(state.seed),dialog);if(epoch===state.epoch)seedButton.textContent=tr`seed 복사됨`;}catch(e){if(epoch===state.epoch)say(e.message);}}
   const deleteButton = dialog.querySelector('[data-v="delete"]'), detachButton=dialog.querySelector('[data-v="detach"]');
   const promptBox=dialog.querySelector('.ncsv-prompt'),promptContent=dialog.querySelector('.ncsv-prompt-text'),copyButton=dialog.querySelector('[data-v="copy"]'),copyStatus=dialog.querySelector('.ncsv-copy-status');
   const promptBody=dialog.querySelector('.ncsv-prompt-body'),tools=dialog.querySelector('.ncsv-tools');
   promptBox.addEventListener('toggle',async()=>{
     if(promptBox.open)promptBody.style.bottom=`calc(100% + ${tools.offsetHeight}px)`; // over the picture, not over row 1
     if(!promptBox.open||promptBox.dataset.loaded||!state.loadPrompt)return;
-    const epoch=state.epoch;promptBox.dataset.loaded='1';promptContent.textContent='프롬프트를 불러오는 중…';
+    const epoch=state.epoch;promptBox.dataset.loaded='1';promptContent.textContent=tr`프롬프트를 불러오는 중…`;
     try{const text=await state.loadPrompt();if(epoch!==state.epoch)return;state.promptText=text;promptContent.textContent=text;copyButton.disabled=false;}
-    catch(e){if(epoch===state.epoch){delete promptBox.dataset.loaded;promptContent.textContent=e.message;}}
+    catch(e){if(epoch===state.epoch){delete promptBox.dataset.loaded;promptContent.textContent=trMsg(e.message);}}
   });
   async function copyPrompt(){
-    if(!state.promptText)return;const epoch=state.epoch;copyButton.textContent='프롬프트 복사';copyStatus.textContent='';
-    try{await copyText(state.promptText,dialog);if(epoch===state.epoch){copyButton.textContent='복사됨';copyStatus.textContent='프롬프트를 복사했어요.';}}
-    catch(e){if(epoch===state.epoch)copyStatus.textContent=e.message;}
+    if(!state.promptText)return;const epoch=state.epoch;copyButton.textContent=tr`프롬프트 복사`;copyStatus.textContent='';
+    try{await copyText(state.promptText,dialog);if(epoch===state.epoch){copyButton.textContent=tr`복사됨`;copyStatus.textContent=tr`프롬프트를 복사했어요.`;}}
+    catch(e){if(epoch===state.epoch)copyStatus.textContent=trMsg(e.message);}
   }
   async function detach(){
     if(!state.onDetach||state.navBusy)return;const epoch=state.epoch;detachButton.disabled=true;
@@ -124,7 +127,7 @@ function build() {
     const g=state.gallery;navigation.hidden=!g;if(!g)return;
     position.textContent=`${state.index+1} / ${g.total}`;
     // UI-070-01: "불러오는 중…" goes to the message spot above row 1, so the centred ‹ n/m › never grows into 저장.
-    if(state.navPage&&!loadingShown){loadingShown=true;say('불러오는 중…',{stay:true});}else if(!state.navPage&&loadingShown){loadingShown=false;if(toastBox.textContent==='불러오는 중…')say('');}
+    if(state.navPage&&!loadingShown){loadingShown=true;say('불러오는 중…',{stay:true});}else if(!state.navPage&&loadingShown){loadingShown=false;if(toastBox.textContent===trMsg('불러오는 중…'))say('');}
     dialog.querySelector('.ncsv-navigation').dataset.busy=state.navPage?'true':'false';
     dialog.querySelector('[data-v="previous"]').disabled=state.navPage||state.actionBusy||state.index<=0;
     dialog.querySelector('[data-v="next"]').disabled=state.navPage||state.actionBusy||(!g.hasMore&&state.index>=g.items.length-1);
@@ -296,20 +299,20 @@ function build() {
       dropTap();state.epoch++;pointers.clear();gesture=null;lastTap=null;state.gallery=gallery;state.index=index;state.navBusy=false;state.navPage=false;state.actionBusy=false;state.item = item;state.caption = caption;showSaveMenu(false);showMoreMenu(false);loadingShown=false;say('');
       state.seed=seed===null||seed===undefined||seed===''?null:seed;seedButton.hidden=state.seed===null;if(state.seed!==null)seedButton.textContent=seedLabel();
       state.loadPrompt=typeof loadPrompt==='function'?loadPrompt:null;state.promptText='';
-      promptBox.open=false;promptBox.hidden=false; /* 0.1.70: date and seed live here too */delete promptBox.dataset.loaded;promptContent.textContent='';copyButton.disabled=true;copyButton.textContent='프롬프트 복사';copyStatus.textContent='';
+      promptBox.open=false;promptBox.hidden=false; /* 0.1.70: date and seed live here too */delete promptBox.dataset.loaded;promptContent.textContent='';copyButton.disabled=true;copyButton.textContent=tr`프롬프트 복사`;copyStatus.textContent='';
       state.onDetach=typeof onDetach==='function'?onDetach:null;detachButton.hidden=!state.onDetach;detachButton.disabled=false; state.mode = 'fit';
       // ⋯ holds the same work as the history card's ⋯ (send to 챗샷/프리샷, preset, 본문에 넣기, taking it out).
       state.actions=(Array.isArray(actions)?actions:[]).filter(a=>a&&typeof a.run==='function');
-      moreItems.replaceChildren(...state.actions.map((a,i)=>{const b=document.createElement('button');b.type='button';b.dataset.more=String(i);b.textContent=a.label;b.disabled=!!a.disabled;
-        if(a.note){const n=document.createElement('small');n.textContent=a.note;b.append(n);}if(a.divider)b.classList.add('ncsv-more-divider');return b;}));
+      moreItems.replaceChildren(...state.actions.map((a,i)=>{const b=document.createElement('button');b.type='button';b.dataset.more=String(i);b.textContent=trMsg(a.label);b.disabled=!!a.disabled;
+        if(a.note){const n=document.createElement('small');n.textContent=trMsg(a.note);b.append(n);}if(a.divider)b.classList.add('ncsv-more-divider');return b;}));
       moreButton.hidden=!state.actions.length;
       state.onPanel=typeof onPanel==='function'?onPanel:null;panelButton.hidden=!state.onPanel;
       state.onDelete = typeof onDelete === 'function' ? onDelete : null; deleteButton.hidden = !state.onDelete; deleteButton.disabled = false;
       state.jumps=Array.isArray(jumps)?jumps.filter(j=>typeof j?.run==='function'):[];showJumpMenu(false);jumpButton.hidden=!state.jumps.length;
-      jumpButton.textContent=state.jumps.length>1?'메시지로 가기 ▾':'메시지로 가기';jumpButton.title=state.jumps.length===1?state.jumps[0].note??'':'';
-      jumpMenu.replaceChildren(...state.jumps.map((j,i)=>{const b=document.createElement('button');b.type='button';b.dataset.jump=String(i);b.textContent=j.label;const n=document.createElement('small');n.textContent=j.note??'';b.append(n);return b;}));
+      jumpButton.textContent=state.jumps.length>1?tr`메시지로 가기 ▾`:tr`메시지로 가기`;jumpButton.title=state.jumps.length===1?trMsg(state.jumps[0].note??''):'';
+      jumpMenu.replaceChildren(...state.jumps.map((j,i)=>{const b=document.createElement('button');b.type='button';b.dataset.jump=String(i);b.textContent=trMsg(j.label);const n=document.createElement('small');n.textContent=trMsg(j.note??'');b.append(n);return b;}));
       // No message to go to: say so in a small line instead of leaving the place empty.
-      noJumpButton.hidden=!jumpButton.hidden||!noJump;noJumpButton.dataset.note=noJump||'';noJumpNote.hidden=true;noJumpNote.textContent=noJump||'';noJumpButton.setAttribute('aria-expanded','false');
+      noJumpButton.hidden=!jumpButton.hidden||!noJump;noJumpButton.dataset.note=noJump||'';noJumpNote.hidden=true;noJumpNote.textContent=trMsg(noJump||'');noJumpButton.setAttribute('aria-expanded','false');
       dialog.querySelector('.ncsv-prompt-row').hidden=promptBox.hidden&&jumpButton.hidden&&noJumpButton.hidden&&detachButton.hidden;
       dialog.querySelector('[data-v="clean"]').disabled=false;
       save.href = file.url; save.download = file.filename;

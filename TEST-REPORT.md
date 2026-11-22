@@ -1,3 +1,15 @@
+# v0.1.167 validation — 2026-11-22 (extension only, server v0.1.25)
+
+- The `wip-en` branch (English screen) merged into main as one commit. Version moved to 0.1.167 in `core.mjs`, `manifest.json`, `package.json`.
+- Extension Node suite: **218 passed, 0 failed** (199 of 0.1.166 + the screen-language tests `i18n-sweep`, `i18n-status`, `i18n-prompt`, `guide-en`). Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**.
+- **146 of 146 Chromium browser scripts passed** (run 4 at a time; `browser-v0148` failed once in parallel and passed alone). The 145 scripts of 0.1.166 are unchanged and pass as they are; the new one is `browser-i18n` (was `browser-wip-en` on the branch).
+- Korean behaviour: `node tests/i18n-compare.mjs <0.1.166 index.js> index.js` → 9 statements differ, all of them the language switch (the import, `renderSettings`, `importSettings`, `bindEvents`, `initialize`), as expected. `node tests/i18n-keys.mjs` → 484 keys, 0 missing; no duplicate dictionary keys (1299 entries).
+- Not taken into main: the prompt snapshot test (`tests/prompt-snapshot.*`); its English-lines test moved to `tests/i18n-prompt.test.mjs`.
+- Checked by the user on an iPhone (on the branch): the English screen (Chat Shot and Free Shot, guide, enlarged view, @ pills, temporary person, "Not applied" line) and the Korean screen (no difference noticed). Not seen yet: the English work memory button while the connection is lost (hard to cause on purpose).
+- Not checked: a real SillyTavern on this machine, a real NovelAI account.
+
+---
+
 # v0.1.166 validation — 2026-11-22 (extension only, server v0.1.25)
 
 - One CSS rule (`style.css`, the work memory bar). Version moved to 0.1.166 in `core.mjs`, `manifest.json`, `package.json`.

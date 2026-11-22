@@ -7,6 +7,7 @@
 공통 원칙: 같은 구조에서 지적이 또 나오면 땜질 전에 가장 가까운 공통 지점 한 곳에서 막기. 새 상태·잠금·큰 재작성은 피하기. 데이터가 사라지거나 다른 인물·다른 그림이 들어가는 경우만 고치고, 안내 문구만 틀리거나 표시가 잠깐 늦는 건 알려진 한계로 기록.
 
 - **@ 목록 위치(0.1.154~0.1.157) 지적이 나오면:** (가로 화면 관련은 사용자가 신경 안 쓰기로 함 → ⚪ 추천) 위치는 `updateRefList` 한 곳. 순서: 가로 `left` → 보이는 화면 `seenTop/seenBottom`(visualViewport) → 칸이 화면 밖이면 닫기 → `maxHeight=''` 풀고 높이 `h` → 아래(`below`)에 다 들어가면 아래, 위(`above`)에 들어가면 위, 둘 다 아니면 넓은 쪽 + 자리 `room`(한 줄도 안 되면 닫기) → `maxHeight=room` → `want` → 실제 위치 보정 `off` → 선택 후보 스크롤(크면 맨 위). 다시 맞추는 때: 입력·클릭·방향키 keyup/keydown·패널 `.ncs-content` scroll·window resize·`visualViewport` resize/scroll. 보정은 세로만. 남은 ⚪: 확대 잘림(0.1.155 P3-2), 키보드 열리는 도중 닫힌 채(0.1.156 P3), 첫 후보가 키 크면 닫힘(0.1.157 P3). 아이폰에서만 생기는 건 시험 페이지로 먼저 재기.
+- **영어 화면(번역) 지적이 나오면(0.1.167~):** [I18N.md](I18N.md)가 기준(구조, 규칙, 리뷰별로 고친 것, 알려진 ⚪). 먼저 그 글이 `tr`/`trMsg`/`localize` 중 어디를 거치는지 볼 것. 이름·태그·AI가 보낸 ID가 번역되면 그 키를 `AS_IS`에, 너무 넓게 맞는 패턴이 재현되면 그 키만 `TR_ONLY`에. 저장되는 값은 번역하지 않고 보여 주는 곳에서만 바꿀 것.
 - **알약 메뉴(0.1.158~0.1.162) 지적이 나오면:** 연결을 바꾸는 건 `pillAction` → chipfield `dropRef`(지우기, 뒤에서부터 자리마다)/`repickAll`(다시 고르기, 첫~끝 자리 새 글을 한 번에, 0.1.160) 둘뿐. 알약 쪽이 보는 연결은 모두 `field.refs()` = `counted()`(0.1.162, 가려진 연결 없음) — "겹친/가려진 연결" 지적이면 먼저 그 길이 `refs()`/`counted()`를 거치는지 볼 것(칸 안 `refs` 배열을 직접 쓰면 가려진 것까지 봄). 실행 취소로 겹침이 생기는 것 자체(`undone`)는 고치지 않기로 함(⚪). "다른 인물이 들어감·연결이 사라짐"은 고치고, 메뉴가 잠깐 남거나 닫히는 순서 같은 표시 문제는 ⚪ 추천. 고칠 땐 chipfield의 연결 이동·실행 취소(`moveRefs`·`undone`)는 건드리지 말고, 메뉴 쪽(누를 때 다시 읽기·닫는 때)에서 막기. 실행 취소: 지우기는 Chromium에서 Ctrl+Z 두 번으로 글·연결 복원 확인(두 자리 = 두 편집). 아이폰 흔들어 실행 취소는 미확인. 패널 공통 클릭 처리기는 메뉴 버튼에서도 끝에 작업 저장을 함(화면=저장본이라 문제 아님. 메뉴 버튼은 `data-pill-*`라 다른 분기에 안 걸림 — `data-profile` 같은 기존 이름은 쓰지 말 것).
 - **알약 줄(0.1.153) 지적이 나오면:** 알약은 `field.refs()`를 읽기만 함. "알약이 실제 연결과 어긋남" 지적이면 먼저 그 길이 `input`이나 `ncs-field-set`을 보내는지(값을 코드로 넣는 곳은 setter가 보냄), 프로필 변경이 `renderProfiles`를 지나가는지 볼 것. 고칠 땐 chipfield.mjs 연결 처리는 건드리지 말고 다시 그리는 때만 더하기. 표시만 잠깐 늦는 건 ⚪ 추천.
 - **"원문이 바뀐 작업" 지적이 나오면(0.1.142 A안):** 화면에서 칸을 비우는 해결은 다시 넣지 말 것(그게 화면≠저장본 문제의 뿌리). 바뀐 원문은 **추출 시작(`extract`, `TARGET_CHANGED`)** 한 곳에서 멈춤. 다른 길(이 요청으로 다시 추출은 `extract` 거침, 생성은 이미 추출된 장면을 씀, 이력 가져오기는 기록의 장면)이 바뀐 원문을 쓰는지 지적되면 먼저 그 길이 `extract`를 지나가는지 볼 것. 다시 고르기가 늘어나는 불편은 ⚪.
@@ -184,6 +185,7 @@
 
 ## 8. 알아 둘 코드 위치 (줄 번호는 뺌 — `grep -n`으로 찾기)
 
+- 화면 언어(0.1.167): i18n.mjs(`tr`·`trMsg`·`doneText`·`localize`·`setLang`·`currentLang`·`dateLocale`·`dateForm`, `TR_ONLY`·`AS_IS`, `localFile`·`GUIDE_TITLES_EN`·`koOf`, `shownName`), i18n-en.mjs(사전, 손으로 고침), scene-extraction.mjs `USER_WORDS`·`languageRetry`, index.js `initialize` 맨 앞 `setLang`, 설정 `uiLanguage`. 검사: `tests/i18n-sweep`·`i18n-status`·`i18n-prompt`·`guide-en`(npm test), `tests/browser-i18n.mjs`, 손 도구 `tests/i18n-keys.mjs`·`i18n-compare.mjs`·`i18n-wrap.mjs`.
 - 0.1.162: chipfield.mjs `counted()`·`el.refs`(값 setter 바로 아래), `repickAll`·`dropRef`의 `counted()`.
 - 0.1.161: chipfield.mjs `repickAll` 반복문 주석(가려진 연결 건너뜀).
 - 0.1.160: chipfield.mjs `repickAll`(`dropRef` 바로 아래), index.js `pillAction`의 `field.repickAll`.
@@ -204,3 +206,12 @@
 - 사용 가이드: guide.md(패널에서 열림, 열린 동안 패널 `inert`·숨김), index.js `openGuide`/`closeGuide` 근처. @ 칸 설명은 guide.md 192줄 근처.
 - 계정 상자: `renderAccount`, `verdictOf`, `renderCost`. 태그·즐겨찾기: `image-marks.mjs`, `toggleStar`, `saveTags`, `historyPage`. 태그 팝업 `popupOn`. 삭제: `deleteImages`. 채팅 저장: `withChatWrite`.
 - 스타일: style.css. 테마 skins/*.css(색만).
+
+## 9. 화면 언어 규칙 (0.1.167~)
+
+- 새 화면 글은 `tr`/`localize`를 거치게(템플릿 HTML 속 글도). `i18n-sweep`은 백틱 HTML 속 한국어를 못 봄.
+- 새 한국어 완성 문장(요./요?)이나 값이 든 문장을 넣으면 `i18n-en.mjs`에 영어도(안 넣으면 `i18n-sweep` 실패). 사전에 문장을 넣을 땐 그 문장과 똑같은 이름이 다른 `trMsg` 패턴의 값으로 들어갈 수 있는지(AS_IS 필요한지) 같이 볼 것.
+- `guide.md`를 고치면 `guide-en.md`도 같이.
+- 작업 기억 줄 버튼 글을 더하거나 바꾸면 영어도 짧게, `browser-v01166`과 `browser-i18n` 19단계 목록에.
+- 영어가 한국어보다 길면 320·375px에서 버튼에 들어가는지 재기.
+- `browser-i18n.mjs`의 한 단계만 돌리기·하나씩 되돌려 확인하는 요령은 I18N.md와 6절 요령과 같음.
