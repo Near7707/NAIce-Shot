@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.170 — 2026-11-22 (extension only — server v0.1.25 unchanged; the server README changed too)
+
+- **How to uninstall**, the same steps everywhere: the guide (new last topic of "When something goes wrong" / "문제가 생겼을 때"), the Korean README, README-en, the README's English Uninstall and the server README. Delete pictures in the history first if they should go too → delete the extension in Manage extensions → stop SillyTavern and delete `plugins/naice-shot-server` (a Termux line too) → start again. Lists the three folders that stay in the user data folder.
+- The README title no longer carries an old version number.
+
 ## 0.1.169 — 2026-11-22 (extension only — server v0.1.25 unchanged)
 
 Korean left on the English screen, now English (the Korean screen reads exactly as before):

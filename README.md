@@ -1,4 +1,4 @@
-# NAIce Shot v0.1.41
+# NAIce Shot
 
 **한국어** · [English](README-en.md)
 
@@ -71,6 +71,23 @@ Termux로 실리태번을 쓰는 경우에도 순서는 같아요. 명령은 Ter
 - **오류 화면 공유:** 파일 처리나 예상치 못한 내부 오류는 정리한 메시지로 표시해 로컬 경로를 노출하지 않아요. 선택한 추출 연결에서 반환한 임의의 오류 원문도 그대로 표시하지 않아요.
 
 코드에 개발자용 별도 통계 수집·텔레메트리 전송 기능은 없어요. 서버 플러그인이 왜 필요한지, 권한과 보안 위험은 [docs/PRIVACY.md](docs/PRIVACY.md)에 정리했어요. 자세한 저장 위치와 검토 범위는 아래 영문 안내 및 [SECURITY-REVIEW.md](SECURITY-REVIEW.md)를 참고해 주세요.
+
+## 삭제
+
+1. 그림도 지우려면 먼저 확장의 이력에서 그림을 지워요. 그림과 생성 기록이 함께 지워져요.
+2. 실리태번의 확장 관리(Manage extensions)에서 NAIce Shot 확장을 삭제해요.
+3. 실리태번을 끄고 `plugins/naice-shot-server` 폴더를 통째로 지워요. 휴대폰(Termux)에서는 `rm -rf ~/SillyTavern/plugins/naice-shot-server`예요.
+4. 실리태번을 다시 켜요.
+
+다른 서버 플러그인을 쓰고 있다면 `config.yaml`의 `enableServerPlugins`는 그대로 두세요.
+
+아래는 자동으로 지워지지 않고 내 사용자 데이터 폴더(보통 `data/default-user/`)에 남아요. 모두 없애려면 직접 지워 주세요.
+
+- 생성한 그림: `user/images/naice-shot/`
+- 생성 기록: `naice-shot-records/`
+- 그리기창의 마지막 작업: `naice-shot-work/`
+
+확장 설정과 채팅 속 첨부 정보도 남지만, 확장이 없으면 쓰이지 않아요.
 
 ## Detailed documentation (English)
 
@@ -274,4 +291,17 @@ NAIce Shot is released under the **GNU Affero General Public License v3.0** (see
 
 ## Uninstall
 
-Delete NAIce Shot in **Manage extensions** and remove `plugins/naice-shot-server/`, then restart SillyTavern. Do not disable server plugins if other plugins need them. User settings, chats, generated PNGs and private records are not automatically deleted.
+1. To remove the pictures too, first delete them in the extension's history. A picture and its generation record are deleted together.
+2. Delete the NAIce Shot extension in SillyTavern's Manage extensions.
+3. Stop SillyTavern and delete the whole `plugins/naice-shot-server` folder. On a phone (Termux): `rm -rf ~/SillyTavern/plugins/naice-shot-server`.
+4. Start SillyTavern again.
+
+If other server plugins need it, leave `enableServerPlugins` in `config.yaml` as it is.
+
+These are not deleted automatically and stay in your user data folder (usually `data/default-user/`). Delete them yourself to remove everything:
+
+- Generated pictures: `user/images/naice-shot/`
+- Generation records: `naice-shot-records/`
+- The drawing sheet's last work: `naice-shot-work/`
+
+The extension's settings and the attachment information in chats also stay, but nothing uses them without the extension.

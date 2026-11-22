@@ -1,3 +1,12 @@
+# v0.1.170 validation — 2026-11-22 (extension only, server v0.1.25)
+
+- Text only: `guide.md` and `guide-en.md` (new topic 삭제하기 / Uninstalling, the last of 문제가 생겼을 때), `README.md` (title, Korean 삭제, English Uninstall), `README-en.md` (Uninstall). Server `README.md`: 삭제 (no server version change). No code changed. Version moved to 0.1.170 in `core.mjs`, `manifest.json`, `package.json`.
+- Extension Node suite: **221 passed, 0 failed** (the guide checks: same groups and topic counts in both languages, no Korean in guide-en, links, no cost promise, no [button] or quoted notice that is not on the screen).
+- **148 of 148 Chromium browser scripts passed**, one of them only on a later run: `browser-v031` failed in the 4-at-a-time run and in 4 of 9 single runs (same code; it passed with 0.1.169, 0.1.171, 0.1.999 and 0.1.170 too). When it fails, the large viewer opened from the chat picture shows the picture at actual size (640×960 at scale 1) instead of fit, so the tap at the left edge lands on the picture and does not close the viewer. This release changes no code, so it is an older intermittent timing problem in the viewer or the check, not from this change; recorded as a candidate to look at.
+- Not checked: a real uninstall in SillyTavern (the steps follow SillyTavern's Manage extensions and server plugin folder, as in the install steps).
+
+---
+
 # v0.1.169 validation — 2026-11-22 (extension only, server v0.1.25)
 
 - `index.js` (`prepareRefs`: each @ problem looked up with `trMsg`, the sentence made by `tr` for the two fields), `free-people.mjs` (`cardLabel` fallback names by `tr`), `i18n.mjs` (`AS_IS` + the five @ problem keys), `i18n-en.mjs` (+27 keys: @ check 7, the no-name outfit piece 1, server 19). Version moved to 0.1.169 in `core.mjs`, `manifest.json`, `package.json`.

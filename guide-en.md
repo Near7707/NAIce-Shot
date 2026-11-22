@@ -464,3 +464,22 @@ When updating the server plugin and the extension together, the order matters.
 If the server plugin was installed with Git and auto-update is on, it may update when SillyTavern starts.
 
 If connection errors continue after updating, check where the server plugin is installed and its version.
+
+## Uninstalling
+
+When you no longer use NAIce Shot, remove it in this order.
+
+1. To remove the pictures too, first delete them in the extension's history. A picture and its generation record are deleted together.
+2. Delete the NAIce Shot extension in SillyTavern's Manage extensions.
+3. Stop SillyTavern and delete the whole `plugins/naice-shot-server` folder. On a phone (Termux): `rm -rf ~/SillyTavern/plugins/naice-shot-server`.
+4. Start SillyTavern again.
+
+If other server plugins need it, leave `enableServerPlugins` in `config.yaml` as it is.
+
+These are not deleted automatically and stay in your user data folder (usually `data/default-user/`). Delete them yourself to remove everything:
+
+- Generated pictures: `user/images/naice-shot/`
+- Generation records: `naice-shot-records/`
+- The drawing sheet's last work: `naice-shot-work/`
+
+The extension's settings and the attachment information in chats also stay, but nothing uses them without the extension.

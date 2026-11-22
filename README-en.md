@@ -78,6 +78,23 @@ Opus's V5 generation is sent only with server plugin 0.1.25 or later. On an acti
 
 The code has no separate statistics collection or telemetry for the developer. Why the server plugin is needed, and its permissions and security risks, are in [docs/PRIVACY.md](docs/PRIVACY.md). For exact storage locations and the review scope, see the [detailed documentation](README.md#detailed-documentation-english) and [SECURITY-REVIEW.md](SECURITY-REVIEW.md).
 
+## Uninstall
+
+1. To remove the pictures too, first delete them in the extension's history. A picture and its generation record are deleted together.
+2. Delete the NAIce Shot extension in SillyTavern's Manage extensions.
+3. Stop SillyTavern and delete the whole `plugins/naice-shot-server` folder. On a phone (Termux): `rm -rf ~/SillyTavern/plugins/naice-shot-server`.
+4. Start SillyTavern again.
+
+If other server plugins need it, leave `enableServerPlugins` in `config.yaml` as it is.
+
+These are not deleted automatically and stay in your user data folder (usually `data/default-user/`). Delete them yourself to remove everything:
+
+- Generated pictures: `user/images/naice-shot/`
+- Generation records: `naice-shot-records/`
+- The drawing sheet's last work: `naice-shot-work/`
+
+The extension's settings and the attachment information in chats also stay, but nothing uses them without the extension.
+
 ## More
 
 The [detailed documentation](README.md#detailed-documentation-english) (features, requirements, repository layout, cost controls, history and storage, updates, troubleshooting, uninstalling) is in English in the main README.
