@@ -1,3 +1,12 @@
+# Check fix after v0.1.170 — 2026-11-22 (no app change, version stays 0.1.170)
+
+- `tests/browser-v031.mjs` only. Cause of the intermittent failure noted below: reopening the same picture places it before the viewer is open, so for one frame (about 7 ms, recorded) it sits at actual size, top left; the viewer's ResizeObserver then fits it. The check tapped (step 4) or read the zoom (step 5) as soon as the picture had its width, sometimes inside that frame. Both now wait for `fitted()`: the picture inside the stage.
+- With the fit delayed by 300 ms on purpose, the old check fails (TimeoutError) and the new one passes; with the fit never coming, the new check fails too, so a real fit problem is still caught.
+- `browser-v031` 8 of 8 single runs passed. Extension Node suite: **221 passed, 0 failed**. **148 of 148 Chromium browser scripts passed** (run 4 at a time, none needed a second run).
+- For people: one frame at actual size before the first paint is not expected to be visible, and a tap cannot come that fast. Not checked on a real iPhone.
+
+---
+
 # v0.1.170 validation — 2026-11-22 (extension only, server v0.1.25)
 
 - Text only: `guide.md` and `guide-en.md` (new topic 삭제하기 / Uninstalling, the last of 문제가 생겼을 때), `README.md` (title, Korean 삭제, English Uninstall), `README-en.md` (Uninstall). Server `README.md`: 삭제 (no server version change). No code changed. Version moved to 0.1.170 in `core.mjs`, `manifest.json`, `package.json`.
