@@ -8,12 +8,14 @@
 //   • Clothes: the AI's clothes are "automatic" (outfitMode/outfit); the user's own choice (manualOutfit, may be
 //     empty) always wins and is never touched here. A temporary person's typed clothes (outfitManual) are kept.
 import {identityKey,mentioned} from './matching.mjs';
+import {tr} from './i18n.mjs';
 
 export const cardNames=(c,profiles)=>{
   if(c.temp)return [c.name].filter(Boolean);
   const p=profiles.find(p=>p.id===c.id);return p?[p.name,...(p.aliases??[])].filter(Boolean):[];
 };
-export const cardLabel=(c,profiles)=>c.temp?(c.name||'이름 없는 인물'):(profiles.find(p=>p.id===c.id)?.name??c.entityName??'인물');
+// A card with no name reads in the screen language (0.1.169); a name is shown as written.
+export const cardLabel=(c,profiles)=>c.temp?(c.name||tr`이름 없는 인물`):(profiles.find(p=>p.id===c.id)?.name??c.entityName??tr`인물`);
 
 // Before the request: what the text keeps. present = cards named in the text (sent to the AI as people who may be in it).
 export function planFreePeople(cards,text,profiles){

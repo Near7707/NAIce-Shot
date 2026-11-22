@@ -1,3 +1,15 @@
+# v0.1.169 validation — 2026-11-22 (extension only, server v0.1.25)
+
+- `index.js` (`prepareRefs`: each @ problem looked up with `trMsg`, the sentence made by `tr` for the two fields), `free-people.mjs` (`cardLabel` fallback names by `tr`), `i18n.mjs` (`AS_IS` + the five @ problem keys), `i18n-en.mjs` (+27 keys: @ check 7, the no-name outfit piece 1, server 19). Version moved to 0.1.169 in `core.mjs`, `manifest.json`, `package.json`.
+- Extension Node suite: **221 passed, 0 failed** (+3 in `tests/i18n-v01169.test.mjs`). Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**. `node tests/i18n-keys.mjs` → 486 keys, 0 missing; no duplicate keys.
+- **148 of 148 Chromium browser scripts passed** (run 4 at a time, none needed a second run). The 147 scripts of 0.1.168 are unchanged; the new one is `browser-v01169`.
+- New `tests/browser-v01169.mjs` (375, 1100px, Korean and English): a broken @name in the extra request and in Free Shot's situation text (two problems, one @name that reads like an app sentence) stops with the whole notice in English and the @names as typed; Korean is word for word the old notice; no extraction is sent. Fails on 0.1.168 (English); fails with the per-problem `trMsg` taken out, and the @name case turns English with the new `AS_IS` lines taken out.
+- New `tests/i18n-v01169.test.mjs`: the card question's no-name labels (English / Korean as before), the no-name outfit piece, every listed server text is still in the server's `handlers.mjs` and reads with no Korean in English and as written in Korean. All three fail on 0.1.168.
+- Server texts left out on purpose: plain errors inside the server (ZIP, prompt and slot checks, reply size) never reach the panel — the reply turns them into the internal-error text, which is translated. The NAI account field list ([NAI 연결 확인]) is shown and copied as the server writes it (field names, "(이름 생략)", "N개").
+- Not checked: a real SillyTavern, a real iPhone, a real NovelAI account (the server errors were read from the server's source, not made to happen).
+
+---
+
 # v0.1.168 validation — 2026-11-22 (extension only, server v0.1.25)
 
 - `index.js`: `firstLanguage` and the new-settings line in `settings()`. New `README-en.md`; README.md links. Version moved to 0.1.168 in `core.mjs`, `manifest.json`, `package.json`.

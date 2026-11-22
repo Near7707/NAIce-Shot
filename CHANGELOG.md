@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.169 — 2026-11-22 (extension only — server v0.1.25 unchanged)
+
+Korean left on the English screen, now English (the Korean screen reads exactly as before):
+- The stop notice of the @ check ("Check the @references in the extra request / situation text. @Ghost: …"), in 챗샷's extra request and 프리샷's situation text. Each problem is read on its own; the @name stays as typed.
+- 프리샷's question about cards not in the text: a card with no name reads "Unnamed person" / "Person".
+- "Not applied": an outfit request the AI sent with no name reads "outfit (no name) · not found in the scene".
+- 18 server plugin texts that reach the panel (account check timeouts and failures, "already sent", "changed in another window or device", too large, invalid IDs, the internal error) and "NAI account check failed (502)." — translated in the panel, the server is unchanged.
+
 ## 0.1.168 — 2026-11-22 (extension only — server v0.1.25 unchanged)
 
 - **A new install starts in SillyTavern's language.** Korean when SillyTavern is Korean, English for any other language, Korean when SillyTavern does not report one. It is decided once, when NAIce Shot first makes its settings, and saved as the screen language; change it any time in Settings → **화면 언어 · Language**.

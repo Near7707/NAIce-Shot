@@ -1788,7 +1788,9 @@ function limitHint(){
 function prepareRefs(el,label){
   const tooLong=lengthProblem(el.value,el.id==='ncs-free-text'?'free':'wish');if(tooLong)throw new Error(tooLong);
   const profiles=settings().profiles,c=confirmRefs(el.value,profiles);
-  if(c.problems.length)throw new Error(`${label}의 @참조를 확인해 주세요. ${c.problems.map(p=>p.message).join(' ')}`);
+  // 0.1.169: each problem is looked up on its own (they carry names typed by the person), then the sentence is made by tr.
+  if(c.problems.length){const m=c.problems.map(p=>trMsg(p.message)).join(' ');
+    throw new Error(label==='상황 글'?tr`상황 글의 @참조를 확인해 주세요. ${m}`:tr`추가 요청의 @참조를 확인해 주세요. ${m}`);}
   // 0.1.79 (UI-076-02): a typed short alias can become a chip with a longer name — the result is checked again.
   {const after=lengthProblem(c.text,el.id==='ncs-free-text'?'free':'wish');if(after)throw new Error(`@이름을 프로필에 연결하면 ${after}`);}
   if(c.confirmed.length){el.value=c.text;el.dispatchEvent(new Event('input',{bubbles:true}));}
