@@ -1,3 +1,14 @@
+# v0.1.168 validation — 2026-11-22 (extension only, server v0.1.25)
+
+- `index.js`: `firstLanguage` and the new-settings line in `settings()`. New `README-en.md`; README.md links. Version moved to 0.1.168 in `core.mjs`, `manifest.json`, `package.json`.
+- Extension Node suite: **218 passed, 0 failed**. Server Node suite (v0.1.25, unchanged): **42 passed, 0 failed**. `node tests/i18n-keys.mjs` → 484 keys, 0 missing.
+- **147 of 147 Chromium browser scripts passed** (run 4 at a time, none needed a second run). The 146 scripts of 0.1.167 are unchanged; the new one is `browser-v01168`.
+- New `tests/browser-v01168.mjs` (375, 1100px): a fake `getCurrentLocale` and, for a new install, the fixture's own settings skipped so the extension makes its settings itself. New install with ko-kr / ko → Korean; en / ja-jp / zh-cn → English (panel class, header "Chat", the language select, the extension list entry "Open NAIce Shot"); no getCurrentLocale, an empty answer or a throwing one → Korean. Earlier settings without a choice + English SillyTavern → Korean and nothing saved; earlier choice English + Korean SillyTavern → English; earlier choice Korean + English SillyTavern → Korean. A new English install reloaded with a Korean SillyTavern stays English. Fails on 0.1.167 (the first new-install case: nothing saved).
+- The older browser checks need no change: the fixture has no `getCurrentLocale`, so they stay Korean.
+- Not checked: a real SillyTavern (its `getCurrentLocale` is read from SillyTavern's source: the `language` set in its settings, otherwise the browser language), a real iPhone, a real NovelAI account.
+
+---
+
 # v0.1.167 validation — 2026-11-22 (extension only, server v0.1.25)
 
 - The `wip-en` branch (English screen) merged into main as one commit. Version moved to 0.1.167 in `core.mjs`, `manifest.json`, `package.json`.

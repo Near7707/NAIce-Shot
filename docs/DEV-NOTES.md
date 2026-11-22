@@ -185,7 +185,7 @@
 
 ## 8. 알아 둘 코드 위치 (줄 번호는 뺌 — `grep -n`으로 찾기)
 
-- 화면 언어(0.1.167): i18n.mjs(`tr`·`trMsg`·`doneText`·`localize`·`setLang`·`currentLang`·`dateLocale`·`dateForm`, `TR_ONLY`·`AS_IS`, `localFile`·`GUIDE_TITLES_EN`·`koOf`, `shownName`), i18n-en.mjs(사전, 손으로 고침), scene-extraction.mjs `USER_WORDS`·`languageRetry`, index.js `initialize` 맨 앞 `setLang`, 설정 `uiLanguage`. 검사: `tests/i18n-sweep`·`i18n-status`·`i18n-prompt`·`guide-en`(npm test), `tests/browser-i18n.mjs`, 손 도구 `tests/i18n-keys.mjs`·`i18n-compare.mjs`·`i18n-wrap.mjs`.
+- 화면 언어(0.1.167): i18n.mjs(`tr`·`trMsg`·`doneText`·`localize`·`setLang`·`currentLang`·`dateLocale`·`dateForm`, `TR_ONLY`·`AS_IS`, `localFile`·`GUIDE_TITLES_EN`·`koOf`, `shownName`), i18n-en.mjs(사전, 손으로 고침), scene-extraction.mjs `USER_WORDS`·`languageRetry`, index.js `initialize` 맨 앞 `setLang`, 설정 `uiLanguage`, 새 설치의 첫 언어 `firstLanguage`(`settings()`가 설정을 처음 만들 때, 0.1.168). 검사: `tests/i18n-sweep`·`i18n-status`·`i18n-prompt`·`guide-en`(npm test), `tests/browser-i18n.mjs`, 손 도구 `tests/i18n-keys.mjs`·`i18n-compare.mjs`·`i18n-wrap.mjs`.
 - 0.1.162: chipfield.mjs `counted()`·`el.refs`(값 setter 바로 아래), `repickAll`·`dropRef`의 `counted()`.
 - 0.1.161: chipfield.mjs `repickAll` 반복문 주석(가려진 연결 건너뜀).
 - 0.1.160: chipfield.mjs `repickAll`(`dropRef` 바로 아래), index.js `pillAction`의 `field.repickAll`.
@@ -212,6 +212,8 @@
 - 새 화면 글은 `tr`/`localize`를 거치게(템플릿 HTML 속 글도). `i18n-sweep`은 백틱 HTML 속 한국어를 못 봄.
 - 새 한국어 완성 문장(요./요?)이나 값이 든 문장을 넣으면 `i18n-en.mjs`에 영어도(안 넣으면 `i18n-sweep` 실패). 사전에 문장을 넣을 땐 그 문장과 똑같은 이름이 다른 `trMsg` 패턴의 값으로 들어갈 수 있는지(AS_IS 필요한지) 같이 볼 것.
 - `guide.md`를 고치면 `guide-en.md`도 같이.
+- 실리태번 언어(`getCurrentLocale`)는 설정을 처음 만들 때만 본다(0.1.168). 이미 있는 설정의 빈 `uiLanguage`는 한국어 — 바꾸면 쓰던 사람 화면이 바뀜. 검사 fixture엔 `getCurrentLocale`이 없어 옛 검사는 한국어 그대로, 새 설치 흉내는 `tests/browser-v01168.mjs`의 `open(w,{locale,fresh,chosen})`.
+- README를 고치면 `README-en.md`도(앞부분 영어판. 자세한 영어 설명은 README.md 안에만).
 - 작업 기억 줄 버튼 글을 더하거나 바꾸면 영어도 짧게, `browser-v01166`과 `browser-i18n` 19단계 목록에.
 - 영어가 한국어보다 길면 320·375px에서 버튼에 들어가는지 재기.
 - `browser-i18n.mjs`의 한 단계만 돌리기·하나씩 되돌려 확인하는 요령은 I18N.md와 6절 요령과 같음.

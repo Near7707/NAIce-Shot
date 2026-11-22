@@ -1,8 +1,10 @@
 # NAIce Shot v0.1.41
 
+**한국어** · [English](README-en.md)
+
 실리태번의 RP 장면을 추출해 NovelAI 그림을 생성하는 비공식 확장이에요. 캐릭터 외형 프로필, 장면·복장 편집, 생성 프리셋, 이미지 이력과 채팅 첨부를 지원해요.
 
-화면은 기본이 한국어예요. 패널의 설정 탭 → **화면 언어 · Language**에서 English를 고를 수 있어요(새로고침 뒤 적용).
+화면은 한국어와 English 두 가지예요. 처음 설치하면 실리태번 언어를 따라가요(실리태번이 한국어면 한국어, 다른 언어면 English). 패널의 설정 탭 → **화면 언어 · Language**에서 언제든 바꿀 수 있어요(새로고침 뒤 적용).
 
 ## 설치 안내
 
@@ -74,7 +76,7 @@ Termux로 실리태번을 쓰는 경우에도 순서는 같아요. 명령은 Ter
 
 Generate NovelAI illustrations from SillyTavern roleplay scenes, with saved character appearances, editable scene prompts, and per-character prompt slots.
 
-This repository contains the browser extension. The UI is in Korean by default; English can be chosen in the panel's Settings tab (**화면 언어 · Language**, applied after a reload). The companion server plugin is in [NAIce-Shot-Server](https://github.com/Near7707/NAIce-Shot-Server); both are required.
+This repository contains the browser extension. The UI is in Korean or English: a new install starts in SillyTavern's language (Korean if SillyTavern is Korean, English otherwise; Korean if SillyTavern does not report one), settings saved by an earlier version keep their language (Korean unless English was chosen), and it can be changed in the panel's Settings tab (**화면 언어 · Language**, applied after a reload). A shorter English introduction is in [README-en.md](README-en.md). The companion server plugin is in [NAIce-Shot-Server](https://github.com/Near7707/NAIce-Shot-Server); both are required.
 
 > **Unofficial project.** NAIce Shot is an independent, community-made add-on. It is not made, endorsed or supported by NovelAI (Anlatan) or the SillyTavern team. "NovelAI" and "SillyTavern" are used only to describe compatibility. Image generation uses your own NovelAI account and follows NovelAI's terms and pricing.
 >

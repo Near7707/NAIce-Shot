@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.168 — 2026-11-22 (extension only — server v0.1.25 unchanged)
+
+- **A new install starts in SillyTavern's language.** Korean when SillyTavern is Korean, English for any other language, Korean when SillyTavern does not report one. It is decided once, when NAIce Shot first makes its settings, and saved as the screen language; change it any time in Settings → **화면 언어 · Language**.
+- Settings from an earlier version keep their language: Korean unless English was chosen, whatever SillyTavern's language is. Nothing changes for anyone already using NAIce Shot.
+- **README in English:** new `README-en.md` (introduction, install, Termux, first use, privacy). Both READMEs link to each other at the top; the detailed English documentation stays in `README.md`.
+
 ## 0.1.167 — 2026-11-22 (extension only — server v0.1.25 unchanged)
 
 **English screen.** Merged from the `wip-en` branch (21 steps, six GPT reviews with no P1/P2, checked by the user on an iPhone in both languages):

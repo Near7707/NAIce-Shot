@@ -73,11 +73,15 @@ function uuid(){
 function settings() {
   const c=ctx();
   // New users start with the recommended extraction values; existing users keep theirs (see "권장값 적용").
-  if(!c.extensionSettings[KEY])c.extensionSettings[KEY]={...clone(DEFAULTS),extractionMaxTokens:RECOMMENDED_MAX_TOKENS,recent:1};
+  // 0.1.168: a new install also starts in SillyTavern's language (see firstLanguage); existing settings without a choice stay Korean.
+  if(!c.extensionSettings[KEY])c.extensionSettings[KEY]={...clone(DEFAULTS),extractionMaxTokens:RECOMMENDED_MAX_TOKENS,recent:1,uiLanguage:firstLanguage(c)};
   const s=c.extensionSettings[KEY];for(const [k,v] of Object.entries(DEFAULTS))if(s[k]===undefined)s[k]=clone(v);
   // Noise Schedule is no longer offered: new generations always use the default (karras).
   s.options=freeOptions({...DEFAULTS.options,...s.options,scheduler:DEFAULTS.options.scheduler});s.version=VERSION;return s;
 }
+// 0.1.168: the screen language a new install starts with — Korean when SillyTavern's language is Korean, English for any
+// other. Korean when SillyTavern does not say (no getCurrentLocale) or the call fails, as before.
+function firstLanguage(c){try{const l=c.getCurrentLocale?.();return typeof l==='string'&&l&&!l.toLowerCase().startsWith('ko')?'en':'ko';}catch{return 'ko';}}
 // Only NovelAI's free-sized choices: one of the three sizes and at most 28 steps. Anything else (old custom sizes,
 // imported backups, history drafts) falls back to portrait / 28, so no one is charged Anlas for a size by accident.
 const FREE_STEPS=28,RECOMMENDED_MAX_TOKENS=8192;

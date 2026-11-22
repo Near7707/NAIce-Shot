@@ -1,4 +1,4 @@
-export const VERSION = '0.1.167';
+export const VERSION = '0.1.168';
 export const BRAND = 'NAIce Shot';
 export const SIZE_PRESETS = {
   portrait:{label:'세로 · 832 × 1216',width:832,height:1216},
