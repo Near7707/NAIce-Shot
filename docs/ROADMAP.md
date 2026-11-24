@@ -211,6 +211,10 @@ UI-055-01~06: 구조화 출력 스키마 strict 호환, "혼자"일 때 남은 �
 - 수정: UI-075-01~04, 06~08, UI-072-01, 본문에 넣기 상자 한 줄. 자세한 내용은 [REVIEW.md](REVIEW.md).
 - 규칙(0.1.75에서 유지): 필수 출연이 제외 요청보다 우선, 같은 프로필은 한 명, 모델 한도(V4.5 6명, V5 22명), NovelAI에는 @ 없음.
 
+### 서버 README 첫 화면도 영어로 (버전 없음, 글만) · **구현(서버 README만, [c5de895](https://github.com/Near7707/NAIce-Shot-Server/commit/c5de895), 서버 0.1.25 그대로)**
+사용자 결정(2026-11-24, "시작해"): 서버 레포도 `README.md` = 영어 전체(한국어 README를 그대로 옮김), `README.ko.md` = 한국어, 맨 위 서로 링크. 개발자용 영어 설명("## For developers")은 영어 README에만 두고 한국어 쪽은 링크 한 줄. 한국어 README의 옛 이름 "공유용 PNG"는 지금 화면 이름 "클린 PNG"로.
+- 규칙: 서버 README의 버튼 이름도 영어 화면 그대로. 저장 데이터·삭제 방법을 바꾸면 서버 README 두 벌을 같이.
+
 ### README 첫 화면을 영어로 (버전 없음, 글만) · **구현(확장 README + 서버 README 링크만, 앱 코드 변경 없음)**
 사용자 결정(2026-11-24): GitHub 첫 화면(README.md)을 영어로, 한국어는 링크로. `README-en.md` → `README.md`, 한국어 → `README.ko.md`. `README-en.md`는 옛 링크(설치된 서버 폴더의 README 등)가 깨지지 않게 안내만 남김. 서버 README의 두 링크도 새 이름으로.
 
