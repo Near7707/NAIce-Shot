@@ -211,6 +211,9 @@ UI-055-01~06: 구조화 출력 스키마 strict 호환, "혼자"일 때 남은 �
 - 수정: UI-075-01~04, 06~08, UI-072-01, 본문에 넣기 상자 한 줄. 자세한 내용은 [REVIEW.md](REVIEW.md).
 - 규칙(0.1.75에서 유지): 필수 출연이 제외 요청보다 우선, 같은 프로필은 한 명, 모델 한도(V4.5 6명, V5 22명), NovelAI에는 @ 없음.
 
+### README 첫 화면을 영어로 (버전 없음, 글만) · **구현(확장 README + 서버 README 링크만, 앱 코드 변경 없음)**
+사용자 결정(2026-11-24): GitHub 첫 화면(README.md)을 영어로, 한국어는 링크로. `README-en.md` → `README.md`, 한국어 → `README.ko.md`. `README-en.md`는 옛 링크(설치된 서버 폴더의 README 등)가 깨지지 않게 안내만 남김. 서버 README의 두 링크도 새 이름으로.
+
 ### README 정리 (버전 없음, 글만) · **구현(확장만, 앱 코드 변경 없음)**
 사용자 결정(2026-11-23, "2하자 시작해"): 한국어 README 아래에 있던 긴 영어 설명("Detailed documentation (English)")을 `README-en.md`의 "## Details"로 옮기고, 그 안의 한국어 버튼 이름을 영어 화면 이름으로 바꿈(사전 값으로 대조). 글 다듬기(③)는 하지 않음.
 - 겹치던 영어 Install·Uninstall·소개·비공식 안내는 README-en.md 앞부분에 이미 있어서 뺌. Install에만 있던 두 줄(서버는 `plugins/` 바로 아래, CHANGELOG 안내)은 Repository layout으로.
