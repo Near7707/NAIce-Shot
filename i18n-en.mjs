@@ -243,7 +243,7 @@ export default {
   "클린 PNG":"Clean PNG",
   "원본 PNG":"Original PNG",
   "seed {0} · {1} · 메시지 본문은 유지되고, 첨부 그림은 본편 AI 입력에 포함되지 않아요.":"seed {0} · {1} · The message text stays as it is, and attached pictures are not sent to the main AI.",
-  "프롬프트·seed 등 메타데이터를 제거한 사본이에요. 투명한 부분은 흰색이 돼요.":"A copy without metadata such as the prompt and seed. Transparent parts turn white.",
+  "프롬프트·seed 등 메타데이터를 제거한 사본이에요. 투명 배경은 남고, 그 밖의 그림은 흰 바탕이에요.":"A copy without metadata such as the prompt and seed. A transparent background stays; other pictures get a white base.",
   "프롬프트·seed 등 메타데이터를 제거하지 않고 그대로 저장해요. 투명 배경도 그대로예요.":"Saved as is, with metadata such as the prompt and seed. A transparent background stays transparent.",
   "추출 전으로 되돌려요. 다시 고치거나 생성·비우기·가져오기를 하면 사라져요.":"Brings back the work before extraction. Gone after your next edit, generation, clear or import.",
   "추출 전으로 되돌렸어요.":"Back to before the extraction.",

@@ -285,7 +285,7 @@ Free Shot pictures are not used in the pop-up. The pop-up does not change the ch
 
 Under a picture's **[Save ▾]**, choose one of two.
 
-- **Clean PNG:** a copy without info like the prompt and Seed. It is made again in the browser, so transparent parts become a white background.
+- **Clean PNG:** a copy without info like the prompt and Seed. It is made again in the browser. A picture made with a transparent background stays transparent; other pictures get a white base.
 - **Original PNG:** the picture as it was made. It may contain the prompt and Seed. A transparent background stays transparent.
 
 Clean PNG is recommended when sending to other people. Names or text visible in the picture itself are not removed.

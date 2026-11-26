@@ -1,3 +1,13 @@
+# v0.1.173 — 2026-11-26 (extension only, server 0.1.25 unchanged)
+
+- New `tests/browser-v01173.mjs`: a 64×64 picture with a transparent background, opaque centre, half-transparent edges, a PNG text chunk and NovelAI-style stealth data in the lowest alpha bit (the `stealth_pngcomp` magic, read column by column as `nai_meta.py` does). The reader finds the magic in the input; after `cleanPng` it is gone, no lowest bit is left that does not follow its value's top half, transparent stays 0, opaque becomes 255 with its colour unchanged, edges move by at most 1, the text chunk is gone. An opaque NovelAI-style picture (254/255 only) still comes out fully opaque.
+- `tests/transparent-v01171.test.mjs`: the new Clean PNG note and its English.
+- The new check fails on 0.1.172. Undone one at a time, each of these makes it fail: scrubbing the alpha bits, rounding (instead of clearing every bit), detecting transparency.
+- Not shown by a check (passes when undone): sending opaque pictures through the old white path — the new path gives the same result for them (all 255); the branch keeps the old, long-tested code for them on purpose.
+- Not checked: a real NovelAI transparent picture through the extension, a real iPhone (Safari's privacy protection may add slight noise to re-drawn pictures, as for the old Clean PNG).
+
+---
+
 # v0.1.172 — 2026-11-26 (extension only, server 0.1.25 unchanged)
 
 - New `tests/browser-v01172.mjs` (375px, Korean and English): a new person starts with both off; on in Free Shot leaves Chat Shot off (checkbox, no rule in the chat extraction prompt, no tag, location sent, no warning); back in Free Shot it is still on with its warning; on/off in one mode leaves the other; 0.1.171 settings with it on or off → both modes start with that value, then move apart.

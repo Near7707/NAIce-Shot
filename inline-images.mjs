@@ -3,7 +3,7 @@ import {isSceneMessage} from './scene-messages.mjs';
 import {textSignature,clone} from './core.mjs';
 import {tr} from './i18n.mjs'; // wip-en: Korean shows every text as written
 // Shown under each save choice wherever a PNG can be saved.
-export const SAVE_NOTES={shared:'프롬프트·seed 등 메타데이터를 제거한 사본이에요. 투명한 부분은 흰색이 돼요.',original:'프롬프트·seed 등 메타데이터를 제거하지 않고 그대로 저장해요. 투명 배경도 그대로예요.'};
+export const SAVE_NOTES={shared:'프롬프트·seed 등 메타데이터를 제거한 사본이에요. 투명 배경은 남고, 그 밖의 그림은 흰 바탕이에요.',original:'프롬프트·seed 등 메타데이터를 제거하지 않고 그대로 저장해요. 투명 배경도 그대로예요.'};
 export const SAVE_DETAILS=`<details class="ncs-save-info"><summary>PNG 저장 안내</summary><p>PNG 저장은 원본을 유지해요. 클린 PNG는 프롬프트 메타데이터와 알파 채널 정보를 제거한 불투명 사본을 만들어요. 원본과 이력은 그대로예요. 그림 안에 보이는 이름·글자는 제거하지 않아요.</p></details>`;
 export const IMAGE_KEY='naice_shot_images';
 export function imageDownload(item) {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.173 — 2026-11-26 (extension only — server v0.1.25 unchanged)
+
+- **Clean PNG keeps a transparent background.** A picture with real transparency (made with Transparent BG) is no longer merged onto white. The hidden NovelAI data in the lowest bit of each alpha value is removed by rounding that bit to the value's top half (128 and up → 1, below → 0): fully transparent and fully opaque pixels stay exactly as they were, half-transparent edges move by at most 1/255. PNG text chunks are gone as before.
+- Any other picture is cleaned exactly as before (merged onto white, fully opaque).
+- The **Save ▾** note, the guide (both languages) and both READMEs say so.
+
 ## 0.1.172 — 2026-11-26 (extension only — server v0.1.25 unchanged)
 
 - **Transparent BG** is now kept separately for Chat Shot and Free Shot. Turning it on in Free Shot no longer turns it on in Chat Shot, and the other way round. The same checkbox shows each mode's own value when you switch modes.

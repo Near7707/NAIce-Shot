@@ -24,9 +24,9 @@ test('free and chat extraction prompts add the transparent rule only when it is 
   assert.match(TRANSPARENT_RULE,/Leave location empty/);
 });
 test('the save menu notes say what happens to a transparent background', ()=>{
-  assert.match(SAVE_NOTES.shared,/투명한 부분은 흰색이 돼요\.$/);assert.match(SAVE_NOTES.original,/투명 배경도 그대로예요\.$/);
+  assert.match(SAVE_NOTES.shared,/투명 배경은 남고, 그 밖의 그림은 흰 바탕이에요\.$/);assert.match(SAVE_NOTES.original,/투명 배경도 그대로예요\.$/);
   setLang('en');
-  assert.equal(trMsg(SAVE_NOTES.shared),'A copy without metadata such as the prompt and seed. Transparent parts turn white.');
+  assert.equal(trMsg(SAVE_NOTES.shared),'A copy without metadata such as the prompt and seed. A transparent background stays; other pictures get a white base.');
   assert.equal(trMsg(SAVE_NOTES.original),'Saved as is, with metadata such as the prompt and seed. A transparent background stays transparent.');
   setLang('ko');
 });
