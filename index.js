@@ -1049,7 +1049,7 @@ function renderSettings() {
   for(const [id,k] of [['positive','positive'],['negative','negative'],['recent','recent'],['format','format']])$(`ncs-${id}`).value=s[k];
   for(const [id,k] of [['model','model'],['steps','steps'],['scale','scale'],['seed','seed'],['cfg','cfgRescale'],['sampler','sampler']])$(`ncs-${id}`).value=s.options[k];
   renderRawRetention();
-  $('ncs-include-user').checked=s.includeUser;$('ncs-schema').checked=s.structuredOutput;$('ncs-retain-raw').checked=s.retainRawExtraction===true;$('ncs-allow-anlas').checked=s.allowAnlas;
+  $('ncs-include-user').checked=s.includeUser;$('ncs-schema').checked=s.structuredOutput;$('ncs-retain-raw').checked=s.retainRawExtraction===true;$('ncs-allow-anlas').checked=s.allowAnlas;$('ncs-transparent-bg').checked=s.transparentBg===true;
   $('ncs-ui-language').value=s.uiLanguage==='en'?'en':'ko';$('ncs-image-placement').value=s.imagePlacement==='below'?'below':'above';renderPlacement();$('ncs-message-button').checked=messageButtonsOn();$('ncs-inline-layout').value=inlineLayout();$('ncs-inline-size').value=inlineSize();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
   renderImagePresets();renderExtractionProfiles();$('ncs-extraction-max-tokens').value=s.extractionMaxTokens;$('ncs-extraction-temperature').value=extractionTemperature()??'';
 }
@@ -1070,7 +1070,7 @@ function renderGenBox() {
   $('ncs-gen-presets').hidden=history;
   over.hidden=!p;if(p)over.textContent=tr`‘${p.name}’에 덮어쓰기`;
   $('ncs-gen-preset-state').textContent=p?(imagePresetModified(s)?tr`프리셋 ‘${p.name}’에서 수정됨 · 저장본은 그대로예요.`:tr`프리셋 ‘${p.name}’ 그대로예요.`):tr`프리셋을 고르지 않았어요. 지금 값을 새 프리셋으로 저장할 수 있어요.`;
-  $('ncs-gen-preset-namebox').hidden=!genNaming;
+  $('ncs-gen-preset-namebox').hidden=!genNaming;renderTransparent();
 }
 function editGenField(el) {
   dropUndo();
@@ -1713,7 +1713,27 @@ function fixedLook(c,p){
 }
 // --- Temporary people (임시 인물): drawn in this scene only, never saved as a profile -----------------
 // For assembly each one becomes a throwaway profile whose outfit is its own field.
+// 0.1.171 Transparent BG (V5 only): the tag is added and the location is left out here, where the final prompt is built,
+// so the final prompt shows what is sent. A hand-edited or history final prompt is never rewritten (renderTransparent says so).
+const TBG='transparent background',TBG_RE=/\btransparent background\b/i;
+function transparentOn(){return settings().transparentBg===true&&isV5(effectiveOptions().model);}
 function assembleScene(){
+  if(!transparentOn())return assembleFrom(scene);
+  const a=assembleFrom({...scene,location:''});
+  if(!TBG_RE.test(a.base))a.base=a.base?`${a.base}, ${TBG}`:TBG;
+  return a;
+}
+function renderTransparent(){
+  const box=dialog&&$('ncs-transparent-bg');if(!box)return;
+  const v5=isV5(effectiveOptions().model),on=settings().transparentBg===true,active=on&&v5;
+  box.checked=on;box.disabled=!v5;$('ncs-location-skip').hidden=!active;
+  let base='';try{const a=finalData();base=a?.invalid?'':String(a?.base??'');}catch{}
+  const tagged=TBG_RE.test(base),note=$('ncs-transparent-note');
+  note.hidden=!active&&!tagged;if(note.hidden){note.textContent='';return;}
+  const head=active?tr`<b>투명 배경 켜짐</b> (끄려면 [장면 추출] 위 체크)`:tr`<b>최종 프롬프트에 투명 배경 태그가 있어요</b>`;
+  note.innerHTML=`${head} · ${tr`<code>transparent background</code> 태그만 넣는 기능이라 배경이 남을 수 있어요. 생성 전에 최종 프롬프트에 배경 낱말이 없는지 확인해 주세요.`}${active&&!tagged?` ${tr`직접 고친 최종 프롬프트에는 이 태그가 없어요.`}`:''}`;
+}
+function assembleFrom(scene){
   const temps=scene.characters.filter(c=>c.temp),base=settings();
   // A card's look edited for this picture replaces that profile's look in this assembly only (0.1.70).
   const looked=scene.characters.filter(c=>!c.temp&&c.look&&Object.keys(c.look).length);
@@ -1729,7 +1749,7 @@ function updateFinal({force=false}={}) {
   try {
     if(finalOverride?.invalid){$('ncs-warnings').textContent=tr`최종 프롬프트 JSON을 확인해 주세요: ${trMsg(finalOverride.message)}`;return;} // keep the user's in-progress text
     const a=finalData();if(force||!(finalOverride&&document.activeElement===$('ncs-final')))$('ncs-final').value=JSON.stringify(a,null,2);
-    renderFinalForm(a,{force});$('ncs-final-badge').hidden=!finalOverride;
+    renderFinalForm(a,{force});$('ncs-final-badge').hidden=!finalOverride;renderTransparent();
     const lengths=[tr`공통 ${a.base.length}자`,...a.characters.map(c=>tr`${shownName(c.name,scene.characters.some(t=>t.temp&&!t.name&&t.id===c.id))}: ${c.prompt.length}자`)];
     $('ncs-length').textContent=tr`${lengths.join(' · ')} · 글자 수예요. NAI 토큰 수와 달라요.`;
     // The shared core still words this one the old way; show it in the clothes vocabulary of the scene card.
@@ -1986,7 +2006,7 @@ async function freeFill() {
   // 0.1.59: the text decides who stays. Nothing changes before the response is valid; a cancelled question changes nothing.
   const plan=planFreePeople(scene.characters,plainNames(asked,s.profiles),s.profiles);
   const existing=plan.present.map(c=>c.temp?{id:'',name:c.name}:{id:c.id,name:s.profiles.find(p=>p.id===c.id)?.name??''}).filter(p=>p.name);
-  const prompt=freeScenePrompt(refs.text,s.profiles,existing,s.format,refs.required,displayText(asked));
+  const prompt=freeScenePrompt(refs.text,s.profiles,existing,s.format,refs.required,displayText(asked),transparentOn());
   if(plan.ask&&!confirm(trMsg(confirmText(plan,s.profiles)))){report(tr`추출하지 않았어요. 글을 고치거나 남길 카드를 📌 고정해 주세요.`);return;}
   const before={...captureWork(),scene:clone(scene),undoClear:null,targetShown,kind:'extract',label:'추출 전으로 되돌려요. 다시 고치거나 생성·비우기·가져오기를 하면 사라져요.'};
   const ticket=++task,rev=revision,controller=new AbortController();extraction={ticket,controller,kind:'free'};
@@ -2097,7 +2117,7 @@ async function extract() {
   const keptTemps=[...new Map([scene,...(scene.moments??[]).map(m=>m.scene)].flatMap(part=>(part.characters??[]).filter(c=>c.temp)).map(t=>[t.id,t])).values()];
   const manualPositions=new Map();
   if(scene.source?.target===selection.source.target)for(const part of [scene,...(scene.moments??[]).map(m=>m.scene)])for(const c of part.characters??[])if(c.positionManual&&c.id)manualPositions.set(c.id,c.position);
-  const prompt=momentExtractionPrompt(selection.messages,matching.profiles,outfits,s.format,matching.mappings,refs.text.trim(),refs.required,currentLang());
+  const prompt=momentExtractionPrompt(selection.messages,matching.profiles,outfits,s.format,matching.mappings,refs.text.trim(),refs.required,currentLang(),transparentOn());
   const controller=new AbortController();extraction={ticket,controller};
   dropUndo();setBusy(true,ticket);startProgress('extract',ticket);report(tr`장면 추출을 시작했어요.`);
   let response='',failure;
@@ -3708,6 +3728,7 @@ function bindEvents() {
       }
       // 0.1.88 (user's choice): the same consent as a second checkbox where the "Anlas 허용이 꺼져 있어요" note is,
       // so it can be ticked right there. It is still a checkbox the user ticks (0.1.46: nothing turns it on by itself).
+      if(el.id==='ncs-transparent-bg'){settings().transparentBg=el.checked;ctx().saveSettingsDebounced();revision++;updateFinal();return;}
       if(el.id==='ncs-allow-anlas-here'){const main=$('ncs-allow-anlas');main.checked=el.checked;main.dispatchEvent(new Event('input',{bubbles:true}));return;}
       const settingMap={'ncs-positive':'positive','ncs-negative':'negative','ncs-format':'format','ncs-recent':'recent','ncs-include-user':'includeUser','ncs-schema':'structuredOutput','ncs-allow-anlas':'allowAnlas'};
       const optionMap={'ncs-model':'model','ncs-steps':'steps','ncs-scale':'scale','ncs-seed':'seed','ncs-cfg':'cfgRescale','ncs-sampler':'sampler'};

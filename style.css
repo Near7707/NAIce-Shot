@@ -628,6 +628,12 @@
 #naice-shot-dialog .ncs-request-again {margin-top:8px;}
 #naice-shot-dialog .ncs-request-again > button {width:100%;}
 #naice-shot-dialog .ncs-source-actions {margin-top:10px;}
+/* 0.1.171: Transparent BG — the checkbox above [장면 추출], the warning above the Anlas checkbox, a note beside 장소. */
+#naice-shot-dialog .ncs-transparent-check {margin-top:10px;}
+#naice-shot-dialog .ncs-transparent-check:has(input:disabled) {opacity:.55;}
+#naice-shot-dialog .ncs-transparent-help {display:block;}
+#naice-shot-dialog .ncs-transparent-note {margin:6px 0;color:var(--ncs-warning);overflow-wrap:anywhere;}
+#naice-shot-dialog .ncs-location-skip {margin-left:6px;color:var(--ncs-warning);font-weight:400;}
 /* 0.1.57 설정: short fields two per row even on phones; the preset save box closes the NAI 생성 설정 section. */
 #naice-shot-dialog .ncs-pair {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 10px;}
 #naice-shot-dialog .ncs-pair > label {min-width:0;}

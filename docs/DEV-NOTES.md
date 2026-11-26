@@ -186,6 +186,7 @@
 
 ## 8. 알아 둘 코드 위치 (줄 번호는 뺌 — `grep -n`으로 찾기)
 
+- 투명 배경(0.1.171): index.js `TBG`·`transparentOn`·`assembleScene`(장소 빼고 태그 한 번)·`assembleFrom`(옛 조립)·`renderTransparent`(체크 흐림·경고문·장소 옆 안내, `updateFinal`·`renderGenBox`에서 부름), 입력 처리 `ncs-transparent-bg`. 추출 지시 한 줄은 free-scene.mjs `TRANSPARENT_RULE`(scene-extraction.mjs도 import), 두 지시문 함수의 마지막 인자 `transparent`. core.mjs는 안 바꿈(서버 그대로).
 - 화면 언어(0.1.167): i18n.mjs(`tr`·`trMsg`·`doneText`·`localize`·`setLang`·`currentLang`·`dateLocale`·`dateForm`, `TR_ONLY`·`AS_IS`, `localFile`·`GUIDE_TITLES_EN`·`koOf`, `shownName`), i18n-en.mjs(사전, 손으로 고침), scene-extraction.mjs `USER_WORDS`·`languageRetry`, index.js `initialize` 맨 앞 `setLang`, 설정 `uiLanguage`, 새 설치의 첫 언어 `firstLanguage`(`settings()`가 설정을 처음 만들 때, 0.1.168). 검사: `tests/i18n-sweep`·`i18n-status`·`i18n-prompt`·`guide-en`(npm test), `tests/browser-i18n.mjs`, 손 도구 `tests/i18n-keys.mjs`·`i18n-compare.mjs`·`i18n-wrap.mjs`.
 - 0.1.162: chipfield.mjs `counted()`·`el.refs`(값 setter 바로 아래), `repickAll`·`dropRef`의 `counted()`.
 - 0.1.161: chipfield.mjs `repickAll` 반복문 주석(가려진 연결 건너뜀).

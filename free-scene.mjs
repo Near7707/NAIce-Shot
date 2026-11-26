@@ -3,6 +3,8 @@
 import {GENERIC_VISUALS_RULE,SCENE_TAG_GUIDE,jsonCandidates} from './core.mjs';
 
 export const FREE_TEXT_LIMIT=4000;
+// 0.1.171: Transparent BG is on (V5). Only a tag reaches NovelAI, so the scene itself should carry no background.
+export const TRANSPARENT_RULE=`TRANSPARENT BACKGROUND: this picture is drawn on a transparent background. Leave location empty. In every field show only the people and what they hold or wear: never write places, furniture, buildings, scenery, weather or background objects (write "sitting", not "sitting on a bench"). Lighting may describe only the light on the people. If the user's request asks for a place or background, leave that part out.`;
 // 0.1.75: people the user picked with @ must be in the result, whatever the text or request says.
 export const requiredBlock=(required,where)=>required?.length?`\nREQUIRED PEOPLE (picked by the user; data): ${JSON.stringify(required.map(p=>({id:p.id,name:p.name})))}
 Every required person MUST be in ${where} with exactly that id and name, even if the text or request says to leave them out or does not show them. Give each the most fitting expression and action for the instant. In the text, "(roster id …)" after a name tells which roster person is meant.`:'';
@@ -17,7 +19,7 @@ export function freeSceneSchema(profiles) {
 }
 
 // shown: the situation as a person sees it (a chip is @name). The length rule applies to that, not to the text with ids added.
-export function freeScenePrompt(text,profiles,selected,format,required=[],shown=null) {
+export function freeScenePrompt(text,profiles,selected,format,required=[],shown=null,transparent=false) {
  const situation=String(text??'').trim();
  if(!situation)throw new Error('그릴 상황을 적어 주세요.');
  if(String(shown??situation).length>FREE_TEXT_LIMIT)throw new Error(`상황은 ${FREE_TEXT_LIMIT.toLocaleString()}자까지 적을 수 있어요.`);
@@ -34,7 +36,7 @@ outfit: only clothing the text states for that person, otherwise empty (the app 
 position: auto unless the text clearly states where a person is placed (left, right or center). Never choose a side yourself. Relations between people (facing each other, side by side, holding hands) go in interaction and actions.
 NEVER output art style or quality tags. Write concrete visible expressions, actions, setting, lighting and camera composition; no thoughts, dialogue or abstract emotions.
 LANGUAGE: write appearance, outfit, expression, action, interaction, location, lighting and camera in English only, even when the situation is written in Korean or any other language: translate them. Only name may use another language.
-${GENERIC_VISUALS_RULE}
+${GENERIC_VISUALS_RULE}${transparent?`\n${TRANSPARENT_RULE}`:''}
 ${format==='tags'?SCENE_TAG_GUIDE:'Write descriptive fields as short concrete English visual phrases, not story narration.'}
 Use empty strings for unknown fields. Return ONLY JSON matching this schema:
 ${JSON.stringify(freeSceneSchema(profiles))}

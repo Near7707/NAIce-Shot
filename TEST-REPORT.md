@@ -1,3 +1,13 @@
+# v0.1.171 — 2026-11-26 (extension only, server 0.1.25 unchanged)
+
+- New `tests/browser-v01171.mjs` (375 and 1100px, Korean and English, plus 320/375 overflow): checkbox above [장면 추출]; off → no tag, location sent, no warning, no rule in the extraction prompt; on → the chat and Free Shot extraction prompts carry the rule, the final prompt and the generation request have the tag once and no location, the 장소 field keeps its words with the note; V4.5 → disabled, no tag, location back; a tag already in the common Positive is not doubled; a hand-edited final prompt is not rewritten and the warning names a missing tag; off with the tag in the final prompt still warns.
+- New `tests/transparent-v01171.test.mjs`: both extraction prompts are unchanged when off and differ by exactly the one rule line when on (Korean and English screens, with and without a request); the save notes and their English.
+- Both fail on 0.1.170. Undone one at a time, each of these makes the browser check fail: the no-double check, leaving the location out, passing the switch to the chat or the Free Shot prompt, the warning for a tag with the switch off, the missing-tag line, disabling for V4.5.
+- Not shown by a check (passes when undone): nothing known.
+- Not checked: a real NovelAI account through the extension after this change (the person checked by hand before it that a typed tag gives a transparent picture), a real iPhone.
+
+---
+
 # Check fix after v0.1.170 — 2026-11-22 (no app change, version stays 0.1.170)
 
 - `tests/browser-v031.mjs` only. Cause of the intermittent failure noted below: reopening the same picture places it before the viewer is open, so for one frame (about 7 ms, recorded) it sits at actual size, top left; the viewer's ResizeObserver then fits it. The check tapped (step 4) or read the zoom (step 5) as soon as the picture had its width, sometimes inside that frame. Both now wait for `fitted()`: the picture inside the stage.

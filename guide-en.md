@@ -148,6 +148,13 @@ Open **Final prompt · edit for this generation** to edit exactly what will be s
 - **[Back to assembled prompt]** puts it back any time.
 - Profiles, wardrobes and default outfits do not change.
 
+**Transparent BG (V5 only):** turn on **Transparent BG · V5 only** above [Extract scene] to add the `transparent background` tag to the final prompt and leave the location field out. The AI is also told to extract without a location or background. It stays on until you turn it off.
+
+- It only adds a tag, so a background may remain. If an action (`sitting on a bench`), the lighting (`rain`) or the common Positive has background words, delete them in the final prompt. While it is on, this note shows above the generate button.
+- Turned on for a scene already extracted, only the location is left out. Press [Extract scene] again to extract without a background.
+- A hand-edited final prompt is not changed. If it lacks the tag, the note says so.
+- To keep the transparency, save as **Original PNG**.
+
 ## Generation settings and presets
 
 Set the model, size, Steps, Guidance and Seed in **3 · Generate**. More settings are in **More · CFG Rescale · Sampler**.
@@ -279,7 +286,7 @@ Free Shot pictures are not used in the pop-up. The pop-up does not change the ch
 Under a picture's **[Save ▾]**, choose one of two.
 
 - **Clean PNG:** a copy without info like the prompt and Seed. It is made again in the browser, so transparent parts become a white background.
-- **Original PNG:** the picture as it was made. It may contain the prompt and Seed.
+- **Original PNG:** the picture as it was made. It may contain the prompt and Seed. A transparent background stays transparent.
 
 Clean PNG is recommended when sending to other people. Names or text visible in the picture itself are not removed.
 

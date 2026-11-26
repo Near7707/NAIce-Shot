@@ -107,6 +107,7 @@ The sections below go deeper: every feature, where things are saved, cost rules 
 - Match story participants to profiles by name, alias, card binding or explicit chat binding.
 - Keep outfits per chat, with manual editing and outfit locks.
 - Edit assembled prompts through individual fields or advanced JSON.
+- **Transparent BG · V5 only** (above **Extract scene**): adds `transparent background` to the final prompt, leaves the location out and tells the extraction AI to extract without a background. It only adds a tag, so a note above **Generate image** asks you to check the final prompt for background words. Save as **Original PNG** to keep the transparency.
 - When a message holds several scenes, one extraction offers up to three moments to choose from (the last one by default), each with its own people, poses and place; an optional **Extra request** field picks a moment and/or changes it for this picture (time, weather, camera, who is visible, a pose or clothing); fixed appearance stays with the profile, and the chat, profiles and chat clothes are not changed. What was applied is shown after extraction.
 - Keep a wardrobe per profile and dress people per scene: **Chat default outfit** (this chat's default), **🔒 Outfit lock** (the AI cannot change it), **Outfit for this picture** (this image only) and **Save to wardrobe** (keep it for later). History cards show the prompt that was sent.
 - Adjust model, size, steps, Guidance and seed right in the **Draw** tab (**Generation settings**), save or overwrite presets there, and turn a history image's settings into a new preset.
@@ -237,7 +238,7 @@ Restoring history uses that record's prompt, seed and options without changing p
 - Records include submitted prompts, exact payload and extracted scene. Raw extraction responses are omitted by default; explicit opt-in retains a copy with known reasoning tags removed. Older records are not automatically scrubbed. They do not include the NovelAI request authorization header.
 - All-chat history is scoped to the authenticated SillyTavern user's data directory.
 - **Save ▾** in the History selection bar downloads the selected history images as Clean or Original, either one ZIP or one file at a time.
-- **Clean PNG** exports an opaque, re-encoded copy without PNG text metadata or alpha-channel stealth data. **Original PNG** preserves original bytes.
+- **Clean PNG** exports an opaque, re-encoded copy without PNG text metadata or alpha-channel stealth data (transparent parts turn white). **Original PNG** preserves original bytes, transparency included.
 - Saved drawing work uses `<user data root>/naice-shot-work/` and can be deleted from Settings or with a chat's whole history.
 - Image deletion removes PNGs and generation records. Attachments in the open chat are cleaned up; other chats can show a missing-image notice.
 
