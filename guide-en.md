@@ -148,7 +148,7 @@ Open **Final prompt · edit for this generation** to edit exactly what will be s
 - **[Back to assembled prompt]** puts it back any time.
 - Profiles, wardrobes and default outfits do not change.
 
-**Transparent BG (V5 only):** turn on **Transparent BG · V5 only** above [Extract scene] to add the `transparent background` tag to the final prompt and leave the location field out. The AI is also told to extract without a location or background. It stays on until you turn it off.
+**Transparent BG (V5 only):** turn on **Transparent BG · V5 only** above [Extract scene] to add the `transparent background` tag to the final prompt and leave the location field out. The AI is also told to extract without a location or background. Chat Shot and Free Shot each keep their own setting, on until you turn it off.
 
 - It only adds a tag, so a background may remain. If an action (`sitting on a bench`), the lighting (`rain`) or the common Positive has background words, delete them in the final prompt. While it is on, this note shows above the generate button.
 - Turned on for a scene already extracted, only the location is left out. Press [Extract scene] again to extract without a background.

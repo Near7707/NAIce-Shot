@@ -129,7 +129,7 @@ const reopen=async page=>{await page.reload();await page.locator('#ncs-extension
 
 const RULE='TRANSPARENT BACKGROUND:';
 const base=page=>page.locator('#ncs-final-form [data-final="base"]').inputValue();
-const tick=async(page,on)=>{const b=page.locator('#ncs-transparent-bg');if(await b.isChecked()!==on){await b.click();}await page.waitForFunction(v=>mock.extensionSettings.naice_shot.transparentBg===v,on);};
+const tick=async(page,on)=>{const b=page.locator('#ncs-transparent-bg');if(await b.isChecked()!==on){await b.click();}await page.waitForFunction(v=>{const s=mock.extensionSettings.naice_shot,free=document.querySelector('[data-mode="free"]').getAttribute('aria-pressed')==='true';return s[free?'transparentBgFree':'transparentBg']===v;},on);}; // 0.1.172: one value per mode
 const noteText=page=>page.locator('#ncs-transparent-note').innerText();
 const count=(s,w)=>s.split(w).length-1;
 try{
@@ -188,6 +188,7 @@ try{
   await tick(page,true);
   await page.locator('[data-mode="free"]').click();await page.waitForFunction(()=>document.querySelector('[data-mode="free"]').getAttribute('aria-pressed')==='true');
   assert.equal(await page.locator('#ncs-transparent-bg').isVisible(),true,'the same checkbox in Free Shot');
+  await tick(page,true); // 0.1.172: Free Shot keeps its own value (browser-v01172)
   await page.evaluate(()=>{mock.extraction={characters:[{id:'leo',name:'Leo',subject:'boy',appearance:'',outfit:'',expression:'smile',action:'eating ice cream',position:'auto'}],location:'park',lighting:'',camera:'',interaction:''};});
   await page.locator('#ncs-free-text').fill('Leo eats ice cream');await page.locator('[data-action="extract"]').click();await idle(page);
   assert.ok((await page.evaluate(()=>mock.lastExtract.prompt)).includes(RULE),'Free Shot extraction carries the rule');

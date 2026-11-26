@@ -1,3 +1,13 @@
+# v0.1.172 — 2026-11-26 (extension only, server 0.1.25 unchanged)
+
+- New `tests/browser-v01172.mjs` (375px, Korean and English): a new person starts with both off; on in Free Shot leaves Chat Shot off (checkbox, no rule in the chat extraction prompt, no tag, location sent, no warning); back in Free Shot it is still on with its warning; on/off in one mode leaves the other; 0.1.171 settings with it on or off → both modes start with that value, then move apart.
+- `tests/browser-v01171.mjs` step 7 now turns the checkbox on in Free Shot too (it no longer follows Chat Shot), and its `tick` waits for the current mode's value.
+- The new check fails on 0.1.171. Undone one at a time, each of these makes it fail: the one-time carry-over in `settings()`, choosing the value by mode, the checkbox state in `renderTransparent`.
+- Not shown by a check (passes when undone): the checkbox line in `renderSettings` — `renderTransparent` always runs right after it and sets the same box. Kept for consistency.
+- Not checked: a real iPhone, real SillyTavern settings saved across a reload (the test page does not keep settings; saving is the same call as every other setting).
+
+---
+
 # v0.1.171 — 2026-11-26 (extension only, server 0.1.25 unchanged)
 
 - New `tests/browser-v01171.mjs` (375 and 1100px, Korean and English, plus 320/375 overflow): checkbox above [장면 추출]; off → no tag, location sent, no warning, no rule in the extraction prompt; on → the chat and Free Shot extraction prompts carry the rule, the final prompt and the generation request have the tag once and no location, the 장소 field keeps its words with the note; V4.5 → disabled, no tag, location back; a tag already in the common Positive is not doubled; a hand-edited final prompt is not rewritten and the warning names a missing tag; off with the tag in the final prompt still warns.

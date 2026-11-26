@@ -76,6 +76,8 @@ function settings() {
   // 0.1.168: a new install also starts in SillyTavern's language (see firstLanguage); existing settings without a choice stay Korean.
   if(!c.extensionSettings[KEY])c.extensionSettings[KEY]={...clone(DEFAULTS),extractionMaxTokens:RECOMMENDED_MAX_TOKENS,recent:1,uiLanguage:firstLanguage(c)};
   const s=c.extensionSettings[KEY];for(const [k,v] of Object.entries(DEFAULTS))if(s[k]===undefined)s[k]=clone(v);
+  // 0.1.172: the Transparent BG check is kept per mode. Chat Shot keeps transparentBg; Free Shot starts from it once.
+  if(typeof s.transparentBgFree!=='boolean')s.transparentBgFree=s.transparentBg===true;
   // Noise Schedule is no longer offered: new generations always use the default (karras).
   s.options=freeOptions({...DEFAULTS.options,...s.options,scheduler:DEFAULTS.options.scheduler});s.version=VERSION;return s;
 }
@@ -1049,7 +1051,7 @@ function renderSettings() {
   for(const [id,k] of [['positive','positive'],['negative','negative'],['recent','recent'],['format','format']])$(`ncs-${id}`).value=s[k];
   for(const [id,k] of [['model','model'],['steps','steps'],['scale','scale'],['seed','seed'],['cfg','cfgRescale'],['sampler','sampler']])$(`ncs-${id}`).value=s.options[k];
   renderRawRetention();
-  $('ncs-include-user').checked=s.includeUser;$('ncs-schema').checked=s.structuredOutput;$('ncs-retain-raw').checked=s.retainRawExtraction===true;$('ncs-allow-anlas').checked=s.allowAnlas;$('ncs-transparent-bg').checked=s.transparentBg===true;
+  $('ncs-include-user').checked=s.includeUser;$('ncs-schema').checked=s.structuredOutput;$('ncs-retain-raw').checked=s.retainRawExtraction===true;$('ncs-allow-anlas').checked=s.allowAnlas;$('ncs-transparent-bg').checked=tbgSet();
   $('ncs-ui-language').value=s.uiLanguage==='en'?'en':'ko';$('ncs-image-placement').value=s.imagePlacement==='below'?'below':'above';renderPlacement();$('ncs-message-button').checked=messageButtonsOn();$('ncs-inline-layout').value=inlineLayout();$('ncs-inline-size').value=inlineSize();$('ncs-size-preset').value=sizePresetOf(s.options);renderBrand();
   renderImagePresets();renderExtractionProfiles();$('ncs-extraction-max-tokens').value=s.extractionMaxTokens;$('ncs-extraction-temperature').value=extractionTemperature()??'';
 }
@@ -1716,7 +1718,9 @@ function fixedLook(c,p){
 // 0.1.171 Transparent BG (V5 only): the tag is added and the location is left out here, where the final prompt is built,
 // so the final prompt shows what is sent. A hand-edited or history final prompt is never rewritten (renderTransparent says so).
 const TBG='transparent background',TBG_RE=/\btransparent background\b/i;
-function transparentOn(){return settings().transparentBg===true&&isV5(effectiveOptions().model);}
+// 0.1.172 (user decision): one value per mode — Chat Shot transparentBg, Free Shot transparentBgFree.
+const tbgKey=()=>isFree()?'transparentBgFree':'transparentBg',tbgSet=()=>settings()[tbgKey()]===true;
+function transparentOn(){return tbgSet()&&isV5(effectiveOptions().model);}
 function assembleScene(){
   if(!transparentOn())return assembleFrom(scene);
   const a=assembleFrom({...scene,location:''});
@@ -1725,7 +1729,7 @@ function assembleScene(){
 }
 function renderTransparent(){
   const box=dialog&&$('ncs-transparent-bg');if(!box)return;
-  const v5=isV5(effectiveOptions().model),on=settings().transparentBg===true,active=on&&v5;
+  const v5=isV5(effectiveOptions().model),on=tbgSet(),active=on&&v5;
   box.checked=on;box.disabled=!v5;$('ncs-location-skip').hidden=!active;
   let base='';try{const a=finalData();base=a?.invalid?'':String(a?.base??'');}catch{}
   const tagged=TBG_RE.test(base),note=$('ncs-transparent-note');
@@ -3728,7 +3732,7 @@ function bindEvents() {
       }
       // 0.1.88 (user's choice): the same consent as a second checkbox where the "Anlas 허용이 꺼져 있어요" note is,
       // so it can be ticked right there. It is still a checkbox the user ticks (0.1.46: nothing turns it on by itself).
-      if(el.id==='ncs-transparent-bg'){settings().transparentBg=el.checked;ctx().saveSettingsDebounced();revision++;updateFinal();return;}
+      if(el.id==='ncs-transparent-bg'){settings()[tbgKey()]=el.checked;ctx().saveSettingsDebounced();revision++;updateFinal();return;}
       if(el.id==='ncs-allow-anlas-here'){const main=$('ncs-allow-anlas');main.checked=el.checked;main.dispatchEvent(new Event('input',{bubbles:true}));return;}
       const settingMap={'ncs-positive':'positive','ncs-negative':'negative','ncs-format':'format','ncs-recent':'recent','ncs-include-user':'includeUser','ncs-schema':'structuredOutput','ncs-allow-anlas':'allowAnlas'};
       const optionMap={'ncs-model':'model','ncs-steps':'steps','ncs-scale':'scale','ncs-seed':'seed','ncs-cfg':'cfgRescale','ncs-sampler':'sampler'};

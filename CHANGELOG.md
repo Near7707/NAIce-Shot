@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.172 — 2026-11-26 (extension only — server v0.1.25 unchanged)
+
+- **Transparent BG** is now kept separately for Chat Shot and Free Shot. Turning it on in Free Shot no longer turns it on in Chat Shot, and the other way round. The same checkbox shows each mode's own value when you switch modes.
+- Settings from 0.1.171: Free Shot starts once with the value Chat Shot had, so nothing switches on or off by itself on update; after that the two move apart.
+- Guide (both languages) and both READMEs say so.
+
 ## 0.1.171 — 2026-11-26 (extension only — server v0.1.25 unchanged)
 
 - **Transparent BG · V5 only** (투명 배경 · V5에서만): one checkbox right above **Extract scene** (Chat Shot and Free Shot), on until turned off. With a V5 model it adds `transparent background` to the final prompt once (not again if the common Positive has it) and leaves the location field out (its words stay, with a "not sent" note beside 장소). The chat and Free Shot extraction prompts get one more line asking for no location, places, furniture, scenery or weather. Off, every prompt is exactly as before. With V4.5 the checkbox is disabled and nothing changes.
